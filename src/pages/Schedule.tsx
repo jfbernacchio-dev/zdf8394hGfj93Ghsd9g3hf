@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card } from '@/components/ui/card';
@@ -17,6 +18,10 @@ import { ptBR } from 'date-fns/locale';
 
 const Schedule = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const therapistId = searchParams.get('therapist'); // ID do terapeuta sendo visualizado pelo admin
+  const effectiveUserId = therapistId || user?.id; // Usa therapist ID se fornecido, senão usa o user logado
+  
   const [sessions, setSessions] = useState<any[]>([]);
   const [patients, setPatients] = useState<any[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -50,19 +55,19 @@ const Schedule = () => {
   });
 
   useEffect(() => {
-    if (user) {
+    if (effectiveUserId) {
       loadData();
       loadScheduleBlocks();
       autoUpdateOldSessions();
     }
-  }, [user, currentMonth]);
+  }, [effectiveUserId, currentMonth]);
 
   const autoUpdateOldSessions = async () => {
     // Get all scheduled sessions with patient info
     const { data: scheduledSessions } = await supabase
       .from('sessions')
       .select('*, patients!inner(*)')
-      .eq('patients.user_id', user!.id)
+      .eq('patients.user_id', effectiveUserId!)
       .eq('status', 'scheduled');
 
     if (!scheduledSessions) return;
@@ -99,7 +104,7 @@ const Schedule = () => {
     const { data: sessionsData } = await supabase
       .from('sessions')
       .select('*, patients!inner(*)')
-      .eq('patients.user_id', user!.id)
+      .eq('patients.user_id', effectiveUserId!)
       .gte('date', format(start, 'yyyy-MM-dd'))
       .lte('date', format(end, 'yyyy-MM-dd'))
       .order('date', { ascending: true });
@@ -107,7 +112,7 @@ const Schedule = () => {
     const { data: patientsData } = await supabase
       .from('patients')
       .select('*')
-      .eq('user_id', user!.id)
+      .eq('user_id', effectiveUserId!)
       .eq('status', 'active');
 
     setSessions(sessionsData || []);
@@ -118,7 +123,7 @@ const Schedule = () => {
     const { data } = await supabase
       .from('schedule_blocks')
       .select('*')
-      .eq('user_id', user!.id);
+      .eq('user_id', effectiveUserId!);
     
     setScheduleBlocks(data || []);
   };
@@ -149,7 +154,7 @@ const Schedule = () => {
 
   const handleCreateBlock = async () => {
     let blockData: any = {
-      user_id: user!.id,
+      user_id: effectiveUserId!,
       day_of_week: parseInt(blockForm.day_of_week),
       start_time: blockForm.start_time,
       end_time: blockForm.end_time,
@@ -170,7 +175,7 @@ const Schedule = () => {
       for (let week = 0; week < blockForm.replicate_weeks; week++) {
         const weekDate = addDays(startDate, week * 7);
         blocks.push({
-          user_id: user!.id,
+          user_id: effectiveUserId!,
           day_of_week: parseInt(blockForm.day_of_week),
           start_time: blockForm.start_time,
           end_time: blockForm.end_time,
