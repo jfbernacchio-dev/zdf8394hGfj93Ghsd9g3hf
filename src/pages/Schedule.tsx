@@ -11,8 +11,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import Navbar from '@/components/Navbar';
 import { useToast } from '@/hooks/use-toast';
-import { Calendar as CalendarIcon, Plus, CheckCircle, XCircle, DollarSign, ArrowLeft } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, startOfWeek, addDays, isBefore, parseISO } from 'date-fns';
+import { Calendar as CalendarIcon, Plus, CheckCircle, XCircle, DollarSign, ArrowLeft, Lock } from 'lucide-react';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, startOfWeek, addDays, isBefore, parseISO, getDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const Schedule = () => {
@@ -24,7 +24,17 @@ const Schedule = () => {
   const [viewMode, setViewMode] = useState<'month' | 'day' | 'week'>('month');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<any>(null);
+  const [scheduleBlocks, setScheduleBlocks] = useState<any[]>([]);
+  const [isBlockDialogOpen, setIsBlockDialogOpen] = useState(false);
   const { toast } = useToast();
+
+  const [blockForm, setBlockForm] = useState({
+    day_of_week: '1',
+    start_time: '12:00',
+    end_time: '13:00',
+    reason: '',
+    replicate_weeks: 1
+  });
 
   const [formData, setFormData] = useState({
     patient_id: '',
@@ -39,6 +49,7 @@ const Schedule = () => {
   useEffect(() => {
     if (user) {
       loadData();
+      loadScheduleBlocks();
       autoUpdateOldSessions();
     }
   }, [user, currentMonth]);
@@ -98,6 +109,67 @@ const Schedule = () => {
 
     setSessions(sessionsData || []);
     setPatients(patientsData || []);
+  };
+
+  const loadScheduleBlocks = async () => {
+    const { data } = await supabase
+      .from('schedule_blocks')
+      .select('*')
+      .eq('user_id', user!.id);
+    
+    setScheduleBlocks(data || []);
+  };
+
+  const isTimeBlocked = (dayOfWeek: number, time: string) => {
+    return scheduleBlocks.some(block => {
+      if (block.day_of_week !== dayOfWeek) return false;
+      return time >= block.start_time && time < block.end_time;
+    });
+  };
+
+  const handleCreateBlock = async () => {
+    const blocks = [];
+    for (let week = 0; week < blockForm.replicate_weeks; week++) {
+      blocks.push({
+        user_id: user!.id,
+        day_of_week: parseInt(blockForm.day_of_week),
+        start_time: blockForm.start_time,
+        end_time: blockForm.end_time,
+        reason: blockForm.reason
+      });
+    }
+
+    const { error } = await supabase
+      .from('schedule_blocks')
+      .insert(blocks);
+
+    if (error) {
+      toast({ title: 'Erro ao criar bloqueio', variant: 'destructive' });
+      return;
+    }
+
+    toast({ title: 'Bloqueio(s) criado(s) com sucesso!' });
+    setIsBlockDialogOpen(false);
+    setBlockForm({
+      day_of_week: '1',
+      start_time: '12:00',
+      end_time: '13:00',
+      reason: '',
+      replicate_weeks: 1
+    });
+    loadScheduleBlocks();
+  };
+
+  const deleteBlock = async (blockId: string) => {
+    const { error } = await supabase
+      .from('schedule_blocks')
+      .delete()
+      .eq('id', blockId);
+
+    if (!error) {
+      toast({ title: 'Bloqueio removido' });
+      loadScheduleBlocks();
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -283,13 +355,90 @@ const Schedule = () => {
     const weekDays = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
     const hours = Array.from({ length: 15 }, (_, i) => i + 7); // 7:00 to 21:00
 
+    // Calculate position based on exact time
+    const getSessionPosition = (time: string) => {
+      const [hours, minutes] = time.split(':').map(Number);
+      const totalMinutes = (hours - 7) * 60 + minutes;
+      return (totalMinutes / 60) * 60; // 60px per hour
+    };
+
     return (
       <Card className="p-6">
         <div className="flex items-center justify-between mb-6">
-          <Button variant="ghost" onClick={() => setViewMode('month')}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Voltar ao mês
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={() => setViewMode('month')}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Voltar ao mês
+            </Button>
+            <Dialog open={isBlockDialogOpen} onOpenChange={setIsBlockDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Lock className="mr-2 h-4 w-4" />
+                  Gerenciar Bloqueios
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Bloqueio de Agenda</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label>Dia da Semana</Label>
+                    <Select value={blockForm.day_of_week} onValueChange={(value) => setBlockForm({...blockForm, day_of_week: value})}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">Segunda-feira</SelectItem>
+                        <SelectItem value="2">Terça-feira</SelectItem>
+                        <SelectItem value="3">Quarta-feira</SelectItem>
+                        <SelectItem value="4">Quinta-feira</SelectItem>
+                        <SelectItem value="5">Sexta-feira</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label>Início</Label>
+                      <Input type="time" value={blockForm.start_time} onChange={(e) => setBlockForm({...blockForm, start_time: e.target.value})} />
+                    </div>
+                    <div>
+                      <Label>Fim</Label>
+                      <Input type="time" value={blockForm.end_time} onChange={(e) => setBlockForm({...blockForm, end_time: e.target.value})} />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Motivo (opcional)</Label>
+                    <Input value={blockForm.reason} onChange={(e) => setBlockForm({...blockForm, reason: e.target.value})} placeholder="Ex: Almoço, Reunião..." />
+                  </div>
+                  <div>
+                    <Label>Replicar para quantas semanas?</Label>
+                    <Input type="number" min="1" value={blockForm.replicate_weeks} onChange={(e) => setBlockForm({...blockForm, replicate_weeks: parseInt(e.target.value)})} />
+                  </div>
+                  <Button onClick={handleCreateBlock} className="w-full">Criar Bloqueio</Button>
+                  
+                  <div className="border-t pt-4 mt-4">
+                    <h3 className="font-semibold mb-2">Bloqueios Existentes</h3>
+                    <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                      {scheduleBlocks.map(block => (
+                        <div key={block.id} className="flex justify-between items-center p-2 bg-muted rounded">
+                          <div className="text-sm">
+                            <p className="font-medium">
+                              {['', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'][block.day_of_week]} - {block.start_time} às {block.end_time}
+                            </p>
+                            {block.reason && <p className="text-xs text-muted-foreground">{block.reason}</p>}
+                          </div>
+                          <Button variant="ghost" size="sm" onClick={() => deleteBlock(block.id)}>
+                            <XCircle className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
           <h2 className="text-xl font-semibold">
             {format(weekStart, "d 'de' MMMM", { locale: ptBR })} - {format(addDays(weekStart, 4), "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
           </h2>
@@ -298,53 +447,71 @@ const Schedule = () => {
           </Button>
         </div>
 
-        <div className="grid grid-cols-6 gap-2 border rounded-lg overflow-hidden">
+        <div className="grid grid-cols-6 gap-0 border rounded-lg overflow-hidden">
           {/* Header row */}
-          <div className="bg-muted/50 p-2 font-semibold text-sm border-r sticky top-0">Horário</div>
+          <div className="bg-muted/50 p-2 font-semibold text-sm border-r sticky top-0 z-10">Horário</div>
           {['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'].map((day, index) => (
-            <div key={day} className="bg-muted/50 p-2 text-center border-r last:border-r-0 sticky top-0">
+            <div key={day} className="bg-muted/50 p-2 text-center border-r last:border-r-0 sticky top-0 z-10">
               <h3 className="font-semibold text-sm">{day}</h3>
               <p className="text-xs text-muted-foreground">{format(weekDays[index], 'dd/MM')}</p>
             </div>
           ))}
 
-          {/* Time slots */}
+          {/* Time slots with absolute positioning */}
           {hours.map(hour => (
             <div key={hour} className="contents">
-              <div className="bg-muted/30 p-2 text-sm font-medium text-muted-foreground border-t border-r">
+              <div className="bg-muted/30 p-2 text-sm font-medium text-muted-foreground border-t border-r h-[60px] flex items-start">
                 {hour.toString().padStart(2, '0')}:00
               </div>
               {weekDays.map((dayDate, dayIndex) => {
-                const daySessions = sessions.filter(s => {
-                  if (s.date !== format(dayDate, 'yyyy-MM-dd')) return false;
-                  const sessionTime = s.time || s.patients?.session_time || '00:00';
-                  const sessionHour = parseInt(sessionTime.split(':')[0]);
-                  return sessionHour === hour;
-                });
+                const dayOfWeek = getDay(dayDate);
+                const adjustedDay = dayOfWeek === 0 ? 7 : dayOfWeek;
+                const isBlocked = isTimeBlocked(adjustedDay, `${hour.toString().padStart(2, '0')}:00`);
+                
+                // Get all sessions for this day (not filtered by hour)
+                const allDaySessions = sessions.filter(s => s.date === format(dayDate, 'yyyy-MM-dd'));
 
                 return (
                   <div
                     key={`${hour}-${dayIndex}`}
-                    className="min-h-[40px] p-1 border-t border-r last:border-r-0 hover:bg-accent/20 transition-colors"
+                    className={`h-[60px] border-t border-r last:border-r-0 relative ${isBlocked ? 'bg-muted/50' : 'hover:bg-accent/20'} transition-colors`}
                   >
-                    {daySessions.map(session => (
-                      <Card
-                        key={session.id}
-                        className="p-2 cursor-pointer hover:shadow-md transition-all mb-1 border-l-4"
-                        style={{
-                          borderLeftColor: session.status === 'attended' ? 'hsl(var(--chart-2))' : 
-                                         session.status === 'missed' ? 'hsl(var(--destructive))' : 
-                                         'hsl(var(--primary))'
-                        }}
-                        onClick={() => openEditDialog(session)}
-                      >
-                        <p className="font-semibold text-xs truncate">{session.patients.name}</p>
-                        <p className="text-[10px] text-muted-foreground">{session.time || session.patients?.session_time}</p>
-                        <Badge variant={getStatusVariant(session.status)} className="text-[10px] mt-1 px-1 py-0">
-                          {getStatusText(session.status)}
-                        </Badge>
-                      </Card>
-                    ))}
+                    {isBlocked && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Lock className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    )}
+                    
+                    {/* Render sessions with absolute positioning */}
+                    {hour === 7 && allDaySessions.map(session => {
+                      const sessionTime = session.time || session.patients?.session_time || '00:00';
+                      const topPosition = getSessionPosition(sessionTime);
+                      
+                      return (
+                        <Card
+                          key={session.id}
+                          className="absolute left-1 right-1 cursor-pointer hover:shadow-md transition-all border-l-4 p-2 z-20"
+                          style={{
+                            top: `${topPosition}px`,
+                            height: '56px', // 1 hour minus some padding
+                            borderLeftColor: session.status === 'attended' ? 'hsl(var(--chart-2))' : 
+                                           session.status === 'missed' ? 'hsl(var(--destructive))' : 
+                                           'hsl(var(--primary))'
+                          }}
+                          onClick={() => openEditDialog(session)}
+                        >
+                          <div className="flex items-center justify-between h-full">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-xs truncate">{session.patients.name}</p>
+                              <p className="text-[10px] text-muted-foreground">{sessionTime}</p>
+                            </div>
+                            <Badge variant={getStatusVariant(session.status)} className="text-[10px] px-1 py-0 ml-1 shrink-0">
+                              {getStatusText(session.status).substring(0, 4)}
+                            </Badge>
+                          </div>
+                        </Card>
+                      );
+                    })}
                   </div>
                 );
               })}
