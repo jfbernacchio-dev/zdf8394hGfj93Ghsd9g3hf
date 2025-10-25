@@ -31,7 +31,8 @@ const Schedule = () => {
     status: 'scheduled',
     notes: '',
     value: '',
-    paid: false
+    paid: false,
+    time: ''
   });
 
   useEffect(() => {
@@ -135,14 +136,36 @@ const Schedule = () => {
 
     setIsDialogOpen(false);
     setEditingSession(null);
-    setFormData({
+      setFormData({
       patient_id: '',
       date: format(new Date(), 'yyyy-MM-dd'),
       status: 'scheduled',
       notes: '',
       value: '',
-      paid: false
+      paid: false,
+      time: ''
     });
+    loadData();
+  };
+
+  const deleteSession = async () => {
+    if (!editingSession) return;
+    
+    if (!confirm('Tem certeza que deseja excluir esta sessão?')) return;
+    
+    const { error } = await supabase
+      .from('sessions')
+      .delete()
+      .eq('id', editingSession.id);
+
+    if (error) {
+      toast({ title: 'Erro ao excluir sessão', variant: 'destructive' });
+      return;
+    }
+
+    toast({ title: 'Sessão excluída com sucesso!' });
+    setIsDialogOpen(false);
+    setEditingSession(null);
     loadData();
   };
 
@@ -154,7 +177,8 @@ const Schedule = () => {
       status: session.status,
       notes: session.notes || '',
       value: session.value.toString(),
-      paid: session.paid
+      paid: session.paid,
+      time: session.patients?.session_time || ''
     });
     setIsDialogOpen(true);
   };
@@ -167,12 +191,23 @@ const Schedule = () => {
       status: 'scheduled',
       notes: '',
       value: '',
-      paid: false
+      paid: false,
+      time: ''
     });
     setIsDialogOpen(true);
   };
 
   const toggleStatus = async (session: any) => {
+    // Prevent marking future sessions as attended
+    if (session.status === 'scheduled' && isBefore(new Date(), parseISO(session.date))) {
+      toast({ 
+        title: 'Não é possível marcar como compareceu', 
+        description: 'Sessões futuras não podem ser marcadas como comparecidas.',
+        variant: 'destructive' 
+      });
+      return;
+    }
+
     const newStatus = session.status === 'scheduled' ? 'attended' : 
                      session.status === 'attended' ? 'missed' : 'scheduled';
     
@@ -393,6 +428,15 @@ const Schedule = () => {
               </div>
 
               <div>
+                <Label>Horário</Label>
+                <Input
+                  type="time"
+                  value={formData.time || ''}
+                  onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                />
+              </div>
+
+              <div>
                 <Label>Status</Label>
                 <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
                   <SelectTrigger>
@@ -438,14 +482,19 @@ const Schedule = () => {
               </div>
 
               {editingSession && (
-                <div className="flex gap-2 pt-4 border-t">
-                  <Button type="button" variant="outline" onClick={() => toggleStatus(editingSession)} className="flex-1">
-                    {editingSession.status === 'scheduled' ? <CheckCircle className="mr-2 h-4 w-4" /> : <XCircle className="mr-2 h-4 w-4" />}
-                    Alterar Status
-                  </Button>
-                  <Button type="button" variant="outline" onClick={() => togglePaid(editingSession)} className="flex-1">
-                    <DollarSign className="mr-2 h-4 w-4" />
-                    {editingSession.paid ? 'Marcar não pago' : 'Marcar pago'}
+                <div className="space-y-2 pt-4 border-t">
+                  <div className="flex gap-2">
+                    <Button type="button" variant="outline" onClick={() => toggleStatus(editingSession)} className="flex-1">
+                      {editingSession.status === 'scheduled' ? <CheckCircle className="mr-2 h-4 w-4" /> : <XCircle className="mr-2 h-4 w-4" />}
+                      Alterar Status
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => togglePaid(editingSession)} className="flex-1">
+                      <DollarSign className="mr-2 h-4 w-4" />
+                      {editingSession.paid ? 'Marcar não pago' : 'Marcar pago'}
+                    </Button>
+                  </div>
+                  <Button type="button" variant="destructive" onClick={deleteSession} className="w-full">
+                    Excluir Sessão
                   </Button>
                 </div>
               )}

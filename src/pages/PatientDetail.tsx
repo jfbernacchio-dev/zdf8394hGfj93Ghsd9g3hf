@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, Plus, Calendar, DollarSign, Edit } from 'lucide-react';
+import { ArrowLeft, Plus, Calendar, DollarSign, Edit, FileText } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
@@ -21,12 +21,16 @@ const PatientDetail = () => {
   const [sessions, setSessions] = useState<any[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<any>(null);
+  const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = useState(false);
+  const [invoiceText, setInvoiceText] = useState('');
+  const [invoiceSessions, setInvoiceSessions] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     date: format(new Date(), 'yyyy-MM-dd'),
     status: 'attended',
     notes: '',
     value: '',
-    paid: false
+    paid: false,
+    time: ''
   });
 
   useEffect(() => {
@@ -48,7 +52,8 @@ const PatientDetail = () => {
       status: 'attended',
       notes: '',
       value: patient?.session_value?.toString() || '',
-      paid: false
+      paid: false,
+      time: patient?.session_time || ''
     });
     setIsDialogOpen(true);
   };
@@ -60,7 +65,8 @@ const PatientDetail = () => {
       status: session.status,
       notes: session.notes || '',
       value: session.value.toString(),
-      paid: session.paid
+      paid: session.paid,
+      time: patient?.session_time || ''
     });
     setIsDialogOpen(true);
   };
@@ -105,6 +111,17 @@ const PatientDetail = () => {
   };
 
   const toggleStatus = async (session: any, checked: boolean) => {
+    // Prevent marking future sessions as attended
+    const { isBefore } = await import('date-fns');
+    if (checked && isBefore(new Date(), parseISO(session.date))) {
+      toast({ 
+        title: 'Não é possível marcar como compareceu', 
+        description: 'Sessões futuras não podem ser marcadas como comparecidas.',
+        variant: 'destructive' 
+      });
+      return;
+    }
+
     const newStatus = checked ? 'attended' : 'missed';
     
     const { error } = await supabase
@@ -130,6 +147,84 @@ const PatientDetail = () => {
     
     toast({ title: `Status alterado para ${newStatus === 'attended' ? 'Compareceu' : 'Não Compareceu'}` });
     await loadData();
+  };
+
+  const deleteSession = async (sessionId: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta sessão?')) return;
+    
+    const { error } = await supabase
+      .from('sessions')
+      .delete()
+      .eq('id', sessionId);
+
+    if (error) {
+      toast({ title: 'Erro ao excluir sessão', variant: 'destructive' });
+      return;
+    }
+
+    toast({ title: 'Sessão excluída com sucesso!' });
+    setIsDialogOpen(false);
+    loadData();
+  };
+
+  const generateInvoice = () => {
+    const unpaidSessions = sessions.filter(s => s.status === 'attended' && !s.paid);
+    
+    if (unpaidSessions.length === 0) {
+      toast({ 
+        title: 'Nenhuma sessão em aberto', 
+        description: 'Não há sessões para fechamento.',
+        variant: 'destructive' 
+      });
+      return;
+    }
+
+    setInvoiceSessions(unpaidSessions);
+    
+    const totalValue = unpaidSessions.reduce((sum, s) => sum + Number(s.value), 0);
+    const sessionDates = unpaidSessions.map(s => format(parseISO(s.date), 'dd/MM/yyyy')).join(', ');
+    
+    const invoice = `RECIBO DE PRESTAÇÃO DE SERVIÇOS
+
+Recebi de: ${patient.name}
+CPF: ${patient.cpf}
+
+Referente a: Serviços de Psicologia
+Sessões realizadas nas datas: ${sessionDates}
+Quantidade de sessões: ${unpaidSessions.length}
+
+Valor unitário por sessão: R$ ${Number(patient.session_value).toFixed(2)}
+Valor total: R$ ${totalValue.toFixed(2)}
+
+Data de emissão: ${format(new Date(), 'dd/MM/yyyy')}
+
+_____________________________
+Assinatura do Profissional`;
+
+    setInvoiceText(invoice);
+    setIsInvoiceDialogOpen(true);
+  };
+
+  const markSessionsAsPaid = async () => {
+    const sessionIds = invoiceSessions.map(s => s.id);
+    
+    const { error } = await supabase
+      .from('sessions')
+      .update({ paid: true })
+      .in('id', sessionIds);
+
+    if (error) {
+      toast({ title: 'Erro ao atualizar sessões', variant: 'destructive' });
+      return;
+    }
+
+    toast({ 
+      title: 'Sessões atualizadas!', 
+      description: `${sessionIds.length} sessão(ões) marcada(s) como paga(s).` 
+    });
+    
+    setIsInvoiceDialogOpen(false);
+    loadData();
   };
 
 
@@ -209,10 +304,16 @@ const PatientDetail = () => {
 
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-foreground">Histórico de Sessões</h2>
-          <Button onClick={openNewSessionDialog}>
-            <Plus className="w-4 h-4 mr-2" />
-            Nova Sessão
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={generateInvoice} variant="outline">
+              <FileText className="w-4 h-4 mr-2" />
+              Fazer Fechamento
+            </Button>
+            <Button onClick={openNewSessionDialog}>
+              <Plus className="w-4 h-4 mr-2" />
+              Nova Sessão
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-4">
@@ -286,6 +387,15 @@ const PatientDetail = () => {
               </div>
 
               <div>
+                <Label>Horário</Label>
+                <Input
+                  type="time"
+                  value={formData.time}
+                  onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                />
+              </div>
+
+              <div>
                 <Label>Valor (R$)</Label>
                 <Input
                   type="number"
@@ -316,10 +426,52 @@ const PatientDetail = () => {
                 <Label htmlFor="paid">Pago</Label>
               </div>
 
+              {editingSession && (
+                <Button 
+                  type="button" 
+                  variant="destructive" 
+                  onClick={() => deleteSession(editingSession.id)} 
+                  className="w-full"
+                >
+                  Excluir Sessão
+                </Button>
+              )}
+
               <Button type="submit" className="w-full">
                 {editingSession ? 'Atualizar' : 'Criar'} Sessão
               </Button>
             </form>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isInvoiceDialogOpen} onOpenChange={setIsInvoiceDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Fechamento de Sessões</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Textarea
+                value={invoiceText}
+                readOnly
+                rows={15}
+                className="font-mono text-sm"
+              />
+              <div className="flex gap-2">
+                <Button onClick={markSessionsAsPaid} className="flex-1">
+                  Dar Baixa nas Sessões
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    navigator.clipboard.writeText(invoiceText);
+                    toast({ title: 'Texto copiado!' });
+                  }}
+                  className="flex-1"
+                >
+                  Copiar Texto
+                </Button>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
       </div>

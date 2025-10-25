@@ -6,15 +6,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ArrowLeft } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { useToast } from '@/hooks/use-toast';
+import { format, addWeeks, parseISO, getDay } from 'date-fns';
 
 const EditPatient = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [formData, setFormData] = useState<any>(null);
+  const [originalData, setOriginalData] = useState<any>(null);
+  const [isChangeDialogOpen, setIsChangeDialogOpen] = useState(false);
+  const [changeFromDate, setChangeFromDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
   useEffect(() => {
     loadPatient();
@@ -23,7 +28,7 @@ const EditPatient = () => {
   const loadPatient = async () => {
     const { data } = await supabase.from('patients').select('*').eq('id', id).single();
     if (data) {
-      setFormData({
+      const patientData = {
         name: data.name,
         email: data.email,
         phone: data.phone,
@@ -35,7 +40,9 @@ const EditPatient = () => {
         session_value: data.session_value,
         start_date: data.start_date,
         status: data.status,
-      });
+      };
+      setFormData(patientData);
+      setOriginalData(patientData);
     }
   };
 
@@ -75,6 +82,19 @@ const EditPatient = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Check if session day or time changed
+    const dayChanged = formData.session_day !== originalData.session_day;
+    const timeChanged = formData.session_time !== originalData.session_time;
+    
+    if (dayChanged || timeChanged) {
+      setIsChangeDialogOpen(true);
+      return;
+    }
+    
+    await updatePatient();
+  };
+
+  const updatePatient = async () => {
     const { error } = await supabase.from('patients').update({
       name: formData.name,
       email: formData.email,
@@ -103,6 +123,66 @@ const EditPatient = () => {
     });
     
     navigate('/patients');
+  };
+
+  const updateFutureSessions = async () => {
+    // Get all future sessions from the specified date
+    const { data: futureSessions } = await supabase
+      .from('sessions')
+      .select('*')
+      .eq('patient_id', id)
+      .gte('date', changeFromDate)
+      .order('date', { ascending: true });
+
+    if (!futureSessions || futureSessions.length === 0) {
+      await updatePatient();
+      return;
+    }
+
+    // Delete old future sessions
+    await supabase
+      .from('sessions')
+      .delete()
+      .eq('patient_id', id)
+      .gte('date', changeFromDate);
+
+    // Calculate new dates based on new session day and frequency
+    const dayOfWeekMap: { [key: string]: number } = {
+      sunday: 0, monday: 1, tuesday: 2, wednesday: 3,
+      thursday: 4, friday: 5, saturday: 6,
+    };
+
+    const targetDay = dayOfWeekMap[formData.session_day.toLowerCase()];
+    let currentDate = parseISO(changeFromDate);
+    
+    // Adjust to the target day of week
+    const currentDay = getDay(currentDate);
+    let daysToAdd = targetDay - currentDay;
+    if (daysToAdd < 0) daysToAdd += 7;
+    currentDate = new Date(currentDate.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
+
+    // Create new sessions with updated dates
+    const newSessions = [];
+    for (let i = 0; i < futureSessions.length; i++) {
+      const sessionDateStr = format(currentDate, 'yyyy-MM-dd');
+      
+      newSessions.push({
+        patient_id: id,
+        date: sessionDateStr,
+        status: 'scheduled',
+        value: formData.session_value,
+        paid: false,
+        notes: futureSessions[i].notes
+      });
+
+      // Move to next session date
+      const weeksToAdd = formData.frequency === 'weekly' ? 1 : 2;
+      currentDate = addWeeks(currentDate, weeksToAdd);
+    }
+
+    await supabase.from('sessions').insert(newSessions);
+    await updatePatient();
+    setIsChangeDialogOpen(false);
   };
 
   if (!formData) {
@@ -283,6 +363,43 @@ const EditPatient = () => {
             </div>
           </form>
         </Card>
+
+        <Dialog open={isChangeDialogOpen} onOpenChange={setIsChangeDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Aplicar Mudança de Horário/Dia</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Você alterou o dia da semana ou horário da sessão. A partir de qual data deseja aplicar essa mudança?
+              </p>
+              <div>
+                <Label>Aplicar mudanças a partir de:</Label>
+                <Input
+                  type="date"
+                  value={changeFromDate}
+                  onChange={(e) => setChangeFromDate(e.target.value)}
+                  min={format(new Date(), 'yyyy-MM-dd')}
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={updateFutureSessions} className="flex-1">
+                  Aplicar Mudanças
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={async () => {
+                    await updatePatient();
+                    setIsChangeDialogOpen(false);
+                  }}
+                  className="flex-1"
+                >
+                  Salvar Sem Alterar Sessões
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
