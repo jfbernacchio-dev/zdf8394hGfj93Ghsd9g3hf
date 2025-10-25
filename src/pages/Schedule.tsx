@@ -174,7 +174,7 @@ const Schedule = () => {
 
   const toggleStatus = async (session: any) => {
     const newStatus = session.status === 'scheduled' ? 'attended' : 
-                     session.status === 'attended' ? 'cancelled' : 'scheduled';
+                     session.status === 'attended' ? 'missed' : 'scheduled';
     
     const { error } = await supabase
       .from('sessions')
@@ -182,8 +182,8 @@ const Schedule = () => {
       .eq('id', session.id);
 
     if (!error) {
-      // If marked as attended or cancelled, create next session
-      if (newStatus === 'attended' || newStatus === 'cancelled') {
+      // If marked as attended or missed, create next session
+      if (newStatus === 'attended' || newStatus === 'missed') {
         const { getNextSessionDate } = await import('@/lib/sessionUtils');
         const patient = session.patients;
         const nextDate = getNextSessionDate(session.date, patient.session_day, patient.frequency);
@@ -237,7 +237,7 @@ const Schedule = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'attended': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'cancelled': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+      case 'missed': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
       default: return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
     }
   };
@@ -416,7 +416,7 @@ const Schedule = () => {
                   <SelectContent>
                     <SelectItem value="scheduled">Agendada</SelectItem>
                     <SelectItem value="attended">Compareceu</SelectItem>
-                    <SelectItem value="cancelled">Não Compareceu</SelectItem>
+                    <SelectItem value="missed">Não Compareceu</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -18,16 +18,20 @@ export const generateRecurringSessions = (
   endDate?: Date
 ) => {
   const sessions: { date: string; status: string }[] = [];
-  const start = parseISO(startDate);
-  const targetDayOfWeek = dayOfWeekMap[sessionDay];
+  
+  // Parse the date components to avoid timezone issues
+  const [year, month, day] = startDate.split('-').map(Number);
+  const start = new Date(year, month - 1, day);
+  
+  const targetDayOfWeek = dayOfWeekMap[sessionDay.toLowerCase()];
   const end = endDate || new Date();
   const now = new Date();
 
   // Find the first occurrence of the session day on or after start date
-  let currentDate = startOfDay(start);
+  let currentDate = new Date(start);
   
   // Calculate days to add to reach target day of week
-  const currentDayOfWeek = getDay(currentDate);
+  const currentDayOfWeek = currentDate.getDay();
   let daysToAdd = targetDayOfWeek - currentDayOfWeek;
   
   // If target day is in the past this week, move to next week

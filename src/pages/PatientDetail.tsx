@@ -105,7 +105,7 @@ const PatientDetail = () => {
   };
 
   const toggleStatus = async (session: any) => {
-    const newStatus = session.status === 'attended' ? 'cancelled' : 'attended';
+    const newStatus = session.status === 'attended' ? 'missed' : 'attended';
     
     const { error } = await supabase
       .from('sessions')
@@ -205,11 +205,11 @@ const PatientDetail = () => {
                   <p className="font-semibold">{new Date(session.date).toLocaleDateString('pt-BR')}</p>
                   <p className={`text-sm ${
                     session.status === 'attended' ? 'text-green-600 dark:text-green-400' :
-                    session.status === 'cancelled' ? 'text-red-600 dark:text-red-400' :
+                    session.status === 'missed' ? 'text-red-600 dark:text-red-400' :
                     'text-blue-600 dark:text-blue-400'
                   }`}>
                     {session.status === 'attended' ? 'Compareceu' : 
-                     session.status === 'cancelled' ? 'Não Compareceu' : 'Agendada'}
+                     session.status === 'missed' ? 'Não Compareceu' : 'Agendada'}
                   </p>
                   {session.notes && <p className="text-sm mt-1 text-muted-foreground">{session.notes}</p>}
                 </div>
