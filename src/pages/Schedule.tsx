@@ -325,7 +325,7 @@ const Schedule = () => {
                 return (
                   <div
                     key={`${hour}-${dayIndex}`}
-                    className="min-h-[60px] p-1 border-t border-r last:border-r-0 hover:bg-accent/20 transition-colors"
+                    className="min-h-[40px] p-1 border-t border-r last:border-r-0 hover:bg-accent/20 transition-colors"
                   >
                     {daySessions.map(session => (
                       <Card

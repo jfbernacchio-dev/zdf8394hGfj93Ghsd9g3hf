@@ -83,10 +83,6 @@ const Patients = () => {
     }, {} as Record<string, any[]>);
 
     let invoiceText = `FECHAMENTO GERAL DE SESSÕES\n\n`;
-    invoiceText += `Profissional: ${userProfile?.full_name || ''}\n`;
-    invoiceText += `CPF: ${userProfile?.cpf || ''}\n`;
-    invoiceText += `CRP: ${userProfile?.crp || ''}\n`;
-    invoiceText += `Data de emissão: ${format(new Date(), 'dd/MM/yyyy')}\n\n`;
     invoiceText += `${'='.repeat(60)}\n\n`;
 
     Object.entries(sessionsByPatient).forEach(([patientId, patientSessions]) => {
@@ -94,11 +90,13 @@ const Patients = () => {
       if (!patient) return;
 
       const totalValue = patientSessions.reduce((sum, s) => sum + Number(s.value), 0);
-      const sessionDates = patientSessions.map(s => format(parseISO(s.date), 'dd/MM/yyyy')).join(', ');
+      const sessionDates = patientSessions.map(s => format(parseISO(s.date), 'dd/MM/yyyy')).join(' ; ');
 
       invoiceText += `PACIENTE: ${patient.name}\n`;
       invoiceText += `CPF: ${patient.cpf}\n\n`;
-      invoiceText += `Referente a: Serviços de Psicologia\n`;
+      invoiceText += `Profissional: ${userProfile?.full_name || ''}\n`;
+      invoiceText += `CPF: ${userProfile?.cpf || ''}\n`;
+      invoiceText += `CRP: ${userProfile?.crp || ''}\n\n`;
       invoiceText += `Sessões realizadas nas datas: ${sessionDates}\n`;
       invoiceText += `Quantidade de sessões: ${patientSessions.length}\n`;
       invoiceText += `Valor unitário por sessão: R$ ${Number(patient.session_value).toFixed(2)}\n`;
