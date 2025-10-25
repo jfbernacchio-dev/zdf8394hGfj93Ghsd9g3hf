@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, Plus, Calendar, DollarSign } from 'lucide-react';
+import { ArrowLeft, Plus, Calendar, DollarSign, Edit } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { useToast } from '@/hooks/use-toast';
 
@@ -19,6 +19,7 @@ const PatientDetail = () => {
   const [patient, setPatient] = useState<Patient | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [editingSession, setEditingSession] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     value: '',
@@ -72,6 +73,26 @@ const PatientDetail = () => {
     loadData();
   };
 
+  const handleEditSession = (session: Session) => {
+    setEditingSession(session.id);
+  };
+
+  const handleUpdateSession = (sessionId: string, updates: Partial<Session>) => {
+    const allSessions = storage.getSessions();
+    const updatedSessions = allSessions.map(s => 
+      s.id === sessionId ? { ...s, ...updates } : s
+    );
+    storage.saveSessions(updatedSessions);
+    
+    toast({
+      title: "Sessão atualizada!",
+      description: "As alterações foram salvas com sucesso.",
+    });
+    
+    setEditingSession(null);
+    loadData();
+  };
+
   if (!patient) {
     return (
       <div className="min-h-screen bg-[var(--gradient-soft)]">
@@ -99,14 +120,23 @@ const PatientDetail = () => {
         </Button>
 
         <Card className="p-8 mb-6 shadow-[var(--shadow-card)] border-border">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold text-2xl">
-              {patient.name.charAt(0).toUpperCase()}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold text-2xl">
+                {patient.name.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">{patient.name}</h1>
+                <p className="text-muted-foreground">{patient.email}</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">{patient.name}</h1>
-              <p className="text-muted-foreground">{patient.email}</p>
-            </div>
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/patients/${id}/edit`)}
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              Editar
+            </Button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -199,32 +229,97 @@ const PatientDetail = () => {
         <div className="space-y-4">
           {sessions.map(session => (
             <Card key={session.id} className="p-6 shadow-[var(--shadow-card)] border-border">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <p className="font-semibold text-foreground">
-                      {new Date(session.date).toLocaleDateString('pt-BR', {
-                        day: '2-digit',
-                        month: 'long',
-                        year: 'numeric'
-                      })}
-                    </p>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      session.attended 
-                        ? 'bg-success/10 text-[hsl(var(--success))]' 
-                        : 'bg-destructive/10 text-destructive'
-                    }`}>
-                      {session.attended ? 'Compareceu' : 'Faltou'}
-                    </span>
+              {editingSession === session.id ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Data</Label>
+                      <Input
+                        type="date"
+                        defaultValue={session.date}
+                        onChange={(e) => session.date = e.target.value}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Valor (R$)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        defaultValue={session.value}
+                        onChange={(e) => session.value = parseFloat(e.target.value)}
+                      />
+                    </div>
                   </div>
-                  {session.notes && (
-                    <p className="text-sm text-muted-foreground mb-2">{session.notes}</p>
-                  )}
+                  
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={session.attended}
+                      onCheckedChange={(checked) => session.attended = checked}
+                    />
+                    <Label>Paciente compareceu</Label>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Observações</Label>
+                    <Textarea
+                      defaultValue={session.notes}
+                      onChange={(e) => session.notes = e.target.value}
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={() => handleUpdateSession(session.id, session)}
+                      className="bg-primary hover:bg-primary/90"
+                    >
+                      Salvar
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setEditingSession(null)}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
                 </div>
-                <p className="text-xl font-semibold text-foreground">
-                  R$ {session.value.toFixed(2)}
-                </p>
-              </div>
+              ) : (
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <p className="font-semibold text-foreground">
+                        {new Date(session.date).toLocaleDateString('pt-BR', {
+                          day: '2-digit',
+                          month: 'long',
+                          year: 'numeric'
+                        })}
+                      </p>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        session.attended 
+                          ? 'bg-success/10 text-[hsl(var(--success))]' 
+                          : 'bg-destructive/10 text-destructive'
+                      }`}>
+                        {session.attended ? 'Compareceu' : 'Faltou'}
+                      </span>
+                    </div>
+                    {session.notes && (
+                      <p className="text-sm text-muted-foreground mb-2">{session.notes}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <p className="text-xl font-semibold text-foreground">
+                      R$ {session.value.toFixed(2)}
+                    </p>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleEditSession(session)}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </Card>
           ))}
 

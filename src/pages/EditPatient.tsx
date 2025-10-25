@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { storage } from '@/lib/storage';
-import { Patient, Session } from '@/types/patient';
+import { Patient } from '@/types/patient';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +11,8 @@ import { ArrowLeft } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { useToast } from '@/hooks/use-toast';
 
-const NewPatient = () => {
+const EditPatient = () => {
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [formData, setFormData] = useState({
@@ -24,58 +25,38 @@ const NewPatient = () => {
     sessionTime: '',
   });
 
-  const generateFutureSessions = (patientId: string, startDate: string, frequency: 'weekly' | 'biweekly', sessionTime: string) => {
-    const sessions: Session[] = [];
-    const start = new Date(startDate + 'T' + sessionTime);
-    const weeksToGenerate = 52; // 1 ano de sessões
-    const interval = frequency === 'weekly' ? 1 : 2;
-    
-    for (let i = 0; i < weeksToGenerate; i++) {
-      const sessionDate = new Date(start);
-      sessionDate.setDate(start.getDate() + (i * interval * 7));
-      
-      sessions.push({
-        id: `${patientId}-${i}`,
-        patientId,
-        date: sessionDate.toISOString().split('T')[0],
-        value: 0,
-        attended: true,
-        notes: '',
-        createdAt: new Date().toISOString(),
+  useEffect(() => {
+    const patients = storage.getPatients();
+    const patient = patients.find(p => p.id === id);
+    if (patient) {
+      setFormData({
+        name: patient.name,
+        email: patient.email,
+        phone: patient.phone,
+        birthDate: patient.birthDate,
+        frequency: patient.frequency,
+        sessionDay: patient.sessionDay,
+        sessionTime: patient.sessionTime,
       });
     }
-    
-    return sessions;
-  };
+  }, [id]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     const patients = storage.getPatients();
-    const newPatient: Patient = {
-      id: Date.now().toString(),
-      ...formData,
-      createdAt: new Date().toISOString(),
-    };
-    
-    storage.savePatients([...patients, newPatient]);
-    
-    // Gerar sessões automáticas
-    const existingSessions = storage.getSessions();
-    const newSessions = generateFutureSessions(
-      newPatient.id, 
-      formData.sessionDay, 
-      formData.frequency,
-      formData.sessionTime
+    const updatedPatients = patients.map(p => 
+      p.id === id ? { ...p, ...formData } : p
     );
-    storage.saveSessions([...existingSessions, ...newSessions]);
+    
+    storage.savePatients(updatedPatients);
     
     toast({
-      title: "Paciente cadastrado!",
-      description: `${newPatient.name} foi adicionado com sucesso e as sessões foram agendadas.`,
+      title: "Paciente atualizado!",
+      description: "As informações foram salvas com sucesso.",
     });
     
-    navigate('/patients');
+    navigate(`/patients/${id}`);
   };
 
   return (
@@ -84,7 +65,7 @@ const NewPatient = () => {
       <div className="container mx-auto px-4 py-8 max-w-2xl">
         <Button
           variant="ghost"
-          onClick={() => navigate('/patients')}
+          onClick={() => navigate(`/patients/${id}`)}
           className="mb-6"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
@@ -92,7 +73,7 @@ const NewPatient = () => {
         </Button>
 
         <Card className="p-8 shadow-[var(--shadow-card)] border-border">
-          <h1 className="text-2xl font-bold text-foreground mb-6">Novo Paciente</h1>
+          <h1 className="text-2xl font-bold text-foreground mb-6">Editar Paciente</h1>
           
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
@@ -154,7 +135,7 @@ const NewPatient = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="sessionDay">Data da primeira sessão</Label>
+              <Label htmlFor="sessionDay">Dia da sessão</Label>
               <Input
                 id="sessionDay"
                 type="date"
@@ -176,7 +157,7 @@ const NewPatient = () => {
             </div>
 
             <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
-              Cadastrar Paciente
+              Salvar Alterações
             </Button>
           </form>
         </Card>
@@ -185,4 +166,4 @@ const NewPatient = () => {
   );
 };
 
-export default NewPatient;
+export default EditPatient;

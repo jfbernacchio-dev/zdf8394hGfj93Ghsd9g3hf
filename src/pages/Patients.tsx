@@ -4,7 +4,7 @@ import { Patient, Session } from '@/types/patient';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Search, Calendar, DollarSign } from 'lucide-react';
+import { Plus, Search, Calendar, DollarSign, Edit } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { useNavigate } from 'react-router-dom';
 
@@ -72,17 +72,31 @@ const Patients = () => {
             return (
               <Card
                 key={patient.id}
-                className="p-6 shadow-[var(--shadow-card)] border-border hover:shadow-[var(--shadow-soft)] transition-shadow cursor-pointer"
-                onClick={() => navigate(`/patients/${patient.id}`)}
+                className="p-6 shadow-[var(--shadow-card)] border-border hover:shadow-[var(--shadow-soft)] transition-shadow"
               >
                 <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold text-lg">
-                    {patient.name.charAt(0).toUpperCase()}
+                  <div 
+                    className="flex-1 flex items-center gap-4 cursor-pointer"
+                    onClick={() => navigate(`/patients/${patient.id}`)}
+                  >
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold text-lg">
+                      {patient.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-foreground">{patient.name}</h3>
+                      <p className="text-sm text-muted-foreground">{patient.email}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground">{patient.name}</h3>
-                    <p className="text-sm text-muted-foreground">{patient.email}</p>
-                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/patients/${patient.id}/edit`);
+                    }}
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
                 </div>
                 
                 <div className="space-y-2">

@@ -4,6 +4,9 @@ export interface Patient {
   email: string;
   phone: string;
   birthDate: string;
+  frequency: 'weekly' | 'biweekly';
+  sessionDay: string;
+  sessionTime: string;
   createdAt: string;
 }
 
