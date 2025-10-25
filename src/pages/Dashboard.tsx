@@ -8,6 +8,7 @@ import { Users, Calendar, DollarSign, TrendingUp, AlertCircle } from 'lucide-rea
 import Navbar from '@/components/Navbar';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { parseISO } from 'date-fns';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -82,7 +83,7 @@ const Dashboard = () => {
   };
 
   const periodSessions = sessions.filter(session => {
-    const date = new Date(session.date);
+    const date = parseISO(session.date);
     return date >= start && date <= end;
   });
 

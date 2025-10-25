@@ -11,7 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { ArrowLeft, Plus, Calendar, DollarSign, Edit } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 
 const PatientDetail = () => {
   const { id } = useParams();
@@ -238,7 +238,7 @@ const PatientDetail = () => {
             <Card key={session.id} className="p-4">
               <div className="flex justify-between items-center">
                 <div className="flex-1">
-                  <p className="font-semibold">{new Date(session.date).toLocaleDateString('pt-BR')}</p>
+                  <p className="font-semibold">{format(parseISO(session.date), 'dd/MM/yyyy')}</p>
                   <p className={`text-sm ${
                     session.status === 'attended' ? 'text-green-600 dark:text-green-400' :
                     session.status === 'missed' ? 'text-red-600 dark:text-red-400' :

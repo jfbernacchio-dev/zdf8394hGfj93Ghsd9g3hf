@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import Navbar from '@/components/Navbar';
 import { useToast } from '@/hooks/use-toast';
 import { Calendar as CalendarIcon, Plus, CheckCircle, XCircle, DollarSign, ArrowLeft } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, startOfWeek, isBefore } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, startOfWeek, isBefore, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const Schedule = () => {
@@ -56,7 +56,7 @@ const Schedule = () => {
 
     // Check each session's date + time
     scheduledSessions.forEach(session => {
-      const sessionDate = new Date(session.date);
+      const sessionDate = parseISO(session.date);
       const [hours, minutes] = (session.patients.session_time || '00:00').split(':').map(Number);
       sessionDate.setHours(hours, minutes, 0, 0);
 
@@ -231,7 +231,7 @@ const Schedule = () => {
   };
 
   const getSessionsForDay = (day: Date) => {
-    return sessions.filter(session => isSameDay(new Date(session.date), day));
+    return sessions.filter(session => isSameDay(parseISO(session.date), day));
   };
 
   const getStatusColor = (status: string) => {
