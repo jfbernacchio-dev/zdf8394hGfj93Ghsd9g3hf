@@ -8,6 +8,7 @@ import Patients from "./pages/Patients";
 import NewPatient from "./pages/NewPatient";
 import EditPatient from "./pages/EditPatient";
 import PatientDetail from "./pages/PatientDetail";
+import Schedule from "./pages/Schedule";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -20,6 +21,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/schedule" element={<Schedule />} />
           <Route path="/patients" element={<Patients />} />
           <Route path="/patients/new" element={<NewPatient />} />
           <Route path="/patients/:id/edit" element={<EditPatient />} />

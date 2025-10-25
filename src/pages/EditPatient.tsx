@@ -21,8 +21,10 @@ const EditPatient = () => {
     phone: '',
     birthDate: '',
     frequency: 'weekly' as 'weekly' | 'biweekly',
-    sessionDay: '',
+    sessionDay: 'monday' as 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday',
     sessionTime: '',
+    startDate: '',
+    status: 'active' as 'active' | 'inactive',
   });
 
   useEffect(() => {
@@ -37,9 +39,34 @@ const EditPatient = () => {
         frequency: patient.frequency,
         sessionDay: patient.sessionDay,
         sessionTime: patient.sessionTime,
+        startDate: patient.startDate,
+        status: patient.status,
       });
     }
   }, [id]);
+
+  const handleDeactivate = () => {
+    const patients = storage.getPatients();
+    const updatedPatients = patients.map(p => 
+      p.id === id ? { ...p, status: 'inactive' as const } : p
+    );
+    storage.savePatients(updatedPatients);
+
+    // Cancelar todas as sessões futuras
+    const sessions = storage.getSessions();
+    const today = new Date().toISOString().split('T')[0];
+    const updatedSessions = sessions.filter(s => 
+      s.patientId !== id || s.date < today
+    );
+    storage.saveSessions(updatedSessions);
+
+    toast({
+      title: "Paciente encerrado!",
+      description: "Todas as sessões futuras foram canceladas.",
+    });
+
+    navigate(`/patients/${id}`);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,14 +162,35 @@ const EditPatient = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="sessionDay">Dia da sessão</Label>
+              <Label htmlFor="startDate">Data de início</Label>
               <Input
-                id="sessionDay"
+                id="startDate"
                 type="date"
                 required
-                value={formData.sessionDay}
-                onChange={(e) => setFormData({ ...formData, sessionDay: e.target.value })}
+                value={formData.startDate}
+                onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sessionDay">Dia da semana da sessão</Label>
+              <Select 
+                value={formData.sessionDay} 
+                onValueChange={(value) => setFormData({ ...formData, sessionDay: value as any })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o dia da semana" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="monday">Segunda-feira</SelectItem>
+                  <SelectItem value="tuesday">Terça-feira</SelectItem>
+                  <SelectItem value="wednesday">Quarta-feira</SelectItem>
+                  <SelectItem value="thursday">Quinta-feira</SelectItem>
+                  <SelectItem value="friday">Sexta-feira</SelectItem>
+                  <SelectItem value="saturday">Sábado</SelectItem>
+                  <SelectItem value="sunday">Domingo</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
@@ -156,9 +204,21 @@ const EditPatient = () => {
               />
             </div>
 
-            <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
-              Salvar Alterações
-            </Button>
+            <div className="flex gap-4">
+              <Button type="submit" className="flex-1 bg-primary hover:bg-primary/90">
+                Salvar Alterações
+              </Button>
+              {formData.status === 'active' && (
+                <Button 
+                  type="button" 
+                  variant="destructive" 
+                  className="flex-1"
+                  onClick={handleDeactivate}
+                >
+                  Encerrar Paciente
+                </Button>
+              )}
+            </div>
           </form>
         </Card>
       </div>

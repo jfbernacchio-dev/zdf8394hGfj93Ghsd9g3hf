@@ -5,8 +5,10 @@ export interface Patient {
   phone: string;
   birthDate: string;
   frequency: 'weekly' | 'biweekly';
-  sessionDay: string;
+  sessionDay: 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
   sessionTime: string;
+  startDate: string;
+  status: 'active' | 'inactive';
   createdAt: string;
 }
 

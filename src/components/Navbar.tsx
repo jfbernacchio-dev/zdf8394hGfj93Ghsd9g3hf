@@ -30,6 +30,17 @@ const Navbar = () => {
               <span className="font-medium">Dashboard</span>
             </Link>
             <Link
+              to="/schedule"
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                isActive('/schedule')
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+              }`}
+            >
+              <Calendar className="w-4 h-4" />
+              <span className="font-medium">Agenda</span>
+            </Link>
+            <Link
               to="/patients"
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
                 isActive('/patients')

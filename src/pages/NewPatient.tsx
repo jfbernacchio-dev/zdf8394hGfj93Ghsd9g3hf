@@ -20,22 +20,50 @@ const NewPatient = () => {
     phone: '',
     birthDate: '',
     frequency: 'weekly' as 'weekly' | 'biweekly',
-    sessionDay: '',
+    sessionDay: 'monday' as 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday',
     sessionTime: '',
+    startDate: '',
   });
 
-  const generateFutureSessions = (patientId: string, startDate: string, frequency: 'weekly' | 'biweekly', sessionTime: string) => {
+  const getDayOfWeekNumber = (day: string): number => {
+    const days = {
+      sunday: 0,
+      monday: 1,
+      tuesday: 2,
+      wednesday: 3,
+      thursday: 4,
+      friday: 5,
+      saturday: 6,
+    };
+    return days[day as keyof typeof days];
+  };
+
+  const generateFutureSessions = (
+    patientId: string, 
+    startDate: string, 
+    frequency: 'weekly' | 'biweekly', 
+    sessionDay: string,
+    sessionTime: string
+  ) => {
     const sessions: Session[] = [];
-    const start = new Date(startDate + 'T' + sessionTime);
+    const start = new Date(startDate);
+    const targetDay = getDayOfWeekNumber(sessionDay);
+    
+    // Encontrar a primeira ocorrência do dia da semana a partir da data de início
+    let firstSession = new Date(start);
+    while (firstSession.getDay() !== targetDay) {
+      firstSession.setDate(firstSession.getDate() + 1);
+    }
+    
     const weeksToGenerate = 52; // 1 ano de sessões
     const interval = frequency === 'weekly' ? 1 : 2;
     
     for (let i = 0; i < weeksToGenerate; i++) {
-      const sessionDate = new Date(start);
-      sessionDate.setDate(start.getDate() + (i * interval * 7));
+      const sessionDate = new Date(firstSession);
+      sessionDate.setDate(firstSession.getDate() + (i * interval * 7));
       
       sessions.push({
-        id: `${patientId}-${i}`,
+        id: `${patientId}-${sessionDate.toISOString()}`,
         patientId,
         date: sessionDate.toISOString().split('T')[0],
         value: 0,
@@ -55,6 +83,7 @@ const NewPatient = () => {
     const newPatient: Patient = {
       id: Date.now().toString(),
       ...formData,
+      status: 'active',
       createdAt: new Date().toISOString(),
     };
     
@@ -64,8 +93,9 @@ const NewPatient = () => {
     const existingSessions = storage.getSessions();
     const newSessions = generateFutureSessions(
       newPatient.id, 
-      formData.sessionDay, 
+      formData.startDate, 
       formData.frequency,
+      formData.sessionDay,
       formData.sessionTime
     );
     storage.saveSessions([...existingSessions, ...newSessions]);
@@ -154,14 +184,35 @@ const NewPatient = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="sessionDay">Data da primeira sessão</Label>
+              <Label htmlFor="startDate">Data de início</Label>
               <Input
-                id="sessionDay"
+                id="startDate"
                 type="date"
                 required
-                value={formData.sessionDay}
-                onChange={(e) => setFormData({ ...formData, sessionDay: e.target.value })}
+                value={formData.startDate}
+                onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sessionDay">Dia da semana da sessão</Label>
+              <Select 
+                value={formData.sessionDay} 
+                onValueChange={(value) => setFormData({ ...formData, sessionDay: value as any })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o dia da semana" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="monday">Segunda-feira</SelectItem>
+                  <SelectItem value="tuesday">Terça-feira</SelectItem>
+                  <SelectItem value="wednesday">Quarta-feira</SelectItem>
+                  <SelectItem value="thursday">Quinta-feira</SelectItem>
+                  <SelectItem value="friday">Sexta-feira</SelectItem>
+                  <SelectItem value="saturday">Sábado</SelectItem>
+                  <SelectItem value="sunday">Domingo</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
