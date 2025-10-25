@@ -30,8 +30,10 @@ export const generateRecurringSessions = (
   // Find the first occurrence of the session day on or after start date
   let currentDate = new Date(start);
   
+  // Get the current day of week for the start date
+  const currentDayOfWeek = getDay(currentDate);
+  
   // Calculate days to add to reach target day of week
-  const currentDayOfWeek = currentDate.getDay();
   let daysToAdd = targetDayOfWeek - currentDayOfWeek;
   
   // If target day is in the past this week, move to next week

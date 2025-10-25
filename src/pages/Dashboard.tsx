@@ -55,9 +55,9 @@ const Dashboard = () => {
       start.setDate(now.getDate() - 7);
       end = now;
     } else {
-      // Este Mês: do dia 1 até hoje
+      // Este Mês: do dia 1 até o último dia do mês
       start = new Date(now.getFullYear(), now.getMonth(), 1);
-      end = now;
+      end = new Date(now.getFullYear(), now.getMonth() + 1, 0); // Último dia do mês
     }
 
     return { start, end };

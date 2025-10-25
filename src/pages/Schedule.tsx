@@ -286,7 +286,6 @@ const Schedule = () => {
                           <p className="text-xs">{session.patients.session_time}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-semibold">R$ {Number(session.value).toFixed(2)}</p>
                           {session.paid && <p className="text-xs">💰 Pago</p>}
                         </div>
                       </div>
