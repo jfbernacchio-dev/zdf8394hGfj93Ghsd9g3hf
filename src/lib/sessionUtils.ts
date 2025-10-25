@@ -24,12 +24,18 @@ export const generateRecurringSessions = (
   const now = new Date();
 
   // Find the first occurrence of the session day on or after start date
-  let currentDate = startOfDay(start);
+  let currentDate = new Date(start);
+  currentDate.setHours(0, 0, 0, 0);
+  
   const startDayOfWeek = currentDate.getDay();
   let daysUntilTarget = targetDayOfWeek - startDayOfWeek;
-  if (daysUntilTarget < 0) daysUntilTarget += 7;
   
-  currentDate = addWeeks(currentDate, 0);
+  // If the target day is before the start day, move to next week
+  if (daysUntilTarget < 0) {
+    daysUntilTarget += 7;
+  }
+  
+  // Add the days to reach the target day of week
   currentDate.setDate(currentDate.getDate() + daysUntilTarget);
 
   // Generate sessions from first occurrence until end date

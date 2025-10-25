@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ArrowLeft, Plus, Calendar, DollarSign, Edit, Check, X } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { ArrowLeft, Plus, Calendar, DollarSign, Edit } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -208,8 +209,8 @@ const PatientDetail = () => {
                   </p>
                   {session.notes && <p className="text-sm mt-1 text-muted-foreground">{session.notes}</p>}
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="text-right mr-4">
+                  <div className="flex items-center gap-4">
+                  <div className="text-right">
                     <p className="font-semibold">R$ {Number(session.value).toFixed(2)}</p>
                     {session.paid ? (
                       <p className="text-xs text-green-600 dark:text-green-400">Pago</p>
@@ -217,17 +218,16 @@ const PatientDetail = () => {
                       <p className="text-xs text-orange-600 dark:text-orange-400">A pagar</p>
                     )}
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => toggleStatus(session)}
-                  >
-                    {session.status === 'attended' ? (
-                      <><X className="w-4 h-4 mr-1" /> Marcar Falta</>
-                    ) : (
-                      <><Check className="w-4 h-4 mr-1" /> Marcar Presença</>
-                    )}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor={`status-${session.id}`} className="text-sm cursor-pointer">
+                      {session.status === 'attended' ? 'Compareceu' : 'Faltou'}
+                    </Label>
+                    <Switch
+                      id={`status-${session.id}`}
+                      checked={session.status === 'attended'}
+                      onCheckedChange={() => toggleStatus(session)}
+                    />
+                  </div>
                   <Button
                     size="sm"
                     variant="ghost"
