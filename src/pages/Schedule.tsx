@@ -33,6 +33,9 @@ const Schedule = () => {
     start_time: '12:00',
     end_time: '13:00',
     reason: '',
+    blockType: 'indefinite', // 'indefinite', 'date-range', 'from-date'
+    start_date: format(new Date(), 'yyyy-MM-dd'),
+    end_date: format(new Date(), 'yyyy-MM-dd'),
     replicate_weeks: 1
   });
 
@@ -120,44 +123,105 @@ const Schedule = () => {
     setScheduleBlocks(data || []);
   };
 
-  const isTimeBlocked = (dayOfWeek: number, time: string) => {
+  const isTimeBlocked = (dayOfWeek: number, time: string, date?: Date) => {
     return scheduleBlocks.some(block => {
       if (block.day_of_week !== dayOfWeek) return false;
+      
+      // Check date range if provided
+      if (date && block.start_date) {
+        const blockStart = parseISO(block.start_date);
+        const checkDate = new Date(date);
+        checkDate.setHours(0, 0, 0, 0);
+        blockStart.setHours(0, 0, 0, 0);
+        
+        if (checkDate < blockStart) return false;
+        
+        if (block.end_date) {
+          const blockEnd = parseISO(block.end_date);
+          blockEnd.setHours(0, 0, 0, 0);
+          if (checkDate > blockEnd) return false;
+        }
+      }
+      
       return time >= block.start_time && time < block.end_time;
     });
   };
 
   const handleCreateBlock = async () => {
-    const blocks = [];
-    for (let week = 0; week < blockForm.replicate_weeks; week++) {
-      blocks.push({
-        user_id: user!.id,
-        day_of_week: parseInt(blockForm.day_of_week),
-        start_time: blockForm.start_time,
-        end_time: blockForm.end_time,
-        reason: blockForm.reason
-      });
+    let blockData: any = {
+      user_id: user!.id,
+      day_of_week: parseInt(blockForm.day_of_week),
+      start_time: blockForm.start_time,
+      end_time: blockForm.end_time,
+      reason: blockForm.reason
+    };
+
+    if (blockForm.blockType === 'date-range') {
+      blockData.start_date = blockForm.start_date;
+      blockData.end_date = blockForm.end_date;
+    } else if (blockForm.blockType === 'from-date') {
+      blockData.start_date = blockForm.start_date;
+      blockData.end_date = null;
+    } else if (blockForm.blockType === 'replicate') {
+      // Create multiple blocks for X weeks starting from start_date
+      const blocks = [];
+      const startDate = parseISO(blockForm.start_date);
+      
+      for (let week = 0; week < blockForm.replicate_weeks; week++) {
+        const weekDate = addDays(startDate, week * 7);
+        blocks.push({
+          user_id: user!.id,
+          day_of_week: parseInt(blockForm.day_of_week),
+          start_time: blockForm.start_time,
+          end_time: blockForm.end_time,
+          reason: blockForm.reason,
+          start_date: format(weekDate, 'yyyy-MM-dd'),
+          end_date: format(weekDate, 'yyyy-MM-dd')
+        });
+      }
+      
+      const { error } = await supabase
+        .from('schedule_blocks')
+        .insert(blocks);
+
+      if (error) {
+        toast({ title: 'Erro ao criar bloqueios', variant: 'destructive' });
+        return;
+      }
+
+      toast({ title: `${blockForm.replicate_weeks} bloqueio(s) criado(s) com sucesso!` });
+      setIsBlockDialogOpen(false);
+      resetBlockForm();
+      loadScheduleBlocks();
+      return;
     }
 
     const { error } = await supabase
       .from('schedule_blocks')
-      .insert(blocks);
+      .insert([blockData]);
 
     if (error) {
       toast({ title: 'Erro ao criar bloqueio', variant: 'destructive' });
       return;
     }
 
-    toast({ title: 'Bloqueio(s) criado(s) com sucesso!' });
+    toast({ title: 'Bloqueio criado com sucesso!' });
     setIsBlockDialogOpen(false);
+    resetBlockForm();
+    loadScheduleBlocks();
+  };
+
+  const resetBlockForm = () => {
     setBlockForm({
       day_of_week: '1',
       start_time: '12:00',
       end_time: '13:00',
       reason: '',
+      blockType: 'indefinite',
+      start_date: format(new Date(), 'yyyy-MM-dd'),
+      end_date: format(new Date(), 'yyyy-MM-dd'),
       replicate_weeks: 1
     });
-    loadScheduleBlocks();
   };
 
   const deleteBlock = async (blockId: string) => {
@@ -364,9 +428,29 @@ const Schedule = () => {
     };
 
     // Get blocks for a specific day with positions
-    const getBlocksForDay = (dayOfWeek: number) => {
+    const getBlocksForDay = (dayOfWeek: number, date: Date) => {
       return scheduleBlocks
-        .filter(block => block.day_of_week === dayOfWeek)
+        .filter(block => {
+          if (block.day_of_week !== dayOfWeek) return false;
+          
+          // Check date range
+          if (block.start_date) {
+            const blockStart = parseISO(block.start_date);
+            const checkDate = new Date(date);
+            checkDate.setHours(0, 0, 0, 0);
+            blockStart.setHours(0, 0, 0, 0);
+            
+            if (checkDate < blockStart) return false;
+            
+            if (block.end_date) {
+              const blockEnd = parseISO(block.end_date);
+              blockEnd.setHours(0, 0, 0, 0);
+              if (checkDate > blockEnd) return false;
+            }
+          }
+          
+          return true;
+        })
         .map(block => {
           const [startHours, startMinutes] = block.start_time.split(':').map(Number);
           const [endHours, endMinutes] = block.end_time.split(':').map(Number);
@@ -447,9 +531,54 @@ const Schedule = () => {
                       <Input value={blockForm.reason} onChange={(e) => setBlockForm({...blockForm, reason: e.target.value})} placeholder="Ex: Almoço, Reunião..." />
                     </div>
                     <div>
-                      <Label>Replicar para quantas semanas?</Label>
-                      <Input type="number" min="1" value={blockForm.replicate_weeks} onChange={(e) => setBlockForm({...blockForm, replicate_weeks: parseInt(e.target.value)})} />
+                      <Label>Tipo de Bloqueio</Label>
+                      <Select value={blockForm.blockType} onValueChange={(value) => setBlockForm({...blockForm, blockType: value})}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="indefinite">Indefinido (todas as semanas)</SelectItem>
+                          <SelectItem value="date-range">Período específico</SelectItem>
+                          <SelectItem value="from-date">A partir de uma data</SelectItem>
+                          <SelectItem value="replicate">Replicar por X semanas</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
+                    
+                    {blockForm.blockType === 'date-range' && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label>Data Início</Label>
+                          <Input type="date" value={blockForm.start_date} onChange={(e) => setBlockForm({...blockForm, start_date: e.target.value})} />
+                        </div>
+                        <div>
+                          <Label>Data Fim</Label>
+                          <Input type="date" value={blockForm.end_date} onChange={(e) => setBlockForm({...blockForm, end_date: e.target.value})} />
+                        </div>
+                      </div>
+                    )}
+                    
+                    {blockForm.blockType === 'from-date' && (
+                      <div>
+                        <Label>Data de Início</Label>
+                        <Input type="date" value={blockForm.start_date} onChange={(e) => setBlockForm({...blockForm, start_date: e.target.value})} />
+                        <p className="text-xs text-muted-foreground mt-1">Bloqueio sem data de término</p>
+                      </div>
+                    )}
+                    
+                    {blockForm.blockType === 'replicate' && (
+                      <>
+                        <div>
+                          <Label>Data de Início</Label>
+                          <Input type="date" value={blockForm.start_date} onChange={(e) => setBlockForm({...blockForm, start_date: e.target.value})} />
+                        </div>
+                        <div>
+                          <Label>Replicar por quantas semanas?</Label>
+                          <Input type="number" min="1" value={blockForm.replicate_weeks} onChange={(e) => setBlockForm({...blockForm, replicate_weeks: parseInt(e.target.value)})} />
+                        </div>
+                      </>
+                    )}
+                    
                     <Button onClick={handleCreateBlock} className="w-full">Criar Bloqueio</Button>
                     
                     <div className="border-t pt-4 mt-4">
@@ -462,6 +591,14 @@ const Schedule = () => {
                                 {['', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'][block.day_of_week]} - {block.start_time} às {block.end_time}
                               </p>
                               {block.reason && <p className="text-xs text-muted-foreground">{block.reason}</p>}
+                              {block.start_date && (
+                                <p className="text-xs text-muted-foreground">
+                                  {block.end_date ? 
+                                    `${format(parseISO(block.start_date), 'dd/MM/yy')} - ${format(parseISO(block.end_date), 'dd/MM/yy')}` :
+                                    `A partir de ${format(parseISO(block.start_date), 'dd/MM/yy')}`
+                                  }
+                                </p>
+                              )}
                             </div>
                             <Button variant="ghost" size="sm" onClick={() => deleteBlock(block.id)}>
                               <XCircle className="h-4 w-4" />
@@ -505,7 +642,7 @@ const Schedule = () => {
                 const allDaySessions = sessions.filter(s => s.date === format(dayDate, 'yyyy-MM-dd'));
                 
                 // Get blocks for this day
-                const dayBlocks = getBlocksForDay(adjustedDay);
+                const dayBlocks = getBlocksForDay(adjustedDay, dayDate);
 
                 return (
                   <div
@@ -583,7 +720,27 @@ const Schedule = () => {
     // Get blocks for this day with positions
     const getBlocksForDay = () => {
       return scheduleBlocks
-        .filter(block => block.day_of_week === adjustedDay)
+        .filter(block => {
+          if (block.day_of_week !== adjustedDay) return false;
+          
+          // Check date range
+          if (block.start_date) {
+            const blockStart = parseISO(block.start_date);
+            const checkDate = new Date(selectedDate);
+            checkDate.setHours(0, 0, 0, 0);
+            blockStart.setHours(0, 0, 0, 0);
+            
+            if (checkDate < blockStart) return false;
+            
+            if (block.end_date) {
+              const blockEnd = parseISO(block.end_date);
+              blockEnd.setHours(0, 0, 0, 0);
+              if (checkDate > blockEnd) return false;
+            }
+          }
+          
+          return true;
+        })
         .map(block => {
           const [startHours, startMinutes] = block.start_time.split(':').map(Number);
           const [endHours, endMinutes] = block.end_time.split(':').map(Number);
@@ -660,11 +817,56 @@ const Schedule = () => {
                     <Label>Motivo (opcional)</Label>
                     <Input value={blockForm.reason} onChange={(e) => setBlockForm({...blockForm, reason: e.target.value})} placeholder="Ex: Almoço, Reunião..." />
                   </div>
-                  <div>
-                    <Label>Replicar para quantas semanas?</Label>
-                    <Input type="number" min="1" value={blockForm.replicate_weeks} onChange={(e) => setBlockForm({...blockForm, replicate_weeks: parseInt(e.target.value)})} />
-                  </div>
-                  <Button onClick={handleCreateBlock} className="w-full">Criar Bloqueio</Button>
+                      <div>
+                        <Label>Tipo de Bloqueio</Label>
+                        <Select value={blockForm.blockType} onValueChange={(value) => setBlockForm({...blockForm, blockType: value})}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="indefinite">Indefinido (todas as semanas)</SelectItem>
+                            <SelectItem value="date-range">Período específico</SelectItem>
+                            <SelectItem value="from-date">A partir de uma data</SelectItem>
+                            <SelectItem value="replicate">Replicar por X semanas</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      {blockForm.blockType === 'date-range' && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label>Data Início</Label>
+                            <Input type="date" value={blockForm.start_date} onChange={(e) => setBlockForm({...blockForm, start_date: e.target.value})} />
+                          </div>
+                          <div>
+                            <Label>Data Fim</Label>
+                            <Input type="date" value={blockForm.end_date} onChange={(e) => setBlockForm({...blockForm, end_date: e.target.value})} />
+                          </div>
+                        </div>
+                      )}
+                      
+                      {blockForm.blockType === 'from-date' && (
+                        <div>
+                          <Label>Data de Início</Label>
+                          <Input type="date" value={blockForm.start_date} onChange={(e) => setBlockForm({...blockForm, start_date: e.target.value})} />
+                          <p className="text-xs text-muted-foreground mt-1">Bloqueio sem data de término</p>
+                        </div>
+                      )}
+                      
+                      {blockForm.blockType === 'replicate' && (
+                        <>
+                          <div>
+                            <Label>Data de Início</Label>
+                            <Input type="date" value={blockForm.start_date} onChange={(e) => setBlockForm({...blockForm, start_date: e.target.value})} />
+                          </div>
+                          <div>
+                            <Label>Replicar por quantas semanas?</Label>
+                            <Input type="number" min="1" value={blockForm.replicate_weeks} onChange={(e) => setBlockForm({...blockForm, replicate_weeks: parseInt(e.target.value)})} />
+                          </div>
+                        </>
+                      )}
+                      
+                      <Button onClick={handleCreateBlock} className="w-full">Criar Bloqueio</Button>
                   
                   <div className="border-t pt-4 mt-4">
                     <h3 className="font-semibold mb-2">Bloqueios Existentes</h3>
@@ -820,9 +1022,54 @@ const Schedule = () => {
                         <Input value={blockForm.reason} onChange={(e) => setBlockForm({...blockForm, reason: e.target.value})} placeholder="Ex: Almoço, Reunião..." />
                       </div>
                       <div>
-                        <Label>Replicar para quantas semanas?</Label>
-                        <Input type="number" min="1" value={blockForm.replicate_weeks} onChange={(e) => setBlockForm({...blockForm, replicate_weeks: parseInt(e.target.value)})} />
+                        <Label>Tipo de Bloqueio</Label>
+                        <Select value={blockForm.blockType} onValueChange={(value) => setBlockForm({...blockForm, blockType: value})}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="indefinite">Indefinido (todas as semanas)</SelectItem>
+                            <SelectItem value="date-range">Período específico</SelectItem>
+                            <SelectItem value="from-date">A partir de uma data</SelectItem>
+                            <SelectItem value="replicate">Replicar por X semanas</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
+                      
+                      {blockForm.blockType === 'date-range' && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <Label>Data Início</Label>
+                            <Input type="date" value={blockForm.start_date} onChange={(e) => setBlockForm({...blockForm, start_date: e.target.value})} />
+                          </div>
+                          <div>
+                            <Label>Data Fim</Label>
+                            <Input type="date" value={blockForm.end_date} onChange={(e) => setBlockForm({...blockForm, end_date: e.target.value})} />
+                          </div>
+                        </div>
+                      )}
+                      
+                      {blockForm.blockType === 'from-date' && (
+                        <div>
+                          <Label>Data de Início</Label>
+                          <Input type="date" value={blockForm.start_date} onChange={(e) => setBlockForm({...blockForm, start_date: e.target.value})} />
+                          <p className="text-xs text-muted-foreground mt-1">Bloqueio sem data de término</p>
+                        </div>
+                      )}
+                      
+                      {blockForm.blockType === 'replicate' && (
+                        <>
+                          <div>
+                            <Label>Data de Início</Label>
+                            <Input type="date" value={blockForm.start_date} onChange={(e) => setBlockForm({...blockForm, start_date: e.target.value})} />
+                          </div>
+                          <div>
+                            <Label>Replicar por quantas semanas?</Label>
+                            <Input type="number" min="1" value={blockForm.replicate_weeks} onChange={(e) => setBlockForm({...blockForm, replicate_weeks: parseInt(e.target.value)})} />
+                          </div>
+                        </>
+                      )}
+                      
                       <Button onClick={handleCreateBlock} className="w-full">Criar Bloqueio</Button>
                       
                       <div className="border-t pt-4 mt-4">

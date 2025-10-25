@@ -319,31 +319,11 @@ const TherapistDetail = () => {
           </TabsContent>
 
           <TabsContent value="schedule">
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Bloqueios de Agenda</h3>
-              <div className="space-y-2">
-                {scheduleBlocks.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">Nenhum bloqueio configurado</p>
-                ) : (
-                  scheduleBlocks.map(block => (
-                    <div key={block.id} className="p-3 border rounded-lg bg-destructive/5">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-semibold">
-                            {['', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'][block.day_of_week]}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {block.start_time} às {block.end_time}
-                          </p>
-                          {block.reason && <p className="text-sm mt-1">{block.reason}</p>}
-                        </div>
-                        <Lock className="h-5 w-5 text-destructive" />
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </Card>
+            <iframe
+              src={`/schedule?therapist=${id}`}
+              className="w-full h-[800px] border rounded-lg"
+              title="Agenda do Terapeuta"
+            />
           </TabsContent>
 
           <TabsContent value="journal" className="space-y-4">

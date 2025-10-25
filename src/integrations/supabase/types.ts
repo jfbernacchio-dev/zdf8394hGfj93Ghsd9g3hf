@@ -182,27 +182,33 @@ export type Database = {
         Row: {
           created_at: string
           day_of_week: number
+          end_date: string | null
           end_time: string
           id: string
           reason: string | null
+          start_date: string | null
           start_time: string
           user_id: string
         }
         Insert: {
           created_at?: string
           day_of_week: number
+          end_date?: string | null
           end_time: string
           id?: string
           reason?: string | null
+          start_date?: string | null
           start_time: string
           user_id: string
         }
         Update: {
           created_at?: string
           day_of_week?: number
+          end_date?: string | null
           end_time?: string
           id?: string
           reason?: string | null
+          start_date?: string | null
           start_time?: string
           user_id?: string
         }
