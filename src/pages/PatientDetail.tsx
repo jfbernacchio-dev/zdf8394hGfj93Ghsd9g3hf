@@ -22,7 +22,7 @@ const PatientDetail = () => {
   const [editingSession, setEditingSession] = useState<any>(null);
   const [formData, setFormData] = useState({
     date: format(new Date(), 'yyyy-MM-dd'),
-    status: 'completed',
+    status: 'attended',
     notes: '',
     value: '',
     paid: false
@@ -44,7 +44,7 @@ const PatientDetail = () => {
     setEditingSession(null);
     setFormData({
       date: format(new Date(), 'yyyy-MM-dd'),
-      status: 'completed',
+      status: 'attended',
       notes: '',
       value: patient?.session_value?.toString() || '',
       paid: false
@@ -104,7 +104,7 @@ const PatientDetail = () => {
   };
 
   const toggleStatus = async (session: any) => {
-    const newStatus = session.status === 'completed' ? 'cancelled' : 'completed';
+    const newStatus = session.status === 'attended' ? 'cancelled' : 'attended';
     
     const { error } = await supabase
       .from('sessions')
@@ -112,7 +112,7 @@ const PatientDetail = () => {
       .eq('id', session.id);
 
     if (!error) {
-      toast({ title: `Status alterado para ${newStatus === 'completed' ? 'Compareceu' : 'Não Compareceu'}` });
+      toast({ title: `Status alterado para ${newStatus === 'attended' ? 'Compareceu' : 'Não Compareceu'}` });
       loadData();
     }
   };
@@ -199,11 +199,11 @@ const PatientDetail = () => {
                 <div className="flex-1">
                   <p className="font-semibold">{new Date(session.date).toLocaleDateString('pt-BR')}</p>
                   <p className={`text-sm ${
-                    session.status === 'completed' ? 'text-green-600 dark:text-green-400' :
+                    session.status === 'attended' ? 'text-green-600 dark:text-green-400' :
                     session.status === 'cancelled' ? 'text-red-600 dark:text-red-400' :
                     'text-blue-600 dark:text-blue-400'
                   }`}>
-                    {session.status === 'completed' ? 'Compareceu' : 
+                    {session.status === 'attended' ? 'Compareceu' : 
                      session.status === 'cancelled' ? 'Não Compareceu' : 'Agendada'}
                   </p>
                   {session.notes && <p className="text-sm mt-1 text-muted-foreground">{session.notes}</p>}
@@ -222,7 +222,7 @@ const PatientDetail = () => {
                     variant="outline"
                     onClick={() => toggleStatus(session)}
                   >
-                    {session.status === 'completed' ? (
+                    {session.status === 'attended' ? (
                       <><X className="w-4 h-4 mr-1" /> Marcar Falta</>
                     ) : (
                       <><Check className="w-4 h-4 mr-1" /> Marcar Presença</>

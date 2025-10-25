@@ -34,8 +34,8 @@ export const generateRecurringSessions = (
   // Generate sessions from first occurrence until end date
   while (isBefore(currentDate, end) || currentDate.getTime() === startOfDay(end).getTime()) {
     const sessionDate = format(currentDate, 'yyyy-MM-dd');
-    // Mark sessions before current week as "completed" (Compareceu)
-    const status = isBefore(currentDate, startOfCurrentWeek) ? 'completed' : 'scheduled';
+    // Mark sessions before current week as "attended" (Compareceu)
+    const status = isBefore(currentDate, startOfCurrentWeek) ? 'attended' : 'scheduled';
     sessions.push({ date: sessionDate, status });
     currentDate = addWeeks(currentDate, frequency === 'weekly' ? 1 : 2);
   }

@@ -44,10 +44,10 @@ const Schedule = () => {
   const autoUpdateOldSessions = async () => {
     const startOfCurrentWeek = startOfWeek(new Date(), { weekStartsOn: 0 });
     
-    // Update scheduled sessions that are before current week to completed
+    // Update scheduled sessions that are before current week to attended
     const { error } = await supabase
       .from('sessions')
-      .update({ status: 'completed' })
+      .update({ status: 'attended' })
       .eq('status', 'scheduled')
       .lt('date', format(startOfCurrentWeek, 'yyyy-MM-dd'));
 
@@ -151,8 +151,8 @@ const Schedule = () => {
   };
 
   const toggleStatus = async (session: any) => {
-    const newStatus = session.status === 'scheduled' ? 'completed' : 
-                     session.status === 'completed' ? 'cancelled' : 'scheduled';
+    const newStatus = session.status === 'scheduled' ? 'attended' : 
+                     session.status === 'attended' ? 'cancelled' : 'scheduled';
     
     const { error } = await supabase
       .from('sessions')
@@ -160,8 +160,8 @@ const Schedule = () => {
       .eq('id', session.id);
 
     if (!error) {
-      // If marked as completed or cancelled, create next session
-      if (newStatus === 'completed' || newStatus === 'cancelled') {
+      // If marked as attended or cancelled, create next session
+      if (newStatus === 'attended' || newStatus === 'cancelled') {
         const { getNextSessionDate } = await import('@/lib/sessionUtils');
         const patient = session.patients;
         const nextDate = getNextSessionDate(session.date, patient.session_day, patient.frequency);
@@ -185,7 +185,7 @@ const Schedule = () => {
         }
       }
 
-      toast({ title: `Status alterado para ${newStatus === 'scheduled' ? 'Agendada' : newStatus === 'completed' ? 'Realizada' : 'Cancelada'}` });
+      toast({ title: `Status alterado para ${newStatus === 'scheduled' ? 'Agendada' : newStatus === 'attended' ? 'Compareceu' : 'Cancelada'}` });
       loadData();
     }
   };
@@ -214,7 +214,7 @@ const Schedule = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+      case 'attended': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
       case 'cancelled': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
       default: return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
     }
