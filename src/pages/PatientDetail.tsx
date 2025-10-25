@@ -14,6 +14,7 @@ import { ArrowLeft, Plus, Calendar, DollarSign, Edit, FileText } from 'lucide-re
 import Navbar from '@/components/Navbar';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
+import { PatientFiles } from '@/components/PatientFiles';
 
 const PatientDetail = () => {
   const { id } = useParams();
@@ -95,7 +96,7 @@ const PatientDetail = () => {
     setEditingSession(null);
     setFormData({
       date: format(new Date(), 'yyyy-MM-dd'),
-      status: 'attended',
+      status: 'scheduled',
       notes: '',
       value: patient?.session_value?.toString() || '',
       paid: false,
@@ -460,6 +461,10 @@ Assinatura do Profissional`;
               <p className="text-muted-foreground">Nenhuma sessão registrada</p>
             </div>
           )}
+        </div>
+
+        <div className="mt-8">
+          <PatientFiles patientId={id!} />
         </div>
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

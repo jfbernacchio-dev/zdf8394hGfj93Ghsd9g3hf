@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      patient_files: {
+        Row: {
+          category: string
+          file_name: string
+          file_path: string
+          file_type: string
+          id: string
+          patient_id: string
+          uploaded_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          category: string
+          file_name: string
+          file_path: string
+          file_type: string
+          id?: string
+          patient_id: string
+          uploaded_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          category?: string
+          file_name?: string
+          file_path?: string
+          file_type?: string
+          id?: string
+          patient_id?: string
+          uploaded_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_patient"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patients: {
         Row: {
           birth_date: string
