@@ -20,6 +20,7 @@ const Schedule = () => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const therapistId = searchParams.get('therapist'); // ID do terapeuta sendo visualizado pelo admin
+  const embedMode = searchParams.get('embed') === 'true'; // Modo embed para não mostrar navbar
   const effectiveUserId = therapistId || user?.id; // Usa therapist ID se fornecido, senão usa o user logado
   
   const [sessions, setSessions] = useState<any[]>([]);
@@ -961,7 +962,7 @@ const Schedule = () => {
 
   return (
     <div className="min-h-screen bg-[var(--gradient-soft)]">
-      <Navbar />
+      {!embedMode && <Navbar />}
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-foreground">Agenda</h1>

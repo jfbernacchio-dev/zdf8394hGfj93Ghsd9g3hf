@@ -320,8 +320,8 @@ const TherapistDetail = () => {
 
           <TabsContent value="schedule">
             <iframe
-              src={`/schedule?therapist=${id}`}
-              className="w-full h-[800px] border rounded-lg"
+              src={`/schedule?therapist=${id}&embed=true`}
+              className="w-full h-[800px] border-0 rounded-lg"
               title="Agenda do Terapeuta"
             />
           </TabsContent>
