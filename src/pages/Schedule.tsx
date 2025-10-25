@@ -8,10 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import Navbar from '@/components/Navbar';
 import { useToast } from '@/hooks/use-toast';
 import { Calendar as CalendarIcon, Plus, CheckCircle, XCircle, DollarSign, ArrowLeft } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, startOfWeek, isBefore, parseISO } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, startOfWeek, addDays, isBefore, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const Schedule = () => {
@@ -259,10 +260,27 @@ const Schedule = () => {
     }
   };
 
+  const getStatusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
+    switch (status) {
+      case 'completed':
+      case 'attended': return 'default';
+      case 'missed': return 'destructive';
+      default: return 'secondary';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'completed':
+      case 'attended': return 'Compareceu';
+      case 'missed': return 'Não Compareceu';
+      default: return 'Agendada';
+    }
+  };
+
   const getWeekView = () => {
-    const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 }); // Monday
-    const weekDays = Array.from({ length: 5 }, (_, i) => addMonths(weekStart, 0).setDate(weekStart.getDate() + i));
-    const hours = Array.from({ length: 15 }, (_, i) => i + 7); // 7:00 to 21:00
+    const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
+    const weekDays = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
 
     return (
       <Card className="p-6">
@@ -272,57 +290,61 @@ const Schedule = () => {
             Voltar ao mês
           </Button>
           <h2 className="text-xl font-semibold">
-            {format(weekStart, "d 'de' MMMM", { locale: ptBR })} - {format(new Date(weekDays[4]), "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
+            {format(weekStart, "d 'de' MMMM", { locale: ptBR })} - {format(addDays(weekStart, 4), "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
           </h2>
           <Button onClick={() => openNewDialog(selectedDate)}>
             <Plus className="mr-2 h-4 w-4" /> Nova Sessão
           </Button>
         </div>
 
-        <div className="overflow-x-auto">
-          <div className="min-w-[800px]">
-            <div className="grid grid-cols-6 gap-2 mb-2">
-              <div className="w-20"></div>
-              {weekDays.map((day, i) => (
-                <div key={i} className="text-center font-semibold">
-                  <div>{format(new Date(day), 'EEE', { locale: ptBR })}</div>
-                  <div className="text-sm text-muted-foreground">{format(new Date(day), 'd MMM', { locale: ptBR })}</div>
-                </div>
-              ))}
-            </div>
+        <div className="grid grid-cols-5 gap-6">
+          {['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'].map((day, index) => {
+            const dayDate = weekDays[index];
+            const daySessions = sessions.filter(s => 
+              s.date === format(dayDate, 'yyyy-MM-dd')
+            );
 
-            {hours.map(hour => (
-              <div key={hour} className="grid grid-cols-6 gap-2 border-b py-2">
-                <div className="w-20 text-sm font-semibold text-muted-foreground">
-                  {hour.toString().padStart(2, '0')}:00
+            return (
+              <div key={day} className="space-y-3">
+                <div className="sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 py-3 border-b-2 border-primary/20">
+                  <h3 className="font-semibold text-center">
+                    {day}
+                  </h3>
+                  <p className="text-xs text-muted-foreground text-center">
+                    {format(dayDate, 'dd/MM')}
+                  </p>
                 </div>
-                {weekDays.map((day, i) => {
-                  const daySessions = getSessionsForDay(new Date(day));
-                  const hourSessions = daySessions.filter(s => {
-                    const sessionTime = s.time || s.patients?.session_time || '00:00';
-                    const sessionHour = parseInt(sessionTime.split(':')[0]);
-                    return sessionHour === hour;
-                  });
-
-                  return (
-                    <div key={i} className="space-y-1">
-                      {hourSessions.map(session => (
-                        <div
-                          key={session.id}
-                          onClick={() => openEditDialog(session)}
-                          className={`p-2 rounded text-xs cursor-pointer transition-colors ${getStatusColor(session.status)}`}
-                        >
-                          <p className="font-semibold truncate">{session.patients.name}</p>
-                          <p className="text-xs">{session.time || session.patients.session_time}</p>
-                          {session.paid && <p className="text-xs">💰</p>}
-                        </div>
-                      ))}
+                <div className="space-y-2 px-1">
+                  {daySessions.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground text-sm">
+                      Sem sessões
                     </div>
-                  );
-                })}
+                  ) : (
+                    daySessions.map(session => (
+                      <Card 
+                        key={session.id}
+                        className="p-3 cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all border-l-4"
+                        style={{
+                          borderLeftColor: session.status === 'completed' ? 'hsl(var(--chart-2))' : 
+                                         session.status === 'missed' ? 'hsl(var(--destructive))' : 
+                                         'hsl(var(--primary))'
+                        }}
+                        onClick={() => openEditDialog(session)}
+                      >
+                        <div className="space-y-2">
+                          <p className="font-semibold text-sm">{session.time || session.patients?.session_time}</p>
+                          <p className="text-xs text-muted-foreground truncate">{session.patients.name}</p>
+                          <Badge variant={getStatusVariant(session.status)} className="text-xs w-full justify-center">
+                            {getStatusText(session.status)}
+                          </Badge>
+                        </div>
+                      </Card>
+                    ))
+                  )}
+                </div>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
       </Card>
     );

@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut, profile } = useAuth();
+  const { signOut, profile, isAdmin } = useAuth();
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -61,6 +61,19 @@ const Navbar = () => {
               <Users className="w-4 h-4" />
               <span className="font-medium">Pacientes</span>
             </Link>
+            {isAdmin && (
+              <Link
+                to="/therapists"
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                  isActive('/therapists')
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                }`}
+              >
+                <Users className="w-4 h-4" />
+                <span className="font-medium">Terapeutas</span>
+              </Link>
+            )}
             </div>
             
             <div className="flex items-center gap-3 ml-4 pl-4 border-l border-border">

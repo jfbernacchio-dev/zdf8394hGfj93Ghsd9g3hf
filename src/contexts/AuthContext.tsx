@@ -9,6 +9,7 @@ interface Profile {
   cpf: string;
   crp: string;
   birth_date: string;
+  created_by?: string;
 }
 
 interface AuthContextType {
@@ -16,10 +17,12 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
+  isAdmin: boolean;
   signUp: (email: string, password: string, userData: Omit<Profile, 'id'>) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any }>;
+  createTherapist: (email: string, password: string, userData: Omit<Profile, 'id' | 'created_by'>) => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,6 +32,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -75,6 +79,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     setProfile(data);
+
+    // Check if user is admin
+    const { data: roleData } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .eq('role', 'admin')
+      .single();
+
+    setIsAdmin(!!roleData);
   };
 
   const signUp = async (email: string, password: string, userData: Omit<Profile, 'id'>) => {
@@ -155,8 +169,51 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return { error };
   };
 
+  const createTherapist = async (email: string, password: string, userData: Omit<Profile, 'id' | 'created_by'>) => {
+    if (!isAdmin) {
+      toast({
+        title: "Acesso negado",
+        description: "Apenas administradores podem criar terapeutas.",
+        variant: "destructive",
+      });
+      return { error: new Error("Unauthorized") };
+    }
+
+    const redirectUrl = `${window.location.origin}/`;
+    
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: redirectUrl,
+        data: {
+          full_name: userData.full_name,
+          cpf: userData.cpf,
+          crp: userData.crp,
+          birth_date: userData.birth_date,
+          created_by: user?.id,
+        }
+      }
+    });
+
+    if (error) {
+      toast({
+        title: "Erro ao criar terapeuta",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Terapeuta criado!",
+        description: "O novo terapeuta já pode fazer login.",
+      });
+    }
+
+    return { error };
+  };
+
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, signUp, signIn, signOut, resetPassword }}>
+    <AuthContext.Provider value={{ user, session, profile, loading, isAdmin, signUp, signIn, signOut, resetPassword, createTherapist }}>
       {children}
     </AuthContext.Provider>
   );
