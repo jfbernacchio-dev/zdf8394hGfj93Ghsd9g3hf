@@ -333,6 +333,11 @@ const Schedule = () => {
               <div key={day} className="text-center font-semibold text-sm p-2">{day}</div>
             ))}
             
+            {/* Empty cells to align the 1st with the correct day of week */}
+            {Array.from({ length: startOfMonth(currentMonth).getDay() }).map((_, i) => (
+              <div key={`empty-${i}`} className="min-h-[100px]" />
+            ))}
+            
             {getDaysInMonth().map((day, index) => {
               const daySessions = getSessionsForDay(day);
               const isToday = isSameDay(day, new Date());

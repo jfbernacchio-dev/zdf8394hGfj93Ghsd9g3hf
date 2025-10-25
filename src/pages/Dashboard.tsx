@@ -65,13 +65,30 @@ const Dashboard = () => {
 
   const { start, end } = getDateRange();
   
+  // Calculate expected sessions for active patients in the period
+  const calculateExpectedSessions = () => {
+    let total = 0;
+    patients.filter(p => p.status === 'active').forEach(patient => {
+      const patientStart = new Date(patient.start_date);
+      const periodStart = patientStart > start ? patientStart : start;
+      
+      if (periodStart > end) return; // Patient starts after period
+      
+      const weeks = Math.floor((end.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24 * 7));
+      const multiplier = patient.frequency === 'weekly' ? 1 : 0.5;
+      total += Math.max(1, Math.ceil(weeks * multiplier));
+    });
+    return total;
+  };
+
   const periodSessions = sessions.filter(session => {
     const date = new Date(session.date);
     return date >= start && date <= end;
   });
 
   const attendedSessions = periodSessions.filter(s => s.status === 'attended');
-  const totalExpected = periodSessions.length * (patients[0]?.session_value || 0);
+  const expectedSessions = calculateExpectedSessions();
+  const totalExpected = expectedSessions * (patients.find(p => p.status === 'active')?.session_value || 0);
   const totalActual = attendedSessions.reduce((sum, s) => sum + Number(s.value), 0);
   const revenuePercent = totalExpected > 0 ? ((totalActual / totalExpected) * 100).toFixed(0) : 0;
   
@@ -146,7 +163,7 @@ const Dashboard = () => {
               </div>
             </div>
             <h3 className="text-2xl font-bold text-foreground mb-1">
-              {attendedSessions.length}/{periodSessions.length}
+              {periodSessions.length}/{expectedSessions}
             </h3>
             <p className="text-sm text-muted-foreground">Sessões no Período</p>
           </Card>

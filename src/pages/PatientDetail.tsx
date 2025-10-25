@@ -104,8 +104,8 @@ const PatientDetail = () => {
     loadData();
   };
 
-  const toggleStatus = async (session: any) => {
-    const newStatus = session.status === 'attended' ? 'missed' : 'attended';
+  const toggleStatus = async (session: any, checked: boolean) => {
+    const newStatus = checked ? 'attended' : 'missed';
     
     const { error } = await supabase
       .from('sessions')
@@ -114,12 +114,16 @@ const PatientDetail = () => {
 
     if (error) {
       console.error('Error updating session status:', error);
-      toast({ title: 'Erro ao atualizar status', variant: 'destructive' });
+      toast({ 
+        title: 'Erro ao atualizar status', 
+        description: error.message,
+        variant: 'destructive' 
+      });
       return;
     }
     
     toast({ title: `Status alterado para ${newStatus === 'attended' ? 'Compareceu' : 'Não Compareceu'}` });
-    loadData();
+    await loadData();
   };
 
 
@@ -134,7 +138,8 @@ const PatientDetail = () => {
     );
   }
 
-  const totalSessions = sessions.filter(s => s.status === 'attended').length;
+  const totalSessions = sessions.length;
+  const attendedSessions = sessions.filter(s => s.status === 'attended').length;
   const unpaidSessions = sessions.filter(s => s.status === 'attended' && !s.paid);
   const totalValue = sessions.filter(s => s.status === 'attended').reduce((sum, s) => sum + Number(s.value || 0), 0);
 
@@ -177,6 +182,13 @@ const PatientDetail = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Total de Sessões</p>
                 <p className="text-xl font-semibold text-foreground">{totalSessions}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Calendar className="w-5 h-5 text-accent" />
+              <div>
+                <p className="text-sm text-muted-foreground">Sessões Comparecidas</p>
+                <p className="text-xl font-semibold text-foreground">{attendedSessions}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -229,7 +241,7 @@ const PatientDetail = () => {
                     <Switch
                       id={`status-${session.id}`}
                       checked={session.status === 'attended'}
-                      onCheckedChange={() => toggleStatus(session)}
+                      onCheckedChange={(checked) => toggleStatus(session, checked)}
                     />
                   </div>
                   <Button
