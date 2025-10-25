@@ -1,34 +1,80 @@
 import { useEffect, useState } from 'react';
-import { storage } from '@/lib/storage';
-import { Patient, Session } from '@/types/patient';
 import { Card } from '@/components/ui/card';
-import { Users, Calendar, DollarSign, TrendingUp } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Users, Calendar, DollarSign, TrendingUp, AlertCircle } from 'lucide-react';
 import Navbar from '@/components/Navbar';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Dashboard = () => {
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [sessions, setSessions] = useState<Session[]>([]);
+  const { user } = useAuth();
+  const [patients, setPatients] = useState<any[]>([]);
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [period, setPeriod] = useState('month');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
 
   useEffect(() => {
-    setPatients(storage.getPatients());
-    setSessions(storage.getSessions());
-  }, []);
+    if (user) {
+      loadData();
+    }
+  }, [user]);
 
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
+  const loadData = async () => {
+    const { data: patientsData } = await supabase
+      .from('patients')
+      .select('*')
+      .eq('user_id', user!.id);
 
-  const monthSessions = sessions.filter(session => {
+    const { data: sessionsData } = await supabase
+      .from('sessions')
+      .select(`
+        *,
+        patients!inner (
+          user_id
+        )
+      `)
+      .eq('patients.user_id', user!.id);
+
+    setPatients(patientsData || []);
+    setSessions(sessionsData || []);
+  };
+
+  const getDateRange = () => {
+    const now = new Date();
+    let start: Date, end: Date;
+
+    if (period === 'custom') {
+      start = new Date(customStartDate);
+      end = new Date(customEndDate);
+    } else if (period === 'week') {
+      start = new Date(now);
+      start.setDate(now.getDate() - 7);
+      end = now;
+    } else {
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+      end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    }
+
+    return { start, end };
+  };
+
+  const { start, end } = getDateRange();
+  
+  const periodSessions = sessions.filter(session => {
     const date = new Date(session.date);
-    return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+    return date >= start && date <= end;
   });
 
-  const monthRevenue = monthSessions
-    .filter(s => s.attended)
-    .reduce((sum, s) => sum + s.value, 0);
-
-  const attendanceRate = monthSessions.length > 0
-    ? (monthSessions.filter(s => s.attended).length / monthSessions.length) * 100
-    : 0;
+  const attendedSessions = periodSessions.filter(s => s.status === 'attended');
+  const totalExpected = periodSessions.length * (patients[0]?.session_value || 0);
+  const totalActual = attendedSessions.reduce((sum, s) => sum + Number(s.value), 0);
+  const revenuePercent = totalExpected > 0 ? ((totalActual / totalExpected) * 100).toFixed(0) : 0;
+  const unpaidSessions = attendedSessions.filter(s => !s.paid);
+  const unpaidValue = unpaidSessions.reduce((sum, s) => sum + Number(s.value), 0);
 
   return (
     <div className="min-h-screen bg-[var(--gradient-soft)]">
@@ -38,6 +84,45 @@ const Dashboard = () => {
           <h1 className="text-3xl font-bold text-foreground mb-2">Dashboard</h1>
           <p className="text-muted-foreground">Visão geral da sua clínica</p>
         </div>
+
+        <Card className="p-6 mb-6 shadow-[var(--shadow-card)] border-border">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>Período</Label>
+              <Select value={period} onValueChange={setPeriod}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="week">Última Semana</SelectItem>
+                  <SelectItem value="month">Último Mês</SelectItem>
+                  <SelectItem value="custom">Personalizado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {period === 'custom' && (
+              <>
+                <div className="space-y-2">
+                  <Label>Data Inicial</Label>
+                  <Input
+                    type="date"
+                    value={customStartDate}
+                    onChange={(e) => setCustomStartDate(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Data Final</Label>
+                  <Input
+                    type="date"
+                    value={customEndDate}
+                    onChange={(e) => setCustomEndDate(e.target.value)}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className="p-6 shadow-[var(--shadow-card)] border-border">
@@ -56,8 +141,10 @@ const Dashboard = () => {
                 <Calendar className="w-6 h-6 text-accent" />
               </div>
             </div>
-            <h3 className="text-2xl font-bold text-foreground mb-1">{monthSessions.length}</h3>
-            <p className="text-sm text-muted-foreground">Sessões este mês</p>
+            <h3 className="text-2xl font-bold text-foreground mb-1">
+              {attendedSessions.length}/{periodSessions.length}
+            </h3>
+            <p className="text-sm text-muted-foreground">Sessões no Período</p>
           </Card>
 
           <Card className="p-6 shadow-[var(--shadow-card)] border-border">
@@ -67,53 +154,23 @@ const Dashboard = () => {
               </div>
             </div>
             <h3 className="text-2xl font-bold text-foreground mb-1">
-              R$ {monthRevenue.toFixed(2)}
+              R$ {totalActual.toFixed(2)}
             </h3>
-            <p className="text-sm text-muted-foreground">Receita do mês</p>
+            <p className="text-sm text-muted-foreground">Receita Efetiva ({revenuePercent}%)</p>
           </Card>
 
           <Card className="p-6 shadow-[var(--shadow-card)] border-border">
             <div className="flex items-center justify-between mb-4">
               <div className="w-12 h-12 rounded-xl bg-warning/10 flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-[hsl(var(--warning))]" />
+                <AlertCircle className="w-6 h-6 text-[hsl(var(--warning))]" />
               </div>
             </div>
             <h3 className="text-2xl font-bold text-foreground mb-1">
-              {attendanceRate.toFixed(0)}%
+              R$ {unpaidValue.toFixed(2)}
             </h3>
-            <p className="text-sm text-muted-foreground">Taxa de comparecimento</p>
+            <p className="text-sm text-muted-foreground">Em Aberto ({unpaidSessions.length})</p>
           </Card>
         </div>
-
-        {monthSessions.length > 0 && (
-          <Card className="p-6 shadow-[var(--shadow-card)] border-border">
-            <h2 className="text-xl font-semibold text-foreground mb-4">Sessões Recentes</h2>
-            <div className="space-y-3">
-              {monthSessions.slice(0, 5).map(session => {
-                const patient = patients.find(p => p.id === session.patientId);
-                return (
-                  <div
-                    key={session.id}
-                    className="flex items-center justify-between p-4 rounded-lg bg-secondary/50"
-                  >
-                    <div>
-                      <p className="font-medium text-foreground">{patient?.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(session.date).toLocaleDateString('pt-BR')}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-foreground">R$ {session.value.toFixed(2)}</p>
-                      <p className={`text-sm ${session.attended ? 'text-[hsl(var(--success))]' : 'text-destructive'}`}>
-                        {session.attended ? 'Compareceu' : 'Faltou'}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
-        )}
       </div>
     </div>
   );
