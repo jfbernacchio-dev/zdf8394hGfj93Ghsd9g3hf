@@ -112,10 +112,14 @@ const PatientDetail = () => {
       .update({ status: newStatus })
       .eq('id', session.id);
 
-    if (!error) {
-      toast({ title: `Status alterado para ${newStatus === 'attended' ? 'Compareceu' : 'Não Compareceu'}` });
-      loadData();
+    if (error) {
+      console.error('Error updating session status:', error);
+      toast({ title: 'Erro ao atualizar status', variant: 'destructive' });
+      return;
     }
+    
+    toast({ title: `Status alterado para ${newStatus === 'attended' ? 'Compareceu' : 'Não Compareceu'}` });
+    loadData();
   };
 
 

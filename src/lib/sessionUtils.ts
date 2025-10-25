@@ -1,4 +1,4 @@
-import { addWeeks, format, isBefore, startOfDay, parseISO, startOfWeek } from 'date-fns';
+import { addWeeks, addDays, format, isBefore, startOfDay, parseISO, getDay } from 'date-fns';
 
 const dayOfWeekMap: { [key: string]: number } = {
   sunday: 0,
@@ -24,19 +24,19 @@ export const generateRecurringSessions = (
   const now = new Date();
 
   // Find the first occurrence of the session day on or after start date
-  let currentDate = new Date(start);
-  currentDate.setHours(0, 0, 0, 0);
+  let currentDate = startOfDay(start);
   
-  const startDayOfWeek = currentDate.getDay();
-  let daysUntilTarget = targetDayOfWeek - startDayOfWeek;
+  // Calculate days to add to reach target day of week
+  const currentDayOfWeek = getDay(currentDate);
+  let daysToAdd = targetDayOfWeek - currentDayOfWeek;
   
-  // If the target day is before the start day, move to next week
-  if (daysUntilTarget < 0) {
-    daysUntilTarget += 7;
+  // If target day is in the past this week, move to next week
+  if (daysToAdd < 0) {
+    daysToAdd += 7;
   }
   
-  // Add the days to reach the target day of week
-  currentDate.setDate(currentDate.getDate() + daysUntilTarget);
+  // Move to the target day
+  currentDate = addDays(currentDate, daysToAdd);
 
   // Generate sessions from first occurrence until end date
   while (isBefore(currentDate, end) || currentDate.getTime() === startOfDay(end).getTime()) {
