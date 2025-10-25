@@ -354,12 +354,30 @@ const Schedule = () => {
     const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
     const weekDays = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
     const hours = Array.from({ length: 15 }, (_, i) => i + 7); // 7:00 to 21:00
+    const startHour = 7;
 
     // Calculate position based on exact time
     const getSessionPosition = (time: string) => {
       const [hours, minutes] = time.split(':').map(Number);
-      const totalMinutes = (hours - 7) * 60 + minutes;
+      const totalMinutes = (hours - startHour) * 60 + minutes;
       return (totalMinutes / 60) * 60; // 60px per hour
+    };
+
+    // Get blocks for a specific day with positions
+    const getBlocksForDay = (dayOfWeek: number) => {
+      return scheduleBlocks
+        .filter(block => block.day_of_week === dayOfWeek)
+        .map(block => {
+          const [startHours, startMinutes] = block.start_time.split(':').map(Number);
+          const [endHours, endMinutes] = block.end_time.split(':').map(Number);
+          const startMinutesTotal = (startHours - startHour) * 60 + startMinutes;
+          const endMinutesTotal = (endHours - startHour) * 60 + endMinutes;
+          return {
+            ...block,
+            startMinutes: startMinutesTotal,
+            endMinutes: endMinutesTotal
+          };
+        });
     };
 
     return (
@@ -466,21 +484,31 @@ const Schedule = () => {
               {weekDays.map((dayDate, dayIndex) => {
                 const dayOfWeek = getDay(dayDate);
                 const adjustedDay = dayOfWeek === 0 ? 7 : dayOfWeek;
-                const isBlocked = isTimeBlocked(adjustedDay, `${hour.toString().padStart(2, '0')}:00`);
                 
                 // Get all sessions for this day (not filtered by hour)
                 const allDaySessions = sessions.filter(s => s.date === format(dayDate, 'yyyy-MM-dd'));
+                
+                // Get blocks for this day
+                const dayBlocks = getBlocksForDay(adjustedDay);
 
                 return (
                   <div
                     key={`${hour}-${dayIndex}`}
-                    className={`h-[60px] border-t border-r last:border-r-0 relative ${isBlocked ? 'bg-muted/50' : 'hover:bg-accent/20'} transition-colors`}
+                    className="h-[60px] border-t border-r last:border-r-0 relative hover:bg-accent/20 transition-colors"
                   >
-                    {isBlocked && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Lock className="h-4 w-4 text-muted-foreground" />
+                    {/* Render blocks with absolute positioning */}
+                    {hour === 7 && dayBlocks.map(block => (
+                      <div
+                        key={block.id}
+                        className="absolute inset-x-0 bg-destructive/15 border-2 border-destructive/30 rounded flex items-center justify-center text-xs text-destructive z-10"
+                        style={{
+                          top: `${(block.startMinutes / 60) * 60}px`,
+                          height: `${((block.endMinutes - block.startMinutes) / 60) * 60}px`,
+                        }}
+                      >
+                        <span className="font-medium">🚫 Bloqueado</span>
                       </div>
-                    )}
+                    ))}
                     
                     {/* Render sessions with absolute positioning */}
                     {hour === 7 && allDaySessions.map(session => {
