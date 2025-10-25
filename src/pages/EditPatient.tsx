@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { storage } from '@/lib/storage';
-import { Patient } from '@/types/patient';
+import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,77 +14,55 @@ const EditPatient = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    birthDate: '',
-    frequency: 'weekly' as 'weekly' | 'biweekly',
-    sessionDay: 'monday' as 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday',
-    sessionTime: '',
-    startDate: '',
-    status: 'active' as 'active' | 'inactive',
-  });
+  const [formData, setFormData] = useState<any>(null);
 
   useEffect(() => {
-    const patients = storage.getPatients();
-    const patient = patients.find(p => p.id === id);
-    if (patient) {
-      setFormData({
-        name: patient.name,
-        email: patient.email,
-        phone: patient.phone,
-        birthDate: patient.birthDate,
-        frequency: patient.frequency,
-        sessionDay: patient.sessionDay,
-        sessionTime: patient.sessionTime,
-        startDate: patient.startDate,
-        status: patient.status,
-      });
-    }
+    loadPatient();
   }, [id]);
 
-  const handleDeactivate = () => {
+  const loadPatient = async () => {
+    const { data } = await supabase.from('patients').select('*').eq('id', id).single();
+    if (data) {
+      setFormData({
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        cpf: data.cpf,
+        birth_date: data.birth_date,
+        frequency: data.frequency,
+        session_day: data.session_day,
+        session_time: data.session_time,
+        session_value: data.session_value,
+        start_date: data.start_date,
+        status: data.status,
+      });
+    }
+  };
+
+  const handleDeactivate = async () => {
     if (!confirm('Tem certeza que deseja encerrar este paciente? Todas as sessões futuras serão canceladas.')) {
       return;
     }
 
-    const patients = storage.getPatients();
-    const updatedPatients = patients.map(p => 
-      p.id === id ? { ...p, status: 'inactive' as const } : p
-    );
-    storage.savePatients(updatedPatients);
-
-    // Cancelar todas as sessões futuras
-    const sessions = storage.getSessions();
+    await supabase.from('patients').update({ status: 'inactive' }).eq('id', id);
+    
     const today = new Date().toISOString().split('T')[0];
-    const updatedSessions = sessions.filter(s => 
-      s.patientId !== id || s.date < today
-    );
-    storage.saveSessions(updatedSessions);
+    await supabase.from('sessions').delete().eq('patient_id', id).gte('date', today);
 
     toast({
       title: "Paciente encerrado!",
       description: "Todas as sessões futuras foram canceladas.",
     });
 
-    navigate(`/patients/${id}`);
+    navigate('/patients');
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!confirm('Tem certeza que deseja EXCLUIR este paciente? Esta ação não pode ser desfeita e todos os dados serão perdidos.')) {
       return;
     }
 
-    // Remover paciente
-    const patients = storage.getPatients();
-    const updatedPatients = patients.filter(p => p.id !== id);
-    storage.savePatients(updatedPatients);
-
-    // Remover todas as sessões do paciente
-    const sessions = storage.getSessions();
-    const updatedSessions = sessions.filter(s => s.patientId !== id);
-    storage.saveSessions(updatedSessions);
+    await supabase.from('patients').delete().eq('id', id);
 
     toast({
       title: "Paciente excluído!",
@@ -95,23 +72,49 @@ const EditPatient = () => {
     navigate('/patients');
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const patients = storage.getPatients();
-    const updatedPatients = patients.map(p => 
-      p.id === id ? { ...p, ...formData } : p
-    );
-    
-    storage.savePatients(updatedPatients);
+    const { error } = await supabase.from('patients').update({
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      cpf: formData.cpf,
+      birth_date: formData.birth_date,
+      frequency: formData.frequency,
+      session_day: formData.session_day,
+      session_time: formData.session_time,
+      session_value: formData.session_value,
+      start_date: formData.start_date,
+    }).eq('id', id);
+
+    if (error) {
+      toast({
+        title: "Erro ao atualizar",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
     
     toast({
       title: "Paciente atualizado!",
       description: "As informações foram salvas com sucesso.",
     });
     
-    navigate(`/patients/${id}`);
+    navigate('/patients');
   };
+
+  if (!formData) {
+    return (
+      <div className="min-h-screen bg-[var(--gradient-soft)]">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8">
+          <p className="text-muted-foreground">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[var(--gradient-soft)]">
@@ -162,13 +165,36 @@ const EditPatient = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="birthDate">Data de nascimento</Label>
+              <Label htmlFor="birth_date">Data de nascimento</Label>
               <Input
-                id="birthDate"
+                id="birth_date"
                 type="date"
                 required
-                value={formData.birthDate}
-                onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
+                value={formData.birth_date}
+                onChange={(e) => setFormData({ ...formData, birth_date: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="cpf">CPF</Label>
+              <Input
+                id="cpf"
+                required
+                value={formData.cpf}
+                onChange={(e) => setFormData({ ...formData, cpf: e.target.value.replace(/\D/g, '') })}
+                maxLength={11}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="session_value">Valor por Sessão (R$)</Label>
+              <Input
+                id="session_value"
+                type="number"
+                step="0.01"
+                required
+                value={formData.session_value}
+                onChange={(e) => setFormData({ ...formData, session_value: e.target.value })}
               />
             </div>
 
@@ -189,21 +215,21 @@ const EditPatient = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="startDate">Data de início</Label>
+              <Label htmlFor="start_date">Data de início</Label>
               <Input
-                id="startDate"
+                id="start_date"
                 type="date"
                 required
-                value={formData.startDate}
-                onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                value={formData.start_date}
+                onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="sessionDay">Dia da semana da sessão</Label>
+              <Label htmlFor="session_day">Dia da semana da sessão</Label>
               <Select 
-                value={formData.sessionDay} 
-                onValueChange={(value) => setFormData({ ...formData, sessionDay: value as any })}
+                value={formData.session_day} 
+                onValueChange={(value) => setFormData({ ...formData, session_day: value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o dia da semana" />
@@ -221,13 +247,13 @@ const EditPatient = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="sessionTime">Horário da sessão</Label>
+              <Label htmlFor="session_time">Horário da sessão</Label>
               <Input
-                id="sessionTime"
+                id="session_time"
                 type="time"
                 required
-                value={formData.sessionTime}
-                onChange={(e) => setFormData({ ...formData, sessionTime: e.target.value })}
+                value={formData.session_time}
+                onChange={(e) => setFormData({ ...formData, session_time: e.target.value })}
               />
             </div>
 
