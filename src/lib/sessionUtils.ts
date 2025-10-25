@@ -67,7 +67,24 @@ export const getNextSessionDate = (
   frequency: 'weekly' | 'biweekly'
 ): string => {
   const lastDate = parseISO(lastSessionDate);
-  const nextDate = addWeeks(lastDate, frequency === 'weekly' ? 1 : 2);
+  const targetDayOfWeek = dayOfWeekMap[sessionDay.toLowerCase()];
+  const weeksToAdd = frequency === 'weekly' ? 1 : 2;
+  
+  // Add weeks first
+  let nextDate = addWeeks(lastDate, weeksToAdd);
+  
+  // Now adjust to the correct day of week
+  const currentDayOfWeek = getDay(nextDate);
+  let daysToAdd = targetDayOfWeek - currentDayOfWeek;
+  
+  // If we're already on the target day, stay there
+  // If target day is in the past this week, move to next week
+  if (daysToAdd < 0) {
+    daysToAdd += 7;
+  }
+  
+  nextDate = addDays(nextDate, daysToAdd);
+  
   return format(nextDate, 'yyyy-MM-dd');
 };
 
