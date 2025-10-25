@@ -388,6 +388,12 @@ const Schedule = () => {
               <ArrowLeft className="mr-2 h-4 w-4" />
               Voltar ao mês
             </Button>
+            <Button variant="outline" onClick={() => setSelectedDate(addDays(selectedDate, -7))}>
+              ← Semana Anterior
+            </Button>
+            <Button variant="outline" onClick={() => setSelectedDate(addDays(selectedDate, 7))}>
+              Próxima Semana →
+            </Button>
             <Dialog open={isBlockDialogOpen} onOpenChange={setIsBlockDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline">
@@ -553,6 +559,8 @@ const Schedule = () => {
   const getDayView = () => {
     const daySessions = getSessionsForDay(selectedDate);
     const hours = Array.from({ length: 15 }, (_, i) => i + 7); // 7:00 to 21:00
+    const dayOfWeek = getDay(selectedDate);
+    const adjustedDay = dayOfWeek === 0 ? 7 : dayOfWeek;
 
     return (
       <Card className="p-6">
@@ -577,31 +585,39 @@ const Schedule = () => {
               return sessionHour === hour;
             });
 
+            const isBlocked = isTimeBlocked(adjustedDay, `${hour.toString().padStart(2, '0')}:00`);
+
             return (
               <div key={hour} className="flex gap-4 p-2 border-b">
                 <div className="w-20 text-sm font-semibold text-muted-foreground">
                   {hour.toString().padStart(2, '0')}:00
                 </div>
                 <div className="flex-1 space-y-2">
-                  {hourSessions.map(session => (
-                    <div
-                      key={session.id}
-                      onClick={() => openEditDialog(session)}
-                      className={`p-3 rounded-lg cursor-pointer transition-colors ${getStatusColor(session.status)}`}
-                    >
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="font-semibold">{session.patients.name}</p>
-                          <p className="text-xs">{session.time || session.patients.session_time}</p>
-                        </div>
-                        <div className="text-right">
-                          {session.paid && <p className="text-xs">💰 Pago</p>}
-                          {session.status === 'missed' && <p className="text-xs">Sem Cobrança</p>}
-                          {session.status === 'attended' && !session.paid && <p className="text-xs">A Pagar</p>}
+                  {isBlocked ? (
+                    <div className="p-3 rounded-lg bg-destructive/15 border-2 border-destructive/30 text-destructive text-center">
+                      <span className="font-medium">🚫 Bloqueado</span>
+                    </div>
+                  ) : (
+                    hourSessions.map(session => (
+                      <div
+                        key={session.id}
+                        onClick={() => openEditDialog(session)}
+                        className={`p-3 rounded-lg cursor-pointer transition-colors ${getStatusColor(session.status)}`}
+                      >
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="font-semibold">{session.patients.name}</p>
+                            <p className="text-xs">{session.time || session.patients.session_time}</p>
+                          </div>
+                          <div className="text-right">
+                            {session.paid && <p className="text-xs">💰 Pago</p>}
+                            {session.status === 'missed' && <p className="text-xs">Sem Cobrança</p>}
+                            {session.status === 'attended' && !session.paid && <p className="text-xs">A Pagar</p>}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
             );
@@ -659,6 +675,11 @@ const Schedule = () => {
             {getDaysInMonth().map((day, index) => {
               const daySessions = getSessionsForDay(day);
               const isToday = isSameDay(day, new Date());
+              const dayOfWeek = getDay(day);
+              const adjustedDay = dayOfWeek === 0 ? 7 : dayOfWeek;
+              
+              // Check if any part of the day has blocks
+              const hasBlocks = scheduleBlocks.some(block => block.day_of_week === adjustedDay);
               
               return (
                 <div
@@ -671,7 +692,10 @@ const Schedule = () => {
                     setViewMode('day');
                   }}
                 >
-                  <div className="font-semibold text-sm mb-1">{format(day, 'd')}</div>
+                  <div className="font-semibold text-sm mb-1 flex justify-between items-center">
+                    <span>{format(day, 'd')}</span>
+                    {hasBlocks && <Lock className="h-3 w-3 text-destructive" />}
+                  </div>
                   <div className="space-y-1">
                     {daySessions.map(session => (
                       <div
