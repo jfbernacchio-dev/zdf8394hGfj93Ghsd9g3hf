@@ -91,10 +91,23 @@ export const ensureFutureSessions = async (
 
   if (sessionsToCreate <= 0) return;
 
-  // Find the last session date (either last future session or today)
-  let lastDate = futureSessions && futureSessions.length > 0 
-    ? futureSessions[futureSessions.length - 1].date
-    : format(new Date(), 'yyyy-MM-dd');
+  // Find the last session date from ALL sessions (not just future ones)
+  const { data: allSessions } = await supabase
+    .from('sessions')
+    .select('date')
+    .eq('patient_id', patientId)
+    .order('date', { ascending: false })
+    .limit(1);
+
+  let lastDate: string;
+  
+  if (allSessions && allSessions.length > 0) {
+    // Use the last session date as base
+    lastDate = allSessions[0].date;
+  } else {
+    // If no sessions exist, use patient's start_date
+    lastDate = patient.start_date;
+  }
 
   // Create missing sessions
   const newSessions = [];
