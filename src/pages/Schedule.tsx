@@ -10,8 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import Navbar from '@/components/Navbar';
 import { useToast } from '@/hooks/use-toast';
-import { Calendar as CalendarIcon, Plus, CheckCircle, XCircle, DollarSign } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths } from 'date-fns';
+import { Calendar as CalendarIcon, Plus, CheckCircle, XCircle, DollarSign, ArrowLeft } from 'lucide-react';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, startOfWeek, isBefore } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const Schedule = () => {
@@ -20,6 +20,7 @@ const Schedule = () => {
   const [patients, setPatients] = useState<any[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [viewMode, setViewMode] = useState<'month' | 'day'>('month');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<any>(null);
   const { toast } = useToast();
@@ -34,8 +35,24 @@ const Schedule = () => {
   });
 
   useEffect(() => {
-    if (user) loadData();
+    if (user) {
+      loadData();
+      autoUpdateOldSessions();
+    }
   }, [user, currentMonth]);
+
+  const autoUpdateOldSessions = async () => {
+    const startOfCurrentWeek = startOfWeek(new Date(), { weekStartsOn: 0 });
+    
+    // Update scheduled sessions that are before current week to completed
+    const { error } = await supabase
+      .from('sessions')
+      .update({ status: 'completed' })
+      .eq('status', 'scheduled')
+      .lt('date', format(startOfCurrentWeek, 'yyyy-MM-dd'));
+
+    if (error) console.error('Error auto-updating sessions:', error);
+  };
 
   const loadData = async () => {
     const start = startOfMonth(currentMonth);
@@ -203,29 +220,91 @@ const Schedule = () => {
     }
   };
 
+  const getDayView = () => {
+    const daySessions = getSessionsForDay(selectedDate);
+    const hours = Array.from({ length: 15 }, (_, i) => i + 7); // 7:00 to 21:00
+
+    return (
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <Button variant="ghost" onClick={() => setViewMode('month')}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Voltar ao mês
+          </Button>
+          <h2 className="text-xl font-semibold">
+            {format(selectedDate, "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
+          </h2>
+          <Button onClick={() => openNewDialog(selectedDate)}>
+            <Plus className="mr-2 h-4 w-4" /> Nova Sessão
+          </Button>
+        </div>
+
+        <div className="space-y-2">
+          {hours.map(hour => {
+            const hourSessions = daySessions.filter(s => {
+              const sessionHour = parseInt(s.patients?.session_time?.split(':')[0] || '0');
+              return sessionHour === hour;
+            });
+
+            return (
+              <div key={hour} className="flex gap-4 p-2 border-b">
+                <div className="w-20 text-sm font-semibold text-muted-foreground">
+                  {hour.toString().padStart(2, '0')}:00
+                </div>
+                <div className="flex-1 space-y-2">
+                  {hourSessions.map(session => (
+                    <div
+                      key={session.id}
+                      onClick={() => openEditDialog(session)}
+                      className={`p-3 rounded-lg cursor-pointer transition-colors ${getStatusColor(session.status)}`}
+                    >
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="font-semibold">{session.patients.name}</p>
+                          <p className="text-xs">{session.patients.session_time}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-semibold">R$ {Number(session.value).toFixed(2)}</p>
+                          {session.paid && <p className="text-xs">💰 Pago</p>}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-[var(--gradient-soft)]">
       <Navbar />
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-foreground">Agenda</h1>
-          <Button onClick={() => openNewDialog(selectedDate)}>
-            <Plus className="mr-2 h-4 w-4" /> Nova Sessão
-          </Button>
+          {viewMode === 'month' && (
+            <Button onClick={() => openNewDialog(selectedDate)}>
+              <Plus className="mr-2 h-4 w-4" /> Nova Sessão
+            </Button>
+          )}
         </div>
 
-        <Card className="p-6 mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <Button variant="outline" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
-              ← Anterior
-            </Button>
-            <h2 className="text-xl font-semibold">
-              {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
-            </h2>
-            <Button variant="outline" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
-              Próximo →
-            </Button>
-          </div>
+        {viewMode === 'month' ? (
+          <Card className="p-6 mb-6">
+            <div className="flex justify-between items-center mb-4">
+              <Button variant="outline" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
+                ← Anterior
+              </Button>
+              <h2 className="text-xl font-semibold">
+                {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
+              </h2>
+              <Button variant="outline" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
+                Próximo →
+              </Button>
+            </div>
 
           <div className="grid grid-cols-7 gap-2">
             {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
@@ -244,7 +323,7 @@ const Schedule = () => {
                   }`}
                   onClick={() => {
                     setSelectedDate(day);
-                    if (daySessions.length === 0) openNewDialog(day);
+                    setViewMode('day');
                   }}
                 >
                   <div className="font-semibold text-sm mb-1">{format(day, 'd')}</div>
@@ -268,6 +347,7 @@ const Schedule = () => {
             })}
           </div>
         </Card>
+        ) : getDayView()}
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="max-w-md">

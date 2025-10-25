@@ -57,7 +57,7 @@ const NewPatient = () => {
 
       // Generate all recurring sessions from start_date until today
       const { generateRecurringSessions } = await import('@/lib/sessionUtils');
-      const sessionDates = generateRecurringSessions(
+      const sessionData = generateRecurringSessions(
         formData.startDate,
         formData.sessionDay,
         formData.frequency,
@@ -65,10 +65,10 @@ const NewPatient = () => {
       );
 
       // Create sessions in the database
-      const sessionsToInsert = sessionDates.map(date => ({
+      const sessionsToInsert = sessionData.map(({ date, status }) => ({
         patient_id: patient.id,
         date,
-        status: 'scheduled',
+        status,
         value: parseFloat(formData.sessionValue),
         paid: false,
       }));

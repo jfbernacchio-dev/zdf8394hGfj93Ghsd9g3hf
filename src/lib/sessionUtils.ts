@@ -1,4 +1,4 @@
-import { addWeeks, format, isBefore, startOfDay, parseISO } from 'date-fns';
+import { addWeeks, format, isBefore, startOfDay, parseISO, startOfWeek } from 'date-fns';
 
 const dayOfWeekMap: { [key: string]: number } = {
   sunday: 0,
@@ -16,10 +16,11 @@ export const generateRecurringSessions = (
   frequency: 'weekly' | 'biweekly',
   endDate?: Date
 ) => {
-  const sessions: Date[] = [];
+  const sessions: { date: string; status: string }[] = [];
   const start = parseISO(startDate);
   const targetDayOfWeek = dayOfWeekMap[sessionDay];
   const end = endDate || new Date();
+  const startOfCurrentWeek = startOfWeek(new Date(), { weekStartsOn: 0 });
 
   // Find the first occurrence of the session day on or after start date
   let currentDate = startOfDay(start);
@@ -32,11 +33,14 @@ export const generateRecurringSessions = (
 
   // Generate sessions from first occurrence until end date
   while (isBefore(currentDate, end) || currentDate.getTime() === startOfDay(end).getTime()) {
-    sessions.push(new Date(currentDate));
+    const sessionDate = format(currentDate, 'yyyy-MM-dd');
+    // Mark sessions before current week as "completed" (Compareceu)
+    const status = isBefore(currentDate, startOfCurrentWeek) ? 'completed' : 'scheduled';
+    sessions.push({ date: sessionDate, status });
     currentDate = addWeeks(currentDate, frequency === 'weekly' ? 1 : 2);
   }
 
-  return sessions.map(date => format(date, 'yyyy-MM-dd'));
+  return sessions;
 };
 
 export const getNextSessionDate = (

@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, Plus, Calendar, DollarSign, Edit } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ArrowLeft, Plus, Calendar, DollarSign, Edit, Check, X } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
 
 const PatientDetail = () => {
   const { id } = useParams();
@@ -17,6 +18,15 @@ const PatientDetail = () => {
   const { toast } = useToast();
   const [patient, setPatient] = useState<any>(null);
   const [sessions, setSessions] = useState<any[]>([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingSession, setEditingSession] = useState<any>(null);
+  const [formData, setFormData] = useState({
+    date: format(new Date(), 'yyyy-MM-dd'),
+    status: 'completed',
+    notes: '',
+    value: '',
+    paid: false
+  });
 
   useEffect(() => {
     loadData();
@@ -28,6 +38,83 @@ const PatientDetail = () => {
     
     setPatient(patientData);
     setSessions(sessionsData || []);
+  };
+
+  const openNewSessionDialog = () => {
+    setEditingSession(null);
+    setFormData({
+      date: format(new Date(), 'yyyy-MM-dd'),
+      status: 'completed',
+      notes: '',
+      value: patient?.session_value?.toString() || '',
+      paid: false
+    });
+    setIsDialogOpen(true);
+  };
+
+  const openEditDialog = (session: any) => {
+    setEditingSession(session);
+    setFormData({
+      date: session.date,
+      status: session.status,
+      notes: session.notes || '',
+      value: session.value.toString(),
+      paid: session.paid
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const sessionData = {
+      patient_id: id,
+      date: formData.date,
+      status: formData.status,
+      notes: formData.notes,
+      value: parseFloat(formData.value),
+      paid: formData.paid
+    };
+
+    if (editingSession) {
+      const { error } = await supabase
+        .from('sessions')
+        .update(sessionData)
+        .eq('id', editingSession.id);
+
+      if (error) {
+        toast({ title: 'Erro ao atualizar sessão', variant: 'destructive' });
+        return;
+      }
+      toast({ title: 'Sessão atualizada!' });
+    } else {
+      const { error } = await supabase
+        .from('sessions')
+        .insert([sessionData]);
+
+      if (error) {
+        toast({ title: 'Erro ao criar sessão', variant: 'destructive' });
+        return;
+      }
+      toast({ title: 'Sessão criada!' });
+    }
+
+    setIsDialogOpen(false);
+    loadData();
+  };
+
+  const toggleStatus = async (session: any) => {
+    const newStatus = session.status === 'completed' ? 'cancelled' : 'completed';
+    
+    const { error } = await supabase
+      .from('sessions')
+      .update({ status: newStatus })
+      .eq('id', session.id);
+
+    if (!error) {
+      toast({ title: `Status alterado para ${newStatus === 'completed' ? 'Compareceu' : 'Não Compareceu'}` });
+      loadData();
+    }
   };
 
 
@@ -97,19 +184,57 @@ const PatientDetail = () => {
           </div>
         </Card>
 
-        <h2 className="text-xl font-semibold mb-4 text-foreground">Histórico de Sessões</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-foreground">Histórico de Sessões</h2>
+          <Button onClick={openNewSessionDialog}>
+            <Plus className="w-4 h-4 mr-2" />
+            Nova Sessão
+          </Button>
+        </div>
+
         <div className="space-y-4">
           {sessions.map(session => (
             <Card key={session.id} className="p-4">
               <div className="flex justify-between items-center">
-                <div>
+                <div className="flex-1">
                   <p className="font-semibold">{new Date(session.date).toLocaleDateString('pt-BR')}</p>
-                  <p className="text-sm text-muted-foreground capitalize">{session.status}</p>
-                  {session.notes && <p className="text-sm mt-1">{session.notes}</p>}
+                  <p className={`text-sm ${
+                    session.status === 'completed' ? 'text-green-600 dark:text-green-400' :
+                    session.status === 'cancelled' ? 'text-red-600 dark:text-red-400' :
+                    'text-blue-600 dark:text-blue-400'
+                  }`}>
+                    {session.status === 'completed' ? 'Compareceu' : 
+                     session.status === 'cancelled' ? 'Não Compareceu' : 'Agendada'}
+                  </p>
+                  {session.notes && <p className="text-sm mt-1 text-muted-foreground">{session.notes}</p>}
                 </div>
-                <div className="text-right">
-                  <p className="font-semibold">R$ {Number(session.value).toFixed(2)}</p>
-                  {session.paid && <p className="text-xs text-success">Pago</p>}
+                <div className="flex items-center gap-2">
+                  <div className="text-right mr-4">
+                    <p className="font-semibold">R$ {Number(session.value).toFixed(2)}</p>
+                    {session.paid ? (
+                      <p className="text-xs text-green-600 dark:text-green-400">Pago</p>
+                    ) : (
+                      <p className="text-xs text-orange-600 dark:text-orange-400">A pagar</p>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => toggleStatus(session)}
+                  >
+                    {session.status === 'completed' ? (
+                      <><X className="w-4 h-4 mr-1" /> Marcar Falta</>
+                    ) : (
+                      <><Check className="w-4 h-4 mr-1" /> Marcar Presença</>
+                    )}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => openEditDialog(session)}
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
             </Card>
@@ -121,6 +246,60 @@ const PatientDetail = () => {
             </div>
           )}
         </div>
+
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{editingSession ? 'Editar Sessão' : 'Nova Sessão'}</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <Label>Data</Label>
+                <Input
+                  type="date"
+                  value={formData.date}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div>
+                <Label>Valor (R$)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={formData.value}
+                  onChange={(e) => setFormData({ ...formData, value: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div>
+                <Label>Observações</Label>
+                <Textarea
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  rows={3}
+                />
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="paid"
+                  checked={formData.paid}
+                  onChange={(e) => setFormData({ ...formData, paid: e.target.checked })}
+                  className="h-4 w-4"
+                />
+                <Label htmlFor="paid">Pago</Label>
+              </div>
+
+              <Button type="submit" className="w-full">
+                {editingSession ? 'Atualizar' : 'Criar'} Sessão
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
