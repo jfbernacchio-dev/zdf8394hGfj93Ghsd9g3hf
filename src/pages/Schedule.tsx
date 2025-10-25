@@ -382,93 +382,103 @@ const Schedule = () => {
 
     return (
       <Card className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex gap-2">
+        <div className="space-y-4 mb-6">
+          <div className="flex items-center justify-between">
             <Button variant="ghost" onClick={() => setViewMode('month')}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Voltar ao mês
             </Button>
-            <Button variant="outline" onClick={() => setSelectedDate(addDays(selectedDate, -7))}>
-              ← Semana Anterior
-            </Button>
-            <Button variant="outline" onClick={() => setSelectedDate(addDays(selectedDate, 7))}>
-              Próxima Semana →
-            </Button>
-            <Dialog open={isBlockDialogOpen} onOpenChange={setIsBlockDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline">
-                  <Lock className="mr-2 h-4 w-4" />
-                  Gerenciar Bloqueios
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Bloqueio de Agenda</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label>Dia da Semana</Label>
-                    <Select value={blockForm.day_of_week} onValueChange={(value) => setBlockForm({...blockForm, day_of_week: value})}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">Segunda-feira</SelectItem>
-                        <SelectItem value="2">Terça-feira</SelectItem>
-                        <SelectItem value="3">Quarta-feira</SelectItem>
-                        <SelectItem value="4">Quinta-feira</SelectItem>
-                        <SelectItem value="5">Sexta-feira</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label>Início</Label>
-                      <Input type="time" value={blockForm.start_time} onChange={(e) => setBlockForm({...blockForm, start_time: e.target.value})} />
-                    </div>
-                    <div>
-                      <Label>Fim</Label>
-                      <Input type="time" value={blockForm.end_time} onChange={(e) => setBlockForm({...blockForm, end_time: e.target.value})} />
-                    </div>
-                  </div>
-                  <div>
-                    <Label>Motivo (opcional)</Label>
-                    <Input value={blockForm.reason} onChange={(e) => setBlockForm({...blockForm, reason: e.target.value})} placeholder="Ex: Almoço, Reunião..." />
-                  </div>
-                  <div>
-                    <Label>Replicar para quantas semanas?</Label>
-                    <Input type="number" min="1" value={blockForm.replicate_weeks} onChange={(e) => setBlockForm({...blockForm, replicate_weeks: parseInt(e.target.value)})} />
-                  </div>
-                  <Button onClick={handleCreateBlock} className="w-full">Criar Bloqueio</Button>
-                  
-                  <div className="border-t pt-4 mt-4">
-                    <h3 className="font-semibold mb-2">Bloqueios Existentes</h3>
-                    <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                      {scheduleBlocks.map(block => (
-                        <div key={block.id} className="flex justify-between items-center p-2 bg-muted rounded">
-                          <div className="text-sm">
-                            <p className="font-medium">
-                              {['', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'][block.day_of_week]} - {block.start_time} às {block.end_time}
-                            </p>
-                            {block.reason && <p className="text-xs text-muted-foreground">{block.reason}</p>}
-                          </div>
-                          <Button variant="ghost" size="sm" onClick={() => deleteBlock(block.id)}>
-                            <XCircle className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+            <h2 className="text-xl font-semibold">
+              {format(weekStart, "d 'de' MMMM", { locale: ptBR })} - {format(addDays(weekStart, 4), "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
+            </h2>
+            <div className="w-[120px]" /> {/* Spacer for alignment */}
           </div>
-          <h2 className="text-xl font-semibold">
-            {format(weekStart, "d 'de' MMMM", { locale: ptBR })} - {format(addDays(weekStart, 4), "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
-          </h2>
-          <Button onClick={() => openNewDialog(selectedDate)}>
-            <Plus className="mr-2 h-4 w-4" /> Nova Sessão
-          </Button>
+          
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setSelectedDate(addDays(selectedDate, -7))}>
+                ← Anterior
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setSelectedDate(addDays(selectedDate, 7))}>
+                Próxima →
+              </Button>
+            </div>
+            
+            <div className="flex gap-2">
+              <Dialog open={isBlockDialogOpen} onOpenChange={setIsBlockDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Lock className="mr-2 h-4 w-4" />
+                    Bloqueios
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Bloqueio de Agenda</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Dia da Semana</Label>
+                      <Select value={blockForm.day_of_week} onValueChange={(value) => setBlockForm({...blockForm, day_of_week: value})}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">Segunda-feira</SelectItem>
+                          <SelectItem value="2">Terça-feira</SelectItem>
+                          <SelectItem value="3">Quarta-feira</SelectItem>
+                          <SelectItem value="4">Quinta-feira</SelectItem>
+                          <SelectItem value="5">Sexta-feira</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label>Início</Label>
+                        <Input type="time" value={blockForm.start_time} onChange={(e) => setBlockForm({...blockForm, start_time: e.target.value})} />
+                      </div>
+                      <div>
+                        <Label>Fim</Label>
+                        <Input type="time" value={blockForm.end_time} onChange={(e) => setBlockForm({...blockForm, end_time: e.target.value})} />
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Motivo (opcional)</Label>
+                      <Input value={blockForm.reason} onChange={(e) => setBlockForm({...blockForm, reason: e.target.value})} placeholder="Ex: Almoço, Reunião..." />
+                    </div>
+                    <div>
+                      <Label>Replicar para quantas semanas?</Label>
+                      <Input type="number" min="1" value={blockForm.replicate_weeks} onChange={(e) => setBlockForm({...blockForm, replicate_weeks: parseInt(e.target.value)})} />
+                    </div>
+                    <Button onClick={handleCreateBlock} className="w-full">Criar Bloqueio</Button>
+                    
+                    <div className="border-t pt-4 mt-4">
+                      <h3 className="font-semibold mb-2">Bloqueios Existentes</h3>
+                      <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                        {scheduleBlocks.map(block => (
+                          <div key={block.id} className="flex justify-between items-center p-2 bg-muted rounded">
+                            <div className="text-sm">
+                              <p className="font-medium">
+                                {['', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'][block.day_of_week]} - {block.start_time} às {block.end_time}
+                              </p>
+                              {block.reason && <p className="text-xs text-muted-foreground">{block.reason}</p>}
+                            </div>
+                            <Button variant="ghost" size="sm" onClick={() => deleteBlock(block.id)}>
+                              <XCircle className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+              
+              <Button size="sm" onClick={() => openNewDialog(selectedDate)}>
+                <Plus className="mr-2 h-4 w-4" /> Nova Sessão
+              </Button>
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-6 gap-0 border rounded-lg overflow-hidden">
@@ -561,67 +571,182 @@ const Schedule = () => {
     const hours = Array.from({ length: 15 }, (_, i) => i + 7); // 7:00 to 21:00
     const dayOfWeek = getDay(selectedDate);
     const adjustedDay = dayOfWeek === 0 ? 7 : dayOfWeek;
+    const startHour = 7;
+
+    // Calculate position based on exact time
+    const getSessionPosition = (time: string) => {
+      const [hours, minutes] = time.split(':').map(Number);
+      const totalMinutes = (hours - startHour) * 60 + minutes;
+      return (totalMinutes / 60) * 60; // 60px per hour
+    };
+
+    // Get blocks for this day with positions
+    const getBlocksForDay = () => {
+      return scheduleBlocks
+        .filter(block => block.day_of_week === adjustedDay)
+        .map(block => {
+          const [startHours, startMinutes] = block.start_time.split(':').map(Number);
+          const [endHours, endMinutes] = block.end_time.split(':').map(Number);
+          const startMinutesTotal = (startHours - startHour) * 60 + startMinutes;
+          const endMinutesTotal = (endHours - startHour) * 60 + endMinutes;
+          return {
+            ...block,
+            startMinutes: startMinutesTotal,
+            endMinutes: endMinutesTotal
+          };
+        });
+    };
+
+    const dayBlocks = getBlocksForDay();
 
     return (
       <Card className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <Button variant="ghost" onClick={() => setViewMode('month')}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Voltar ao mês
-          </Button>
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={() => setViewMode('month')}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Voltar ao mês
+            </Button>
+            <Button variant="outline" onClick={() => {
+              setViewMode('week');
+              setSelectedDate(selectedDate);
+            }}>
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              Ver Semana
+            </Button>
+          </div>
           <h2 className="text-xl font-semibold">
             {format(selectedDate, "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
           </h2>
-          <Button onClick={() => openNewDialog(selectedDate)}>
-            <Plus className="mr-2 h-4 w-4" /> Nova Sessão
-          </Button>
+          <div className="flex gap-2">
+            <Dialog open={isBlockDialogOpen} onOpenChange={setIsBlockDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Lock className="mr-2 h-4 w-4" />
+                  Bloqueios
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Bloqueio de Agenda</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label>Dia da Semana</Label>
+                    <Select value={blockForm.day_of_week} onValueChange={(value) => setBlockForm({...blockForm, day_of_week: value})}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">Segunda-feira</SelectItem>
+                        <SelectItem value="2">Terça-feira</SelectItem>
+                        <SelectItem value="3">Quarta-feira</SelectItem>
+                        <SelectItem value="4">Quinta-feira</SelectItem>
+                        <SelectItem value="5">Sexta-feira</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label>Início</Label>
+                      <Input type="time" value={blockForm.start_time} onChange={(e) => setBlockForm({...blockForm, start_time: e.target.value})} />
+                    </div>
+                    <div>
+                      <Label>Fim</Label>
+                      <Input type="time" value={blockForm.end_time} onChange={(e) => setBlockForm({...blockForm, end_time: e.target.value})} />
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Motivo (opcional)</Label>
+                    <Input value={blockForm.reason} onChange={(e) => setBlockForm({...blockForm, reason: e.target.value})} placeholder="Ex: Almoço, Reunião..." />
+                  </div>
+                  <div>
+                    <Label>Replicar para quantas semanas?</Label>
+                    <Input type="number" min="1" value={blockForm.replicate_weeks} onChange={(e) => setBlockForm({...blockForm, replicate_weeks: parseInt(e.target.value)})} />
+                  </div>
+                  <Button onClick={handleCreateBlock} className="w-full">Criar Bloqueio</Button>
+                  
+                  <div className="border-t pt-4 mt-4">
+                    <h3 className="font-semibold mb-2">Bloqueios Existentes</h3>
+                    <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                      {scheduleBlocks.map(block => (
+                        <div key={block.id} className="flex justify-between items-center p-2 bg-muted rounded">
+                          <div className="text-sm">
+                            <p className="font-medium">
+                              {['', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'][block.day_of_week]} - {block.start_time} às {block.end_time}
+                            </p>
+                            {block.reason && <p className="text-xs text-muted-foreground">{block.reason}</p>}
+                          </div>
+                          <Button variant="ghost" size="sm" onClick={() => deleteBlock(block.id)}>
+                            <XCircle className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+            <Button onClick={() => openNewDialog(selectedDate)}>
+              <Plus className="mr-2 h-4 w-4" /> Nova Sessão
+            </Button>
+          </div>
         </div>
 
-        <div className="space-y-2">
-          {hours.map(hour => {
-            const hourSessions = daySessions.filter(s => {
-              const sessionTime = s.time || s.patients?.session_time || '00:00';
-              const sessionHour = parseInt(sessionTime.split(':')[0]);
-              return sessionHour === hour;
-            });
-
-            const isBlocked = isTimeBlocked(adjustedDay, `${hour.toString().padStart(2, '0')}:00`);
-
-            return (
-              <div key={hour} className="flex gap-4 p-2 border-b">
-                <div className="w-20 text-sm font-semibold text-muted-foreground">
-                  {hour.toString().padStart(2, '0')}:00
-                </div>
-                <div className="flex-1 space-y-2">
-                  {isBlocked ? (
-                    <div className="p-3 rounded-lg bg-destructive/15 border-2 border-destructive/30 text-destructive text-center">
-                      <span className="font-medium">🚫 Bloqueado</span>
-                    </div>
-                  ) : (
-                    hourSessions.map(session => (
-                      <div
-                        key={session.id}
-                        onClick={() => openEditDialog(session)}
-                        className={`p-3 rounded-lg cursor-pointer transition-colors ${getStatusColor(session.status)}`}
-                      >
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <p className="font-semibold">{session.patients.name}</p>
-                            <p className="text-xs">{session.time || session.patients.session_time}</p>
-                          </div>
-                          <div className="text-right">
-                            {session.paid && <p className="text-xs">💰 Pago</p>}
-                            {session.status === 'missed' && <p className="text-xs">Sem Cobrança</p>}
-                            {session.status === 'attended' && !session.paid && <p className="text-xs">A Pagar</p>}
-                          </div>
+        {/* Timeline view with proportional positioning */}
+        <div className="relative border rounded-lg">
+          {hours.map(hour => (
+            <div key={hour} className="flex border-b last:border-b-0 h-[60px] relative">
+              <div className="w-20 p-2 text-sm font-semibold text-muted-foreground border-r flex items-start">
+                {hour.toString().padStart(2, '0')}:00
+              </div>
+              <div className="flex-1 relative hover:bg-accent/10 transition-colors">
+                {/* Render blocks with absolute positioning (only on first hour) */}
+                {hour === 7 && dayBlocks.map(block => (
+                  <div
+                    key={block.id}
+                    className="absolute inset-x-0 mx-2 bg-destructive/15 border-2 border-destructive/30 rounded flex items-center justify-center text-xs text-destructive z-10"
+                    style={{
+                      top: `${(block.startMinutes / 60) * 60}px`,
+                      height: `${((block.endMinutes - block.startMinutes) / 60) * 60}px`,
+                    }}
+                  >
+                    <span className="font-medium">🚫 Bloqueado</span>
+                  </div>
+                ))}
+                
+                {/* Render sessions with absolute positioning (only on first hour) */}
+                {hour === 7 && daySessions.map(session => {
+                  const sessionTime = session.time || session.patients?.session_time || '00:00';
+                  const topPosition = getSessionPosition(sessionTime);
+                  
+                  return (
+                    <div
+                      key={session.id}
+                      className={`absolute left-2 right-2 p-3 rounded-lg cursor-pointer transition-all z-20 ${getStatusColor(session.status)}`}
+                      style={{
+                        top: `${topPosition}px`,
+                        height: '56px',
+                      }}
+                      onClick={() => openEditDialog(session)}
+                    >
+                      <div className="flex justify-between items-center h-full">
+                        <div>
+                          <p className="font-semibold text-sm">{session.patients.name}</p>
+                          <p className="text-xs">{sessionTime}</p>
+                        </div>
+                        <div className="text-right text-xs">
+                          {session.paid && <p>💰 Pago</p>}
+                          {session.status === 'missed' && <p>Sem Cobrança</p>}
+                          {session.status === 'attended' && !session.paid && <p>A Pagar</p>}
                         </div>
                       </div>
-                    ))
-                  )}
-                </div>
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       </Card>
     );
@@ -643,7 +768,7 @@ const Schedule = () => {
         {viewMode === 'month' ? (
           <Card className="p-6 mb-6">
             <div className="flex justify-between items-center mb-4">
-              <div className="flex gap-2">
+            <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
                   ← Anterior
                 </Button>
@@ -653,6 +778,74 @@ const Schedule = () => {
                 }}>
                   Visualização Semanal
                 </Button>
+                <Dialog open={isBlockDialogOpen} onOpenChange={setIsBlockDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Lock className="mr-2 h-4 w-4" />
+                      Bloqueios
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Bloqueio de Agenda</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label>Dia da Semana</Label>
+                        <Select value={blockForm.day_of_week} onValueChange={(value) => setBlockForm({...blockForm, day_of_week: value})}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">Segunda-feira</SelectItem>
+                            <SelectItem value="2">Terça-feira</SelectItem>
+                            <SelectItem value="3">Quarta-feira</SelectItem>
+                            <SelectItem value="4">Quinta-feira</SelectItem>
+                            <SelectItem value="5">Sexta-feira</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label>Início</Label>
+                          <Input type="time" value={blockForm.start_time} onChange={(e) => setBlockForm({...blockForm, start_time: e.target.value})} />
+                        </div>
+                        <div>
+                          <Label>Fim</Label>
+                          <Input type="time" value={blockForm.end_time} onChange={(e) => setBlockForm({...blockForm, end_time: e.target.value})} />
+                        </div>
+                      </div>
+                      <div>
+                        <Label>Motivo (opcional)</Label>
+                        <Input value={blockForm.reason} onChange={(e) => setBlockForm({...blockForm, reason: e.target.value})} placeholder="Ex: Almoço, Reunião..." />
+                      </div>
+                      <div>
+                        <Label>Replicar para quantas semanas?</Label>
+                        <Input type="number" min="1" value={blockForm.replicate_weeks} onChange={(e) => setBlockForm({...blockForm, replicate_weeks: parseInt(e.target.value)})} />
+                      </div>
+                      <Button onClick={handleCreateBlock} className="w-full">Criar Bloqueio</Button>
+                      
+                      <div className="border-t pt-4 mt-4">
+                        <h3 className="font-semibold mb-2">Bloqueios Existentes</h3>
+                        <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                          {scheduleBlocks.map(block => (
+                            <div key={block.id} className="flex justify-between items-center p-2 bg-muted rounded">
+                              <div className="text-sm">
+                                <p className="font-medium">
+                                  {['', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'][block.day_of_week]} - {block.start_time} às {block.end_time}
+                                </p>
+                                {block.reason && <p className="text-xs text-muted-foreground">{block.reason}</p>}
+                              </div>
+                              <Button variant="ghost" size="sm" onClick={() => deleteBlock(block.id)}>
+                                <XCircle className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
               <h2 className="text-xl font-semibold">
                 {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}

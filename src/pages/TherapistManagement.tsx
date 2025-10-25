@@ -145,7 +145,11 @@ const TherapistManagement = () => {
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {therapists.map((therapist) => (
-                <Card key={therapist.id} className="p-6 hover:shadow-lg transition-shadow">
+                <Card 
+                  key={therapist.id} 
+                  className="p-6 hover:shadow-lg transition-shadow cursor-pointer"
+                  onClick={() => navigate(`/therapists/${therapist.id}`)}
+                >
                   <div className="space-y-4">
                     <div>
                       <h3 className="font-semibold text-lg">{therapist.full_name}</h3>
@@ -169,6 +173,13 @@ const TherapistManagement = () => {
                         <p className="text-xs text-muted-foreground">Faltas</p>
                       </div>
                     </div>
+
+                    <Button variant="outline" className="w-full" onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/therapists/${therapist.id}`);
+                    }}>
+                      Ver Detalhes
+                    </Button>
                   </div>
                 </Card>
               ))}

@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      notification_preferences: {
+        Row: {
+          admin_id: string
+          created_at: string
+          id: string
+          patient_changes: boolean
+          reschedules: boolean
+          schedule_blocks: boolean
+          session_changes: boolean
+          therapist_id: string
+          updated_at: string
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string
+          id?: string
+          patient_changes?: boolean
+          reschedules?: boolean
+          schedule_blocks?: boolean
+          session_changes?: boolean
+          therapist_id: string
+          updated_at?: string
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string
+          id?: string
+          patient_changes?: boolean
+          reschedules?: boolean
+          schedule_blocks?: boolean
+          session_changes?: boolean
+          therapist_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       patient_files: {
         Row: {
           category: string
@@ -256,6 +292,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      therapist_notifications: {
+        Row: {
+          admin_id: string
+          created_at: string
+          id: string
+          message: string
+          read: boolean
+          therapist_id: string
+          title: string
+          type: string
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string
+          id?: string
+          message: string
+          read?: boolean
+          therapist_id: string
+          title: string
+          type: string
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string
+          id?: string
+          message?: string
+          read?: boolean
+          therapist_id?: string
+          title?: string
+          type?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {

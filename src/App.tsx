@@ -16,6 +16,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import NotFound from "./pages/NotFound";
 import TherapistManagement from "./pages/TherapistManagement";
 import CreateTherapist from "./pages/CreateTherapist";
+import TherapistDetail from "./pages/TherapistDetail";
 
 const queryClient = new QueryClient();
 
@@ -70,6 +71,7 @@ const App = () => (
             <Route path="/patients/:id/edit" element={<ProtectedRoute><EditPatient /></ProtectedRoute>} />
             <Route path="/patients/:id" element={<ProtectedRoute><PatientDetail /></ProtectedRoute>} />
             <Route path="/therapists" element={<ProtectedRoute><TherapistManagement /></ProtectedRoute>} />
+            <Route path="/therapists/:id" element={<ProtectedRoute><TherapistDetail /></ProtectedRoute>} />
             <Route path="/create-therapist" element={<ProtectedRoute><CreateTherapist /></ProtectedRoute>} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
