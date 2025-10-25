@@ -12,7 +12,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import Navbar from '@/components/Navbar';
-import { ArrowLeft, Calendar, Users, MessageSquare, Bell, Lock, FileText, Clock } from 'lucide-react';
+import { ArrowLeft, Calendar, Users, MessageSquare, Bell, Lock, FileText, Clock, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -227,8 +227,9 @@ const TherapistDetail = () => {
         </div>
 
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+            <TabsTrigger value="data">Dados</TabsTrigger>
             <TabsTrigger value="patients">Pacientes</TabsTrigger>
             <TabsTrigger value="sessions">Sessões</TabsTrigger>
             <TabsTrigger value="schedule">Agenda</TabsTrigger>
@@ -258,6 +259,51 @@ const TherapistDetail = () => {
                 <p className="text-sm text-muted-foreground">Notificações</p>
               </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="data">
+            <Card className="p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <User className="h-6 w-6 text-primary" />
+                <h3 className="text-lg font-semibold">Dados Cadastrais</h3>
+              </div>
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Nome Completo</Label>
+                    <p className="text-base font-semibold mt-1">{therapist.full_name}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">CPF</Label>
+                    <p className="text-base font-semibold mt-1">{therapist.cpf}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">CRP</Label>
+                    <p className="text-base font-semibold mt-1">{therapist.crp}</p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Data de Nascimento</Label>
+                    <p className="text-base font-semibold mt-1">
+                      {format(parseISO(therapist.birth_date), "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Data de Cadastro</Label>
+                    <p className="text-base font-semibold mt-1">
+                      {format(parseISO(therapist.created_at), "d 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Última Atualização</Label>
+                    <p className="text-base font-semibold mt-1">
+                      {format(parseISO(therapist.updated_at), "d 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Card>
           </TabsContent>
 
           <TabsContent value="patients">
