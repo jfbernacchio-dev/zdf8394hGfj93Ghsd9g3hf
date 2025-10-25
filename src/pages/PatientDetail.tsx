@@ -10,10 +10,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Plus, Calendar, DollarSign, Edit, FileText } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { useToast } from '@/hooks/use-toast';
-import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
+import { format, parseISO, startOfMonth, endOfMonth, isFuture } from 'date-fns';
 import { PatientFiles } from '@/components/PatientFiles';
 
 const PatientDetail = () => {
@@ -291,8 +292,12 @@ Assinatura do Profissional`;
     );
   }
 
-  const totalSessions = sessions.length;
-  const attendedSessions = sessions.filter(s => s.status === 'attended').length;
+  const now = new Date();
+  const pastSessions = sessions.filter(s => !isFuture(parseISO(s.date)));
+  const totalSessions = pastSessions.length;
+  const attendedSessions = pastSessions.filter(s => s.status === 'attended').length;
+  const attendedPercentage = totalSessions > 0 ? ((attendedSessions / totalSessions) * 100).toFixed(1) : '0';
+  const futureSessions = sessions.filter(s => isFuture(parseISO(s.date)));
   const unpaidSessions = sessions.filter(s => s.status === 'attended' && !s.paid);
   const totalValue = sessions.filter(s => s.status === 'attended').reduce((sum, s) => sum + Number(s.value || 0), 0);
 
@@ -329,7 +334,7 @@ Assinatura do Profissional`;
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="flex items-center gap-3">
               <Calendar className="w-5 h-5 text-primary" />
               <div>
@@ -341,7 +346,14 @@ Assinatura do Profissional`;
               <Calendar className="w-5 h-5 text-accent" />
               <div>
                 <p className="text-sm text-muted-foreground">Sessões Comparecidas</p>
-                <p className="text-xl font-semibold text-foreground">{attendedSessions}</p>
+                <p className="text-xl font-semibold text-foreground">{attendedSessions} <span className="text-sm text-muted-foreground">({attendedPercentage}%)</span></p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Calendar className="w-5 h-5 text-blue-500" />
+              <div>
+                <p className="text-sm text-muted-foreground">Sessões Agendadas</p>
+                <p className="text-xl font-semibold text-foreground">{futureSessions.length}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -354,118 +366,172 @@ Assinatura do Profissional`;
           </div>
         </Card>
 
-        <Card className="p-6 mb-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label>Período</Label>
-              <Select value={period} onValueChange={setPeriod}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="month">Este Mês</SelectItem>
-                  <SelectItem value="custom">Personalizado</SelectItem>
-                  <SelectItem value="all">Todo Período</SelectItem>
-                </SelectContent>
-              </Select>
+        <Tabs defaultValue="sessions" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="sessions">Sessões</TabsTrigger>
+            <TabsTrigger value="files">Arquivos</TabsTrigger>
+            <TabsTrigger value="info">Informações</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="sessions" className="space-y-4 mt-4">
+            <Card className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Período</Label>
+                  <Select value={period} onValueChange={setPeriod}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="month">Este Mês</SelectItem>
+                      <SelectItem value="custom">Personalizado</SelectItem>
+                      <SelectItem value="all">Todo Período</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {period === 'custom' && (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Data Inicial</Label>
+                      <Input
+                        type="date"
+                        value={customStartDate}
+                        onChange={(e) => setCustomStartDate(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Data Final</Label>
+                      <Input
+                        type="date"
+                        value={customEndDate}
+                        onChange={(e) => setCustomEndDate(e.target.value)}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            </Card>
+
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-semibold text-foreground">Histórico de Sessões</h2>
+              <div className="flex gap-2">
+                <Button onClick={generateInvoice} variant="outline">
+                  <FileText className="w-4 h-4 mr-2" />
+                  Fazer Fechamento
+                </Button>
+                <Button onClick={openNewSessionDialog}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nova Sessão
+                </Button>
+              </div>
             </div>
 
-            {period === 'custom' && (
-              <>
-                <div className="space-y-2">
-                  <Label>Data Inicial</Label>
-                  <Input
-                    type="date"
-                    value={customStartDate}
-                    onChange={(e) => setCustomStartDate(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Data Final</Label>
-                  <Input
-                    type="date"
-                    value={customEndDate}
-                    onChange={(e) => setCustomEndDate(e.target.value)}
-                  />
-                </div>
-              </>
-            )}
-          </div>
-        </Card>
-
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-foreground">Histórico de Sessões</h2>
-          <div className="flex gap-2">
-            <Button onClick={generateInvoice} variant="outline">
-              <FileText className="w-4 h-4 mr-2" />
-              Fazer Fechamento
-            </Button>
-            <Button onClick={openNewSessionDialog}>
-              <Plus className="w-4 h-4 mr-2" />
-              Nova Sessão
-            </Button>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          {sessions.map(session => (
-            <Card key={session.id} className="p-4">
-              <div className="flex justify-between items-center">
-                <div className="flex-1">
-                  <p className="font-semibold">{format(parseISO(session.date), 'dd/MM/yyyy')}</p>
-                  <p className={`text-sm ${
-                    session.status === 'attended' ? 'text-green-600 dark:text-green-400' :
-                    session.status === 'missed' ? 'text-red-600 dark:text-red-400' :
-                    'text-blue-600 dark:text-blue-400'
-                  }`}>
-                    {session.status === 'attended' ? 'Compareceu' : 
-                     session.status === 'missed' ? 'Não Compareceu' : 'Agendada'}
-                  </p>
-                  {session.notes && <p className="text-sm mt-1 text-muted-foreground">{session.notes}</p>}
-                </div>
-                  <div className="flex items-center gap-4">
-                   <div className="text-right">
-                     <p className="font-semibold">R$ {Number(session.value).toFixed(2)}</p>
-                     {session.status === 'missed' ? (
-                       <p className="text-xs text-muted-foreground">Sem Cobrança</p>
-                     ) : session.paid ? (
-                       <p className="text-xs text-green-600 dark:text-green-400">Pago</p>
-                     ) : (
-                       <p className="text-xs text-orange-600 dark:text-orange-400">A pagar</p>
-                     )}
-                   </div>
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor={`status-${session.id}`} className="text-sm cursor-pointer">
-                      {session.status === 'attended' ? 'Compareceu' : 'Faltou'}
-                    </Label>
-                    <Switch
-                      id={`status-${session.id}`}
-                      checked={session.status === 'attended'}
-                      onCheckedChange={(checked) => toggleStatus(session, checked)}
-                    />
+            <div className="space-y-4">
+              {sessions.map(session => (
+                <Card key={session.id} className="p-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex-1">
+                      <p className="font-semibold">{format(parseISO(session.date), 'dd/MM/yyyy')}</p>
+                      <p className={`text-sm ${
+                        session.status === 'attended' ? 'text-green-600 dark:text-green-400' :
+                        session.status === 'missed' ? 'text-red-600 dark:text-red-400' :
+                        'text-blue-600 dark:text-blue-400'
+                      }`}>
+                        {session.status === 'attended' ? 'Compareceu' : 
+                         session.status === 'missed' ? 'Não Compareceu' : 'Agendada'}
+                      </p>
+                      {session.notes && <p className="text-sm mt-1 text-muted-foreground">{session.notes}</p>}
+                    </div>
+                      <div className="flex items-center gap-4">
+                       <div className="text-right">
+                         <p className="font-semibold">R$ {Number(session.value).toFixed(2)}</p>
+                         {session.status === 'missed' ? (
+                           <p className="text-xs text-muted-foreground">Sem Cobrança</p>
+                         ) : session.paid ? (
+                           <p className="text-xs text-green-600 dark:text-green-400">Pago</p>
+                         ) : (
+                           <p className="text-xs text-orange-600 dark:text-orange-400">A pagar</p>
+                         )}
+                       </div>
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor={`status-${session.id}`} className="text-sm cursor-pointer">
+                          {session.status === 'attended' ? 'Compareceu' : 'Faltou'}
+                        </Label>
+                        <Switch
+                          id={`status-${session.id}`}
+                          checked={session.status === 'attended'}
+                          onCheckedChange={(checked) => toggleStatus(session, checked)}
+                        />
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => openEditDialog(session)}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => openEditDialog(session)}
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
+                </Card>
+              ))}
+
+              {sessions.length === 0 && (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">Nenhuma sessão registrada</p>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="files" className="mt-4">
+            <PatientFiles patientId={id!} />
+          </TabsContent>
+
+          <TabsContent value="info" className="mt-4">
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Informações do Paciente</h3>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm text-muted-foreground">Nome Completo</p>
+                  <p className="font-medium">{patient.name}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Email</p>
+                  <p className="font-medium">{patient.email}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Telefone</p>
+                  <p className="font-medium">{patient.phone}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">CPF</p>
+                  <p className="font-medium">{patient.cpf}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Data de Nascimento</p>
+                  <p className="font-medium">{format(parseISO(patient.birth_date), 'dd/MM/yyyy')}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Frequência</p>
+                  <p className="font-medium">{patient.frequency === 'weekly' ? 'Semanal' : 'Quinzenal'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Dia da Sessão</p>
+                  <p className="font-medium">{patient.session_day}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Horário da Sessão</p>
+                  <p className="font-medium">{patient.session_time}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Valor da Sessão</p>
+                  <p className="font-medium">R$ {Number(patient.session_value).toFixed(2)}</p>
                 </div>
               </div>
             </Card>
-          ))}
-
-          {sessions.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Nenhuma sessão registrada</p>
-            </div>
-          )}
-        </div>
-
-        <div className="mt-8">
-          <PatientFiles patientId={id!} />
-        </div>
+          </TabsContent>
+        </Tabs>
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent>

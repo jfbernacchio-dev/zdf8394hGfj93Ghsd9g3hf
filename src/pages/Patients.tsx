@@ -2,18 +2,27 @@ import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Search, Edit } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Plus, Search, Edit, FileText } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { format, parseISO } from 'date-fns';
 
 const Patients = () => {
   const [patients, setPatients] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
   const [search, setSearch] = useState('');
+  const [isGeneralInvoiceOpen, setIsGeneralInvoiceOpen] = useState(false);
+  const [generalInvoiceText, setGeneralInvoiceText] = useState('');
+  const [affectedSessions, setAffectedSessions] = useState<any[]>([]);
+  const [userProfile, setUserProfile] = useState<any>(null);
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (user) loadData();
@@ -28,6 +37,11 @@ const Patients = () => {
     const { data: sessionsData } = await supabase
       .from('sessions')
       .select('*');
+
+    if (user) {
+      const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      setUserProfile(profileData);
+    }
 
     setPatients(patientsData || []);
     setSessions(sessionsData || []);
@@ -45,6 +59,86 @@ const Patients = () => {
     return { totalSessions: patientSessions.length, totalValue: total, unpaidCount: unpaidSessions.length, unpaidValue: unpaid };
   };
 
+  const generateGeneralInvoice = () => {
+    const allUnpaidSessions = sessions.filter(s => s.status === 'attended' && !s.paid);
+    
+    if (allUnpaidSessions.length === 0) {
+      toast({ 
+        title: 'Nenhuma sessão em aberto', 
+        description: 'Não há sessões para fechamento geral.',
+        variant: 'destructive' 
+      });
+      return;
+    }
+
+    setAffectedSessions(allUnpaidSessions);
+    
+    // Group sessions by patient
+    const sessionsByPatient: Record<string, any[]> = allUnpaidSessions.reduce((acc, session) => {
+      if (!acc[session.patient_id]) {
+        acc[session.patient_id] = [];
+      }
+      acc[session.patient_id].push(session);
+      return acc;
+    }, {} as Record<string, any[]>);
+
+    let invoiceText = `FECHAMENTO GERAL DE SESSÕES\n\n`;
+    invoiceText += `Profissional: ${userProfile?.full_name || ''}\n`;
+    invoiceText += `CPF: ${userProfile?.cpf || ''}\n`;
+    invoiceText += `CRP: ${userProfile?.crp || ''}\n`;
+    invoiceText += `Data de emissão: ${format(new Date(), 'dd/MM/yyyy')}\n\n`;
+    invoiceText += `${'='.repeat(60)}\n\n`;
+
+    Object.entries(sessionsByPatient).forEach(([patientId, patientSessions]) => {
+      const patient = patients.find(p => p.id === patientId);
+      if (!patient) return;
+
+      const totalValue = patientSessions.reduce((sum, s) => sum + Number(s.value), 0);
+      const sessionDates = patientSessions.map(s => format(parseISO(s.date), 'dd/MM/yyyy')).join(', ');
+
+      invoiceText += `PACIENTE: ${patient.name}\n`;
+      invoiceText += `CPF: ${patient.cpf}\n\n`;
+      invoiceText += `Referente a: Serviços de Psicologia\n`;
+      invoiceText += `Sessões realizadas nas datas: ${sessionDates}\n`;
+      invoiceText += `Quantidade de sessões: ${patientSessions.length}\n`;
+      invoiceText += `Valor unitário por sessão: R$ ${Number(patient.session_value).toFixed(2)}\n`;
+      invoiceText += `Valor total: R$ ${totalValue.toFixed(2)}\n\n`;
+      invoiceText += `_____________________________\n`;
+      invoiceText += `Assinatura do Profissional\n\n`;
+      invoiceText += `${'='.repeat(60)}\n\n`;
+    });
+
+    const grandTotal = allUnpaidSessions.reduce((sum, s) => sum + Number(s.value), 0);
+    invoiceText += `TOTAL GERAL: R$ ${grandTotal.toFixed(2)}\n`;
+    invoiceText += `Total de pacientes: ${Object.keys(sessionsByPatient).length}\n`;
+    invoiceText += `Total de sessões: ${allUnpaidSessions.length}\n`;
+
+    setGeneralInvoiceText(invoiceText);
+    setIsGeneralInvoiceOpen(true);
+  };
+
+  const markAllSessionsAsPaid = async () => {
+    const sessionIds = affectedSessions.map(s => s.id);
+    
+    const { error } = await supabase
+      .from('sessions')
+      .update({ paid: true })
+      .in('id', sessionIds);
+
+    if (error) {
+      toast({ title: 'Erro ao atualizar sessões', variant: 'destructive' });
+      return;
+    }
+
+    toast({ 
+      title: 'Sessões atualizadas!', 
+      description: `${sessionIds.length} sessão(ões) marcada(s) como paga(s).` 
+    });
+    
+    setIsGeneralInvoiceOpen(false);
+    loadData();
+  };
+
   return (
     <div className="min-h-screen bg-[var(--gradient-soft)]">
       <Navbar />
@@ -54,10 +148,16 @@ const Patients = () => {
             <h1 className="text-3xl font-bold text-foreground mb-2">Pacientes</h1>
             <p className="text-muted-foreground">Gerencie seus pacientes</p>
           </div>
-          <Button onClick={() => navigate('/patients/new')} className="bg-primary hover:bg-primary/90">
-            <Plus className="w-4 h-4 mr-2" />
-            Novo Paciente
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={generateGeneralInvoice} variant="outline">
+              <FileText className="w-4 h-4 mr-2" />
+              Fazer Fechamento Geral
+            </Button>
+            <Button onClick={() => navigate('/patients/new')} className="bg-primary hover:bg-primary/90">
+              <Plus className="w-4 h-4 mr-2" />
+              Novo Paciente
+            </Button>
+          </div>
         </div>
 
         <Card className="p-4 mb-6 shadow-[var(--shadow-card)] border-border">
@@ -107,6 +207,37 @@ const Patients = () => {
             <p className="text-muted-foreground">Nenhum paciente encontrado</p>
           </div>
         )}
+
+        <Dialog open={isGeneralInvoiceOpen} onOpenChange={setIsGeneralInvoiceOpen}>
+          <DialogContent className="max-w-3xl max-h-[80vh]">
+            <DialogHeader>
+              <DialogTitle>Fechamento Geral de Sessões</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Textarea
+                value={generalInvoiceText}
+                readOnly
+                rows={20}
+                className="font-mono text-sm"
+              />
+              <div className="flex gap-2">
+                <Button onClick={markAllSessionsAsPaid} className="flex-1">
+                  Dar Baixa em Todas as Sessões
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    navigator.clipboard.writeText(generalInvoiceText);
+                    toast({ title: 'Texto copiado!' });
+                  }}
+                  className="flex-1"
+                >
+                  Copiar Texto
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
