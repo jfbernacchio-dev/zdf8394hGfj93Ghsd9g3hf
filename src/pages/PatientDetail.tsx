@@ -73,14 +73,22 @@ const PatientDetail = () => {
     loadData();
   };
 
+  const [editFormData, setEditFormData] = useState<Partial<Session>>({});
+
   const handleEditSession = (session: Session) => {
     setEditingSession(session.id);
+    setEditFormData({
+      date: session.date,
+      value: session.value,
+      attended: session.attended,
+      notes: session.notes,
+    });
   };
 
-  const handleUpdateSession = (sessionId: string, updates: Partial<Session>) => {
+  const handleUpdateSession = (sessionId: string) => {
     const allSessions = storage.getSessions();
     const updatedSessions = allSessions.map(s => 
-      s.id === sessionId ? { ...s, ...updates } : s
+      s.id === sessionId ? { ...s, ...editFormData } : s
     );
     storage.saveSessions(updatedSessions);
     
@@ -90,6 +98,7 @@ const PatientDetail = () => {
     });
     
     setEditingSession(null);
+    setEditFormData({});
     loadData();
   };
 
@@ -104,7 +113,7 @@ const PatientDetail = () => {
     );
   }
 
-  const totalValue = sessions.filter(s => s.attended).reduce((sum, s) => sum + s.value, 0);
+  const totalValue = sessions.filter(s => s.attended).reduce((sum, s) => sum + (s.value || 0), 0);
 
   return (
     <div className="min-h-screen bg-[var(--gradient-soft)]">
@@ -236,8 +245,8 @@ const PatientDetail = () => {
                       <Label>Data</Label>
                       <Input
                         type="date"
-                        defaultValue={session.date}
-                        onChange={(e) => session.date = e.target.value}
+                        value={editFormData.date || ''}
+                        onChange={(e) => setEditFormData({ ...editFormData, date: e.target.value })}
                       />
                     </div>
                     <div className="space-y-2">
@@ -245,16 +254,16 @@ const PatientDetail = () => {
                       <Input
                         type="number"
                         step="0.01"
-                        defaultValue={session.value}
-                        onChange={(e) => session.value = parseFloat(e.target.value)}
+                        value={editFormData.value || 0}
+                        onChange={(e) => setEditFormData({ ...editFormData, value: parseFloat(e.target.value) })}
                       />
                     </div>
                   </div>
                   
                   <div className="flex items-center gap-2">
                     <Switch
-                      checked={session.attended}
-                      onCheckedChange={(checked) => session.attended = checked}
+                      checked={editFormData.attended || false}
+                      onCheckedChange={(checked) => setEditFormData({ ...editFormData, attended: checked })}
                     />
                     <Label>Paciente compareceu</Label>
                   </div>
@@ -262,22 +271,25 @@ const PatientDetail = () => {
                   <div className="space-y-2">
                     <Label>Observações</Label>
                     <Textarea
-                      defaultValue={session.notes}
-                      onChange={(e) => session.notes = e.target.value}
+                      value={editFormData.notes || ''}
+                      onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })}
                       rows={3}
                     />
                   </div>
 
                   <div className="flex gap-2">
                     <Button 
-                      onClick={() => handleUpdateSession(session.id, session)}
+                      onClick={() => handleUpdateSession(session.id)}
                       className="bg-primary hover:bg-primary/90"
                     >
                       Salvar
                     </Button>
                     <Button 
                       variant="outline" 
-                      onClick={() => setEditingSession(null)}
+                      onClick={() => {
+                        setEditingSession(null);
+                        setEditFormData({});
+                      }}
                     >
                       Cancelar
                     </Button>
@@ -308,7 +320,7 @@ const PatientDetail = () => {
                   </div>
                   <div className="flex items-center gap-4">
                     <p className="text-xl font-semibold text-foreground">
-                      R$ {session.value.toFixed(2)}
+                      R$ {(session.value || 0).toFixed(2)}
                     </p>
                     <Button
                       variant="ghost"

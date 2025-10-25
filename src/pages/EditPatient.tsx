@@ -46,6 +46,10 @@ const EditPatient = () => {
   }, [id]);
 
   const handleDeactivate = () => {
+    if (!confirm('Tem certeza que deseja encerrar este paciente? Todas as sessões futuras serão canceladas.')) {
+      return;
+    }
+
     const patients = storage.getPatients();
     const updatedPatients = patients.map(p => 
       p.id === id ? { ...p, status: 'inactive' as const } : p
@@ -66,6 +70,29 @@ const EditPatient = () => {
     });
 
     navigate(`/patients/${id}`);
+  };
+
+  const handleDelete = () => {
+    if (!confirm('Tem certeza que deseja EXCLUIR este paciente? Esta ação não pode ser desfeita e todos os dados serão perdidos.')) {
+      return;
+    }
+
+    // Remover paciente
+    const patients = storage.getPatients();
+    const updatedPatients = patients.filter(p => p.id !== id);
+    storage.savePatients(updatedPatients);
+
+    // Remover todas as sessões do paciente
+    const sessions = storage.getSessions();
+    const updatedSessions = sessions.filter(s => s.patientId !== id);
+    storage.saveSessions(updatedSessions);
+
+    toast({
+      title: "Paciente excluído!",
+      description: "O paciente e todos os seus dados foram removidos.",
+    });
+
+    navigate('/patients');
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -204,10 +231,11 @@ const EditPatient = () => {
               />
             </div>
 
-            <div className="flex gap-4">
-              <Button type="submit" className="flex-1 bg-primary hover:bg-primary/90">
-                Salvar Alterações
-              </Button>
+            <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
+              Salvar Alterações
+            </Button>
+
+            <div className="flex gap-4 pt-6 border-t mt-6">
               {formData.status === 'active' && (
                 <Button 
                   type="button" 
@@ -218,6 +246,14 @@ const EditPatient = () => {
                   Encerrar Paciente
                 </Button>
               )}
+              <Button 
+                type="button" 
+                variant="destructive" 
+                className="flex-1"
+                onClick={handleDelete}
+              >
+                Excluir Paciente
+              </Button>
             </div>
           </form>
         </Card>
