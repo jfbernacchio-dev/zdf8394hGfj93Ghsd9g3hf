@@ -19,16 +19,15 @@ export const generateRecurringSessions = (
 ) => {
   const sessions: { date: string; status: string }[] = [];
   
-  // Parse the date components to avoid timezone issues
-  const [year, month, day] = startDate.split('-').map(Number);
-  const start = new Date(year, month - 1, day);
+  // Use parseISO to correctly interpret the date string
+  const start = parseISO(startDate);
   
   const targetDayOfWeek = dayOfWeekMap[sessionDay.toLowerCase()];
   const end = endDate || new Date();
   const now = new Date();
 
   // Find the first occurrence of the session day on or after start date
-  let currentDate = new Date(start);
+  let currentDate = start;
   
   // Get the current day of week for the start date
   const currentDayOfWeek = getDay(currentDate);
