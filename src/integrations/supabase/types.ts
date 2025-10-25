@@ -145,6 +145,7 @@ export type Database = {
           paid: boolean | null
           patient_id: string
           status: string
+          time: string | null
           updated_at: string
           value: number
         }
@@ -156,6 +157,7 @@ export type Database = {
           paid?: boolean | null
           patient_id: string
           status?: string
+          time?: string | null
           updated_at?: string
           value: number
         }
@@ -167,6 +169,7 @@ export type Database = {
           paid?: boolean | null
           patient_id?: string
           status?: string
+          time?: string | null
           updated_at?: string
           value?: number
         }

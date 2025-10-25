@@ -66,7 +66,7 @@ const PatientDetail = () => {
       notes: session.notes || '',
       value: session.value.toString(),
       paid: session.paid,
-      time: patient?.session_time || ''
+      time: session.time || patient?.session_time || ''
     });
     setIsDialogOpen(true);
   };
@@ -80,7 +80,8 @@ const PatientDetail = () => {
       status: formData.status,
       notes: formData.notes,
       value: parseFloat(formData.value),
-      paid: formData.paid
+      paid: formData.paid,
+      time: formData.time || null
     };
 
     if (editingSession) {
@@ -333,14 +334,16 @@ Assinatura do Profissional`;
                   {session.notes && <p className="text-sm mt-1 text-muted-foreground">{session.notes}</p>}
                 </div>
                   <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <p className="font-semibold">R$ {Number(session.value).toFixed(2)}</p>
-                    {session.paid ? (
-                      <p className="text-xs text-green-600 dark:text-green-400">Pago</p>
-                    ) : (
-                      <p className="text-xs text-orange-600 dark:text-orange-400">A pagar</p>
-                    )}
-                  </div>
+                   <div className="text-right">
+                     <p className="font-semibold">R$ {Number(session.value).toFixed(2)}</p>
+                     {session.status === 'missed' ? (
+                       <p className="text-xs text-muted-foreground">Sem Cobrança</p>
+                     ) : session.paid ? (
+                       <p className="text-xs text-green-600 dark:text-green-400">Pago</p>
+                     ) : (
+                       <p className="text-xs text-orange-600 dark:text-orange-400">A pagar</p>
+                     )}
+                   </div>
                   <div className="flex items-center gap-2">
                     <Label htmlFor={`status-${session.id}`} className="text-sm cursor-pointer">
                       {session.status === 'attended' ? 'Compareceu' : 'Faltou'}

@@ -77,13 +77,15 @@ export const ensureFutureSessions = async (
   supabase: any,
   targetCount: number = 4
 ) => {
+  const today = format(new Date(), 'yyyy-MM-dd');
+  
   // Get all future scheduled sessions for this patient
   const { data: futureSessions } = await supabase
     .from('sessions')
     .select('date')
     .eq('patient_id', patientId)
     .eq('status', 'scheduled')
-    .gte('date', format(new Date(), 'yyyy-MM-dd'))
+    .gte('date', today)
     .order('date', { ascending: true });
 
   const existingCount = futureSessions?.length || 0;
@@ -91,7 +93,16 @@ export const ensureFutureSessions = async (
 
   if (sessionsToCreate <= 0) return;
 
-  // Find the last session date from ALL sessions (not just future ones)
+  // Always get the most up-to-date patient information from the database
+  const { data: currentPatient } = await supabase
+    .from('patients')
+    .select('session_day, frequency, session_time, session_value, start_date')
+    .eq('id', patientId)
+    .single();
+
+  const patientInfo = currentPatient || patient;
+
+  // Find the last session date from ALL sessions to continue from there
   const { data: allSessions } = await supabase
     .from('sessions')
     .select('date')
@@ -102,17 +113,15 @@ export const ensureFutureSessions = async (
   let lastDate: string;
   
   if (allSessions && allSessions.length > 0) {
-    // Use the last session date as base
     lastDate = allSessions[0].date;
   } else {
-    // If no sessions exist, use patient's start_date
-    lastDate = patient.start_date;
+    lastDate = patientInfo.start_date;
   }
 
-  // Create missing sessions
+  // Create missing sessions using current patient data
   const newSessions = [];
   for (let i = 0; i < sessionsToCreate; i++) {
-    const nextDate = getNextSessionDate(lastDate, patient.session_day, patient.frequency);
+    const nextDate = getNextSessionDate(lastDate, patientInfo.session_day, patientInfo.frequency);
     
     // Check if session already exists
     const { data: existing } = await supabase
@@ -127,8 +136,9 @@ export const ensureFutureSessions = async (
         patient_id: patientId,
         date: nextDate,
         status: 'scheduled',
-        value: patient.session_value,
+        value: patientInfo.session_value,
         paid: false,
+        time: patientInfo.session_time,
       });
     }
     

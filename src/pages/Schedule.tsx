@@ -20,7 +20,7 @@ const Schedule = () => {
   const [patients, setPatients] = useState<any[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [viewMode, setViewMode] = useState<'month' | 'day'>('month');
+  const [viewMode, setViewMode] = useState<'month' | 'day' | 'week'>('month');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<any>(null);
   const { toast } = useToast();
@@ -108,7 +108,8 @@ const Schedule = () => {
       status: formData.status,
       notes: formData.notes,
       value: parseFloat(formData.value),
-      paid: formData.paid
+      paid: formData.paid,
+      time: formData.time || null
     };
 
     if (editingSession) {
@@ -178,7 +179,7 @@ const Schedule = () => {
       notes: session.notes || '',
       value: session.value.toString(),
       paid: session.paid,
-      time: session.patients?.session_time || ''
+      time: session.time || session.patients?.session_time || ''
     });
     setIsDialogOpen(true);
   };
@@ -258,6 +259,75 @@ const Schedule = () => {
     }
   };
 
+  const getWeekView = () => {
+    const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 }); // Monday
+    const weekDays = Array.from({ length: 5 }, (_, i) => addMonths(weekStart, 0).setDate(weekStart.getDate() + i));
+    const hours = Array.from({ length: 15 }, (_, i) => i + 7); // 7:00 to 21:00
+
+    return (
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <Button variant="ghost" onClick={() => setViewMode('month')}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Voltar ao mês
+          </Button>
+          <h2 className="text-xl font-semibold">
+            {format(weekStart, "d 'de' MMMM", { locale: ptBR })} - {format(new Date(weekDays[4]), "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
+          </h2>
+          <Button onClick={() => openNewDialog(selectedDate)}>
+            <Plus className="mr-2 h-4 w-4" /> Nova Sessão
+          </Button>
+        </div>
+
+        <div className="overflow-x-auto">
+          <div className="min-w-[800px]">
+            <div className="grid grid-cols-6 gap-2 mb-2">
+              <div className="w-20"></div>
+              {weekDays.map((day, i) => (
+                <div key={i} className="text-center font-semibold">
+                  <div>{format(new Date(day), 'EEE', { locale: ptBR })}</div>
+                  <div className="text-sm text-muted-foreground">{format(new Date(day), 'd MMM', { locale: ptBR })}</div>
+                </div>
+              ))}
+            </div>
+
+            {hours.map(hour => (
+              <div key={hour} className="grid grid-cols-6 gap-2 border-b py-2">
+                <div className="w-20 text-sm font-semibold text-muted-foreground">
+                  {hour.toString().padStart(2, '0')}:00
+                </div>
+                {weekDays.map((day, i) => {
+                  const daySessions = getSessionsForDay(new Date(day));
+                  const hourSessions = daySessions.filter(s => {
+                    const sessionTime = s.time || s.patients?.session_time || '00:00';
+                    const sessionHour = parseInt(sessionTime.split(':')[0]);
+                    return sessionHour === hour;
+                  });
+
+                  return (
+                    <div key={i} className="space-y-1">
+                      {hourSessions.map(session => (
+                        <div
+                          key={session.id}
+                          onClick={() => openEditDialog(session)}
+                          className={`p-2 rounded text-xs cursor-pointer transition-colors ${getStatusColor(session.status)}`}
+                        >
+                          <p className="font-semibold truncate">{session.patients.name}</p>
+                          <p className="text-xs">{session.time || session.patients.session_time}</p>
+                          {session.paid && <p className="text-xs">💰</p>}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+      </Card>
+    );
+  };
+
   const getDayView = () => {
     const daySessions = getSessionsForDay(selectedDate);
     const hours = Array.from({ length: 15 }, (_, i) => i + 7); // 7:00 to 21:00
@@ -280,7 +350,8 @@ const Schedule = () => {
         <div className="space-y-2">
           {hours.map(hour => {
             const hourSessions = daySessions.filter(s => {
-              const sessionHour = parseInt(s.patients?.session_time?.split(':')[0] || '0');
+              const sessionTime = s.time || s.patients?.session_time || '00:00';
+              const sessionHour = parseInt(sessionTime.split(':')[0]);
               return sessionHour === hour;
             });
 
@@ -299,10 +370,12 @@ const Schedule = () => {
                       <div className="flex justify-between items-center">
                         <div>
                           <p className="font-semibold">{session.patients.name}</p>
-                          <p className="text-xs">{session.patients.session_time}</p>
+                          <p className="text-xs">{session.time || session.patients.session_time}</p>
                         </div>
                         <div className="text-right">
                           {session.paid && <p className="text-xs">💰 Pago</p>}
+                          {session.status === 'missed' && <p className="text-xs">Sem Cobrança</p>}
+                          {session.status === 'attended' && !session.paid && <p className="text-xs">A Pagar</p>}
                         </div>
                       </div>
                     </div>
@@ -332,9 +405,17 @@ const Schedule = () => {
         {viewMode === 'month' ? (
           <Card className="p-6 mb-6">
             <div className="flex justify-between items-center mb-4">
-              <Button variant="outline" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
-                ← Anterior
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
+                  ← Anterior
+                </Button>
+                <Button variant="outline" onClick={() => {
+                  setViewMode('week');
+                  setSelectedDate(new Date());
+                }}>
+                  Visualização Semanal
+                </Button>
+              </div>
               <h2 className="text-xl font-semibold">
                 {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
               </h2>
@@ -389,7 +470,7 @@ const Schedule = () => {
             })}
           </div>
         </Card>
-        ) : getDayView()}
+        ) : viewMode === 'week' ? getWeekView() : getDayView()}
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="max-w-md">
