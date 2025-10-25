@@ -143,6 +143,31 @@ const Schedule = () => {
       .eq('id', session.id);
 
     if (!error) {
+      // If marked as completed or cancelled, create next session
+      if (newStatus === 'completed' || newStatus === 'cancelled') {
+        const { getNextSessionDate } = await import('@/lib/sessionUtils');
+        const patient = session.patients;
+        const nextDate = getNextSessionDate(session.date, patient.session_day, patient.frequency);
+        
+        // Check if next session already exists
+        const { data: existingSession } = await supabase
+          .from('sessions')
+          .select('id')
+          .eq('patient_id', session.patient_id)
+          .eq('date', nextDate)
+          .maybeSingle();
+
+        if (!existingSession) {
+          await supabase.from('sessions').insert({
+            patient_id: session.patient_id,
+            date: nextDate,
+            status: 'scheduled',
+            value: patient.session_value,
+            paid: false,
+          });
+        }
+      }
+
       toast({ title: `Status alterado para ${newStatus === 'scheduled' ? 'Agendada' : newStatus === 'completed' ? 'Realizada' : 'Cancelada'}` });
       loadData();
     }

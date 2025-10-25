@@ -55,9 +55,35 @@ const NewPatient = () => {
 
       if (patientError) throw patientError;
 
+      // Generate all recurring sessions from start_date until today
+      const { generateRecurringSessions } = await import('@/lib/sessionUtils');
+      const sessionDates = generateRecurringSessions(
+        formData.startDate,
+        formData.sessionDay,
+        formData.frequency,
+        new Date()
+      );
+
+      // Create sessions in the database
+      const sessionsToInsert = sessionDates.map(date => ({
+        patient_id: patient.id,
+        date,
+        status: 'scheduled',
+        value: parseFloat(formData.sessionValue),
+        paid: false,
+      }));
+
+      if (sessionsToInsert.length > 0) {
+        const { error: sessionsError } = await supabase
+          .from('sessions')
+          .insert(sessionsToInsert);
+
+        if (sessionsError) throw sessionsError;
+      }
+
       toast({
         title: "Paciente cadastrado!",
-        description: "O paciente foi adicionado com sucesso.",
+        description: `O paciente foi adicionado com ${sessionsToInsert.length} sessões geradas.`,
       });
 
       navigate('/patients');
