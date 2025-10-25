@@ -55,8 +55,9 @@ const Dashboard = () => {
       start.setDate(now.getDate() - 7);
       end = now;
     } else {
+      // Este Mês: do dia 1 até hoje
       start = new Date(now.getFullYear(), now.getMonth(), 1);
-      end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      end = now;
     }
 
     return { start, end };
@@ -73,7 +74,10 @@ const Dashboard = () => {
   const totalExpected = periodSessions.length * (patients[0]?.session_value || 0);
   const totalActual = attendedSessions.reduce((sum, s) => sum + Number(s.value), 0);
   const revenuePercent = totalExpected > 0 ? ((totalActual / totalExpected) * 100).toFixed(0) : 0;
-  const unpaidSessions = attendedSessions.filter(s => !s.paid);
+  
+  // Em Aberto: TOTAL acumulado, não respeita período
+  const allAttendedSessions = sessions.filter(s => s.status === 'attended');
+  const unpaidSessions = allAttendedSessions.filter(s => !s.paid);
   const unpaidValue = unpaidSessions.reduce((sum, s) => sum + Number(s.value), 0);
 
   return (
@@ -95,7 +99,7 @@ const Dashboard = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="week">Última Semana</SelectItem>
-                  <SelectItem value="month">Último Mês</SelectItem>
+                  <SelectItem value="month">Este Mês</SelectItem>
                   <SelectItem value="custom">Personalizado</SelectItem>
                 </SelectContent>
               </Select>

@@ -42,16 +42,38 @@ const Schedule = () => {
   }, [user, currentMonth]);
 
   const autoUpdateOldSessions = async () => {
-    const startOfCurrentWeek = startOfWeek(new Date(), { weekStartsOn: 0 });
-    
-    // Update scheduled sessions that are before current week to attended
-    const { error } = await supabase
+    // Get all scheduled sessions with patient info
+    const { data: scheduledSessions } = await supabase
       .from('sessions')
-      .update({ status: 'attended' })
-      .eq('status', 'scheduled')
-      .lt('date', format(startOfCurrentWeek, 'yyyy-MM-dd'));
+      .select('*, patients!inner(*)')
+      .eq('patients.user_id', user!.id)
+      .eq('status', 'scheduled');
 
-    if (error) console.error('Error auto-updating sessions:', error);
+    if (!scheduledSessions) return;
+
+    const now = new Date();
+    const sessionsToUpdate: string[] = [];
+
+    // Check each session's date + time
+    scheduledSessions.forEach(session => {
+      const sessionDate = new Date(session.date);
+      const [hours, minutes] = (session.patients.session_time || '00:00').split(':').map(Number);
+      sessionDate.setHours(hours, minutes, 0, 0);
+
+      if (sessionDate < now) {
+        sessionsToUpdate.push(session.id);
+      }
+    });
+
+    // Update all sessions that have passed
+    if (sessionsToUpdate.length > 0) {
+      const { error } = await supabase
+        .from('sessions')
+        .update({ status: 'attended' })
+        .in('id', sessionsToUpdate);
+
+      if (error) console.error('Erro ao atualizar sessões:', error);
+    }
   };
 
   const loadData = async () => {
@@ -185,7 +207,7 @@ const Schedule = () => {
         }
       }
 
-      toast({ title: `Status alterado para ${newStatus === 'scheduled' ? 'Agendada' : newStatus === 'attended' ? 'Compareceu' : 'Cancelada'}` });
+      toast({ title: `Status alterado para ${newStatus === 'scheduled' ? 'Agendada' : newStatus === 'attended' ? 'Compareceu' : 'Não Compareceu'}` });
       loadData();
     }
   };
@@ -393,8 +415,8 @@ const Schedule = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="scheduled">Agendada</SelectItem>
-                    <SelectItem value="completed">Realizada</SelectItem>
-                    <SelectItem value="cancelled">Cancelada</SelectItem>
+                    <SelectItem value="attended">Compareceu</SelectItem>
+                    <SelectItem value="cancelled">Não Compareceu</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

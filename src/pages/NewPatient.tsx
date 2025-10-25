@@ -60,6 +60,7 @@ const NewPatient = () => {
       const sessionData = generateRecurringSessions(
         formData.startDate,
         formData.sessionDay,
+        formData.sessionTime,
         formData.frequency,
         new Date()
       );

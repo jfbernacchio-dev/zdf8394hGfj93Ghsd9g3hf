@@ -13,6 +13,7 @@ const dayOfWeekMap: { [key: string]: number } = {
 export const generateRecurringSessions = (
   startDate: string,
   sessionDay: string,
+  sessionTime: string,
   frequency: 'weekly' | 'biweekly',
   endDate?: Date
 ) => {
@@ -20,7 +21,7 @@ export const generateRecurringSessions = (
   const start = parseISO(startDate);
   const targetDayOfWeek = dayOfWeekMap[sessionDay];
   const end = endDate || new Date();
-  const startOfCurrentWeek = startOfWeek(new Date(), { weekStartsOn: 0 });
+  const now = new Date();
 
   // Find the first occurrence of the session day on or after start date
   let currentDate = startOfDay(start);
@@ -34,8 +35,14 @@ export const generateRecurringSessions = (
   // Generate sessions from first occurrence until end date
   while (isBefore(currentDate, end) || currentDate.getTime() === startOfDay(end).getTime()) {
     const sessionDate = format(currentDate, 'yyyy-MM-dd');
-    // Mark sessions before current week as "attended" (Compareceu)
-    const status = isBefore(currentDate, startOfCurrentWeek) ? 'attended' : 'scheduled';
+    
+    // Create a Date object with the session date and time
+    const [hours, minutes] = sessionTime.split(':').map(Number);
+    const sessionDateTime = new Date(currentDate);
+    sessionDateTime.setHours(hours, minutes, 0, 0);
+    
+    // Mark sessions that have passed (date + time) as "attended" (Compareceu)
+    const status = sessionDateTime < now ? 'attended' : 'scheduled';
     sessions.push({ date: sessionDate, status });
     currentDate = addWeeks(currentDate, frequency === 'weekly' ? 1 : 2);
   }
