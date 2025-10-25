@@ -89,7 +89,23 @@ const Dashboard = () => {
 
   const attendedSessions = periodSessions.filter(s => s.status === 'attended');
   const expectedSessions = calculateExpectedSessions();
-  const totalExpected = expectedSessions * (patients.find(p => p.status === 'active')?.session_value || 0);
+  
+  // Calculate expected revenue based on each patient's session value
+  const totalExpected = patients
+    .filter(p => p.status === 'active')
+    .reduce((sum, patient) => {
+      const patientStart = new Date(patient.start_date);
+      const periodStart = patientStart > start ? patientStart : start;
+      
+      if (periodStart > end) return sum;
+      
+      const weeks = Math.floor((end.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24 * 7));
+      const multiplier = patient.frequency === 'weekly' ? 1 : 0.5;
+      const sessions = Math.max(1, Math.ceil(weeks * multiplier));
+      
+      return sum + (sessions * Number(patient.session_value || 0));
+    }, 0);
+  
   const totalActual = attendedSessions.reduce((sum, s) => sum + Number(s.value), 0);
   const revenuePercent = totalExpected > 0 ? ((totalActual / totalExpected) * 100).toFixed(0) : 0;
   
@@ -146,7 +162,7 @@ const Dashboard = () => {
           </div>
         </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <Card className="p-6 shadow-[var(--shadow-card)] border-border">
             <div className="flex items-center justify-between mb-4">
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -167,6 +183,18 @@ const Dashboard = () => {
               {periodSessions.length}/{expectedSessions}
             </h3>
             <p className="text-sm text-muted-foreground">Sessões no Período</p>
+          </Card>
+
+          <Card className="p-6 shadow-[var(--shadow-card)] border-border">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-blue-500" />
+              </div>
+            </div>
+            <h3 className="text-2xl font-bold text-foreground mb-1">
+              R$ {totalExpected.toFixed(2)}
+            </h3>
+            <p className="text-sm text-muted-foreground">Receita Esperada</p>
           </Card>
 
           <Card className="p-6 shadow-[var(--shadow-card)] border-border">

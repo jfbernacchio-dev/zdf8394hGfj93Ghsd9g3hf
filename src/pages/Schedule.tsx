@@ -281,6 +281,7 @@ const Schedule = () => {
   const getWeekView = () => {
     const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
     const weekDays = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
+    const hours = Array.from({ length: 15 }, (_, i) => i + 7); // 7:00 to 21:00
 
     return (
       <Card className="p-6">
@@ -297,54 +298,58 @@ const Schedule = () => {
           </Button>
         </div>
 
-        <div className="grid grid-cols-5 gap-6">
-          {['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'].map((day, index) => {
-            const dayDate = weekDays[index];
-            const daySessions = sessions.filter(s => 
-              s.date === format(dayDate, 'yyyy-MM-dd')
-            );
+        <div className="grid grid-cols-6 gap-2 border rounded-lg overflow-hidden">
+          {/* Header row */}
+          <div className="bg-muted/50 p-2 font-semibold text-sm border-r sticky top-0">Horário</div>
+          {['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'].map((day, index) => (
+            <div key={day} className="bg-muted/50 p-2 text-center border-r last:border-r-0 sticky top-0">
+              <h3 className="font-semibold text-sm">{day}</h3>
+              <p className="text-xs text-muted-foreground">{format(weekDays[index], 'dd/MM')}</p>
+            </div>
+          ))}
 
-            return (
-              <div key={day} className="space-y-3">
-                <div className="sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 py-3 border-b-2 border-primary/20">
-                  <h3 className="font-semibold text-center">
-                    {day}
-                  </h3>
-                  <p className="text-xs text-muted-foreground text-center">
-                    {format(dayDate, 'dd/MM')}
-                  </p>
-                </div>
-                <div className="space-y-2 px-1">
-                  {daySessions.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground text-sm">
-                      Sem sessões
-                    </div>
-                  ) : (
-                    daySessions.map(session => (
-                      <Card 
+          {/* Time slots */}
+          {hours.map(hour => (
+            <div key={hour} className="contents">
+              <div className="bg-muted/30 p-2 text-sm font-medium text-muted-foreground border-t border-r">
+                {hour.toString().padStart(2, '0')}:00
+              </div>
+              {weekDays.map((dayDate, dayIndex) => {
+                const daySessions = sessions.filter(s => {
+                  if (s.date !== format(dayDate, 'yyyy-MM-dd')) return false;
+                  const sessionTime = s.time || s.patients?.session_time || '00:00';
+                  const sessionHour = parseInt(sessionTime.split(':')[0]);
+                  return sessionHour === hour;
+                });
+
+                return (
+                  <div
+                    key={`${hour}-${dayIndex}`}
+                    className="min-h-[60px] p-1 border-t border-r last:border-r-0 hover:bg-accent/20 transition-colors"
+                  >
+                    {daySessions.map(session => (
+                      <Card
                         key={session.id}
-                        className="p-3 cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all border-l-4"
+                        className="p-2 cursor-pointer hover:shadow-md transition-all mb-1 border-l-4"
                         style={{
-                          borderLeftColor: session.status === 'completed' ? 'hsl(var(--chart-2))' : 
+                          borderLeftColor: session.status === 'attended' ? 'hsl(var(--chart-2))' : 
                                          session.status === 'missed' ? 'hsl(var(--destructive))' : 
                                          'hsl(var(--primary))'
                         }}
                         onClick={() => openEditDialog(session)}
                       >
-                        <div className="space-y-2">
-                          <p className="font-semibold text-sm">{session.time || session.patients?.session_time}</p>
-                          <p className="text-xs text-muted-foreground truncate">{session.patients.name}</p>
-                          <Badge variant={getStatusVariant(session.status)} className="text-xs w-full justify-center">
-                            {getStatusText(session.status)}
-                          </Badge>
-                        </div>
+                        <p className="font-semibold text-xs truncate">{session.patients.name}</p>
+                        <p className="text-[10px] text-muted-foreground">{session.time || session.patients?.session_time}</p>
+                        <Badge variant={getStatusVariant(session.status)} className="text-[10px] mt-1 px-1 py-0">
+                          {getStatusText(session.status)}
+                        </Badge>
                       </Card>
-                    ))
-                  )}
-                </div>
-              </div>
-            );
-          })}
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
         </div>
       </Card>
     );

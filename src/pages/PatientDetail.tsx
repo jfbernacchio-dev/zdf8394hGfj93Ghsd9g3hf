@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,22 +9,29 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Plus, Calendar, DollarSign, Edit, FileText } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { useToast } from '@/hooks/use-toast';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 
 const PatientDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [patient, setPatient] = useState<any>(null);
   const [sessions, setSessions] = useState<any[]>([]);
+  const [allSessions, setAllSessions] = useState<any[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<any>(null);
   const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = useState(false);
   const [invoiceText, setInvoiceText] = useState('');
   const [invoiceSessions, setInvoiceSessions] = useState<any[]>([]);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [period, setPeriod] = useState('month');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
   const [formData, setFormData] = useState({
     date: format(new Date(), 'yyyy-MM-dd'),
     status: 'attended',
@@ -35,14 +43,52 @@ const PatientDetail = () => {
 
   useEffect(() => {
     loadData();
-  }, [id]);
+  }, [id, user]);
+
+  useEffect(() => {
+    filterSessions();
+  }, [period, customStartDate, customEndDate, allSessions]);
 
   const loadData = async () => {
     const { data: patientData } = await supabase.from('patients').select('*').eq('id', id).single();
     const { data: sessionsData } = await supabase.from('sessions').select('*').eq('patient_id', id).order('date', { ascending: false });
     
+    if (user) {
+      const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      setUserProfile(profileData);
+    }
+    
     setPatient(patientData);
-    setSessions(sessionsData || []);
+    setAllSessions(sessionsData || []);
+  };
+
+  const filterSessions = () => {
+    if (!allSessions.length) return;
+
+    if (period === 'all') {
+      setSessions(allSessions);
+      return;
+    }
+
+    const now = new Date();
+    let start: Date, end: Date;
+
+    if (period === 'custom') {
+      if (!customStartDate || !customEndDate) return;
+      start = new Date(customStartDate);
+      end = new Date(customEndDate);
+    } else {
+      // Este Mês
+      start = startOfMonth(now);
+      end = endOfMonth(now);
+    }
+
+    const filtered = allSessions.filter(session => {
+      const date = parseISO(session.date);
+      return date >= start && date <= end;
+    });
+
+    setSessions(filtered);
   };
 
   const openNewSessionDialog = () => {
@@ -169,7 +215,7 @@ const PatientDetail = () => {
   };
 
   const generateInvoice = () => {
-    const unpaidSessions = sessions.filter(s => s.status === 'attended' && !s.paid);
+    const unpaidSessions = allSessions.filter(s => s.status === 'attended' && !s.paid);
     
     if (unpaidSessions.length === 0) {
       toast({ 
@@ -186,6 +232,10 @@ const PatientDetail = () => {
     const sessionDates = unpaidSessions.map(s => format(parseISO(s.date), 'dd/MM/yyyy')).join(', ');
     
     const invoice = `RECIBO DE PRESTAÇÃO DE SERVIÇOS
+
+Profissional: ${userProfile?.full_name || ''}
+CPF: ${userProfile?.cpf || ''}
+CRP: ${userProfile?.crp || ''}
 
 Recebi de: ${patient.name}
 CPF: ${patient.cpf}
@@ -300,6 +350,45 @@ Assinatura do Profissional`;
                 <p className="text-xl font-semibold text-foreground">{unpaidSessions.length}</p>
               </div>
             </div>
+          </div>
+        </Card>
+
+        <Card className="p-6 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>Período</Label>
+              <Select value={period} onValueChange={setPeriod}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="month">Este Mês</SelectItem>
+                  <SelectItem value="custom">Personalizado</SelectItem>
+                  <SelectItem value="all">Todo Período</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {period === 'custom' && (
+              <>
+                <div className="space-y-2">
+                  <Label>Data Inicial</Label>
+                  <Input
+                    type="date"
+                    value={customStartDate}
+                    onChange={(e) => setCustomStartDate(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Data Final</Label>
+                  <Input
+                    type="date"
+                    value={customEndDate}
+                    onChange={(e) => setCustomEndDate(e.target.value)}
+                  />
+                </div>
+              </>
+            )}
           </div>
         </Card>
 
