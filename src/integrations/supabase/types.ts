@@ -14,7 +14,172 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      patients: {
+        Row: {
+          birth_date: string
+          cpf: string
+          created_at: string
+          email: string
+          frequency: string
+          id: string
+          name: string
+          phone: string
+          session_day: string
+          session_time: string
+          session_value: number
+          start_date: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          birth_date: string
+          cpf: string
+          created_at?: string
+          email: string
+          frequency: string
+          id?: string
+          name: string
+          phone: string
+          session_day: string
+          session_time: string
+          session_value: number
+          start_date: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          birth_date?: string
+          cpf?: string
+          created_at?: string
+          email?: string
+          frequency?: string
+          id?: string
+          name?: string
+          phone?: string
+          session_day?: string
+          session_time?: string
+          session_value?: number
+          start_date?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          birth_date: string
+          cpf: string
+          created_at: string
+          crp: string
+          full_name: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          birth_date: string
+          cpf: string
+          created_at?: string
+          crp: string
+          full_name: string
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          birth_date?: string
+          cpf?: string
+          created_at?: string
+          crp?: string
+          full_name?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      session_history: {
+        Row: {
+          changed_at: string
+          id: string
+          new_day: string
+          new_time: string
+          old_day: string
+          old_time: string
+          patient_id: string
+        }
+        Insert: {
+          changed_at?: string
+          id?: string
+          new_day: string
+          new_time: string
+          old_day: string
+          old_time: string
+          patient_id: string
+        }
+        Update: {
+          changed_at?: string
+          id?: string
+          new_day?: string
+          new_time?: string
+          old_day?: string
+          old_time?: string
+          patient_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_history_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sessions: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          notes: string | null
+          paid: boolean | null
+          patient_id: string
+          status: string
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          notes?: string | null
+          paid?: boolean | null
+          patient_id: string
+          status?: string
+          updated_at?: string
+          value: number
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          paid?: boolean | null
+          patient_id?: string
+          status?: string
+          updated_at?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessions_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
