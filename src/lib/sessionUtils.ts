@@ -70,3 +70,59 @@ export const getNextSessionDate = (
   const nextDate = addWeeks(lastDate, frequency === 'weekly' ? 1 : 2);
   return format(nextDate, 'yyyy-MM-dd');
 };
+
+export const ensureFutureSessions = async (
+  patientId: string,
+  patient: any,
+  supabase: any,
+  targetCount: number = 4
+) => {
+  // Get all future scheduled sessions for this patient
+  const { data: futureSessions } = await supabase
+    .from('sessions')
+    .select('date')
+    .eq('patient_id', patientId)
+    .eq('status', 'scheduled')
+    .gte('date', format(new Date(), 'yyyy-MM-dd'))
+    .order('date', { ascending: true });
+
+  const existingCount = futureSessions?.length || 0;
+  const sessionsToCreate = targetCount - existingCount;
+
+  if (sessionsToCreate <= 0) return;
+
+  // Find the last session date (either last future session or today)
+  let lastDate = futureSessions && futureSessions.length > 0 
+    ? futureSessions[futureSessions.length - 1].date
+    : format(new Date(), 'yyyy-MM-dd');
+
+  // Create missing sessions
+  const newSessions = [];
+  for (let i = 0; i < sessionsToCreate; i++) {
+    const nextDate = getNextSessionDate(lastDate, patient.session_day, patient.frequency);
+    
+    // Check if session already exists
+    const { data: existing } = await supabase
+      .from('sessions')
+      .select('id')
+      .eq('patient_id', patientId)
+      .eq('date', nextDate)
+      .maybeSingle();
+
+    if (!existing) {
+      newSessions.push({
+        patient_id: patientId,
+        date: nextDate,
+        status: 'scheduled',
+        value: patient.session_value,
+        paid: false,
+      });
+    }
+    
+    lastDate = nextDate;
+  }
+
+  if (newSessions.length > 0) {
+    await supabase.from('sessions').insert(newSessions);
+  }
+};

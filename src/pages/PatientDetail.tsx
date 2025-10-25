@@ -122,28 +122,10 @@ const PatientDetail = () => {
       return;
     }
     
-    // If marked as attended or missed, create next session
+    // If marked as attended or missed, ensure 4 future sessions exist
     if (newStatus === 'attended' || newStatus === 'missed') {
-      const { getNextSessionDate } = await import('@/lib/sessionUtils');
-      const nextDate = getNextSessionDate(session.date, patient!.session_day, patient!.frequency);
-      
-      // Check if next session already exists
-      const { data: existingSession } = await supabase
-        .from('sessions')
-        .select('id')
-        .eq('patient_id', session.patient_id)
-        .eq('date', nextDate)
-        .maybeSingle();
-
-      if (!existingSession) {
-        await supabase.from('sessions').insert({
-          patient_id: session.patient_id,
-          date: nextDate,
-          status: 'scheduled',
-          value: patient!.session_value,
-          paid: false,
-        });
-      }
+      const { ensureFutureSessions } = await import('@/lib/sessionUtils');
+      await ensureFutureSessions(session.patient_id, patient!, supabase, 4);
     }
     
     toast({ title: `Status alterado para ${newStatus === 'attended' ? 'Compareceu' : 'Não Compareceu'}` });
