@@ -30,8 +30,11 @@
     --warning: 38 92% 50%;
     --gradient-primary: linear-gradient(135deg, hsl(100 15% 55%), hsl(100 20% 65%));
     --gradient-soft: linear-gradient(180deg, hsl(48 33% 98%), hsl(40 30% 95%));
+    --gradient-card: linear-gradient(to bottom, hsl(0 0% 100%), hsl(48 20% 99%));
     --shadow-soft: 0 4px 20px -2px hsl(100 20% 40% / 0.08);
     --shadow-card: 0 2px 12px -2px hsl(100 15% 40% / 0.1);
+    --shadow-button: 0 1px 3px hsl(100 15% 40% / 0.12);
+    --transition-smooth: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     --sidebar-background: 48 20% 96%;
     --sidebar-foreground: 0 0% 25%;
     --sidebar-primary: 100 15% 55%;
@@ -66,8 +69,11 @@
     --warning: 38 92% 50%;
     --gradient-primary: linear-gradient(135deg, hsl(100 20% 65%), hsl(100 25% 70%));
     --gradient-soft: linear-gradient(180deg, hsl(100 10% 12%), hsl(100 8% 14%));
+    --gradient-card: linear-gradient(to bottom, hsl(100 10% 15%), hsl(100 8% 13%));
     --shadow-soft: 0 4px 20px -2px hsl(0 0% 0% / 0.3);
     --shadow-card: 0 2px 12px -2px hsl(0 0% 0% / 0.4);
+    --shadow-button: 0 1px 3px hsl(0 0% 0% / 0.5);
+    --transition-smooth: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     --sidebar-background: 100 10% 14%;
     --sidebar-foreground: 48 33% 95%;
     --sidebar-primary: 100 20% 65%;
@@ -101,5 +107,44 @@
   /* Safe area for mobile devices (iPhone notch/Dynamic Island) */
   .pt-safe {
     padding-top: max(2rem, env(safe-area-inset-top));
+  }
+  
+  .pb-safe {
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  }
+  
+  /* Smooth page transitions */
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-out;
+  }
+  
+  /* Active tap feedback */
+  .tap-highlight {
+    -webkit-tap-highlight-color: hsl(var(--primary) / 0.1);
+  }
+  
+  /* Smooth transitions for interactive elements */
+  button, a {
+    transition: var(--transition-smooth);
+  }
+  
+  /* Card hover effect */
+  .card-hover {
+    transition: var(--transition-smooth);
+  }
+  
+  .card-hover:active {
+    transform: scale(0.98);
   }
 }

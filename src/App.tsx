@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import Patients from "./pages/Patients";
 import NewPatient from "./pages/NewPatient";
@@ -69,18 +70,18 @@ const App = () => (
             <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
             <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
             
-            <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/schedule" element={<ProtectedRoute><Schedule /></ProtectedRoute>} />
-            <Route path="/patients" element={<ProtectedRoute><Patients /></ProtectedRoute>} />
-            <Route path="/patients/new" element={<ProtectedRoute><NewPatient /></ProtectedRoute>} />
-            <Route path="/patients/:id/edit" element={<ProtectedRoute><EditPatient /></ProtectedRoute>} />
-            <Route path="/patients/:id" element={<ProtectedRoute><PatientDetail /></ProtectedRoute>} />
-            <Route path="/therapists" element={<ProtectedRoute><TherapistManagement /></ProtectedRoute>} />
-            <Route path="/therapists/:id" element={<ProtectedRoute><TherapistDetail /></ProtectedRoute>} />
-            <Route path="/create-therapist" element={<ProtectedRoute><CreateTherapist /></ProtectedRoute>} />
-            <Route path="/nfse/config" element={<ProtectedRoute><NFSeConfig /></ProtectedRoute>} />
-            <Route path="/nfse/history" element={<ProtectedRoute><NFSeHistory /></ProtectedRoute>} />
-            <Route path="/admin/security" element={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />
+            <Route path="/" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
+            <Route path="/schedule" element={<ProtectedRoute><Layout><Schedule /></Layout></ProtectedRoute>} />
+            <Route path="/patients" element={<ProtectedRoute><Layout><Patients /></Layout></ProtectedRoute>} />
+            <Route path="/patients/new" element={<ProtectedRoute><Layout><NewPatient /></Layout></ProtectedRoute>} />
+            <Route path="/patients/:id/edit" element={<ProtectedRoute><Layout><EditPatient /></Layout></ProtectedRoute>} />
+            <Route path="/patients/:id" element={<ProtectedRoute><Layout><PatientDetail /></Layout></ProtectedRoute>} />
+            <Route path="/therapists" element={<ProtectedRoute><Layout><TherapistManagement /></Layout></ProtectedRoute>} />
+            <Route path="/therapists/:id" element={<ProtectedRoute><Layout><TherapistDetail /></Layout></ProtectedRoute>} />
+            <Route path="/create-therapist" element={<ProtectedRoute><Layout><CreateTherapist /></Layout></ProtectedRoute>} />
+            <Route path="/nfse/config" element={<ProtectedRoute><Layout><NFSeConfig /></Layout></ProtectedRoute>} />
+            <Route path="/nfse/history" element={<ProtectedRoute><Layout><NFSeHistory /></Layout></ProtectedRoute>} />
+            <Route path="/admin/security" element={<ProtectedRoute><Layout><AdminSettings /></Layout></ProtectedRoute>} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
