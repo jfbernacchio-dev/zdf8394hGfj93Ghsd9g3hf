@@ -100,6 +100,6 @@
   
   /* Safe area for mobile devices (iPhone notch/Dynamic Island) */
   .pt-safe {
-    padding-top: max(0.5rem, env(safe-area-inset-top));
+    padding-top: max(1.5rem, env(safe-area-inset-top));
   }
 }
