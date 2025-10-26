@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Users, Calendar, LogOut, FileText, ChevronDown } from 'lucide-react';
+import { Users, Calendar, LogOut, FileText, ChevronDown, Shield } from 'lucide-react';
 import { Button } from './ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
@@ -106,6 +106,16 @@ const Navbar = () => {
                 <span className="text-sm text-muted-foreground">
                   {profile.full_name.split(' ')[0]}
                 </span>
+              )}
+              {isAdmin && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate('/admin/security')}
+                  title="Configurações de Segurança"
+                >
+                  <Shield className="w-4 h-4" />
+                </Button>
               )}
               <Button
                 variant="ghost"

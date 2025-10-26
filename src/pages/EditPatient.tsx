@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { logAdminAccess } from '@/lib/auditLog';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +29,9 @@ const EditPatient = () => {
   const loadPatient = async () => {
     const { data } = await supabase.from('patients').select('*').eq('id', id).single();
     if (data) {
+      // Log admin access
+      await logAdminAccess('edit_patient', undefined, id, 'Admin accessed patient edit page');
+
       const patientData = {
         name: data.name,
         email: data.email,

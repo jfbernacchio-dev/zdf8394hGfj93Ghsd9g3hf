@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkRateLimit, getRateLimitHeaders } from "../rate-limit/index.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,6 +15,47 @@ serve(async (req) => {
   try {
     const requestBody = await req.json();
     const { patientId, serviceValue, sessions } = requestBody;
+
+    // Get authorization header early for rate limiting
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('Não autorizado');
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Get user from token
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    
+    if (userError || !user) {
+      throw new Error('Usuário não autenticado');
+    }
+
+    // Rate limiting: 10 NFSe per hour per user
+    const rateLimitResult = checkRateLimit(`nfse_${user.id}`, {
+      maxRequests: 10,
+      windowMs: 60 * 60 * 1000, // 1 hour
+    });
+
+    if (!rateLimitResult.allowed) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Taxa de requisições excedida. Tente novamente mais tarde.',
+          resetTime: new Date(rateLimitResult.resetTime).toISOString()
+        }),
+        { 
+          status: 429, 
+          headers: { 
+            ...corsHeaders, 
+            ...getRateLimitHeaders(rateLimitResult),
+            'Content-Type': 'application/json'
+          } 
+        }
+      );
+    }
 
     // Input validation
     if (!patientId || typeof patientId !== 'string') {
@@ -36,24 +78,6 @@ serve(async (req) => {
     const numericSessions = Number(sessions);
     if (isNaN(numericSessions) || numericSessions <= 0 || numericSessions > 100 || !Number.isInteger(numericSessions)) {
       throw new Error('Número de sessões inválido. Deve ser entre 1 e 100');
-    }
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    // Get authorization header
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('Não autorizado');
-    }
-
-    // Get user from token
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-    
-    if (userError || !user) {
-      throw new Error('Usuário não autenticado');
     }
 
     console.log('Issuing NFSe for user:', user.id, 'patient:', patientId);

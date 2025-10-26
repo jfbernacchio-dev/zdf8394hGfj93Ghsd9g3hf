@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { logAdminAccess } from '@/lib/auditLog';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -62,6 +63,9 @@ const PatientDetail = () => {
     
     setPatient(patientData);
     setAllSessions(sessionsData || []);
+
+    // Log admin access to patient data
+    await logAdminAccess('view_patient', undefined, id, 'Admin viewed patient details and sessions');
   };
 
   const filterSessions = () => {
@@ -282,6 +286,9 @@ Assinatura do Profissional`;
 
   const handleExportPatientData = async () => {
     try {
+      // Log admin access
+      await logAdminAccess('export_patient_data', undefined, id, 'Admin exported patient data (LGPD compliance)');
+
       const { data, error } = await supabase.functions.invoke('export-patient-data', {
         body: { patientId: id }
       });
@@ -330,6 +337,9 @@ Assinatura do Profissional`;
     }
 
     try {
+      // Log admin access before deletion
+      await logAdminAccess('delete_patient', undefined, id, `Admin permanently deleted patient: ${patient.name}`);
+
       // Delete all related data first (sessions, files, etc.)
       await supabase.from('sessions').delete().eq('patient_id', id);
       await supabase.from('session_history').delete().eq('patient_id', id);
