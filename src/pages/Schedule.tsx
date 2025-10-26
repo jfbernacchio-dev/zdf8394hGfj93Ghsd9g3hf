@@ -628,7 +628,14 @@ const Schedule = () => {
           {/* Header row */}
           <div className="bg-muted/50 p-2 font-semibold text-sm border-r sticky top-0 z-10">Horário</div>
           {['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'].map((day, index) => (
-            <div key={day} className="bg-muted/50 p-2 text-center border-r last:border-r-0 sticky top-0 z-10">
+            <div 
+              key={day} 
+              className="bg-muted/50 p-2 text-center border-r last:border-r-0 sticky top-0 z-10 cursor-pointer hover:bg-muted transition-colors"
+              onClick={() => {
+                setSelectedDate(weekDays[index]);
+                setViewMode('day');
+              }}
+            >
               <h3 className="font-semibold text-sm">{day}</h3>
               <p className="text-xs text-muted-foreground">{format(weekDays[index], 'dd/MM')}</p>
             </div>
