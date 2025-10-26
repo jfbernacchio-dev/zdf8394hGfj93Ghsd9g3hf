@@ -13,7 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Plus, Calendar, DollarSign, Edit, FileText, Download, Trash2, Shield } from 'lucide-react';
-import Navbar from '@/components/Navbar';
+
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, startOfMonth, endOfMonth, isFuture } from 'date-fns';
 import { PatientFiles } from '@/components/PatientFiles';
@@ -373,11 +373,8 @@ Assinatura do Profissional`;
 
   if (!patient) {
     return (
-      <div className="min-h-screen bg-[var(--gradient-soft)]">
-        <Navbar />
-        <div className="container mx-auto px-4 py-8">
-          <p className="text-muted-foreground">Paciente não encontrado</p>
-        </div>
+      <div className="container mx-auto px-4 py-8">
+        <p className="text-muted-foreground">Paciente não encontrado</p>
       </div>
     );
   }
@@ -392,9 +389,7 @@ Assinatura do Profissional`;
   const totalValue = sessions.filter(s => s.status === 'attended').reduce((sum, s) => sum + Number(s.value || 0), 0);
 
   return (
-    <div className="min-h-screen bg-[var(--gradient-soft)]">
-      <Navbar />
-      <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8">
         <Button
           variant="ghost"
           onClick={() => navigate('/patients')}
@@ -746,8 +741,7 @@ Assinatura do Profissional`;
           </DialogContent>
         </Dialog>
       </div>
-    </div>
-  );
+    );
 };
 
 export default PatientDetail;
