@@ -12,7 +12,19 @@ serve(async (req) => {
   }
 
   try {
-    const { patientId } = await req.json();
+    const requestBody = await req.json();
+    const { patientId } = requestBody;
+
+    // Input validation
+    if (!patientId || typeof patientId !== 'string') {
+      throw new Error('ID do paciente inválido');
+    }
+
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(patientId)) {
+      throw new Error('Formato de ID do paciente inválido');
+    }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -138,13 +150,19 @@ serve(async (req) => {
 
   } catch (error: any) {
     console.error('Error in export-patient-data:', error);
+    
+    // Return generic error message to user, log details server-side
+    const userMessage = error.message?.includes('inválido') || error.message?.includes('não encontrado') || error.message?.includes('não autorizado')
+      ? error.message
+      : 'Erro ao processar solicitação de exportação';
+    
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message || 'Erro ao exportar dados',
+        error: userMessage,
       }),
       { 
-        status: 500,
+        status: error.message?.includes('não autorizado') || error.message?.includes('não autenticado') ? 401 : 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );

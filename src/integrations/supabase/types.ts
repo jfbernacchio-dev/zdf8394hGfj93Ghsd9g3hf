@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_access_log: {
+        Row: {
+          access_reason: string | null
+          access_type: string
+          accessed_patient_id: string | null
+          accessed_user_id: string | null
+          admin_id: string
+          created_at: string
+          id: string
+          ip_address: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          access_reason?: string | null
+          access_type: string
+          accessed_patient_id?: string | null
+          accessed_user_id?: string | null
+          admin_id: string
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          access_reason?: string | null
+          access_type?: string
+          accessed_patient_id?: string | null
+          accessed_user_id?: string | null
+          admin_id?: string
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_access_log_accessed_patient_id_fkey"
+            columns: ["accessed_patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nfse_certificates: {
         Row: {
           certificate_data: string
@@ -523,6 +567,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      validate_cpf: { Args: { cpf_input: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "therapist"

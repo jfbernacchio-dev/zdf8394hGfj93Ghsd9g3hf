@@ -12,7 +12,31 @@ serve(async (req) => {
   }
 
   try {
-    const { patientId, serviceValue, sessions } = await req.json();
+    const requestBody = await req.json();
+    const { patientId, serviceValue, sessions } = requestBody;
+
+    // Input validation
+    if (!patientId || typeof patientId !== 'string') {
+      throw new Error('ID do paciente inválido');
+    }
+
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(patientId)) {
+      throw new Error('Formato de ID do paciente inválido');
+    }
+
+    // Validate serviceValue
+    const numericValue = Number(serviceValue);
+    if (isNaN(numericValue) || numericValue <= 0 || numericValue > 100000) {
+      throw new Error('Valor do serviço inválido. Deve ser entre R$ 0,01 e R$ 100.000,00');
+    }
+
+    // Validate sessions
+    const numericSessions = Number(sessions);
+    if (isNaN(numericSessions) || numericSessions <= 0 || numericSessions > 100 || !Number.isInteger(numericSessions)) {
+      throw new Error('Número de sessões inválido. Deve ser entre 1 e 100');
+    }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -179,13 +203,19 @@ serve(async (req) => {
 
   } catch (error: any) {
     console.error('Error in issue-nfse:', error);
+    
+    // Return generic error message to user, log details server-side
+    const userMessage = error.message?.includes('inválido') || error.message?.includes('não encontrado')
+      ? error.message
+      : 'Erro ao processar solicitação de NFSe';
+    
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message || 'Erro ao emitir NFSe',
+        error: userMessage,
       }),
       { 
-        status: 500,
+        status: error.message?.includes('não autorizado') || error.message?.includes('não autenticado') ? 401 : 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );
