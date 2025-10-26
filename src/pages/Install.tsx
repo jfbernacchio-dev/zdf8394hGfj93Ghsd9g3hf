@@ -55,7 +55,7 @@ const Install = () => {
             </div>
             <CardTitle>App Instalado!</CardTitle>
             <CardDescription>
-              O Mindware Psicologia está instalado no seu dispositivo
+              O Mindware Clinic está instalado no seu dispositivo
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -77,7 +77,7 @@ const Install = () => {
           </div>
           <h1 className="text-3xl font-bold mb-2">Instalar App</h1>
           <p className="text-muted-foreground">
-            Use o Mindware Psicologia como um app no seu celular
+            Use o Mindware Clinic como um app no seu celular
           </p>
         </div>
 

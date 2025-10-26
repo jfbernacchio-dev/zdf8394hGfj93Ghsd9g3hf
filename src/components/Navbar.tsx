@@ -1,8 +1,9 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Brain, Users, Calendar, LogOut, FileText, ChevronDown } from 'lucide-react';
+import { Users, Calendar, LogOut, FileText, ChevronDown } from 'lucide-react';
 import { Button } from './ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
+import mindwareLogo from '@/assets/mindware-logo.png';
 
 const Navbar = () => {
   const location = useLocation();
@@ -21,10 +22,10 @@ const Navbar = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-              <Brain className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-background flex items-center justify-center">
+              <img src={mindwareLogo} alt="Mindware Clinic" className="w-8 h-8" />
             </div>
-            <span className="text-xl font-semibold text-foreground">PsiClinic</span>
+            <span className="text-xl font-semibold text-foreground">Mindware Clinic</span>
           </div>
 
           <div className="flex items-center gap-4">

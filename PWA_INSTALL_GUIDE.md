@@ -1,6 +1,6 @@
-# Guia de Instalação do App Mindware Psicologia
+# Guia de Instalação do App Mindware Clinic
 
-O Mindware Psicologia está disponível como um **Progressive Web App (PWA)**, o que significa que você pode instalá-lo no seu celular e usá-lo como um aplicativo nativo, com acesso rápido e funcionamento offline.
+O Mindware Clinic está disponível como um **Progressive Web App (PWA)**, o que significa que você pode instalá-lo no seu celular e usá-lo como um aplicativo nativo, com acesso rápido e funcionamento offline.
 
 ## 📱 Como Instalar no iPhone (iOS)
 
