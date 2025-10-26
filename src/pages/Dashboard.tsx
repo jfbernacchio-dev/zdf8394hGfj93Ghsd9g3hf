@@ -9,6 +9,7 @@ import Navbar from '@/components/Navbar';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { parseISO } from 'date-fns';
+import { NotificationPrompt } from '@/components/NotificationPrompt';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -259,6 +260,7 @@ const Dashboard = () => {
           </Card>
         </div>
       </div>
+      <NotificationPrompt />
     </div>
   );
 };

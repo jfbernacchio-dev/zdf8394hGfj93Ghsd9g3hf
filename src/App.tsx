@@ -19,6 +19,7 @@ import CreateTherapist from "./pages/CreateTherapist";
 import TherapistDetail from "./pages/TherapistDetail";
 import NFSeConfig from "./pages/NFSeConfig";
 import NFSeHistory from "./pages/NFSeHistory";
+import Install from "./pages/Install";
 
 const queryClient = new QueryClient();
 
@@ -62,6 +63,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            <Route path="/install" element={<Install />} />
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
             <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
