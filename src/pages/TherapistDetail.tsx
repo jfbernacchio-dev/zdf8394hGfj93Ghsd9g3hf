@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import Navbar from '@/components/Navbar';
+
 import { ArrowLeft, Calendar, Users, MessageSquare, Bell, Lock, FileText, Clock, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
@@ -208,13 +208,11 @@ const TherapistDetail = () => {
   };
 
   if (!isAdmin) return null;
-  if (loading) return <div className="min-h-screen bg-[var(--gradient-soft)]"><Navbar /><div className="container mx-auto p-6">Carregando...</div></div>;
-  if (!therapist) return <div className="min-h-screen bg-[var(--gradient-soft)]"><Navbar /><div className="container mx-auto p-6">Terapeuta não encontrado</div></div>;
+  if (loading) return <div className="container mx-auto p-6">Carregando...</div>;
+  if (!therapist) return <div className="container mx-auto p-6">Terapeuta não encontrado</div>;
 
   return (
-    <div className="min-h-screen bg-[var(--gradient-soft)]">
-      <Navbar />
-      <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-6 space-y-6">
         <div className="flex items-center gap-4">
           <Button variant="ghost" onClick={() => navigate('/therapists')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -473,7 +471,6 @@ const TherapistDetail = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
   );
 };
 

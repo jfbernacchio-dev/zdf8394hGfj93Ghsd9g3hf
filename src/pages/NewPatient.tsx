@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft } from 'lucide-react';
-import Navbar from '@/components/Navbar';
+
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -100,9 +100,7 @@ const NewPatient = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--gradient-soft)]">
-      <Navbar />
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
+    <div className="container mx-auto px-4 py-8 max-w-2xl">
         <Button
           variant="ghost"
           onClick={() => navigate('/patients')}
@@ -269,7 +267,6 @@ const NewPatient = () => {
           </form>
         </Card>
       </div>
-    </div>
   );
 };
 

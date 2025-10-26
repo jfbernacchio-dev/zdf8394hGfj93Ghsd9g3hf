@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import Navbar from '@/components/Navbar';
+
 import { ArrowLeft, FileText, Upload, Save, Shield } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -260,9 +260,7 @@ export default function NFSeConfig() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <div className="container mx-auto p-6">
+    <div className="container mx-auto p-6">
         <div className="flex items-center gap-4 mb-6">
           <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
             <ArrowLeft className="h-5 w-5" />
@@ -493,6 +491,5 @@ export default function NFSeConfig() {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
   );
 }

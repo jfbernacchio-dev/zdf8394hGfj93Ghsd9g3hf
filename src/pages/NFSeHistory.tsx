@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import Navbar from '@/components/Navbar';
+
 import { ArrowLeft, FileText, Download, X, Search, Calendar, DollarSign } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -138,9 +138,7 @@ export default function NFSeHistory() {
     .reduce((sum, n) => sum + Number(n.service_value), 0);
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <div className="container mx-auto p-6">
+    <div className="container mx-auto p-6">
         <div className="flex items-center gap-4 mb-6">
           <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
             <ArrowLeft className="h-5 w-5" />
@@ -287,6 +285,5 @@ export default function NFSeHistory() {
           )}
         </Card>
       </div>
-    </div>
   );
 }

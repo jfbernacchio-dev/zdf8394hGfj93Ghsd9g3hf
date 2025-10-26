@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Users, Calendar, DollarSign, TrendingUp, AlertCircle } from 'lucide-react';
-import Navbar from '@/components/Navbar';
+
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { parseISO } from 'date-fns';
@@ -127,9 +127,7 @@ const Dashboard = () => {
   const unpaidValue = unpaidSessions.reduce((sum, s) => sum + Number(s.value), 0);
 
   return (
-    <div className="min-h-screen bg-[var(--gradient-soft)]">
-      <Navbar />
-      <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">Dashboard</h1>
           <p className="text-muted-foreground">Visão geral da sua clínica</p>
@@ -259,8 +257,7 @@ const Dashboard = () => {
             <p className="text-sm text-muted-foreground">Em Aberto ({unpaidSessions.length})</p>
           </Card>
         </div>
-      </div>
-      <NotificationPrompt />
+    <NotificationPrompt />
     </div>
   );
 };

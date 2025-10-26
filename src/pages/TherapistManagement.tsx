@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { UserPlus, Calendar, Users, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import Navbar from '@/components/Navbar';
+
 
 interface Therapist {
   id: string;
@@ -105,9 +105,7 @@ const TherapistManagement = () => {
   if (!isAdmin) return null;
 
   return (
-    <div className="min-h-screen bg-[var(--gradient-soft)]">
-      <Navbar />
-      <div className="container mx-auto px-4 md:px-6 py-6 space-y-6">
+    <div className="container mx-auto px-4 md:px-6 py-6 space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold">Gestão de Terapeutas</h1>
@@ -218,7 +216,6 @@ const TherapistManagement = () => {
         </TabsContent>
       </Tabs>
       </div>
-    </div>
   );
 };
 

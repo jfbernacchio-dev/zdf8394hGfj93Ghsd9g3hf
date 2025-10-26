@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Plus, Search, Edit, FileText } from 'lucide-react';
-import Navbar from '@/components/Navbar';
+
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -138,9 +138,7 @@ const Patients = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--gradient-soft)]">
-      <Navbar />
-      <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8">
         <div className="mb-6 md:mb-8">
           <div className="flex items-start justify-between mb-4">
             <div>
@@ -240,7 +238,6 @@ const Patients = () => {
           </DialogContent>
         </Dialog>
       </div>
-    </div>
   );
 };
 

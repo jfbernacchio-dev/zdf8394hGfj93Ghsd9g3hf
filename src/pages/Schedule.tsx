@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import Navbar from '@/components/Navbar';
+
 import { useToast } from '@/hooks/use-toast';
 import { Calendar as CalendarIcon, Plus, CheckCircle, XCircle, DollarSign, ArrowLeft, Lock } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, startOfWeek, addDays, isBefore, parseISO, getDay } from 'date-fns';
@@ -961,9 +961,7 @@ const Schedule = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--gradient-soft)]">
-      {!embedMode && <Navbar />}
-      <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-foreground">Agenda</h1>
           {viewMode === 'month' && (
@@ -1279,7 +1277,6 @@ const Schedule = () => {
           </DialogContent>
         </Dialog>
       </div>
-    </div>
   );
 };
 
