@@ -40,15 +40,15 @@ const NewPatient = () => {
         .insert({
           user_id: user.id,
           name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
+          email: formData.email || '',
+          phone: formData.phone || '',
           cpf: formData.cpf,
-          birth_date: formData.birthDate,
-          frequency: formData.frequency,
-          session_day: formData.sessionDay,
-          session_time: formData.sessionTime,
+          birth_date: formData.birthDate || null,
+          frequency: formData.frequency || 'weekly',
+          session_day: formData.sessionDay || 'monday',
+          session_time: formData.sessionTime || '',
           session_value: parseFloat(formData.sessionValue),
-          start_date: formData.startDate,
+          start_date: formData.startDate || null,
           lgpd_consent_date: formData.lgpdConsent ? new Date().toISOString() : null,
           status: 'active',
         })
@@ -57,36 +57,43 @@ const NewPatient = () => {
 
       if (patientError) throw patientError;
 
-      // Generate all recurring sessions from start_date until today
-      const { generateRecurringSessions } = await import('@/lib/sessionUtils');
-      const sessionData = generateRecurringSessions(
-        formData.startDate,
-        formData.sessionDay,
-        formData.sessionTime,
-        formData.frequency,
-        new Date()
-      );
+      let sessionsCount = 0;
 
-      // Create sessions in the database
-      const sessionsToInsert = sessionData.map(({ date, status }) => ({
-        patient_id: patient.id,
-        date,
-        status,
-        value: parseFloat(formData.sessionValue),
-        paid: false,
-      }));
+      // Only generate sessions if all scheduling data is complete
+      if (formData.startDate && formData.sessionDay && formData.sessionTime) {
+        const { generateRecurringSessions } = await import('@/lib/sessionUtils');
+        const sessionData = generateRecurringSessions(
+          formData.startDate,
+          formData.sessionDay,
+          formData.sessionTime,
+          formData.frequency,
+          new Date()
+        );
 
-      if (sessionsToInsert.length > 0) {
-        const { error: sessionsError } = await supabase
-          .from('sessions')
-          .insert(sessionsToInsert);
+        // Create sessions in the database
+        const sessionsToInsert = sessionData.map(({ date, status }) => ({
+          patient_id: patient.id,
+          date,
+          status,
+          value: parseFloat(formData.sessionValue),
+          paid: false,
+        }));
 
-        if (sessionsError) throw sessionsError;
+        if (sessionsToInsert.length > 0) {
+          const { error: sessionsError } = await supabase
+            .from('sessions')
+            .insert(sessionsToInsert);
+
+          if (sessionsError) throw sessionsError;
+          sessionsCount = sessionsToInsert.length;
+        }
       }
 
       toast({
         title: "Paciente cadastrado!",
-        description: `O paciente foi adicionado com ${sessionsToInsert.length} sessões geradas.`,
+        description: sessionsCount > 0 
+          ? `O paciente foi adicionado com ${sessionsCount} sessões geradas.`
+          : "O paciente foi adicionado. Você pode adicionar os dados de agendamento depois.",
       });
 
       navigate('/patients');
@@ -130,7 +137,6 @@ const NewPatient = () => {
                 <Input
                   id="email"
                   type="email"
-                  required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 />
@@ -140,7 +146,6 @@ const NewPatient = () => {
                 <Label htmlFor="phone">Telefone</Label>
                 <Input
                   id="phone"
-                  required
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 />
@@ -165,7 +170,6 @@ const NewPatient = () => {
                 <Input
                   id="birthDate"
                   type="date"
-                  required
                   value={formData.birthDate}
                   onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
                 />
@@ -206,7 +210,6 @@ const NewPatient = () => {
                 <Input
                   id="startDate"
                   type="date"
-                  required
                   value={formData.startDate}
                   onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                 />
@@ -240,7 +243,6 @@ const NewPatient = () => {
                 <Input
                   id="sessionTime"
                   type="time"
-                  required
                   value={formData.sessionTime}
                   onChange={(e) => setFormData({ ...formData, sessionTime: e.target.value })}
                 />
