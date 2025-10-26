@@ -17,6 +17,8 @@ import NotFound from "./pages/NotFound";
 import TherapistManagement from "./pages/TherapistManagement";
 import CreateTherapist from "./pages/CreateTherapist";
 import TherapistDetail from "./pages/TherapistDetail";
+import NFSeConfig from "./pages/NFSeConfig";
+import NFSeHistory from "./pages/NFSeHistory";
 
 const queryClient = new QueryClient();
 
@@ -73,6 +75,8 @@ const App = () => (
             <Route path="/therapists" element={<ProtectedRoute><TherapistManagement /></ProtectedRoute>} />
             <Route path="/therapists/:id" element={<ProtectedRoute><TherapistDetail /></ProtectedRoute>} />
             <Route path="/create-therapist" element={<ProtectedRoute><CreateTherapist /></ProtectedRoute>} />
+            <Route path="/nfse/config" element={<ProtectedRoute><NFSeConfig /></ProtectedRoute>} />
+            <Route path="/nfse/history" element={<ProtectedRoute><NFSeHistory /></ProtectedRoute>} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Plus, Calendar, DollarSign, Edit, FileText } from 'lucide-react';
+import { ArrowLeft, Plus, Calendar, DollarSign, Edit, FileText, Download, Trash2, Shield } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, startOfMonth, endOfMonth, isFuture } from 'date-fns';
@@ -280,6 +280,86 @@ Assinatura do Profissional`;
     loadData();
   };
 
+  const handleExportPatientData = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('export-patient-data', {
+        body: { patientId: id }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        // Create downloadable JSON
+        const dataStr = JSON.stringify(data.data, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `paciente_${patient.name.replace(/\s/g, '_')}_${format(new Date(), 'yyyy-MM-dd')}.json`;
+        link.click();
+
+        toast({
+          title: 'Dados exportados',
+          description: 'Os dados do paciente foram exportados com sucesso.',
+        });
+      }
+    } catch (error: any) {
+      console.error('Error exporting data:', error);
+      toast({
+        title: 'Erro ao exportar',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDeletePatient = async () => {
+    const confirmation = prompt(
+      `Esta ação é IRREVERSÍVEL e apagará TODOS os dados do paciente.\n\nDigite "${patient.name}" para confirmar:`
+    );
+
+    if (confirmation !== patient.name) {
+      if (confirmation !== null) {
+        toast({
+          title: 'Exclusão cancelada',
+          description: 'O nome digitado não confere.',
+          variant: 'destructive',
+        });
+      }
+      return;
+    }
+
+    try {
+      // Delete all related data first (sessions, files, etc.)
+      await supabase.from('sessions').delete().eq('patient_id', id);
+      await supabase.from('session_history').delete().eq('patient_id', id);
+      await supabase.from('patient_files').delete().eq('patient_id', id);
+      await supabase.from('nfse_issued').delete().eq('patient_id', id);
+
+      // Finally delete the patient
+      const { error } = await supabase
+        .from('patients')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Paciente excluído',
+        description: 'Todos os dados foram permanentemente removidos.',
+      });
+
+      navigate('/patients');
+    } catch (error: any) {
+      console.error('Error deleting patient:', error);
+      toast({
+        title: 'Erro ao excluir',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
 
   if (!patient) {
     return (
@@ -325,13 +405,31 @@ Assinatura do Profissional`;
                 <p className="text-muted-foreground">{patient.email}</p>
               </div>
             </div>
-            <Button
-              variant="outline"
-              onClick={() => navigate(`/patients/${id}/edit`)}
-            >
-              <Edit className="w-4 h-4 mr-2" />
-              Editar
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/patients/${id}/edit`)}
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Editar
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleExportPatientData}
+                title="Exportar dados do paciente (LGPD)"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Exportar Dados
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeletePatient}
+                title="Excluir permanentemente todos os dados (LGPD)"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Excluir Definitivamente
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

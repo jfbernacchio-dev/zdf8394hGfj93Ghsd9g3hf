@@ -14,6 +14,161 @@ export type Database = {
   }
   public: {
     Tables: {
+      nfse_certificates: {
+        Row: {
+          certificate_data: string
+          certificate_password: string
+          certificate_type: string | null
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+          valid_until: string | null
+        }
+        Insert: {
+          certificate_data: string
+          certificate_password: string
+          certificate_type?: string | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+          valid_until?: string | null
+        }
+        Update: {
+          certificate_data?: string
+          certificate_password?: string
+          certificate_type?: string | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+          valid_until?: string | null
+        }
+        Relationships: []
+      }
+      nfse_config: {
+        Row: {
+          anexo_simples: string | null
+          cnpj: string | null
+          created_at: string
+          focusnfe_environment: string | null
+          focusnfe_token: string | null
+          id: string
+          inscricao_municipal: string | null
+          iss_rate: number | null
+          razao_social: string | null
+          regime_tributario: string | null
+          service_code: string | null
+          service_description: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          anexo_simples?: string | null
+          cnpj?: string | null
+          created_at?: string
+          focusnfe_environment?: string | null
+          focusnfe_token?: string | null
+          id?: string
+          inscricao_municipal?: string | null
+          iss_rate?: number | null
+          razao_social?: string | null
+          regime_tributario?: string | null
+          service_code?: string | null
+          service_description?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          anexo_simples?: string | null
+          cnpj?: string | null
+          created_at?: string
+          focusnfe_environment?: string | null
+          focusnfe_token?: string | null
+          id?: string
+          inscricao_municipal?: string | null
+          iss_rate?: number | null
+          razao_social?: string | null
+          regime_tributario?: string | null
+          service_code?: string | null
+          service_description?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      nfse_issued: {
+        Row: {
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          created_at: string
+          error_message: string | null
+          focusnfe_ref: string | null
+          id: string
+          iss_value: number
+          issue_date: string
+          net_value: number
+          nfse_number: string | null
+          patient_id: string
+          pdf_url: string | null
+          service_value: number
+          status: string
+          updated_at: string
+          user_id: string
+          verification_code: string | null
+          xml_url: string | null
+        }
+        Insert: {
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          focusnfe_ref?: string | null
+          id?: string
+          iss_value: number
+          issue_date?: string
+          net_value: number
+          nfse_number?: string | null
+          patient_id: string
+          pdf_url?: string | null
+          service_value: number
+          status?: string
+          updated_at?: string
+          user_id: string
+          verification_code?: string | null
+          xml_url?: string | null
+        }
+        Update: {
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          focusnfe_ref?: string | null
+          id?: string
+          iss_value?: number
+          issue_date?: string
+          net_value?: number
+          nfse_number?: string | null
+          patient_id?: string
+          pdf_url?: string | null
+          service_value?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+          verification_code?: string | null
+          xml_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nfse_issued_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_preferences: {
         Row: {
           admin_id: string
@@ -99,6 +254,7 @@ export type Database = {
           email: string
           frequency: string
           id: string
+          lgpd_consent_date: string | null
           name: string
           phone: string
           session_day: string
@@ -116,6 +272,7 @@ export type Database = {
           email: string
           frequency: string
           id?: string
+          lgpd_consent_date?: string | null
           name: string
           phone: string
           session_day: string
@@ -133,6 +290,7 @@ export type Database = {
           email?: string
           frequency?: string
           id?: string
+          lgpd_consent_date?: string | null
           name?: string
           phone?: string
           session_day?: string

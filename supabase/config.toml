@@ -1,1 +1,10 @@
 project_id = "klxyilxprlzhxnwjzcvv"
+
+[functions.auto-mark-sessions]
+verify_jwt = false
+
+[functions.issue-nfse]
+verify_jwt = true
+
+[functions.export-patient-data]
+verify_jwt = true

@@ -26,6 +26,7 @@ const NewPatient = () => {
     sessionTime: '',
     sessionValue: '',
     startDate: '',
+    lgpdConsent: false,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,6 +49,7 @@ const NewPatient = () => {
           session_time: formData.sessionTime,
           session_value: parseFloat(formData.sessionValue),
           start_date: formData.startDate,
+          lgpd_consent_date: formData.lgpdConsent ? new Date().toISOString() : null,
           status: 'active',
         })
         .select()
@@ -245,6 +247,21 @@ const NewPatient = () => {
                   onChange={(e) => setFormData({ ...formData, sessionTime: e.target.value })}
                 />
               </div>
+            </div>
+
+            <div className="flex items-start gap-3 p-4 bg-muted/50 rounded-lg">
+              <input
+                type="checkbox"
+                id="lgpdConsent"
+                checked={formData.lgpdConsent}
+                onChange={(e) => setFormData({ ...formData, lgpdConsent: e.target.checked })}
+                className="mt-1"
+                required
+              />
+              <Label htmlFor="lgpdConsent" className="text-sm cursor-pointer">
+                Confirmo que o paciente foi informado sobre o tratamento de seus dados pessoais 
+                e autorizou o armazenamento conforme a Lei Geral de Proteção de Dados (LGPD).
+              </Label>
             </div>
 
             <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
