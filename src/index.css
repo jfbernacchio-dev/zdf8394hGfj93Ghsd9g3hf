@@ -97,4 +97,9 @@
   .container {
     @apply w-full;
   }
+  
+  /* Safe area for mobile devices (iPhone notch/Dynamic Island) */
+  .pt-safe {
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+  }
 }

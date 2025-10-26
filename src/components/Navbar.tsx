@@ -26,9 +26,9 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="bg-card shadow-[var(--shadow-card)] border-b border-border sticky top-0 z-50">
+    <nav className="bg-card shadow-[var(--shadow-card)] border-b border-border sticky top-0 z-50 pt-safe">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-16 pt-2 md:pt-0">
           {/* Logo */}
           <div className="flex items-center gap-2 md:gap-3">
             <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-background flex items-center justify-center">
