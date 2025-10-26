@@ -256,7 +256,6 @@ const NewPatient = () => {
                 checked={formData.lgpdConsent}
                 onChange={(e) => setFormData({ ...formData, lgpdConsent: e.target.checked })}
                 className="mt-1"
-                required
               />
               <Label htmlFor="lgpdConsent" className="text-sm cursor-pointer">
                 Confirmo que o paciente foi informado sobre o tratamento de seus dados pessoais 

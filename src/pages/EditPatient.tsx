@@ -40,6 +40,7 @@ const EditPatient = () => {
         session_value: data.session_value,
         start_date: data.start_date,
         status: data.status,
+        lgpd_consent_date: data.lgpd_consent_date,
       };
       setFormData(patientData);
       setOriginalData(patientData);
@@ -106,6 +107,7 @@ const EditPatient = () => {
       session_time: formData.session_time,
       session_value: formData.session_value,
       start_date: formData.start_date,
+      lgpd_consent_date: formData.lgpd_consent_date,
     }).eq('id', id);
 
     if (error) {
@@ -335,6 +337,28 @@ const EditPatient = () => {
                 value={formData.session_time}
                 onChange={(e) => setFormData({ ...formData, session_time: e.target.value })}
               />
+            </div>
+
+            <div className="flex items-start gap-3 p-4 bg-muted/50 rounded-lg">
+              <input
+                type="checkbox"
+                id="lgpdConsent"
+                checked={!!formData.lgpd_consent_date}
+                onChange={(e) => setFormData({ 
+                  ...formData, 
+                  lgpd_consent_date: e.target.checked ? new Date().toISOString() : null 
+                })}
+                className="mt-1"
+              />
+              <Label htmlFor="lgpdConsent" className="text-sm cursor-pointer">
+                Confirmo que o paciente foi informado sobre o tratamento de seus dados pessoais 
+                e autorizou o armazenamento conforme a Lei Geral de Proteção de Dados (LGPD).
+                {formData.lgpd_consent_date && (
+                  <span className="block text-xs text-muted-foreground mt-1">
+                    Consentimento registrado em: {new Date(formData.lgpd_consent_date).toLocaleDateString('pt-BR')}
+                  </span>
+                )}
+              </Label>
             </div>
 
             <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
