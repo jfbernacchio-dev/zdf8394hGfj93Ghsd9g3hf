@@ -141,17 +141,20 @@ const Patients = () => {
     <div className="min-h-screen bg-[var(--gradient-soft)]">
       <Navbar />
       <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">Pacientes</h1>
-            <p className="text-muted-foreground">Gerencie seus pacientes</p>
+        <div className="mb-6 md:mb-8">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-1 md:mb-2">Pacientes</h1>
+              <p className="text-sm md:text-base text-muted-foreground">Gerencie seus pacientes</p>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={generateGeneralInvoice} variant="outline">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button onClick={generateGeneralInvoice} variant="outline" className="w-full sm:w-auto">
               <FileText className="w-4 h-4 mr-2" />
-              Fazer Fechamento Geral
+              <span className="hidden sm:inline">Fazer Fechamento Geral</span>
+              <span className="sm:hidden">Fechamento</span>
             </Button>
-            <Button onClick={() => navigate('/patients/new')} className="bg-primary hover:bg-primary/90">
+            <Button onClick={() => navigate('/patients/new')} className="bg-primary hover:bg-primary/90 w-full sm:w-auto">
               <Plus className="w-4 h-4 mr-2" />
               Novo Paciente
             </Button>
@@ -165,7 +168,7 @@ const Patients = () => {
           </div>
         </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {filteredPatients.map(patient => {
             const stats = getPatientStats(patient.id);
             return (

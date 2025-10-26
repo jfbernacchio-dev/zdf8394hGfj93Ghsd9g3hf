@@ -107,17 +107,17 @@ const TherapistManagement = () => {
   return (
     <div className="min-h-screen bg-[var(--gradient-soft)]">
       <Navbar />
-      <div className="container mx-auto p-6 space-y-6">
-        <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Gestão de Terapeutas</h1>
-          <p className="text-muted-foreground">Gerencie e monitore seus terapeutas</p>
+      <div className="container mx-auto px-4 md:px-6 py-6 space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold">Gestão de Terapeutas</h1>
+            <p className="text-sm md:text-base text-muted-foreground">Gerencie e monitore seus terapeutas</p>
+          </div>
+          <Button onClick={() => navigate('/create-therapist')} className="w-full sm:w-auto">
+            <UserPlus className="mr-2 h-4 w-4" />
+            Novo Terapeuta
+          </Button>
         </div>
-        <Button onClick={() => navigate('/create-therapist')}>
-          <UserPlus className="mr-2 h-4 w-4" />
-          Novo Terapeuta
-        </Button>
-      </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
@@ -143,7 +143,7 @@ const TherapistManagement = () => {
               </Button>
             </Card>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {therapists.map((therapist) => (
                 <Card 
                   key={therapist.id} 
@@ -190,7 +190,7 @@ const TherapistManagement = () => {
         <TabsContent value="stats">
           <Card className="p-6">
             <h3 className="text-lg font-semibold mb-4">Estatísticas Gerais</h3>
-            <div className="grid gap-4 md:grid-cols-4">
+            <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
               <div className="text-center p-4 border rounded-lg">
                 <p className="text-3xl font-bold text-primary">{therapists.length}</p>
                 <p className="text-sm text-muted-foreground">Total de Terapeutas</p>

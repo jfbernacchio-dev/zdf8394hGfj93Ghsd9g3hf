@@ -86,4 +86,15 @@
   body {
     @apply bg-background text-foreground font-['Inter',sans-serif];
   }
+  
+  /* Prevent horizontal scroll on mobile */
+  html, body {
+    @apply overflow-x-hidden;
+    max-width: 100vw;
+  }
+  
+  /* Ensure all containers respect viewport width */
+  .container {
+    @apply w-full;
+  }
 }

@@ -174,7 +174,7 @@ const Dashboard = () => {
           </div>
         </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
           <Card className="p-6 shadow-[var(--shadow-card)] border-border">
             <div className="flex items-center justify-between mb-4">
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -210,7 +210,7 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
           <Card className="p-6 shadow-[var(--shadow-card)] border-border">
             <div className="flex items-center justify-between mb-4">
               <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center">
