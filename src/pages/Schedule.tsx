@@ -699,8 +699,8 @@ const Schedule = () => {
                               <p className="font-semibold text-xs truncate">{session.patients.name}</p>
                               <p className="text-[10px] text-muted-foreground">{sessionTime}</p>
                             </div>
-                            <Badge variant={getStatusVariant(session.status)} className="text-[10px] px-1 py-0 ml-1 shrink-0">
-                              {getStatusText(session.status).substring(0, 4)}
+                            <Badge variant={getStatusVariant(session.status)} className="text-[10px] px-1.5 py-0.5 ml-1 shrink-0">
+                              {getStatusText(session.status)}
                             </Badge>
                           </div>
                         </Card>
