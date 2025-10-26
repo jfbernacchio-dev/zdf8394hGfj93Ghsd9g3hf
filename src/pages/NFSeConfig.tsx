@@ -98,6 +98,24 @@ export default function NFSeConfig() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
+      // Encrypt the FocusNFe token before saving
+      let encryptedToken = config.focusnfe_token;
+      if (config.focusnfe_token) {
+        const { data: encryptData, error: encryptError } = await supabase.functions.invoke(
+          'encrypt-credential',
+          {
+            body: { plaintext: config.focusnfe_token },
+          }
+        );
+
+        if (encryptError) {
+          console.error('Encryption error:', encryptError);
+          throw new Error('Erro ao encriptar credenciais');
+        }
+
+        encryptedToken = encryptData.encrypted;
+      }
+
       const configData = {
         user_id: user.id,
         inscricao_municipal: config.inscricao_municipal,
@@ -108,7 +126,7 @@ export default function NFSeConfig() {
         iss_rate: parseFloat(config.iss_rate),
         service_code: config.service_code,
         service_description: config.service_description,
-        focusnfe_token: config.focusnfe_token,
+        focusnfe_token: encryptedToken,
         focusnfe_environment: config.focusnfe_environment,
       };
 
@@ -130,7 +148,7 @@ export default function NFSeConfig() {
 
       toast({
         title: 'Configurações salvas',
-        description: 'As configurações fiscais foram atualizadas com sucesso.',
+        description: 'As configurações fiscais foram encriptadas e salvas com segurança.',
       });
     } catch (error: any) {
       console.error('Error saving config:', error);
@@ -166,10 +184,29 @@ export default function NFSeConfig() {
       reader.onload = async () => {
         const base64Data = reader.result as string;
 
+        // Encrypt certificate data and password
+        const { data: encryptedData, error: encryptDataError } = await supabase.functions.invoke(
+          'encrypt-credential',
+          {
+            body: { plaintext: base64Data },
+          }
+        );
+
+        const { data: encryptedPassword, error: encryptPasswordError } = await supabase.functions.invoke(
+          'encrypt-credential',
+          {
+            body: { plaintext: certificate.certificate_password },
+          }
+        );
+
+        if (encryptDataError || encryptPasswordError) {
+          throw new Error('Erro ao encriptar certificado');
+        }
+
         const certData = {
           user_id: user.id,
-          certificate_data: base64Data, // Em produção, criptografar isso
-          certificate_password: certificate.certificate_password, // Em produção, criptografar isso
+          certificate_data: encryptedData.encrypted,
+          certificate_password: encryptedPassword.encrypted,
           certificate_type: certificate.certificate_type,
           valid_until: certificate.valid_until || null,
         };
@@ -375,10 +412,11 @@ export default function NFSeConfig() {
                 <div className="flex items-start gap-3 p-4 bg-muted/50 rounded-lg">
                   <Shield className="h-5 w-5 text-primary mt-0.5" />
                   <div className="space-y-1">
-                    <p className="text-sm font-medium">Segurança dos Dados</p>
+                    <p className="text-sm font-medium">🔒 Segurança Implementada</p>
                     <p className="text-sm text-muted-foreground">
-                      O certificado digital é armazenado de forma criptografada no banco de dados. 
-                      Em produção, recomendamos implementar criptografia adicional.
+                      Todas as credenciais fiscais (token FocusNFe, certificados e senhas) são automaticamente 
+                      encriptadas usando AES-GCM 256-bit antes de serem armazenadas. A chave de encriptação 
+                      está protegida no Supabase Vault e nunca sai do servidor.
                     </p>
                   </div>
                 </div>

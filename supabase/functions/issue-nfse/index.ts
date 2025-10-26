@@ -73,6 +73,18 @@ serve(async (req) => {
       throw new Error('Token FocusNFe não configurado');
     }
 
+    // Decrypt the FocusNFe token
+    const decryptResponse = await supabase.functions.invoke('decrypt-credentials', {
+      body: { encryptedData: config.focusnfe_token },
+    });
+
+    if (decryptResponse.error || !decryptResponse.data?.decrypted) {
+      console.error('Failed to decrypt FocusNFe token:', decryptResponse.error);
+      throw new Error('Erro ao descriptografar credenciais');
+    }
+
+    const decryptedToken = decryptResponse.data.decrypted;
+
     // Load patient
     const { data: patient, error: patientError } = await supabase
       .from('patients')
@@ -146,7 +158,7 @@ serve(async (req) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Basic ${btoa(config.focusnfe_token + ':')}`,
+        'Authorization': `Basic ${btoa(decryptedToken + ':')}`,
       },
       body: JSON.stringify(focusNFePayload),
     });
