@@ -74,14 +74,32 @@ const EditPatient = () => {
       return;
     }
 
-    await supabase.from('patients').delete().eq('id', id);
+    try {
+      // Delete all related data first
+      await supabase.from('sessions').delete().eq('patient_id', id);
+      await supabase.from('session_history').delete().eq('patient_id', id);
+      await supabase.from('patient_files').delete().eq('patient_id', id);
+      await supabase.from('nfse_issued').delete().eq('patient_id', id);
+      
+      // Finally delete the patient
+      const { error } = await supabase.from('patients').delete().eq('id', id);
+      
+      if (error) throw error;
 
-    toast({
-      title: "Paciente excluído!",
-      description: "O paciente e todos os seus dados foram removidos.",
-    });
+      toast({
+        title: "Paciente excluído!",
+        description: "O paciente e todos os seus dados foram removidos.",
+      });
 
-    navigate('/patients');
+      navigate('/patients');
+    } catch (error: any) {
+      console.error('Error deleting patient:', error);
+      toast({
+        title: "Erro ao excluir",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
