@@ -77,16 +77,6 @@ const PatientDetail = () => {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
 
-    // Se "Mostrar Agendadas" está ativo, ignorar filtros de período
-    if (showScheduled) {
-      const scheduled = allSessions.filter(session => {
-        const sessionDate = parseISO(session.date);
-        return sessionDate > now && session.status === 'scheduled';
-      });
-      setSessions(scheduled);
-      return;
-    }
-
     // Aplicar filtro de período
     let filtered = allSessions;
 
@@ -120,6 +110,19 @@ const PatientDetail = () => {
     // Aplicar filtro "Mostrar A Pagar"
     if (showUnpaid) {
       filtered = filtered.filter(session => session.status === 'attended' && !session.paid);
+    }
+
+    // Se "Mostrar Agendadas" está ativo, adicionar agendadas futuras (aditivo)
+    if (showScheduled) {
+      const scheduled = allSessions.filter(session => {
+        const sessionDate = parseISO(session.date);
+        return sessionDate > now && session.status === 'scheduled';
+      });
+      
+      // Combinar sessões do período com agendadas futuras (remover duplicatas)
+      const sessionIds = new Set(filtered.map(s => s.id));
+      const additionalScheduled = scheduled.filter(s => !sessionIds.has(s.id));
+      filtered = [...filtered, ...additionalScheduled];
     }
 
     setSessions(filtered);
