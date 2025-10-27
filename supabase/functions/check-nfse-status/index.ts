@@ -213,21 +213,12 @@ serve(async (req) => {
         // Don't fail the entire operation if PDF upload fails
       }
 
-      // Mark all unpaid sessions up to the issue date as paid
+      // Mark only the sessions included in this NFSe as paid
       try {
-        console.log('Marking sessions as paid for patient:', nfseRecord.patient_id);
+        const sessionIds = nfseRecord.session_ids || [];
         
-        const { data: unpaidSessions, error: sessionsError } = await supabase
-          .from('sessions')
-          .select('id')
-          .eq('patient_id', nfseRecord.patient_id)
-          .eq('paid', false)
-          .lte('date', nfseRecord.issue_date);
-
-        if (sessionsError) {
-          console.error('Error fetching unpaid sessions:', sessionsError);
-        } else if (unpaidSessions && unpaidSessions.length > 0) {
-          const sessionIds = unpaidSessions.map(s => s.id);
+        if (sessionIds.length > 0) {
+          console.log(`Marking ${sessionIds.length} sessions as paid for patient:`, nfseRecord.patient_id);
           
           const { error: updateError } = await supabase
             .from('sessions')
@@ -237,10 +228,10 @@ serve(async (req) => {
           if (updateError) {
             console.error('Error updating sessions to paid:', updateError);
           } else {
-            console.log(`Successfully marked ${unpaidSessions.length} sessions as paid`);
+            console.log(`Successfully marked ${sessionIds.length} sessions as paid`);
           }
         } else {
-          console.log('No unpaid sessions found for this patient');
+          console.log('No session IDs found in this NFSe record');
         }
       } catch (sessionError) {
         console.error('Error processing session payments:', sessionError);

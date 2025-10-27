@@ -176,6 +176,7 @@ Data de emissão: ${new Date().toLocaleDateString('pt-BR')}`;
         net_value: netValue,
         status: 'processing',
         environment: config.focusnfe_environment,
+        session_ids: sessionIds,
       })
       .select()
       .single();

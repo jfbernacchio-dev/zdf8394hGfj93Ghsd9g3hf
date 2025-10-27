@@ -161,6 +161,7 @@ export type Database = {
           patient_id: string
           pdf_url: string | null
           service_value: number
+          session_ids: string[] | null
           status: string
           updated_at: string
           user_id: string
@@ -182,6 +183,7 @@ export type Database = {
           patient_id: string
           pdf_url?: string | null
           service_value: number
+          session_ids?: string[] | null
           status?: string
           updated_at?: string
           user_id: string
@@ -203,6 +205,7 @@ export type Database = {
           patient_id?: string
           pdf_url?: string | null
           service_value?: number
+          session_ids?: string[] | null
           status?: string
           updated_at?: string
           user_id?: string
