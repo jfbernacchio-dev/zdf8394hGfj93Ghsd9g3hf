@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
-import { ArrowLeft, FileText, Download, X, Search, Calendar, DollarSign, RefreshCw, Trash2 } from 'lucide-react';
+import { ArrowLeft, FileText, Download, X, Search, Calendar, DollarSign, RefreshCw, Trash2, RefreshCcw } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { format, parseISO } from 'date-fns';
@@ -31,6 +31,7 @@ interface NFSeIssued {
   environment: string;
   patients: {
     name: string;
+    cpf: string | null;
   };
 }
 
@@ -57,7 +58,8 @@ export default function NFSeHistory() {
         .select(`
           *,
           patients (
-            name
+            name,
+            cpf
           )
         `)
         .eq('user_id', user.id)
@@ -108,6 +110,44 @@ export default function NFSeHistory() {
         variant: 'destructive',
       });
     }
+  };
+
+  const handleRefreshAll = async () => {
+    const notIssuedNotes = nfseList.filter(
+      n => n.environment === activeTab && (n.status === 'processing' || n.status === 'issued')
+    );
+
+    if (notIssuedNotes.length === 0) {
+      toast({
+        title: 'Nenhuma nota para atualizar',
+        description: 'Todas as notas já estão emitidas ou canceladas.',
+      });
+      return;
+    }
+
+    toast({
+      title: 'Atualizando notas',
+      description: `Verificando ${notIssuedNotes.length} nota(s)...`,
+    });
+
+    let updated = 0;
+    for (const note of notIssuedNotes) {
+      try {
+        const { data } = await supabase.functions.invoke('check-nfse-status', {
+          body: { nfseId: note.id },
+        });
+        if (data?.success) updated++;
+      } catch (error) {
+        console.error(`Error checking ${note.id}:`, error);
+      }
+    }
+
+    toast({
+      title: 'Atualização concluída',
+      description: `${updated} nota(s) atualizada(s) com sucesso.`,
+    });
+    
+    loadNFSe();
   };
 
   const handleDeleteNFSe = async (nfseId: string) => {
@@ -265,14 +305,20 @@ export default function NFSeHistory() {
             </TabsList>
 
             <TabsContent value={activeTab} className="space-y-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por paciente ou número da nota..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por paciente ou número da nota..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <Button onClick={handleRefreshAll} variant="outline">
+                  <RefreshCcw className="h-4 w-4 mr-2" />
+                  Atualizar Todas
+                </Button>
               </div>
 
               {loading ? (
@@ -286,6 +332,7 @@ export default function NFSeHistory() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Paciente</TableHead>
+                  <TableHead>CPF</TableHead>
                   <TableHead>Número NFSe</TableHead>
                   <TableHead>Cód. Verificação</TableHead>
                   <TableHead>Data Emissão</TableHead>
@@ -298,6 +345,7 @@ export default function NFSeHistory() {
                 {filteredNFSe.map((nfse) => (
                   <TableRow key={nfse.id}>
                     <TableCell className="font-medium">{nfse.patients.name}</TableCell>
+                    <TableCell className="font-mono text-sm">{nfse.patients.cpf || '-'}</TableCell>
                     <TableCell>{nfse.nfse_number || '-'}</TableCell>
                     <TableCell className="font-mono text-sm">
                       {nfse.verification_code || '-'}
@@ -359,7 +407,7 @@ export default function NFSeHistory() {
                             </AlertDialogContent>
                           </AlertDialog>
                         )}
-                        {(nfse.status === 'error' || nfse.status === 'cancelled') && (
+                        {(nfse.status === 'error' || nfse.status === 'cancelled' || nfse.status === 'processing') && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button variant="ghost" size="sm" title="Excluir entrada">

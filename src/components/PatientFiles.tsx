@@ -23,7 +23,8 @@ const FILE_CATEGORIES = [
   'Materiais e Produções',
   'Relato de Sessões',
   'Anotações Clínicas',
-  'Transcrições de Sessões'
+  'Transcrições de Sessões',
+  'NFSe'
 ];
 
 export const PatientFiles = ({ patientId }: PatientFilesProps) => {

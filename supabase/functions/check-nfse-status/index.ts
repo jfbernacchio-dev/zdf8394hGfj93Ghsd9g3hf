@@ -6,6 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -34,10 +36,15 @@ serve(async (req) => {
 
     console.log('Checking NFSe status for:', nfseId);
 
-    // Load NFSe record
+    // Load NFSe record with patient info
     const { data: nfseRecord, error: nfseError } = await supabase
       .from('nfse_issued')
-      .select('*')
+      .select(`
+        *,
+        patients (
+          name
+        )
+      `)
       .eq('id', nfseId)
       .eq('user_id', user.id)
       .single();
@@ -116,6 +123,11 @@ serve(async (req) => {
 
     console.log('FocusNFe status result:', focusNFeResult);
 
+    // Check if status changed to issued and we have a PDF URL
+    const wasNotIssued = nfseRecord.status !== 'issued';
+    const nowIssued = focusNFeResult.status === 'autorizado';
+    const hasPdfUrl = focusNFeResult.url_danfse;
+
     // Update record with latest status
     const updateData: any = {
       status: focusNFeResult.status === 'autorizado' ? 'issued' : 
@@ -142,6 +154,65 @@ serve(async (req) => {
       .from('nfse_issued')
       .update(updateData)
       .eq('id', nfseId);
+
+    // Upload PDF to patient files if status changed to issued
+    if (wasNotIssued && nowIssued && hasPdfUrl) {
+      try {
+        console.log('Downloading PDF from:', focusNFeResult.url_danfse);
+        
+        // Download PDF from FocusNFe
+        const pdfResponse = await fetch(focusNFeResult.url_danfse);
+        if (pdfResponse.ok) {
+          const pdfBlob = await pdfResponse.blob();
+          const pdfBuffer = await pdfBlob.arrayBuffer();
+          
+          // Generate filename: "Patient Name mon-yy"
+          const issueDate = new Date(nfseRecord.issue_date);
+          const month = MONTHS[issueDate.getMonth()];
+          const year = issueDate.getFullYear().toString().slice(-2);
+          const patientName = (nfseRecord.patients as any)?.name || 'NFSe';
+          const fileName = `${patientName} ${month}-${year}.pdf`;
+          const filePath = `${nfseRecord.patient_id}/${Date.now()}_${fileName}`;
+          
+          console.log('Uploading PDF as:', fileName);
+          
+          // Upload to storage
+          const { error: uploadError } = await supabase.storage
+            .from('patient-files')
+            .upload(filePath, pdfBuffer, {
+              contentType: 'application/pdf',
+              upsert: false
+            });
+          
+          if (!uploadError) {
+            // Create patient_files record
+            const { error: insertError } = await supabase
+              .from('patient_files')
+              .insert({
+                patient_id: nfseRecord.patient_id,
+                file_path: filePath,
+                file_name: fileName,
+                file_type: 'application/pdf',
+                category: 'NFSe',
+                uploaded_by: nfseRecord.user_id
+              });
+            
+            if (!insertError) {
+              console.log('PDF uploaded successfully to patient files');
+            } else {
+              console.error('Error inserting patient_files record:', insertError);
+            }
+          } else {
+            console.error('Error uploading PDF to storage:', uploadError);
+          }
+        } else {
+          console.error('Failed to download PDF, status:', pdfResponse.status);
+        }
+      } catch (pdfError) {
+        console.error('Error processing PDF upload:', pdfError);
+        // Don't fail the entire operation if PDF upload fails
+      }
+    }
 
     return new Response(
       JSON.stringify({ 

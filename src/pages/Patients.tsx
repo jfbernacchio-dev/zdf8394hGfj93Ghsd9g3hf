@@ -106,7 +106,7 @@ const Patients = () => {
     return { totalSessions: patientSessions.length, totalValue: total, unpaidCount: unpaidSessions.length, unpaidValue: unpaid };
   };
 
-  const generateGeneralInvoice = () => {
+  const generateGeneralInvoice = async () => {
     const allUnpaidSessions = sessions.filter(s => s.status === 'attended' && !s.paid);
     
     if (allUnpaidSessions.length === 0) {
@@ -118,8 +118,6 @@ const Patients = () => {
       return;
     }
 
-    setAffectedSessions(allUnpaidSessions);
-    
     // Group sessions by patient
     const sessionsByPatient: Record<string, any[]> = allUnpaidSessions.reduce((acc, session) => {
       if (!acc[session.patient_id]) {
@@ -129,6 +127,81 @@ const Patients = () => {
       return acc;
     }, {} as Record<string, any[]>);
 
+    // Filter out patients with monthly_price=true or no_nfse=true
+    const eligiblePatients: any[] = [];
+    const excludedPatients: any[] = [];
+
+    Object.keys(sessionsByPatient).forEach(patientId => {
+      const patient = patients.find(p => p.id === patientId);
+      if (patient) {
+        if (patient.monthly_price || patient.no_nfse) {
+          excludedPatients.push(patient);
+        } else {
+          eligiblePatients.push({ patient, sessions: sessionsByPatient[patientId] });
+        }
+      }
+    });
+
+    // Show confirmation dialog
+    const confirmMessage = eligiblePatients.length > 0
+      ? `Serão emitidas notas fiscais para ${eligiblePatients.length} paciente(s). ${excludedPatients.length > 0 ? `${excludedPatients.length} paciente(s) serão excluídos (mensais ou sem emissão de nota).` : ''}\n\nDeseja continuar?`
+      : `Todos os ${excludedPatients.length} paciente(s) com sessões em aberto estão marcados como mensais ou sem emissão de nota.`;
+
+    if (eligiblePatients.length === 0) {
+      // No eligible patients, show text generation option
+      setAffectedSessions(allUnpaidSessions);
+      generateInvoiceText(sessionsByPatient);
+      return;
+    }
+
+    if (!confirm(confirmMessage)) {
+      // User cancelled, offer text generation
+      setAffectedSessions(allUnpaidSessions);
+      generateInvoiceText(sessionsByPatient);
+      return;
+    }
+
+    // Issue NFSe for eligible patients
+    toast({
+      title: 'Emitindo notas fiscais',
+      description: `Iniciando emissão de ${eligiblePatients.length} nota(s)...`,
+    });
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const { patient, sessions: patientSessions } of eligiblePatients) {
+      try {
+        const sessionIds = patientSessions.map(s => s.id);
+        
+        const { error } = await supabase.functions.invoke('issue-nfse', {
+          body: {
+            patientId: patient.id,
+            sessionIds,
+          },
+        });
+
+        if (error) {
+          console.error(`Error issuing NFSe for ${patient.name}:`, error);
+          errorCount++;
+        } else {
+          successCount++;
+        }
+      } catch (error) {
+        console.error(`Error issuing NFSe for ${patient.name}:`, error);
+        errorCount++;
+      }
+    }
+
+    toast({
+      title: 'Emissão concluída',
+      description: `${successCount} nota(s) emitida(s) com sucesso. ${errorCount > 0 ? `${errorCount} erro(s).` : ''}`,
+    });
+
+    loadData();
+  };
+
+  const generateInvoiceText = (sessionsByPatient: Record<string, any[]>) => {
     let invoiceText = `FECHAMENTO GERAL DE SESSÕES\n\n`;
     invoiceText += `${'='.repeat(60)}\n\n`;
 
@@ -153,10 +226,10 @@ const Patients = () => {
       invoiceText += `${'='.repeat(60)}\n\n`;
     });
 
-    const grandTotal = allUnpaidSessions.reduce((sum, s) => sum + Number(s.value), 0);
+    const grandTotal = affectedSessions.reduce((sum, s) => sum + Number(s.value), 0);
     invoiceText += `TOTAL GERAL: ${formatBrazilianCurrency(grandTotal)}\n`;
     invoiceText += `Total de pacientes: ${Object.keys(sessionsByPatient).length}\n`;
-    invoiceText += `Total de sessões: ${allUnpaidSessions.length}\n`;
+    invoiceText += `Total de sessões: ${affectedSessions.length}\n`;
 
     setGeneralInvoiceText(invoiceText);
     setIsGeneralInvoiceOpen(true);
