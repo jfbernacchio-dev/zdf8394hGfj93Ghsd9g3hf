@@ -81,6 +81,25 @@ export default function IssueNFSeDialog({
 
     setLoading(true);
     try {
+      // Validate patient has CPF
+      const { data: patientData, error: patientError } = await supabase
+        .from('patients')
+        .select('cpf')
+        .eq('id', patientId)
+        .single();
+
+      if (patientError) throw patientError;
+
+      if (!patientData?.cpf) {
+        toast({
+          title: 'CPF obrigatório',
+          description: 'O paciente precisa ter CPF cadastrado para emitir NFSe. Edite o cadastro do paciente primeiro.',
+          variant: 'destructive',
+        });
+        setLoading(false);
+        return;
+      }
+
       const sessionIds = unpaidSessions.map(s => s.id);
       
       const { data, error } = await supabase.functions.invoke('issue-nfse', {

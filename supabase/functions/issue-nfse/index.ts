@@ -109,6 +109,11 @@ serve(async (req) => {
       throw new Error('Paciente não encontrado');
     }
 
+    // Validate patient has required data for NFSe
+    if (!patient.cpf) {
+      throw new Error('Paciente precisa ter CPF cadastrado para emitir NFSe');
+    }
+
     // Load sessions
     const { data: sessions, error: sessionsError } = await supabase
       .from('sessions')
