@@ -298,10 +298,35 @@ Data de emissão: ${new Date().toLocaleDateString('pt-BR')}`;
       updateData.xml_url = focusNFeResult.caminho_xml_nota_fiscal;
     }
 
-    await supabase
+    const { error: updateError } = await supabase
       .from('nfse_issued')
       .update(updateData)
       .eq('id', nfseRecord.id);
+
+    if (updateError) {
+      console.error('Error updating NFSe record:', updateError);
+    }
+
+    // If NFSe was authorized and we have a PDF URL, send email automatically
+    if (focusNFeResult.status === 'autorizado' && focusNFeResult.url_danfse && patient.email) {
+      console.log('NFSe authorized, triggering email send...');
+      
+      // Trigger email send in background (don't wait for it)
+      supabase.functions.invoke('send-nfse-email', {
+        body: { nfseId: nfseRecord.id },
+        headers: {
+          Authorization: authHeader,
+        },
+      }).then(emailResult => {
+        if (emailResult.error) {
+          console.error('Error sending NFSe email:', emailResult.error);
+        } else {
+          console.log('NFSe email sent successfully');
+        }
+      }).catch(err => {
+        console.error('Failed to invoke send-nfse-email:', err);
+      });
+    }
 
     return new Response(
       JSON.stringify({ 
@@ -309,6 +334,7 @@ Data de emissão: ${new Date().toLocaleDateString('pt-BR')}`;
         nfseId: nfseRecord.id,
         status: focusNFeResult.status,
         message: focusNFeResult.mensagem_sefaz || 'NFSe emitida com sucesso',
+        emailSent: focusNFeResult.status === 'autorizado' && focusNFeResult.url_danfse && patient.email,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
