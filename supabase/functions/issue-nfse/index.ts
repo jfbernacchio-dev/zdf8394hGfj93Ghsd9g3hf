@@ -14,7 +14,7 @@ serve(async (req) => {
 
   try {
     const requestBody = await req.json();
-    const { patientId, serviceValue, sessions } = requestBody;
+    const { patientId, sessionIds } = requestBody;
 
     // Get authorization header early for rate limiting
     const authHeader = req.headers.get('Authorization');
@@ -68,16 +68,20 @@ serve(async (req) => {
       throw new Error('Formato de ID do paciente inválido');
     }
 
-    // Validate serviceValue
-    const numericValue = Number(serviceValue);
-    if (isNaN(numericValue) || numericValue <= 0 || numericValue > 100000) {
-      throw new Error('Valor do serviço inválido. Deve ser entre R$ 0,01 e R$ 100.000,00');
+    // Validate sessionIds
+    if (!Array.isArray(sessionIds) || sessionIds.length === 0) {
+      throw new Error('Nenhuma sessão selecionada');
     }
 
-    // Validate sessions
-    const numericSessions = Number(sessions);
-    if (isNaN(numericSessions) || numericSessions <= 0 || numericSessions > 100 || !Number.isInteger(numericSessions)) {
-      throw new Error('Número de sessões inválido. Deve ser entre 1 e 100');
+    if (sessionIds.length > 100) {
+      throw new Error('Número máximo de sessões excedido (máx: 100)');
+    }
+
+    // Validate all session IDs are valid UUIDs
+    for (const sessionId of sessionIds) {
+      if (!uuidRegex.test(sessionId)) {
+        throw new Error('Formato de ID de sessão inválido');
+      }
     }
 
     console.log('Issuing NFSe for user:', user.id, 'patient:', patientId);
@@ -100,6 +104,9 @@ serve(async (req) => {
     // Decrypt the FocusNFe token
     const decryptResponse = await supabase.functions.invoke('decrypt-credentials', {
       body: { encryptedData: config.focusnfe_token },
+      headers: {
+        Authorization: authHeader,
+      },
     });
 
     if (decryptResponse.error || !decryptResponse.data?.decrypted) {
@@ -120,10 +127,61 @@ serve(async (req) => {
       throw new Error('Paciente não encontrado');
     }
 
+    // Load sessions
+    const { data: sessions, error: sessionsError } = await supabase
+      .from('sessions')
+      .select('*')
+      .in('id', sessionIds)
+      .eq('patient_id', patientId);
+
+    if (sessionsError || !sessions || sessions.length === 0) {
+      throw new Error('Sessões não encontradas');
+    }
+
+    // Verify all sessions belong to the user
+    if (sessions.length !== sessionIds.length) {
+      throw new Error('Algumas sessões não foram encontradas');
+    }
+
+    // Load user profile for invoice description
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile) {
+      throw new Error('Perfil do usuário não encontrado');
+    }
+
     // Calculate values
+    const serviceValue = sessions.reduce((sum, s) => sum + Number(s.value), 0);
     const issRate = Number(config.iss_rate) / 100;
     const issValue = serviceValue * issRate;
     const netValue = serviceValue - issValue;
+
+    // Generate service description
+    const sessionDates = sessions.map(s => {
+      const date = new Date(s.date);
+      return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
+    }).join(', ');
+
+    const serviceDescription = `${config.service_description}
+
+Profissional: ${profile.full_name}
+CPF: ${profile.cpf}
+CRP: ${profile.crp}
+
+Paciente: ${patient.name}
+CPF: ${patient.cpf || 'Não informado'}
+
+Sessões realizadas nas datas: ${sessionDates}
+Quantidade de sessões: ${sessions.length}
+
+Valor unitário por sessão: R$ ${Number(patient.session_value).toFixed(2).replace('.', ',')}
+Valor total: R$ ${serviceValue.toFixed(2).replace('.', ',')}
+
+Data de emissão: ${new Date().toLocaleDateString('pt-BR')}`;
 
     // Create NFSe record first
     const { data: nfseRecord, error: insertError } = await supabase
@@ -163,7 +221,7 @@ serve(async (req) => {
       },
       servico: {
         aliquota: config.iss_rate,
-        discriminacao: `${config.service_description}\n\nPeríodo: ${sessions} sessão(ões)`,
+        discriminacao: serviceDescription,
         iss_retido: false,
         item_lista_servico: config.service_code,
         codigo_tributario_municipio: config.service_code,

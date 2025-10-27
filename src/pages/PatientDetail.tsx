@@ -507,8 +507,6 @@ Assinatura do Profissional`;
               <IssueNFSeDialog 
                 patientId={id!} 
                 patientName={patient.name}
-                defaultValue={patient.session_value}
-                defaultSessions={1}
               />
               <Button
                 variant="outline"

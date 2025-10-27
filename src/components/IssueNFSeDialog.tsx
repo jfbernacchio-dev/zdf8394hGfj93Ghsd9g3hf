@@ -1,50 +1,64 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { FileText, Loader2 } from 'lucide-react';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
+import { format, parseISO } from 'date-fns';
 
 interface IssueNFSeDialogProps {
   patientId: string;
   patientName: string;
-  defaultValue?: number;
-  defaultSessions?: number;
 }
 
 export default function IssueNFSeDialog({ 
   patientId, 
   patientName, 
-  defaultValue, 
-  defaultSessions = 1 
 }: IssueNFSeDialogProps) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [serviceValue, setServiceValue] = useState(defaultValue?.toString() || '');
-  const [sessions, setSessions] = useState(defaultSessions.toString());
+  const [loadingSessions, setLoadingSessions] = useState(false);
+  const [unpaidSessions, setUnpaidSessions] = useState<any[]>([]);
 
-  const handleIssueNFSe = async () => {
-    // Validações
-    const numericValue = Number(serviceValue);
-    const numericSessions = Number(sessions);
+  useEffect(() => {
+    if (open) {
+      loadUnpaidSessions();
+    }
+  }, [open]);
 
-    if (isNaN(numericValue) || numericValue <= 0) {
+  const loadUnpaidSessions = async () => {
+    setLoadingSessions(true);
+    try {
+      const { data: sessions, error } = await supabase
+        .from('sessions')
+        .select('*')
+        .eq('patient_id', patientId)
+        .eq('status', 'attended')
+        .eq('paid', false)
+        .order('date', { ascending: true });
+
+      if (error) throw error;
+
+      setUnpaidSessions(sessions || []);
+    } catch (error: any) {
+      console.error('Error loading unpaid sessions:', error);
       toast({
-        title: 'Valor inválido',
-        description: 'Informe um valor válido para o serviço.',
+        title: 'Erro ao carregar sessões',
+        description: 'Não foi possível carregar as sessões não pagas.',
         variant: 'destructive',
       });
-      return;
+    } finally {
+      setLoadingSessions(false);
     }
+  };
 
-    if (isNaN(numericSessions) || numericSessions <= 0 || !Number.isInteger(numericSessions)) {
+  const handleIssueNFSe = async () => {
+    if (unpaidSessions.length === 0) {
       toast({
-        title: 'Sessões inválidas',
-        description: 'Informe um número válido de sessões.',
+        title: 'Nenhuma sessão em aberto',
+        description: 'Não há sessões não pagas para emitir NFSe.',
         variant: 'destructive',
       });
       return;
@@ -52,11 +66,12 @@ export default function IssueNFSeDialog({
 
     setLoading(true);
     try {
+      const sessionIds = unpaidSessions.map(s => s.id);
+      
       const { data, error } = await supabase.functions.invoke('issue-nfse', {
         body: {
           patientId,
-          serviceValue: numericValue,
-          sessions: numericSessions,
+          sessionIds,
         },
       });
 
@@ -68,10 +83,6 @@ export default function IssueNFSeDialog({
           description: 'A nota fiscal está sendo emitida. Consulte o histórico em alguns instantes.',
         });
         setOpen(false);
-        
-        // Reset form
-        setServiceValue(defaultValue?.toString() || '');
-        setSessions(defaultSessions.toString());
       } else {
         throw new Error(data.error || 'Erro ao emitir NFSe');
       }
@@ -87,7 +98,7 @@ export default function IssueNFSeDialog({
     }
   };
 
-  const previewValue = Number(serviceValue) || 0;
+  const totalValue = unpaidSessions.reduce((sum, s) => sum + Number(s.value), 0);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -106,54 +117,68 @@ export default function IssueNFSeDialog({
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="service_value">Valor do Serviço</Label>
-            <Input
-              id="service_value"
-              type="number"
-              step="0.01"
-              placeholder="0,00"
-              value={serviceValue}
-              onChange={(e) => setServiceValue(e.target.value)}
-            />
-            {previewValue > 0 && (
-              <p className="text-sm text-muted-foreground">
-                Valor: {formatBrazilianCurrency(previewValue)}
-              </p>
-            )}
-          </div>
+          {loadingSessions ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <>
+              {unpaidSessions.length === 0 ? (
+                <div className="rounded-lg border p-4 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    Nenhuma sessão não paga encontrada
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="rounded-lg border p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Sessões não pagas:</span>
+                      <span className="text-sm font-bold">{unpaidSessions.length}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Valor total:</span>
+                      <span className="text-sm font-bold">{formatBrazilianCurrency(totalValue)}</span>
+                    </div>
+                  </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="sessions">Número de Sessões</Label>
-            <Input
-              id="sessions"
-              type="number"
-              min="1"
-              step="1"
-              placeholder="1"
-              value={sessions}
-              onChange={(e) => setSessions(e.target.value)}
-            />
-            <p className="text-xs text-muted-foreground">
-              Este valor aparecerá na discriminação da nota fiscal
-            </p>
-          </div>
+                  <div className="rounded-lg border p-3 bg-muted/50 max-h-[200px] overflow-y-auto">
+                    <p className="text-xs font-medium mb-2">Datas das sessões:</p>
+                    <div className="space-y-1">
+                      {unpaidSessions.map((session) => (
+                        <div key={session.id} className="flex items-center justify-between text-xs">
+                          <span>{format(parseISO(session.date), 'dd/MM/yyyy')}</span>
+                          <span className="text-muted-foreground">
+                            {formatBrazilianCurrency(session.value)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
 
-          <div className="rounded-lg border p-3 bg-muted/50">
-            <p className="text-sm font-medium mb-1">Informações importantes:</p>
-            <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-              <li>Verifique se sua configuração fiscal está atualizada</li>
-              <li>A NFSe será enviada para o e-mail do paciente</li>
-              <li>Você pode consultar o histórico em NFSe &gt; Histórico</li>
-            </ul>
-          </div>
+                  <div className="rounded-lg border p-3 bg-muted/50">
+                    <p className="text-sm font-medium mb-1">Informações importantes:</p>
+                    <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                      <li>Verifique se sua configuração fiscal está atualizada</li>
+                      <li>A NFSe será enviada para o e-mail do paciente</li>
+                      <li>Você pode consultar o histórico em NFSe &gt; Histórico</li>
+                      <li>A descrição incluirá todas as informações necessárias para reembolso</li>
+                    </ul>
+                  </div>
+                </>
+              )}
+            </>
+          )}
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>
             Cancelar
           </Button>
-          <Button onClick={handleIssueNFSe} disabled={loading}>
+          <Button 
+            onClick={handleIssueNFSe} 
+            disabled={loading || loadingSessions || unpaidSessions.length === 0}
+          >
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
