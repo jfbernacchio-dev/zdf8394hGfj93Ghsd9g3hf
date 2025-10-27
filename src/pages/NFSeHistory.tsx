@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
-import { ArrowLeft, FileText, Download, X, Search, Calendar, DollarSign } from 'lucide-react';
+import { ArrowLeft, FileText, Download, X, Search, Calendar, DollarSign, RefreshCw } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { format, parseISO } from 'date-fns';
@@ -72,6 +72,38 @@ export default function NFSeHistory() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCheckStatus = async (nfseId: string) => {
+    try {
+      toast({
+        title: 'Consultando status',
+        description: 'Aguarde enquanto verificamos a situação da nota...',
+      });
+
+      const { data, error } = await supabase.functions.invoke('check-nfse-status', {
+        body: { nfseId },
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast({
+          title: 'Status atualizado',
+          description: data.message,
+        });
+        loadNFSe();
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error: any) {
+      console.error('Error checking status:', error);
+      toast({
+        title: 'Erro ao consultar status',
+        description: error.message,
+        variant: 'destructive',
+      });
     }
   };
 
@@ -240,11 +272,22 @@ export default function NFSeHistory() {
                     <TableCell>{getStatusBadge(nfse.status)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
+                        {nfse.status === 'processing' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleCheckStatus(nfse.id)}
+                            title="Atualizar status"
+                          >
+                            <RefreshCw className="h-4 w-4" />
+                          </Button>
+                        )}
                         {nfse.pdf_url && (
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => window.open(nfse.pdf_url!, '_blank')}
+                            title="Baixar PDF"
                           >
                             <Download className="h-4 w-4" />
                           </Button>
@@ -252,7 +295,7 @@ export default function NFSeHistory() {
                         {nfse.status === 'issued' && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="sm">
+                              <Button variant="ghost" size="sm" title="Cancelar nota">
                                 <X className="h-4 w-4" />
                               </Button>
                             </AlertDialogTrigger>
