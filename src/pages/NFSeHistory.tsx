@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
-import { ArrowLeft, FileText, Download, X, Search, Calendar, DollarSign, RefreshCw, Trash2, RefreshCcw } from 'lucide-react';
+import { ArrowLeft, FileText, Download, X, Search, Calendar, DollarSign, RefreshCw, Trash2, RefreshCcw, Mail } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { format, parseISO } from 'date-fns';
@@ -168,6 +168,37 @@ export default function NFSeHistory() {
       console.error('Error deleting NFSe:', error);
       toast({
         title: 'Erro ao excluir',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleSendEmail = async (nfseId: string) => {
+    try {
+      toast({
+        title: 'Enviando email',
+        description: 'Aguarde enquanto enviamos o email com a NFSe...',
+      });
+
+      const { data, error } = await supabase.functions.invoke('send-nfse-email', {
+        body: { nfseId },
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast({
+          title: 'Email enviado',
+          description: 'O email com a NFSe foi enviado com sucesso para o paciente.',
+        });
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error: any) {
+      console.error('Error sending email:', error);
+      toast({
+        title: 'Erro ao enviar email',
         description: error.message,
         variant: 'destructive',
       });
@@ -376,6 +407,16 @@ export default function NFSeHistory() {
                             title="Baixar PDF"
                           >
                             <Download className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {nfse.status === 'issued' && nfse.pdf_url && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleSendEmail(nfse.id)}
+                            title="Enviar email com NFSe"
+                          >
+                            <Mail className="h-4 w-4" />
                           </Button>
                         )}
                         {nfse.status === 'issued' && (
