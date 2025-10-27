@@ -90,7 +90,8 @@ serve(async (req) => {
       throw new Error('Erro ao descriptografar credenciais');
     }
 
-    const decryptedToken = decryptResponse.data.decrypted;
+    const decryptedToken = decryptResponse.data.decrypted.trim();
+    console.log('Token decrypted successfully, length:', decryptedToken.length);
 
     // Load patient
     const { data: patient, error: patientError } = await supabase
@@ -212,11 +213,18 @@ Data de emissão: ${new Date().toLocaleDateString('pt-BR')}`;
       ? 'https://api.focusnfe.com.br'
       : 'https://homologacao.focusnfe.com.br';
 
+    console.log('FocusNFe URL:', `${focusNFeUrl}/v2/nfse?ref=${nfseRecord.id}`);
+    console.log('Token length for auth:', decryptedToken.length);
+    console.log('Auth header will be: Basic [token]:');
+
+    const authValue = btoa(decryptedToken + ':');
+    console.log('Base64 auth length:', authValue.length);
+
     const focusNFeResponse = await fetch(`${focusNFeUrl}/v2/nfse?ref=${nfseRecord.id}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Basic ${btoa(decryptedToken + ':')}`,
+        'Authorization': `Basic ${authValue}`,
       },
       body: JSON.stringify(focusNFePayload),
     });
