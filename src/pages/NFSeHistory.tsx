@@ -6,13 +6,14 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
-import { ArrowLeft, FileText, Download, X, Search, Calendar, DollarSign, RefreshCw } from 'lucide-react';
+import { ArrowLeft, FileText, Download, X, Search, Calendar, DollarSign, RefreshCw, Trash2 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface NFSeIssued {
   id: string;
@@ -27,6 +28,7 @@ interface NFSeIssued {
   error_message: string | null;
   pdf_url: string | null;
   xml_url: string | null;
+  environment: string;
   patients: {
     name: string;
   };
@@ -39,6 +41,7 @@ export default function NFSeHistory() {
   const [nfseList, setNfseList] = useState<NFSeIssued[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [cancelReason, setCancelReason] = useState('');
+  const [activeTab, setActiveTab] = useState('homologacao');
 
   useEffect(() => {
     loadNFSe();
@@ -107,6 +110,31 @@ export default function NFSeHistory() {
     }
   };
 
+  const handleDeleteNFSe = async (nfseId: string) => {
+    try {
+      const { error } = await supabase
+        .from('nfse_issued')
+        .delete()
+        .eq('id', nfseId);
+
+      if (error) throw error;
+
+      toast({
+        title: 'NFSe excluída',
+        description: 'A entrada foi removida do histórico.',
+      });
+
+      loadNFSe();
+    } catch (error: any) {
+      console.error('Error deleting NFSe:', error);
+      toast({
+        title: 'Erro ao excluir',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleCancelNFSe = async (nfseId: string) => {
     if (!cancelReason.trim()) {
       toast({
@@ -160,14 +188,16 @@ export default function NFSeHistory() {
     return <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>;
   };
 
-  const filteredNFSe = nfseList.filter(nfse =>
-    nfse.patients.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    nfse.nfse_number?.includes(searchTerm)
-  );
+  const filteredNFSe = nfseList
+    .filter(nfse => nfse.environment === activeTab)
+    .filter(nfse =>
+      nfse.patients.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      nfse.nfse_number?.includes(searchTerm)
+    );
 
-  const totalIssued = nfseList.filter(n => n.status === 'issued').length;
+  const totalIssued = nfseList.filter(n => n.status === 'issued' && n.environment === activeTab).length;
   const totalValue = nfseList
-    .filter(n => n.status === 'issued')
+    .filter(n => n.status === 'issued' && n.environment === activeTab)
     .reduce((sum, n) => sum + Number(n.service_value), 0);
 
   return (
@@ -228,26 +258,31 @@ export default function NFSeHistory() {
         </div>
 
         <Card className="p-6">
-          <div className="mb-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por paciente ou número da nota..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </div>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="homologacao">Homologação</TabsTrigger>
+              <TabsTrigger value="producao">Produção</TabsTrigger>
+            </TabsList>
 
-          {loading ? (
-            <div className="text-center py-8 text-muted-foreground">Carregando histórico...</div>
-          ) : filteredNFSe.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              {searchTerm ? 'Nenhuma nota encontrada' : 'Nenhuma nota fiscal emitida ainda'}
-            </div>
-          ) : (
-            <Table>
+            <TabsContent value={activeTab} className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por paciente ou número da nota..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
+              {loading ? (
+                <div className="text-center py-8 text-muted-foreground">Carregando histórico...</div>
+              ) : filteredNFSe.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  {searchTerm ? 'Nenhuma nota encontrada' : `Nenhuma nota fiscal emitida em ${activeTab === 'producao' ? 'produção' : 'homologação'}`}
+                </div>
+              ) : (
+                <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Paciente</TableHead>
@@ -324,6 +359,29 @@ export default function NFSeHistory() {
                             </AlertDialogContent>
                           </AlertDialog>
                         )}
+                        {(nfse.status === 'error' || nfse.status === 'cancelled') && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="sm" title="Excluir entrada">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Excluir do histórico?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Esta ação removerá permanentemente esta entrada do histórico.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Voltar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteNFSe(nfse.id)}>
+                                  Excluir
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -331,6 +389,8 @@ export default function NFSeHistory() {
               </TableBody>
             </Table>
           )}
+            </TabsContent>
+          </Tabs>
         </Card>
       </div>
   );

@@ -97,7 +97,8 @@ export type Database = {
           cnpj: string | null
           created_at: string
           focusnfe_environment: string | null
-          focusnfe_token: string | null
+          focusnfe_token_homologacao: string | null
+          focusnfe_token_production: string | null
           id: string
           inscricao_municipal: string | null
           iss_rate: number | null
@@ -113,7 +114,8 @@ export type Database = {
           cnpj?: string | null
           created_at?: string
           focusnfe_environment?: string | null
-          focusnfe_token?: string | null
+          focusnfe_token_homologacao?: string | null
+          focusnfe_token_production?: string | null
           id?: string
           inscricao_municipal?: string | null
           iss_rate?: number | null
@@ -129,7 +131,8 @@ export type Database = {
           cnpj?: string | null
           created_at?: string
           focusnfe_environment?: string | null
-          focusnfe_token?: string | null
+          focusnfe_token_homologacao?: string | null
+          focusnfe_token_production?: string | null
           id?: string
           inscricao_municipal?: string | null
           iss_rate?: number | null
@@ -147,6 +150,7 @@ export type Database = {
           cancellation_reason: string | null
           cancelled_at: string | null
           created_at: string
+          environment: string
           error_message: string | null
           focusnfe_ref: string | null
           id: string
@@ -167,6 +171,7 @@ export type Database = {
           cancellation_reason?: string | null
           cancelled_at?: string | null
           created_at?: string
+          environment?: string
           error_message?: string | null
           focusnfe_ref?: string | null
           id?: string
@@ -187,6 +192,7 @@ export type Database = {
           cancellation_reason?: string | null
           cancelled_at?: string | null
           created_at?: string
+          environment?: string
           error_message?: string | null
           focusnfe_ref?: string | null
           id?: string

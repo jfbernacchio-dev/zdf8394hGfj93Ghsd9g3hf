@@ -73,13 +73,18 @@ serve(async (req) => {
       throw new Error('Configuração fiscal não encontrada. Configure em NFSe > Configuração');
     }
 
-    if (!config.focusnfe_token) {
-      throw new Error('Token FocusNFe não configurado');
+    // Get the appropriate token based on environment
+    const tokenField = config.focusnfe_environment === 'producao' 
+      ? config.focusnfe_token_production 
+      : config.focusnfe_token_homologacao;
+
+    if (!tokenField) {
+      throw new Error(`Token FocusNFe não configurado para ambiente ${config.focusnfe_environment}`);
     }
 
     // Decrypt the FocusNFe token
     const decryptResponse = await supabase.functions.invoke('decrypt-credentials', {
-      body: { encryptedData: config.focusnfe_token },
+      body: { encryptedData: tokenField },
       headers: {
         Authorization: authHeader,
       },
@@ -170,6 +175,7 @@ Data de emissão: ${new Date().toLocaleDateString('pt-BR')}`;
         iss_value: issValue,
         net_value: netValue,
         status: 'processing',
+        environment: config.focusnfe_environment,
       })
       .select()
       .single();

@@ -31,7 +31,8 @@ export default function NFSeConfig() {
     iss_rate: '5.00',
     service_code: '05118',
     service_description: 'Atendimento psicológico individual',
-    focusnfe_token: '',
+    focusnfe_token_homologacao: '',
+    focusnfe_token_production: '',
     focusnfe_environment: 'homologacao',
   });
 
@@ -82,7 +83,8 @@ export default function NFSeConfig() {
           iss_rate: data.iss_rate?.toString() || '5.00',
           service_code: data.service_code || '05118',
           service_description: data.service_description || 'Atendimento psicológico individual',
-          focusnfe_token: data.focusnfe_token || '',
+          focusnfe_token_homologacao: data.focusnfe_token_homologacao || '',
+          focusnfe_token_production: data.focusnfe_token_production || '',
           focusnfe_environment: data.focusnfe_environment || 'homologacao',
         });
       }
@@ -112,22 +114,39 @@ export default function NFSeConfig() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
-      // Encrypt the FocusNFe token before saving
-      let encryptedToken = config.focusnfe_token;
-      if (config.focusnfe_token) {
+      // Encrypt both tokens if provided
+      let encryptedTokenHomologacao = config.focusnfe_token_homologacao;
+      if (config.focusnfe_token_homologacao) {
         const { data: encryptData, error: encryptError } = await supabase.functions.invoke(
           'encrypt-credential',
           {
-            body: { plaintext: config.focusnfe_token },
+            body: { plaintext: config.focusnfe_token_homologacao },
           }
         );
 
         if (encryptError) {
-          console.error('Encryption error:', encryptError);
-          throw new Error('Erro ao encriptar credenciais');
+          console.error('Encryption error (homologacao):', encryptError);
+          throw new Error('Erro ao encriptar token de homologação');
         }
 
-        encryptedToken = encryptData.encrypted;
+        encryptedTokenHomologacao = encryptData.encrypted;
+      }
+
+      let encryptedTokenProduction = config.focusnfe_token_production;
+      if (config.focusnfe_token_production) {
+        const { data: encryptData, error: encryptError } = await supabase.functions.invoke(
+          'encrypt-credential',
+          {
+            body: { plaintext: config.focusnfe_token_production },
+          }
+        );
+
+        if (encryptError) {
+          console.error('Encryption error (production):', encryptError);
+          throw new Error('Erro ao encriptar token de produção');
+        }
+
+        encryptedTokenProduction = encryptData.encrypted;
       }
 
       const configData = {
@@ -140,7 +159,8 @@ export default function NFSeConfig() {
         iss_rate: parseFloat(config.iss_rate),
         service_code: config.service_code,
         service_description: config.service_description,
-        focusnfe_token: encryptedToken,
+        focusnfe_token_homologacao: encryptedTokenHomologacao,
+        focusnfe_token_production: encryptedTokenProduction,
         focusnfe_environment: config.focusnfe_environment,
       };
 
@@ -397,17 +417,6 @@ export default function NFSeConfig() {
                   />
                 </div>
 
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="focusnfe_token">Token API FocusNFe</Label>
-                  <Input
-                    id="focusnfe_token"
-                    type="password"
-                    value={config.focusnfe_token}
-                    onChange={(e) => setConfig({ ...config, focusnfe_token: e.target.value })}
-                    placeholder="Cole aqui o token da API"
-                  />
-                </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="focusnfe_environment">Ambiente</Label>
                   <Select value={config.focusnfe_environment} onValueChange={(value) => setConfig({ ...config, focusnfe_environment: value })}>
@@ -419,6 +428,32 @@ export default function NFSeConfig() {
                       <SelectItem value="producao">Produção</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="focusnfe_token">
+                    Token API FocusNFe - {config.focusnfe_environment === 'producao' ? 'Produção' : 'Homologação'}
+                  </Label>
+                  <Input
+                    id="focusnfe_token"
+                    type="password"
+                    value={config.focusnfe_environment === 'producao' 
+                      ? config.focusnfe_token_production 
+                      : config.focusnfe_token_homologacao}
+                    onChange={(e) => {
+                      if (config.focusnfe_environment === 'producao') {
+                        setConfig({ ...config, focusnfe_token_production: e.target.value });
+                      } else {
+                        setConfig({ ...config, focusnfe_token_homologacao: e.target.value });
+                      }
+                    }}
+                    placeholder={`Cole aqui o token da API para ${config.focusnfe_environment === 'producao' ? 'produção' : 'homologação'}`}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    {config.focusnfe_environment === 'producao' 
+                      ? 'Este token será usado para emissão de notas fiscais em produção' 
+                      : 'Este token será usado para testes em homologação'}
+                  </p>
                 </div>
               </div>
 
