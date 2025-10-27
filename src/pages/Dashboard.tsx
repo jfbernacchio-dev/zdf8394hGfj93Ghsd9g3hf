@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { parseISO } from 'date-fns';
 import { NotificationPrompt } from '@/components/NotificationPrompt';
+import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -200,7 +201,7 @@ const Dashboard = () => {
               </div>
             </div>
             <h3 className="text-2xl font-bold text-foreground mb-1">
-              R$ {totalExpected.toFixed(2)}
+              {formatBrazilianCurrency(totalExpected)}
             </h3>
             <p className="text-sm text-muted-foreground">Receita Esperada</p>
           </Card>
@@ -212,7 +213,7 @@ const Dashboard = () => {
               </div>
             </div>
             <h3 className="text-2xl font-bold text-foreground mb-1">
-              R$ {totalActual.toFixed(2)}
+              {formatBrazilianCurrency(totalActual)}
             </h3>
             <p className="text-sm text-muted-foreground">Receita Efetiva ({revenuePercent}%)</p>
           </Card>
@@ -262,7 +263,7 @@ const Dashboard = () => {
               </div>
             </div>
             <h3 className="text-2xl font-bold text-foreground mb-1">
-              R$ {unpaidValue.toFixed(2)}
+              {formatBrazilianCurrency(unpaidValue)}
             </h3>
             <p className="text-sm text-muted-foreground">Em Aberto ({unpaidSessions.length})</p>
           </Card>

@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
+import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 
 const Patients = () => {
   const [patients, setPatients] = useState<any[]>([]);
@@ -145,15 +146,15 @@ const Patients = () => {
       invoiceText += `CRP: ${userProfile?.crp || ''}\n\n`;
       invoiceText += `Sessões realizadas nas datas: ${sessionDates}\n`;
       invoiceText += `Quantidade de sessões: ${patientSessions.length}\n`;
-      invoiceText += `Valor unitário por sessão: R$ ${Number(patient.session_value).toFixed(2)}\n`;
-      invoiceText += `Valor total: R$ ${totalValue.toFixed(2)}\n\n`;
+      invoiceText += `Valor unitário por sessão: ${formatBrazilianCurrency(patient.session_value)}\n`;
+      invoiceText += `Valor total: ${formatBrazilianCurrency(totalValue)}\n\n`;
       invoiceText += `_____________________________\n`;
       invoiceText += `Assinatura do Profissional\n\n`;
       invoiceText += `${'='.repeat(60)}\n\n`;
     });
 
     const grandTotal = allUnpaidSessions.reduce((sum, s) => sum + Number(s.value), 0);
-    invoiceText += `TOTAL GERAL: R$ ${grandTotal.toFixed(2)}\n`;
+    invoiceText += `TOTAL GERAL: ${formatBrazilianCurrency(grandTotal)}\n`;
     invoiceText += `Total de pacientes: ${Object.keys(sessionsByPatient).length}\n`;
     invoiceText += `Total de sessões: ${allUnpaidSessions.length}\n`;
 
@@ -273,8 +274,8 @@ const Patients = () => {
                           return acc;
                         }, {} as Record<string, any[]>);
                         const monthsCount = Object.keys(sessionsByMonth).length;
-                        return `${monthsCount} ${monthsCount === 1 ? 'mês' : 'meses'} (R$ ${stats.unpaidValue.toFixed(2)})`;
-                      })() : `${stats.unpaidCount} (R$ ${stats.unpaidValue.toFixed(2)})`}
+                        return `${monthsCount} ${monthsCount === 1 ? 'mês' : 'meses'} (${formatBrazilianCurrency(stats.unpaidValue)})`;
+                      })() : `${stats.unpaidCount} (${formatBrazilianCurrency(stats.unpaidValue)})`}
                     </span>
                   </div>
                 </div>

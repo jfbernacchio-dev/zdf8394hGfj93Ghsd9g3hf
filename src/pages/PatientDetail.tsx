@@ -18,6 +18,7 @@ import { ArrowLeft, Plus, Calendar, DollarSign, Edit, FileText, Download, Trash2
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, startOfMonth, endOfMonth, isFuture } from 'date-fns';
 import { PatientFiles } from '@/components/PatientFiles';
+import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 
 const PatientDetail = () => {
   const { id } = useParams();
@@ -309,8 +310,8 @@ Modalidade: Preço Mensal
 Meses: ${monthsDescription}
 Quantidade de meses: ${months.length}
 
-Valor mensal: R$ ${Number(patient.session_value).toFixed(2)}
-Valor total: R$ ${totalValue.toFixed(2)}
+Valor mensal: ${formatBrazilianCurrency(patient.session_value)}
+Valor total: ${formatBrazilianCurrency(totalValue)}
 
 Data de emissão: ${format(new Date(), 'dd/MM/yyyy')}
 
@@ -333,8 +334,8 @@ Referente a: Serviços de Psicologia
 Sessões realizadas nas datas: ${sessionDates}
 Quantidade de sessões: ${unpaidSessions.length}
 
-Valor unitário por sessão: R$ ${Number(patient.session_value).toFixed(2)}
-Valor total: R$ ${totalValue.toFixed(2)}
+Valor unitário por sessão: ${formatBrazilianCurrency(patient.session_value)}
+Valor total: ${formatBrazilianCurrency(totalValue)}
 
 Data de emissão: ${format(new Date(), 'dd/MM/yyyy')}
 
@@ -567,7 +568,7 @@ Assinatura do Profissional`;
                         {monthsCount}
                         {' '}
                         <span className="text-sm text-muted-foreground">
-                          (R$ {totalValue.toFixed(2)} - {unpaidSessions.length} {unpaidSessions.length === 1 ? 'sessão' : 'sessões'})
+                          ({formatBrazilianCurrency(totalValue)} - {unpaidSessions.length} {unpaidSessions.length === 1 ? 'sessão' : 'sessões'})
                         </span>
                       </>
                     );
@@ -578,7 +579,7 @@ Assinatura do Profissional`;
                         {unpaidSessions.length}
                         {' '}
                         <span className="text-sm text-muted-foreground">
-                          (R$ {totalValue.toFixed(2)})
+                          ({formatBrazilianCurrency(totalValue)})
                         </span>
                       </>
                     );
@@ -720,9 +721,9 @@ Assinatura do Profissional`;
                       <div className="flex items-center gap-4">
                        <div className="text-right">
                          {patient.monthly_price ? (
-                           <p className="font-semibold">Valor Mensal (R$ {Number(patient.session_value).toFixed(2)})</p>
+                           <p className="font-semibold">Valor Mensal ({formatBrazilianCurrency(patient.session_value)})</p>
                          ) : (
-                           <p className="font-semibold">R$ {Number(session.value).toFixed(2)}</p>
+                           <p className="font-semibold">{formatBrazilianCurrency(session.value)}</p>
                          )}
                          {session.status === 'missed' ? (
                            <p className="text-xs text-muted-foreground">Sem Cobrança</p>
@@ -804,7 +805,7 @@ Assinatura do Profissional`;
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">{patient.monthly_price ? 'Valor Mensal' : 'Valor da Sessão'}</p>
-                  <p className="font-medium">R$ {Number(patient.session_value).toFixed(2)}</p>
+                  <p className="font-medium">{formatBrazilianCurrency(patient.session_value)}</p>
                 </div>
               </div>
             </Card>
