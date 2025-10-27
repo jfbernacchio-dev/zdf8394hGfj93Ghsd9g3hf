@@ -261,7 +261,21 @@ const Patients = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Em Aberto:</span>
-                    <span className="font-medium text-warning">{stats.unpaidCount} (R$ {stats.unpaidValue.toFixed(2)})</span>
+                    <span className="font-medium text-warning">
+                      {patient.monthly_price ? (() => {
+                        // For monthly pricing, show number of months
+                        const sessionsByMonth = sessions.filter(s => s.patient_id === patient.id && s.status === 'attended' && !s.paid).reduce((acc, session) => {
+                          const monthYear = format(parseISO(session.date), 'MM/yyyy');
+                          if (!acc[monthYear]) {
+                            acc[monthYear] = [];
+                          }
+                          acc[monthYear].push(session);
+                          return acc;
+                        }, {} as Record<string, any[]>);
+                        const monthsCount = Object.keys(sessionsByMonth).length;
+                        return `${monthsCount} ${monthsCount === 1 ? 'mês' : 'meses'} (R$ ${stats.unpaidValue.toFixed(2)})`;
+                      })() : `${stats.unpaidCount} (R$ ${stats.unpaidValue.toFixed(2)})`}
+                    </span>
                   </div>
                 </div>
               </Card>

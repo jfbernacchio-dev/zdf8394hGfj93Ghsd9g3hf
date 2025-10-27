@@ -24,6 +24,7 @@ export const generateRecurringSessions = (
   const targetDayOfWeek = dayOfWeekMap[sessionDay.toLowerCase()];
   const end = endDate || new Date();
   const now = new Date();
+  now.setHours(0, 0, 0, 0);
 
   // Find the first occurrence of the target day on or after start date
   let currentDate = new Date(start);
@@ -41,18 +42,27 @@ export const generateRecurringSessions = (
   // Set to the first session date (must be >= start date)
   currentDate = addDays(start, daysUntilTarget);
 
+  // CRITICAL: Only generate sessions if currentDate is on or after startDate
+  // This prevents creating sessions before the patient's start date
+  if (isBefore(currentDate, start)) {
+    return sessions;
+  }
+
   // Generate sessions until end date
   while (!isBefore(end, currentDate)) {
-    const sessionDate = format(currentDate, 'yyyy-MM-dd');
-    
-    // Create a Date object with the session date and time for status check
-    const [hours, minutes] = sessionTime.split(':').map(Number);
-    const sessionDateTime = new Date(currentDate);
-    sessionDateTime.setHours(hours, minutes, 0, 0);
-    
-    // Mark sessions that have passed as "attended", future ones as "scheduled"
-    const status = sessionDateTime < now ? 'attended' : 'scheduled';
-    sessions.push({ date: sessionDate, status });
+    // CRITICAL: Double check that we're not creating sessions before start date
+    if (!isBefore(currentDate, start)) {
+      const sessionDate = format(currentDate, 'yyyy-MM-dd');
+      
+      // Create a Date object with the session date and time for status check
+      const [hours, minutes] = sessionTime.split(':').map(Number);
+      const sessionDateTime = new Date(currentDate);
+      sessionDateTime.setHours(hours, minutes, 0, 0);
+      
+      // Mark sessions that have passed as "attended", future ones as "scheduled"
+      const status = sessionDateTime < now ? 'attended' : 'scheduled';
+      sessions.push({ date: sessionDate, status });
+    }
     
     // Move to next session
     currentDate = addWeeks(currentDate, frequency === 'weekly' ? 1 : 2);
@@ -108,6 +118,7 @@ export const generateTwiceWeeklySessions = (
   const targetDay2 = dayOfWeekMap[sessionDay2.toLowerCase()];
   const end = endDate || new Date();
   const now = new Date();
+  now.setHours(0, 0, 0, 0);
 
   // Generate sessions for day 1
   const startDayOfWeek1 = getDay(start);
@@ -115,7 +126,8 @@ export const generateTwiceWeeklySessions = (
   if (daysToAdd1 < 0) daysToAdd1 += 7;
   let currentDate1 = addDays(start, daysToAdd1);
 
-  while (!isBefore(end, currentDate1)) {
+  // CRITICAL: Only generate if first session is on or after start date
+  while (!isBefore(end, currentDate1) && !isBefore(currentDate1, start)) {
     const sessionDate = format(currentDate1, 'yyyy-MM-dd');
     const [hours, minutes] = sessionTime1.split(':').map(Number);
     const sessionDateTime = new Date(currentDate1);
@@ -131,7 +143,8 @@ export const generateTwiceWeeklySessions = (
   if (daysToAdd2 < 0) daysToAdd2 += 7;
   let currentDate2 = addDays(start, daysToAdd2);
 
-  while (!isBefore(end, currentDate2)) {
+  // CRITICAL: Only generate if first session is on or after start date
+  while (!isBefore(end, currentDate2) && !isBefore(currentDate2, start)) {
     const sessionDate = format(currentDate2, 'yyyy-MM-dd');
     const [hours, minutes] = sessionTime2.split(':').map(Number);
     const sessionDateTime = new Date(currentDate2);

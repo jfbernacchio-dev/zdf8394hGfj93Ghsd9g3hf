@@ -546,7 +546,9 @@ Assinatura do Profissional`;
             <div className="flex items-center gap-3">
               <DollarSign className="w-5 h-5 text-success" />
               <div className="flex-1">
-                <p className="text-sm text-muted-foreground">Sessões em Aberto</p>
+                <p className="text-sm text-muted-foreground">
+                  {patient.monthly_price ? 'Meses em Aberto' : 'Sessões em Aberto'}
+                </p>
                 <p className="text-xl font-semibold text-foreground">
                   {patient.monthly_price ? (() => {
                     // Group unpaid sessions by month for monthly pricing
@@ -562,16 +564,24 @@ Assinatura do Profissional`;
                     const totalValue = monthsCount * Number(patient.session_value);
                     return (
                       <>
-                        {monthsCount} {monthsCount === 1 ? 'mês' : 'meses'}{' '}
+                        {monthsCount}
+                        {' '}
                         <span className="text-sm text-muted-foreground">
-                          ({unpaidSessions.length} {unpaidSessions.length === 1 ? 'sessão' : 'sessões'})
+                          (R$ {totalValue.toFixed(2)} - {unpaidSessions.length} {unpaidSessions.length === 1 ? 'sessão' : 'sessões'})
                         </span>
-                        {' - '}R$ {totalValue.toFixed(2)}
                       </>
                     );
                   })() : (() => {
                     const totalValue = unpaidSessions.reduce((sum, s) => sum + Number(s.value || 0), 0);
-                    return `${unpaidSessions.length} (R$ ${totalValue.toFixed(2)})`;
+                    return (
+                      <>
+                        {unpaidSessions.length}
+                        {' '}
+                        <span className="text-sm text-muted-foreground">
+                          (R$ {totalValue.toFixed(2)})
+                        </span>
+                      </>
+                    );
                   })()}
                 </p>
               </div>
