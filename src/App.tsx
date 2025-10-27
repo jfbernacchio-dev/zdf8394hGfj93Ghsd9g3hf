@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
+import Index from "./pages/Index";
 import Patients from "./pages/Patients";
 import NewPatient from "./pages/NewPatient";
 import EditPatient from "./pages/EditPatient";
@@ -52,7 +53,7 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/sistema" replace />;
   }
 
   return <>{children}</>;
@@ -66,12 +67,16 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            {/* Site Institucional */}
+            <Route path="/" element={<Index />} />
+            
+            {/* Sistema de Gestão */}
             <Route path="/install" element={<Install />} />
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
             <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
             
-            <Route path="/" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
+            <Route path="/sistema" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
             <Route path="/schedule" element={<ProtectedRoute><Layout><Schedule /></Layout></ProtectedRoute>} />
             <Route path="/patients" element={<ProtectedRoute><Layout><Patients /></Layout></ProtectedRoute>} />
             <Route path="/patients/new" element={<ProtectedRoute><Layout><NewPatient /></Layout></ProtectedRoute>} />
