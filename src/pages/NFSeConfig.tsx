@@ -288,7 +288,10 @@ export default function NFSeConfig() {
                   <Input
                     id="inscricao_municipal"
                     value={config.inscricao_municipal}
-                    onChange={(e) => setConfig({ ...config, inscricao_municipal: e.target.value })}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '');
+                      setConfig({ ...config, inscricao_municipal: value });
+                    }}
                     placeholder="Ex: 12345678"
                   />
                 </div>
@@ -298,7 +301,17 @@ export default function NFSeConfig() {
                   <Input
                     id="cnpj"
                     value={config.cnpj}
-                    onChange={(e) => setConfig({ ...config, cnpj: e.target.value })}
+                    onChange={(e) => {
+                      let value = e.target.value.replace(/\D/g, '');
+                      if (value.length <= 14) {
+                        value = value
+                          .replace(/^(\d{2})(\d)/, '$1.$2')
+                          .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+                          .replace(/\.(\d{3})(\d)/, '.$1/$2')
+                          .replace(/(\d{4})(\d)/, '$1-$2');
+                      }
+                      setConfig({ ...config, cnpj: value });
+                    }}
                     placeholder="00.000.000/0000-00"
                   />
                 </div>
