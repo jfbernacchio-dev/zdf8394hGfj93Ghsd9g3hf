@@ -7,7 +7,7 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.send-nfse-email]
-verify_jwt = true
+verify_jwt = false
 
 [functions.export-patient-data]
 verify_jwt = true

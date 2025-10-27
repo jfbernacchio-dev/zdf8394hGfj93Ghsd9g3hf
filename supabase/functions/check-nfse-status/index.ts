@@ -242,23 +242,29 @@ serve(async (req) => {
       // Send email automatically when NFSe is authorized
       const patientEmail = (nfseRecord.patients as any)?.email;
       if (patientEmail) {
-        console.log('NFSe authorized, triggering email send to:', patientEmail);
+        console.log('NFSe authorized, attempting to send email to:', patientEmail);
         
-        // Trigger email send (don't wait for it)
-        supabase.functions.invoke('send-nfse-email', {
-          body: { nfseId: nfseRecord.id },
-          headers: {
-            Authorization: authHeader,
-          },
-        }).then(emailResult => {
+        try {
+          // Use service role key to invoke the function
+          const supabaseAdmin = createClient(
+            Deno.env.get('SUPABASE_URL')!,
+            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+          );
+          
+          const emailResult = await supabaseAdmin.functions.invoke('send-nfse-email', {
+            body: { nfseId: nfseRecord.id },
+          });
+          
           if (emailResult.error) {
             console.error('Error sending NFSe email:', emailResult.error);
+          } else if (emailResult.data?.success) {
+            console.log('NFSe email sent successfully to:', patientEmail);
           } else {
-            console.log('NFSe email sent successfully');
+            console.error('Email function returned error:', emailResult.data);
           }
-        }).catch(err => {
-          console.error('Failed to invoke send-nfse-email:', err);
-        });
+        } catch (emailError) {
+          console.error('Failed to invoke send-nfse-email:', emailError);
+        }
       } else {
         console.log('No email found for patient, skipping email send');
       }
