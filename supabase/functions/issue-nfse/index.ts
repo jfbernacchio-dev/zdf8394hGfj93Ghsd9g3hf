@@ -221,7 +221,29 @@ Data de emissão: ${new Date().toLocaleDateString('pt-BR')}`;
       body: JSON.stringify(focusNFePayload),
     });
 
-    const focusNFeResult = await focusNFeResponse.json();
+    // Get response as text first to handle non-JSON responses
+    const responseText = await focusNFeResponse.text();
+    console.log('FocusNFe response status:', focusNFeResponse.status);
+    console.log('FocusNFe response text:', responseText);
+
+    let focusNFeResult: any;
+    try {
+      focusNFeResult = JSON.parse(responseText);
+    } catch (e) {
+      console.error('Failed to parse FocusNFe response as JSON:', e);
+      
+      // Update record with error
+      await supabase
+        .from('nfse_issued')
+        .update({
+          status: 'error',
+          error_message: `Erro na comunicação com FocusNFe (Status ${focusNFeResponse.status}). Verifique suas credenciais.`,
+        })
+        .eq('id', nfseRecord.id);
+
+      throw new Error(`Erro na comunicação com FocusNFe (Status ${focusNFeResponse.status}). Resposta não é JSON válido. Verifique suas credenciais e configuração.`);
+    }
+
     console.log('FocusNFe response:', focusNFeResult);
 
     if (!focusNFeResponse.ok) {
