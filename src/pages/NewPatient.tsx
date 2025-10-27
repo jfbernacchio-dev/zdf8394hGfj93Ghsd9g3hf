@@ -208,12 +208,19 @@ const NewPatient = () => {
               <div className="space-y-2">
                 <Label className="text-transparent">.</Label>
                 <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
+                   <div className="flex items-center gap-2">
                     <input
                       type="checkbox"
                       id="monthlyPrice"
                       checked={formData.monthlyPrice}
-                      onChange={(e) => setFormData({ ...formData, monthlyPrice: e.target.checked })}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setFormData({ 
+                          ...formData, 
+                          monthlyPrice: checked,
+                          noNfse: checked ? true : formData.noNfse
+                        });
+                      }}
                       className="cursor-pointer"
                     />
                     <Label htmlFor="monthlyPrice" className="cursor-pointer text-sm">Preço Mensal</Label>

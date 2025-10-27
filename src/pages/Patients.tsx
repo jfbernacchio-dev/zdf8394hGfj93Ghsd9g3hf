@@ -16,6 +16,7 @@ const Patients = () => {
   const [patients, setPatients] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
   const [search, setSearch] = useState('');
+  const [showOnlyUnpaid, setShowOnlyUnpaid] = useState(false);
   const [isGeneralInvoiceOpen, setIsGeneralInvoiceOpen] = useState(false);
   const [generalInvoiceText, setGeneralInvoiceText] = useState('');
   const [affectedSessions, setAffectedSessions] = useState<any[]>([]);
@@ -47,9 +48,15 @@ const Patients = () => {
     setSessions(sessionsData || []);
   };
 
-  const filteredPatients = patients.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredPatients = patients.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
+    
+    if (!showOnlyUnpaid) return matchesSearch;
+    
+    // Se showOnlyUnpaid estiver ativo, filtrar apenas pacientes com sessões não pagas
+    const stats = getPatientStats(p.id);
+    return matchesSearch && stats.unpaidCount > 0;
+  });
 
   const getPatientStats = (patientId: string) => {
     const patientSessions = sessions.filter(s => s.patient_id === patientId && s.status === 'attended');
@@ -160,9 +167,26 @@ const Patients = () => {
         </div>
 
         <Card className="p-4 mb-6 shadow-[var(--shadow-card)] border-border">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Buscar paciente..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+          <div className="space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input placeholder="Buscar paciente..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+            </div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="showOnlyUnpaid"
+                checked={showOnlyUnpaid}
+                onChange={(e) => setShowOnlyUnpaid(e.target.checked)}
+                className="h-4 w-4 cursor-pointer"
+              />
+              <label
+                htmlFor="showOnlyUnpaid"
+                className="text-sm font-medium leading-none cursor-pointer"
+              >
+                Mostrar apenas em aberto
+              </label>
+            </div>
           </div>
         </Card>
 

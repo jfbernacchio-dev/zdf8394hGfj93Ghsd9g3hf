@@ -272,17 +272,62 @@ const PatientDetail = () => {
 
     setInvoiceSessions(unpaidSessions);
     
-    const totalValue = unpaidSessions.reduce((sum, s) => sum + Number(s.value), 0);
-    const sessionDates = unpaidSessions.map(s => format(parseISO(s.date), 'dd/MM/yyyy')).join(', ');
-    
-    const invoice = `RECIBO DE PRESTAÇÃO DE SERVIÇOS
+    let invoice = '';
+    let totalValue = 0;
+
+    if (patient.monthly_price) {
+      // Agrupar sessões por mês
+      const sessionsByMonth = unpaidSessions.reduce((acc, session) => {
+        const monthYear = format(parseISO(session.date), 'MM/yyyy');
+        if (!acc[monthYear]) {
+          acc[monthYear] = [];
+        }
+        acc[monthYear].push(session);
+        return acc;
+      }, {} as Record<string, any[]>);
+
+      const months = Object.keys(sessionsByMonth).sort();
+      totalValue = months.length * Number(patient.session_value);
+      
+      const monthsDescription = months.map(monthYear => {
+        const [month, year] = monthYear.split('/');
+        const sessionCount = sessionsByMonth[monthYear].length;
+        return `${month}/${year} (${sessionCount} sessão${sessionCount > 1 ? 'ões' : ''})`;
+      }).join(', ');
+
+      invoice = `RECIBO DE PRESTAÇÃO DE SERVIÇOS
 
 Profissional: ${userProfile?.full_name || ''}
 CPF: ${userProfile?.cpf || ''}
 CRP: ${userProfile?.crp || ''}
 
 Recebi de: ${patient.name}
-CPF: ${patient.cpf}
+CPF: ${patient.cpf || 'Não informado'}
+
+Referente a: Serviços de Psicologia
+Modalidade: Preço Mensal
+Meses: ${monthsDescription}
+Quantidade de meses: ${months.length}
+
+Valor mensal: R$ ${Number(patient.session_value).toFixed(2)}
+Valor total: R$ ${totalValue.toFixed(2)}
+
+Data de emissão: ${format(new Date(), 'dd/MM/yyyy')}
+
+_____________________________
+Assinatura do Profissional`;
+    } else {
+      totalValue = unpaidSessions.reduce((sum, s) => sum + Number(s.value), 0);
+      const sessionDates = unpaidSessions.map(s => format(parseISO(s.date), 'dd/MM/yyyy')).join(', ');
+      
+      invoice = `RECIBO DE PRESTAÇÃO DE SERVIÇOS
+
+Profissional: ${userProfile?.full_name || ''}
+CPF: ${userProfile?.cpf || ''}
+CRP: ${userProfile?.crp || ''}
+
+Recebi de: ${patient.name}
+CPF: ${patient.cpf || 'Não informado'}
 
 Referente a: Serviços de Psicologia
 Sessões realizadas nas datas: ${sessionDates}
@@ -295,6 +340,7 @@ Data de emissão: ${format(new Date(), 'dd/MM/yyyy')}
 
 _____________________________
 Assinatura do Profissional`;
+    }
 
     setInvoiceText(invoice);
     setIsInvoiceDialogOpen(true);
@@ -637,7 +683,11 @@ Assinatura do Profissional`;
                     </div>
                       <div className="flex items-center gap-4">
                        <div className="text-right">
-                         <p className="font-semibold">R$ {Number(session.value).toFixed(2)}</p>
+                         {patient.monthly_price ? (
+                           <p className="font-semibold">Valor Mensal (R$ {Number(patient.session_value).toFixed(2)})</p>
+                         ) : (
+                           <p className="font-semibold">R$ {Number(session.value).toFixed(2)}</p>
+                         )}
                          {session.status === 'missed' ? (
                            <p className="text-xs text-muted-foreground">Sem Cobrança</p>
                          ) : session.paid ? (
@@ -717,7 +767,7 @@ Assinatura do Profissional`;
                   <p className="font-medium">{patient.session_time || 'Não definido'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Valor da Sessão</p>
+                  <p className="text-sm text-muted-foreground">{patient.monthly_price ? 'Valor Mensal' : 'Valor da Sessão'}</p>
                   <p className="font-medium">R$ {Number(patient.session_value).toFixed(2)}</p>
                 </div>
               </div>
