@@ -31,6 +31,21 @@ export default function IssueNFSeDialog({
   const loadUnpaidSessions = async () => {
     setLoadingSessions(true);
     try {
+      // Buscar sessões não pagas e verificar se o paciente não é mensal
+      const { data: patient, error: patientError } = await supabase
+        .from('patients')
+        .select('monthly_price')
+        .eq('id', patientId)
+        .single();
+
+      if (patientError) throw patientError;
+
+      // Se o paciente é mensal, não deve usar NFSe
+      if (patient?.monthly_price) {
+        setUnpaidSessions([]);
+        return;
+      }
+
       const { data: sessions, error } = await supabase
         .from('sessions')
         .select('*')

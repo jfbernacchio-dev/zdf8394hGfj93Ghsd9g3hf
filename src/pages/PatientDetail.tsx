@@ -504,10 +504,6 @@ Assinatura do Profissional`;
                 <Edit className="w-4 h-4 mr-2" />
                 Editar
               </Button>
-              <IssueNFSeDialog 
-                patientId={id!} 
-                patientName={patient.name}
-              />
               <Button
                 variant="outline"
                 onClick={handleExportPatientData}
@@ -689,16 +685,18 @@ Assinatura do Profissional`;
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold text-foreground">Histórico de Sessões</h2>
               <div className="flex gap-2">
-                {(patient.no_nfse || patient.monthly_price || !patient.cpf) ? (
+                {patient.monthly_price ? (
+                  // Pacientes mensais: apenas recibo texto
                   <Button onClick={generateInvoice} variant="outline">
                     <FileText className="w-4 h-4 mr-2" />
-                    Gerar Texto Simples
+                    Gerar Recibo Mensal
                   </Button>
                 ) : (
-                  <Button onClick={generateInvoice} variant="outline">
-                    <FileText className="w-4 h-4 mr-2" />
-                    Fazer Fechamento
-                  </Button>
+                  // Pacientes por sessão: usar NFSe
+                  <IssueNFSeDialog 
+                    patientId={id!} 
+                    patientName={patient.name}
+                  />
                 )}
                 <Button onClick={openNewSessionDialog}>
                   <Plus className="w-4 h-4 mr-2" />
