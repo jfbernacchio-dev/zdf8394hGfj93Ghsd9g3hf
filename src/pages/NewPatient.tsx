@@ -163,7 +163,7 @@ const NewPatient = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="cpf">CPF (opcional)</Label>
+                <Label htmlFor="cpf">CPF</Label>
                 <Input
                   id="cpf"
                   value={formData.cpf}
@@ -193,7 +193,9 @@ const NewPatient = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="sessionValue">Valor por Sessão (R$)</Label>
+                <Label htmlFor="sessionValue">
+                  {formData.monthlyPrice ? 'Valor Mensal (R$)' : 'Valor por Sessão (R$)'}
+                </Label>
                 <Input
                   id="sessionValue"
                   type="number"
