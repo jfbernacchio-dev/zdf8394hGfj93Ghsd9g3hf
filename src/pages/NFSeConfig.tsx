@@ -7,8 +7,13 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
-import { ArrowLeft, FileText, Upload, Save, Shield } from 'lucide-react';
+import { ArrowLeft, FileText, Upload, Save, Shield, CalendarIcon } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function NFSeConfig() {
@@ -457,12 +462,41 @@ export default function NFSeConfig() {
 
                   <div className="space-y-2">
                     <Label htmlFor="valid_until">Válido até</Label>
-                    <Input
-                      id="valid_until"
-                      type="date"
-                      value={certificate.valid_until}
-                      onChange={(e) => setCertificate({ ...certificate, valid_until: e.target.value })}
-                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !certificate.valid_until && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {certificate.valid_until ? (
+                            format(new Date(certificate.valid_until), "dd/MM/yyyy", { locale: ptBR })
+                          ) : (
+                            <span>Selecione a data</span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={certificate.valid_until ? new Date(certificate.valid_until) : undefined}
+                          onSelect={(date) => {
+                            if (date) {
+                              setCertificate({ 
+                                ...certificate, 
+                                valid_until: format(date, "yyyy-MM-dd")
+                              });
+                            }
+                          }}
+                          locale={ptBR}
+                          initialFocus
+                          className={cn("p-3 pointer-events-auto")}
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
 
                   {certificate.certificate_type === 'A1' && (
