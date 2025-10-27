@@ -8,10 +8,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ArrowLeft } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { ArrowLeft, CalendarIcon } from 'lucide-react';
 
 import { useToast } from '@/hooks/use-toast';
 import { format, addWeeks, parseISO, getDay } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 const EditPatient = () => {
   const { id } = useParams<{ id: string }>();
@@ -273,13 +277,41 @@ const EditPatient = () => {
 
             <div className="space-y-2">
               <Label htmlFor="birth_date">Data de nascimento</Label>
-              <Input
-                id="birth_date"
-                type="date"
-                required
-                value={formData.birth_date}
-                onChange={(e) => setFormData({ ...formData, birth_date: e.target.value })}
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !formData.birth_date && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formData.birth_date ? (
+                      format(new Date(formData.birth_date), "dd/MM/yyyy", { locale: ptBR })
+                    ) : (
+                      <span>Selecione a data</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={formData.birth_date ? new Date(formData.birth_date) : undefined}
+                    onSelect={(date) => {
+                      if (date) {
+                        setFormData({ 
+                          ...formData, 
+                          birth_date: format(date, "yyyy-MM-dd")
+                        });
+                      }
+                    }}
+                    locale={ptBR}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div className="space-y-2">
@@ -367,13 +399,41 @@ const EditPatient = () => {
 
             <div className="space-y-2">
               <Label htmlFor="start_date">Data de início</Label>
-              <Input
-                id="start_date"
-                type="date"
-                required
-                value={formData.start_date}
-                onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !formData.start_date && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formData.start_date ? (
+                      format(new Date(formData.start_date), "dd/MM/yyyy", { locale: ptBR })
+                    ) : (
+                      <span>Selecione a data</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={formData.start_date ? new Date(formData.start_date) : undefined}
+                    onSelect={(date) => {
+                      if (date) {
+                        setFormData({ 
+                          ...formData, 
+                          start_date: format(date, "yyyy-MM-dd")
+                        });
+                      }
+                    }}
+                    locale={ptBR}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -505,12 +565,39 @@ const EditPatient = () => {
               </p>
               <div>
                 <Label>Aplicar mudanças a partir de:</Label>
-                <Input
-                  type="date"
-                  value={changeFromDate}
-                  onChange={(e) => setChangeFromDate(e.target.value)}
-                  min={format(new Date(), 'yyyy-MM-dd')}
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !changeFromDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {changeFromDate ? (
+                        format(new Date(changeFromDate), "dd/MM/yyyy", { locale: ptBR })
+                      ) : (
+                        <span>Selecione a data</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={changeFromDate ? new Date(changeFromDate) : undefined}
+                      onSelect={(date) => {
+                        if (date) {
+                          setChangeFromDate(format(date, "yyyy-MM-dd"));
+                        }
+                      }}
+                      disabled={(date) => date < new Date()}
+                      locale={ptBR}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="flex gap-2">
                 <Button onClick={updateFutureSessions} className="flex-1">
