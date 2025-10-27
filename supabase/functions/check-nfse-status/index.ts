@@ -212,6 +212,40 @@ serve(async (req) => {
         console.error('Error processing PDF upload:', pdfError);
         // Don't fail the entire operation if PDF upload fails
       }
+
+      // Mark all unpaid sessions up to the issue date as paid
+      try {
+        console.log('Marking sessions as paid for patient:', nfseRecord.patient_id);
+        
+        const { data: unpaidSessions, error: sessionsError } = await supabase
+          .from('sessions')
+          .select('id')
+          .eq('patient_id', nfseRecord.patient_id)
+          .eq('paid', false)
+          .lte('date', nfseRecord.issue_date);
+
+        if (sessionsError) {
+          console.error('Error fetching unpaid sessions:', sessionsError);
+        } else if (unpaidSessions && unpaidSessions.length > 0) {
+          const sessionIds = unpaidSessions.map(s => s.id);
+          
+          const { error: updateError } = await supabase
+            .from('sessions')
+            .update({ paid: true })
+            .in('id', sessionIds);
+          
+          if (updateError) {
+            console.error('Error updating sessions to paid:', updateError);
+          } else {
+            console.log(`Successfully marked ${unpaidSessions.length} sessions as paid`);
+          }
+        } else {
+          console.log('No unpaid sessions found for this patient');
+        }
+      } catch (sessionError) {
+        console.error('Error processing session payments:', sessionError);
+        // Don't fail the entire operation if session update fails
+      }
     }
 
     return new Response(
