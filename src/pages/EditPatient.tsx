@@ -41,10 +41,14 @@ const EditPatient = () => {
         frequency: data.frequency,
         session_day: data.session_day,
         session_time: data.session_time,
+        session_day_2: data.session_day_2,
+        session_time_2: data.session_time_2,
         session_value: data.session_value,
         start_date: data.start_date,
         status: data.status,
         lgpd_consent_date: data.lgpd_consent_date,
+        no_nfse: data.no_nfse || false,
+        monthly_price: data.monthly_price || false,
       };
       setFormData(patientData);
       setOriginalData(patientData);
@@ -122,14 +126,18 @@ const EditPatient = () => {
       name: formData.name,
       email: formData.email,
       phone: formData.phone,
-      cpf: formData.cpf,
+      cpf: formData.cpf || null,
       birth_date: formData.birth_date,
       frequency: formData.frequency,
       session_day: formData.session_day,
       session_time: formData.session_time,
+      session_day_2: formData.frequency === 'twice_weekly' ? (formData.session_day_2 || null) : null,
+      session_time_2: formData.frequency === 'twice_weekly' ? (formData.session_time_2 || null) : null,
       session_value: formData.session_value,
       start_date: formData.start_date,
       lgpd_consent_date: formData.lgpd_consent_date,
+      no_nfse: formData.no_nfse,
+      monthly_price: formData.monthly_price,
     }).eq('id', id);
 
     if (error) {
@@ -275,33 +283,67 @@ const EditPatient = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="cpf">CPF</Label>
+              <Label htmlFor="cpf">CPF (opcional)</Label>
               <Input
                 id="cpf"
-                required
-                value={formData.cpf}
-                onChange={(e) => setFormData({ ...formData, cpf: e.target.value.replace(/\D/g, '') })}
-                maxLength={11}
+                value={formData.cpf || ''}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '');
+                  let formatted = value;
+                  if (value.length > 3) formatted = value.slice(0, 3) + '.' + value.slice(3);
+                  if (value.length > 6) formatted = formatted.slice(0, 7) + '.' + value.slice(6);
+                  if (value.length > 9) formatted = formatted.slice(0, 11) + '-' + value.slice(9);
+                  setFormData({ ...formData, cpf: formatted });
+                }}
+                maxLength={14}
+                placeholder="000.000.000-00"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="session_value">Valor por Sessão (R$)</Label>
-              <Input
-                id="session_value"
-                type="number"
-                step="0.01"
-                required
-                value={formData.session_value}
-                onChange={(e) => setFormData({ ...formData, session_value: e.target.value })}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="session_value">Valor por Sessão (R$)</Label>
+                <Input
+                  id="session_value"
+                  type="number"
+                  step="0.01"
+                  required
+                  value={formData.session_value}
+                  onChange={(e) => setFormData({ ...formData, session_value: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-transparent">.</Label>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="monthlyPrice"
+                      checked={formData.monthly_price}
+                      onChange={(e) => setFormData({ ...formData, monthly_price: e.target.checked })}
+                      className="cursor-pointer"
+                    />
+                    <Label htmlFor="monthlyPrice" className="cursor-pointer text-sm">Preço Mensal</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="noNfse"
+                      checked={formData.no_nfse}
+                      onChange={(e) => setFormData({ ...formData, no_nfse: e.target.checked })}
+                      className="cursor-pointer"
+                    />
+                    <Label htmlFor="noNfse" className="cursor-pointer text-sm">Não Emitir NF</Label>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="frequency">Frequência das sessões</Label>
               <Select 
                 value={formData.frequency} 
-                onValueChange={(value) => setFormData({ ...formData, frequency: value as 'weekly' | 'biweekly' })}
+                onValueChange={(value) => setFormData({ ...formData, frequency: value as 'weekly' | 'biweekly' | 'twice_weekly' })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione a frequência" />
@@ -309,6 +351,7 @@ const EditPatient = () => {
                 <SelectContent>
                   <SelectItem value="weekly">Semanal</SelectItem>
                   <SelectItem value="biweekly">Quinzenal</SelectItem>
+                  <SelectItem value="twice_weekly">Duas vezes por semana</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -324,37 +367,74 @@ const EditPatient = () => {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="session_day">Dia da semana da sessão</Label>
-              <Select 
-                value={formData.session_day} 
-                onValueChange={(value) => setFormData({ ...formData, session_day: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o dia da semana" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="monday">Segunda-feira</SelectItem>
-                  <SelectItem value="tuesday">Terça-feira</SelectItem>
-                  <SelectItem value="wednesday">Quarta-feira</SelectItem>
-                  <SelectItem value="thursday">Quinta-feira</SelectItem>
-                  <SelectItem value="friday">Sexta-feira</SelectItem>
-                  <SelectItem value="saturday">Sábado</SelectItem>
-                  <SelectItem value="sunday">Domingo</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="session_day">Dia da semana da sessão {formData.frequency === 'twice_weekly' ? '(1ª)' : ''}</Label>
+                <Select 
+                  value={formData.session_day} 
+                  onValueChange={(value) => setFormData({ ...formData, session_day: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o dia da semana" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="monday">Segunda-feira</SelectItem>
+                    <SelectItem value="tuesday">Terça-feira</SelectItem>
+                    <SelectItem value="wednesday">Quarta-feira</SelectItem>
+                    <SelectItem value="thursday">Quinta-feira</SelectItem>
+                    <SelectItem value="friday">Sexta-feira</SelectItem>
+                    <SelectItem value="saturday">Sábado</SelectItem>
+                    <SelectItem value="sunday">Domingo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="session_time">Horário da sessão {formData.frequency === 'twice_weekly' ? '(1ª)' : ''}</Label>
+                <Input
+                  id="session_time"
+                  type="time"
+                  required
+                  value={formData.session_time}
+                  onChange={(e) => setFormData({ ...formData, session_time: e.target.value })}
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="session_time">Horário da sessão</Label>
-              <Input
-                id="session_time"
-                type="time"
-                required
-                value={formData.session_time}
-                onChange={(e) => setFormData({ ...formData, session_time: e.target.value })}
-              />
-            </div>
+            {formData.frequency === 'twice_weekly' && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="session_day_2">Dia da semana da sessão (2ª)</Label>
+                  <Select 
+                    value={formData.session_day_2 || 'thursday'} 
+                    onValueChange={(value) => setFormData({ ...formData, session_day_2: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o dia da semana" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="monday">Segunda-feira</SelectItem>
+                      <SelectItem value="tuesday">Terça-feira</SelectItem>
+                      <SelectItem value="wednesday">Quarta-feira</SelectItem>
+                      <SelectItem value="thursday">Quinta-feira</SelectItem>
+                      <SelectItem value="friday">Sexta-feira</SelectItem>
+                      <SelectItem value="saturday">Sábado</SelectItem>
+                      <SelectItem value="sunday">Domingo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="session_time_2">Horário da sessão (2ª)</Label>
+                  <Input
+                    id="session_time_2"
+                    type="time"
+                    value={formData.session_time_2 || ''}
+                    onChange={(e) => setFormData({ ...formData, session_time_2: e.target.value })}
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="flex items-start gap-3 p-4 bg-muted/50 rounded-lg">
               <input

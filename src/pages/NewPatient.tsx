@@ -21,12 +21,16 @@ const NewPatient = () => {
     phone: '',
     cpf: '',
     birthDate: '',
-    frequency: 'weekly' as 'weekly' | 'biweekly',
+    frequency: 'weekly' as 'weekly' | 'biweekly' | 'twice_weekly',
     sessionDay: 'monday' as string,
     sessionTime: '',
+    sessionDay2: 'thursday' as string,
+    sessionTime2: '',
     sessionValue: '',
     startDate: '',
     lgpdConsent: false,
+    noNfse: false,
+    monthlyPrice: false,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -42,14 +46,18 @@ const NewPatient = () => {
           name: formData.name,
           email: formData.email || null,
           phone: formData.phone || null,
-          cpf: formData.cpf,
+          cpf: formData.cpf || null,
           birth_date: formData.birthDate || null,
           frequency: formData.frequency || 'weekly',
           session_day: formData.sessionDay || null,
           session_time: formData.sessionTime || null,
+          session_day_2: formData.frequency === 'twice_weekly' ? (formData.sessionDay2 || null) : null,
+          session_time_2: formData.frequency === 'twice_weekly' ? (formData.sessionTime2 || null) : null,
           session_value: parseFloat(formData.sessionValue),
           start_date: formData.startDate || null,
           lgpd_consent_date: formData.lgpdConsent ? new Date().toISOString() : null,
+          no_nfse: formData.noNfse,
+          monthly_price: formData.monthlyPrice,
           status: 'active',
         })
         .select()
@@ -59,14 +67,15 @@ const NewPatient = () => {
 
       let sessionsCount = 0;
 
-      // Only generate sessions if all scheduling data is complete
-      if (formData.startDate && formData.sessionDay && formData.sessionTime) {
+      // Only generate sessions if all scheduling data is complete and frequency is not twice_weekly
+      // twice_weekly requires manual session management due to two different days
+      if (formData.startDate && formData.sessionDay && formData.sessionTime && formData.frequency !== 'twice_weekly') {
         const { generateRecurringSessions } = await import('@/lib/sessionUtils');
         const sessionData = generateRecurringSessions(
           formData.startDate,
           formData.sessionDay,
           formData.sessionTime,
-          formData.frequency,
+          formData.frequency as 'weekly' | 'biweekly',
           new Date()
         );
 
@@ -154,10 +163,9 @@ const NewPatient = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="cpf">CPF</Label>
+                <Label htmlFor="cpf">CPF (opcional)</Label>
                 <Input
                   id="cpf"
-                  required
                   value={formData.cpf}
                   onChange={(e) => {
                     const value = e.target.value.replace(/\D/g, '');
@@ -183,16 +191,43 @@ const NewPatient = () => {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="sessionValue">Valor por Sessão (R$)</Label>
-              <Input
-                id="sessionValue"
-                type="number"
-                step="0.01"
-                required
-                value={formData.sessionValue}
-                onChange={(e) => setFormData({ ...formData, sessionValue: e.target.value })}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="sessionValue">Valor por Sessão (R$)</Label>
+                <Input
+                  id="sessionValue"
+                  type="number"
+                  step="0.01"
+                  required
+                  value={formData.sessionValue}
+                  onChange={(e) => setFormData({ ...formData, sessionValue: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-transparent">.</Label>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="monthlyPrice"
+                      checked={formData.monthlyPrice}
+                      onChange={(e) => setFormData({ ...formData, monthlyPrice: e.target.checked })}
+                      className="cursor-pointer"
+                    />
+                    <Label htmlFor="monthlyPrice" className="cursor-pointer text-sm">Preço Mensal</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="noNfse"
+                      checked={formData.noNfse}
+                      onChange={(e) => setFormData({ ...formData, noNfse: e.target.checked })}
+                      className="cursor-pointer"
+                    />
+                    <Label htmlFor="noNfse" className="cursor-pointer text-sm">Não Emitir NF</Label>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -200,7 +235,7 @@ const NewPatient = () => {
                 <Label htmlFor="frequency">Frequência das sessões</Label>
                 <Select 
                   value={formData.frequency} 
-                  onValueChange={(value) => setFormData({ ...formData, frequency: value as 'weekly' | 'biweekly' })}
+                  onValueChange={(value) => setFormData({ ...formData, frequency: value as 'weekly' | 'biweekly' | 'twice_weekly' })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione a frequência" />
@@ -208,6 +243,7 @@ const NewPatient = () => {
                   <SelectContent>
                     <SelectItem value="weekly">Semanal</SelectItem>
                     <SelectItem value="biweekly">Quinzenal</SelectItem>
+                    <SelectItem value="twice_weekly">Duas vezes por semana</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -225,7 +261,7 @@ const NewPatient = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="sessionDay">Dia da semana da sessão</Label>
+                <Label htmlFor="sessionDay">Dia da semana da sessão {formData.frequency === 'twice_weekly' ? '(1ª)' : ''}</Label>
                 <Select 
                   value={formData.sessionDay} 
                   onValueChange={(value) => setFormData({ ...formData, sessionDay: value })}
@@ -246,7 +282,7 @@ const NewPatient = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="sessionTime">Horário da sessão</Label>
+                <Label htmlFor="sessionTime">Horário da sessão {formData.frequency === 'twice_weekly' ? '(1ª)' : ''}</Label>
                 <Input
                   id="sessionTime"
                   type="time"
@@ -255,6 +291,41 @@ const NewPatient = () => {
                 />
               </div>
             </div>
+
+            {formData.frequency === 'twice_weekly' && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="sessionDay2">Dia da semana da sessão (2ª)</Label>
+                  <Select 
+                    value={formData.sessionDay2} 
+                    onValueChange={(value) => setFormData({ ...formData, sessionDay2: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o dia da semana" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="monday">Segunda-feira</SelectItem>
+                      <SelectItem value="tuesday">Terça-feira</SelectItem>
+                      <SelectItem value="wednesday">Quarta-feira</SelectItem>
+                      <SelectItem value="thursday">Quinta-feira</SelectItem>
+                      <SelectItem value="friday">Sexta-feira</SelectItem>
+                      <SelectItem value="saturday">Sábado</SelectItem>
+                      <SelectItem value="sunday">Domingo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="sessionTime2">Horário da sessão (2ª)</Label>
+                  <Input
+                    id="sessionTime2"
+                    type="time"
+                    value={formData.sessionTime2}
+                    onChange={(e) => setFormData({ ...formData, sessionTime2: e.target.value })}
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="flex items-start gap-3 p-4 bg-muted/50 rounded-lg">
               <input

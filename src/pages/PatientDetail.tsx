@@ -601,10 +601,17 @@ Assinatura do Profissional`;
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold text-foreground">Histórico de Sessões</h2>
               <div className="flex gap-2">
-                <Button onClick={generateInvoice} variant="outline">
-                  <FileText className="w-4 h-4 mr-2" />
-                  Fazer Fechamento
-                </Button>
+                {(patient.no_nfse || patient.monthly_price || !patient.cpf) ? (
+                  <Button onClick={generateInvoice} variant="outline">
+                    <FileText className="w-4 h-4 mr-2" />
+                    Gerar Texto Simples
+                  </Button>
+                ) : (
+                  <Button onClick={generateInvoice} variant="outline">
+                    <FileText className="w-4 h-4 mr-2" />
+                    Fazer Fechamento
+                  </Button>
+                )}
                 <Button onClick={openNewSessionDialog}>
                   <Plus className="w-4 h-4 mr-2" />
                   Nova Sessão

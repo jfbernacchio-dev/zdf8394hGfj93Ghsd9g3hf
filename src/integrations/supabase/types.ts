@@ -293,16 +293,20 @@ export type Database = {
       patients: {
         Row: {
           birth_date: string | null
-          cpf: string
+          cpf: string | null
           created_at: string
           email: string | null
           frequency: string
           id: string
           lgpd_consent_date: string | null
+          monthly_price: boolean | null
           name: string
+          no_nfse: boolean | null
           phone: string | null
           session_day: string | null
+          session_day_2: string | null
           session_time: string | null
+          session_time_2: string | null
           session_value: number
           start_date: string | null
           status: string
@@ -311,16 +315,20 @@ export type Database = {
         }
         Insert: {
           birth_date?: string | null
-          cpf: string
+          cpf?: string | null
           created_at?: string
           email?: string | null
           frequency: string
           id?: string
           lgpd_consent_date?: string | null
+          monthly_price?: boolean | null
           name: string
+          no_nfse?: boolean | null
           phone?: string | null
           session_day?: string | null
+          session_day_2?: string | null
           session_time?: string | null
+          session_time_2?: string | null
           session_value: number
           start_date?: string | null
           status?: string
@@ -329,16 +337,20 @@ export type Database = {
         }
         Update: {
           birth_date?: string | null
-          cpf?: string
+          cpf?: string | null
           created_at?: string
           email?: string | null
           frequency?: string
           id?: string
           lgpd_consent_date?: string | null
+          monthly_price?: boolean | null
           name?: string
+          no_nfse?: boolean | null
           phone?: string | null
           session_day?: string | null
+          session_day_2?: string | null
           session_time?: string | null
+          session_time_2?: string | null
           session_value?: number
           start_date?: string | null
           status?: string

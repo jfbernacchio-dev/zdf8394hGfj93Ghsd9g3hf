@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, Search, Edit, FileText } from 'lucide-react';
+import { Plus, Search, Edit, FileText, AlertCircle } from 'lucide-react';
 
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -173,8 +173,13 @@ const Patients = () => {
               <Card key={patient.id} className="p-6 shadow-[var(--shadow-card)] border-border hover:shadow-[var(--shadow-soft)] transition-shadow">
                 <div className="flex items-center gap-4 mb-4">
                   <div className="flex-1 flex items-center gap-4 cursor-pointer" onClick={() => navigate(`/patients/${patient.id}`)}>
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold text-lg">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold text-lg relative">
                       {patient.name.charAt(0).toUpperCase()}
+                      {!patient.cpf && (
+                        <div className="absolute -top-1 -right-1 w-5 h-5 bg-warning rounded-full flex items-center justify-center" title="CPF não informado">
+                          <AlertCircle className="w-3 h-3 text-warning-foreground" />
+                        </div>
+                      )}
                     </div>
                     <div>
                       <h3 className="font-semibold text-foreground">{patient.name}</h3>
