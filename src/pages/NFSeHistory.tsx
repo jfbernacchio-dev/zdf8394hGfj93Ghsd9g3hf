@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 
 interface NFSeIssued {
   id: string;
@@ -169,7 +170,7 @@ export default function NFSeHistory() {
               <div>
                 <p className="text-sm text-muted-foreground">Valor Total</p>
                 <p className="text-2xl font-bold">
-                  {totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  {formatBrazilianCurrency(totalValue)}
                 </p>
               </div>
             </div>
@@ -234,7 +235,7 @@ export default function NFSeHistory() {
                       {format(parseISO(nfse.issue_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                     </TableCell>
                     <TableCell>
-                      {Number(nfse.service_value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      {formatBrazilianCurrency(Number(nfse.service_value))}
                     </TableCell>
                     <TableCell>{getStatusBadge(nfse.status)}</TableCell>
                     <TableCell className="text-right">

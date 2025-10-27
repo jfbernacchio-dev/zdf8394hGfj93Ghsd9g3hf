@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, startOfMonth, endOfMonth, isFuture } from 'date-fns';
 import { PatientFiles } from '@/components/PatientFiles';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
+import IssueNFSeDialog from '@/components/IssueNFSeDialog';
 
 const PatientDetail = () => {
   const { id } = useParams();
@@ -503,6 +504,12 @@ Assinatura do Profissional`;
                 <Edit className="w-4 h-4 mr-2" />
                 Editar
               </Button>
+              <IssueNFSeDialog 
+                patientId={id!} 
+                patientName={patient.name}
+                defaultValue={patient.session_value}
+                defaultSessions={1}
+              />
               <Button
                 variant="outline"
                 onClick={handleExportPatientData}
