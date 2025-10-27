@@ -62,7 +62,6 @@ export default function NFSeHistory() {
             cpf
           )
         `)
-        .eq('user_id', user.id)
         .order('issue_date', { ascending: false });
 
       if (error) throw error;
