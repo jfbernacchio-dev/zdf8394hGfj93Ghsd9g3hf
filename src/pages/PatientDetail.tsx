@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 import { ArrowLeft, Plus, Calendar, DollarSign, Edit, FileText, Download, Trash2, Shield } from 'lucide-react';
 
 import { useToast } from '@/hooks/use-toast';
@@ -35,6 +36,8 @@ const PatientDetail = () => {
   const [period, setPeriod] = useState('month');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
+  const [showScheduled, setShowScheduled] = useState(false);
+  const [showUnpaid, setShowUnpaid] = useState(false);
   const [formData, setFormData] = useState({
     date: format(new Date(), 'yyyy-MM-dd'),
     status: 'attended',
@@ -50,7 +53,7 @@ const PatientDetail = () => {
 
   useEffect(() => {
     filterSessions();
-  }, [period, customStartDate, customEndDate, allSessions]);
+  }, [period, customStartDate, customEndDate, allSessions, showScheduled, showUnpaid]);
 
   const loadData = async () => {
     const { data: patientData } = await supabase.from('patients').select('*').eq('id', id).single();
@@ -71,28 +74,53 @@ const PatientDetail = () => {
   const filterSessions = () => {
     if (!allSessions.length) return;
 
-    if (period === 'all') {
-      setSessions(allSessions);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    // Se "Mostrar Agendadas" está ativo, ignorar filtros de período
+    if (showScheduled) {
+      const scheduled = allSessions.filter(session => {
+        const sessionDate = parseISO(session.date);
+        return sessionDate > now && session.status === 'scheduled';
+      });
+      setSessions(scheduled);
       return;
     }
 
-    const now = new Date();
-    let start: Date, end: Date;
+    // Aplicar filtro de período
+    let filtered = allSessions;
 
-    if (period === 'custom') {
-      if (!customStartDate || !customEndDate) return;
-      start = new Date(customStartDate);
-      end = new Date(customEndDate);
-    } else {
-      // Este Mês
-      start = startOfMonth(now);
-      end = endOfMonth(now);
+    if (period !== 'all') {
+      let start: Date, end: Date;
+
+      if (period === 'custom') {
+        if (!customStartDate || !customEndDate) return;
+        start = new Date(customStartDate);
+        end = new Date(customEndDate);
+      } else if (period === 'lastMonth') {
+        // Último Mês: dia 01 ao 31 do mês anterior
+        start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        end = new Date(now.getFullYear(), now.getMonth(), 0);
+      } else if (period === 'last2Months') {
+        // Últimos 2 Meses: do dia 01 do mês anterior até o dia 31 do mês atual
+        start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      } else {
+        // Este Mês
+        start = startOfMonth(now);
+        end = endOfMonth(now);
+      }
+
+      filtered = allSessions.filter(session => {
+        const date = parseISO(session.date);
+        return date >= start && date <= end;
+      });
     }
 
-    const filtered = allSessions.filter(session => {
-      const date = parseISO(session.date);
-      return date >= start && date <= end;
-    });
+    // Aplicar filtro "Mostrar A Pagar"
+    if (showUnpaid) {
+      filtered = filtered.filter(session => session.status === 'attended' && !session.paid);
+    }
 
     setSessions(filtered);
   };
@@ -478,7 +506,7 @@ Assinatura do Profissional`;
 
           <TabsContent value="sessions" className="space-y-4 mt-4">
             <Card className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label>Período</Label>
                   <Select value={period} onValueChange={setPeriod}>
@@ -487,13 +515,15 @@ Assinatura do Profissional`;
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="month">Este Mês</SelectItem>
+                      <SelectItem value="lastMonth">Último Mês</SelectItem>
+                      <SelectItem value="last2Months">Últimos 2 Meses</SelectItem>
                       <SelectItem value="custom">Personalizado</SelectItem>
                       <SelectItem value="all">Todo Período</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
-                {period === 'custom' && (
+                {period === 'custom' ? (
                   <>
                     <div className="space-y-2">
                       <Label>Data Inicial</Label>
@@ -510,6 +540,48 @@ Assinatura do Profissional`;
                         value={customEndDate}
                         onChange={(e) => setCustomEndDate(e.target.value)}
                       />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Filtros</Label>
+                      <div className="flex items-center space-x-2 pt-2">
+                        <Checkbox 
+                          id="showScheduled" 
+                          checked={showScheduled} 
+                          onCheckedChange={(checked) => {
+                            setShowScheduled(!!checked);
+                            if (checked) setShowUnpaid(false);
+                          }}
+                        />
+                        <label
+                          htmlFor="showScheduled"
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                        >
+                          Mostrar Agendadas
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="invisible">Filtros</Label>
+                      <div className="flex items-center space-x-2 pt-2">
+                        <Checkbox 
+                          id="showUnpaid" 
+                          checked={showUnpaid} 
+                          onCheckedChange={(checked) => {
+                            setShowUnpaid(!!checked);
+                            if (checked) setShowScheduled(false);
+                          }}
+                        />
+                        <label
+                          htmlFor="showUnpaid"
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                        >
+                          Mostrar A Pagar
+                        </label>
+                      </div>
                     </div>
                   </>
                 )}
