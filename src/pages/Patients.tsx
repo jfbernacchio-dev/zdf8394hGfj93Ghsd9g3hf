@@ -211,13 +211,38 @@ const Patients = () => {
   const generateInvoiceText = (sessionsByPatient: Record<string, any[]>) => {
     let invoiceText = `FECHAMENTO GERAL DE SESSÕES\n\n`;
     invoiceText += `${'='.repeat(60)}\n\n`;
+    let grandTotal = 0;
 
     Object.entries(sessionsByPatient).forEach(([patientId, patientSessions]) => {
       const patient = patients.find(p => p.id === patientId);
       if (!patient) return;
 
-      const totalValue = patientSessions.reduce((sum, s) => sum + Number(s.value), 0);
       const sessionDates = patientSessions.map(s => format(parseISO(s.date), 'dd/MM/yyyy')).join(' ; ');
+      
+      let totalValue: number;
+      let valueDescription: string;
+      
+      if (patient.monthly_price) {
+        // For monthly pricing, calculate by number of months
+        const sessionsByMonth = patientSessions.reduce((acc, session) => {
+          const monthYear = format(parseISO(session.date), 'MM/yyyy');
+          if (!acc[monthYear]) {
+            acc[monthYear] = [];
+          }
+          acc[monthYear].push(session);
+          return acc;
+        }, {} as Record<string, any[]>);
+        
+        const monthsCount = Object.keys(sessionsByMonth).length;
+        totalValue = monthsCount * Number(patient.session_value);
+        valueDescription = `Valor mensal: ${formatBrazilianCurrency(patient.session_value)}\nNúmero de meses: ${monthsCount}`;
+      } else {
+        // For per-session pricing
+        totalValue = patientSessions.reduce((sum, s) => sum + Number(s.value), 0);
+        valueDescription = `Valor unitário por sessão: ${formatBrazilianCurrency(patient.session_value)}`;
+      }
+      
+      grandTotal += totalValue;
 
       invoiceText += `PACIENTE: ${patient.name}\n`;
       invoiceText += `CPF: ${patient.cpf}\n\n`;
@@ -226,14 +251,13 @@ const Patients = () => {
       invoiceText += `CRP: ${userProfile?.crp || ''}\n\n`;
       invoiceText += `Sessões realizadas nas datas: ${sessionDates}\n`;
       invoiceText += `Quantidade de sessões: ${patientSessions.length}\n`;
-      invoiceText += `Valor unitário por sessão: ${formatBrazilianCurrency(patient.session_value)}\n`;
+      invoiceText += `${valueDescription}\n`;
       invoiceText += `Valor total: ${formatBrazilianCurrency(totalValue)}\n\n`;
       invoiceText += `_____________________________\n`;
       invoiceText += `Assinatura do Profissional\n\n`;
       invoiceText += `${'='.repeat(60)}\n\n`;
     });
 
-    const grandTotal = affectedSessions.reduce((sum, s) => sum + Number(s.value), 0);
     invoiceText += `TOTAL GERAL: ${formatBrazilianCurrency(grandTotal)}\n`;
     invoiceText += `Total de pacientes: ${Object.keys(sessionsByPatient).length}\n`;
     invoiceText += `Total de sessões: ${affectedSessions.length}\n`;
