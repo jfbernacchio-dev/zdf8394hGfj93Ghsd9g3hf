@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { FileText, Calendar } from 'lucide-react';
+import { FileText, Calendar, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -53,6 +53,35 @@ const InvoiceLogs = () => {
   const openLogDialog = (log: InvoiceLog) => {
     setSelectedLog(log);
     setIsDialogOpen(true);
+  };
+
+  const deleteLog = async (logId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!confirm('Tem certeza que deseja excluir este fechamento?')) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from('invoice_logs')
+      .delete()
+      .eq('id', logId);
+
+    if (error) {
+      toast({
+        title: 'Erro ao excluir',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    toast({
+      title: 'Fechamento excluído',
+      description: 'O registro foi removido com sucesso.',
+    });
+
+    loadLogs();
   };
 
   return (
@@ -106,9 +135,19 @@ const InvoiceLogs = () => {
                     </div>
                   </div>
                 </div>
-                <Button variant="outline" size="sm">
-                  Ver Detalhes
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={(e) => deleteLog(log.id, e)}
+                    title="Excluir fechamento"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                  <Button variant="outline" size="sm">
+                    Ver Detalhes
+                  </Button>
+                </div>
               </div>
             </Card>
           ))}
