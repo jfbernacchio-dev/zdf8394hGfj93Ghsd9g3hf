@@ -4,6 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { Plus, Search, Edit, FileText } from 'lucide-react';
 
 import { useNavigate } from 'react-router-dom';
@@ -16,6 +19,9 @@ const Patients = () => {
   const [patients, setPatients] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
   const [search, setSearch] = useState('');
+  const [period, setPeriod] = useState('all');
+  const [showScheduled, setShowScheduled] = useState(false);
+  const [showUnpaid, setShowUnpaid] = useState(false);
   const [isGeneralInvoiceOpen, setIsGeneralInvoiceOpen] = useState(false);
   const [generalInvoiceText, setGeneralInvoiceText] = useState('');
   const [affectedSessions, setAffectedSessions] = useState<any[]>([]);
@@ -47,12 +53,57 @@ const Patients = () => {
     setSessions(sessionsData || []);
   };
 
+  const getDateRange = () => {
+    const now = new Date();
+    let start: Date, end: Date;
+
+    if (period === 'lastMonth') {
+      // Último Mês: dia 01 ao 31 do mês anterior
+      start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      end = new Date(now.getFullYear(), now.getMonth(), 0);
+    } else if (period === 'last2Months') {
+      // Últimos 2 Meses: do dia 01 do mês anterior até o dia 31 do mês atual
+      start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    } else {
+      // 'all' - sem filtro de data
+      start = new Date(0); // Início dos tempos
+      end = new Date(9999, 11, 31); // Fim dos tempos
+    }
+
+    return { start, end };
+  };
+
   const filteredPatients = patients.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase())
   );
 
   const getPatientStats = (patientId: string) => {
-    const patientSessions = sessions.filter(s => s.patient_id === patientId && s.status === 'attended');
+    const { start, end } = getDateRange();
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    let patientSessions = sessions.filter(s => s.patient_id === patientId);
+
+    // Aplicar filtro "Mostrar Agendadas"
+    if (showScheduled) {
+      patientSessions = patientSessions.filter(s => {
+        const sessionDate = parseISO(s.date);
+        return sessionDate > now && s.status === 'scheduled';
+      });
+    } else {
+      // Aplicar filtro de período apenas se não estiver mostrando agendadas
+      patientSessions = patientSessions.filter(s => {
+        const sessionDate = parseISO(s.date);
+        return sessionDate >= start && sessionDate <= end && s.status === 'attended';
+      });
+
+      // Aplicar filtro "Mostrar A Pagar"
+      if (showUnpaid) {
+        patientSessions = patientSessions.filter(s => !s.paid);
+      }
+    }
+
     const unpaidSessions = patientSessions.filter(s => !s.paid);
     const total = patientSessions.reduce((sum, s) => sum + Number(s.value), 0);
     const unpaid = unpaidSessions.reduce((sum, s) => sum + Number(s.value), 0);
@@ -160,9 +211,65 @@ const Patients = () => {
         </div>
 
         <Card className="p-4 mb-6 shadow-[var(--shadow-card)] border-border">
-          <div className="relative">
+          <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input placeholder="Buscar paciente..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label>Período</Label>
+              <Select value={period} onValueChange={setPeriod}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os Períodos</SelectItem>
+                  <SelectItem value="lastMonth">Último Mês</SelectItem>
+                  <SelectItem value="last2Months">Últimos 2 Meses</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Filtros</Label>
+              <div className="flex items-center space-x-2 pt-2">
+                <Checkbox 
+                  id="showScheduled" 
+                  checked={showScheduled} 
+                  onCheckedChange={(checked) => {
+                    setShowScheduled(!!checked);
+                    if (checked) setShowUnpaid(false);
+                  }}
+                />
+                <label
+                  htmlFor="showScheduled"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                >
+                  Mostrar Agendadas
+                </label>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="invisible">Filtros</Label>
+              <div className="flex items-center space-x-2 pt-2">
+                <Checkbox 
+                  id="showUnpaid" 
+                  checked={showUnpaid} 
+                  onCheckedChange={(checked) => {
+                    setShowUnpaid(!!checked);
+                    if (checked) setShowScheduled(false);
+                  }}
+                />
+                <label
+                  htmlFor="showUnpaid"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                >
+                  Mostrar A Pagar
+                </label>
+              </div>
+            </div>
           </div>
         </Card>
 
