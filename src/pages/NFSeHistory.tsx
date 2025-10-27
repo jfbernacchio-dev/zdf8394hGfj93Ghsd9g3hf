@@ -276,12 +276,12 @@ export default function NFSeHistory() {
                     <TableCell>{getStatusBadge(nfse.status)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        {nfse.status === 'processing' && (
+                        {(nfse.status === 'processing' || nfse.status === 'issued') && (
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleCheckStatus(nfse.id)}
-                            title="Atualizar status"
+                            title="Atualizar dados da nota"
                           >
                             <RefreshCw className="h-4 w-4" />
                           </Button>
