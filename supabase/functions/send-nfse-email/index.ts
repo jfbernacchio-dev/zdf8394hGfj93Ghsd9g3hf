@@ -100,6 +100,7 @@ const handler = async (req: Request): Promise<Response> => {
     const patientName = nfseData.patient.name;
     const nfseNumber = nfseData.nfse_number || "Pendente";
     const issueDate = new Date(nfseData.issue_date).toLocaleDateString("pt-BR");
+    const issueMonth = new Date(nfseData.issue_date).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
     const serviceValue = Number(nfseData.service_value).toLocaleString("pt-BR", {
       style: "currency",
       currency: "BRL",
@@ -111,29 +112,28 @@ const handler = async (req: Request): Promise<Response> => {
     const emailResponse = await resend.emails.send({
       from: "Espaço Mindware <onboarding@resend.dev>",
       to: [nfseData.patient.email],
-      subject: `Nota Fiscal de Serviço Eletrônica - ${nfseNumber}`,
+      subject: `Nota Fiscal Espaço Mindware - ${issueMonth}`,
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h1 style="color: #8B9D83;">Nota Fiscal Eletrônica Emitida</h1>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #8B9D83; margin-bottom: 20px;">Espaço Mindware Psicologia</h2>
           
           <p>Olá, <strong>${patientName}</strong>!</p>
           
-          <p>Sua Nota Fiscal de Serviço Eletrônica foi emitida com sucesso.</p>
+          <p>Segue em anexo a Nota Fiscal de Serviço Eletrônica referente aos atendimentos realizados.</p>
           
-          <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <h3 style="margin-top: 0; color: #8B9D83;">Detalhes da NF-e</h3>
-            <p><strong>Número:</strong> ${nfseNumber}</p>
-            <p><strong>Data de Emissão:</strong> ${issueDate}</p>
-            <p><strong>Valor do Serviço:</strong> ${serviceValue}</p>
-            ${nfseData.verification_code ? `<p><strong>Código de Verificação:</strong> ${nfseData.verification_code}</p>` : ""}
+          <div style="background-color: #f9f9f9; padding: 15px; border-left: 4px solid #8B9D83; margin: 25px 0;">
+            <p style="margin: 5px 0;"><strong>Número da NF-e:</strong> ${nfseNumber}</p>
+            <p style="margin: 5px 0;"><strong>Data de Emissão:</strong> ${issueDate}</p>
+            <p style="margin: 5px 0;"><strong>Valor Total:</strong> ${serviceValue}</p>
+            ${nfseData.verification_code ? `<p style="margin: 5px 0;"><strong>Código de Verificação:</strong> ${nfseData.verification_code}</p>` : ""}
           </div>
           
-          <p>O arquivo PDF da nota fiscal está anexado a este email.</p>
+          <p>O documento PDF está anexado a este email para sua conveniência.</p>
           
-          ${nfseData.xml_url ? `<p>Você também pode acessar o XML da nota fiscal <a href="${nfseData.xml_url}" style="color: #8B9D83;">clicando aqui</a>.</p>` : ""}
-          
-          <p style="margin-top: 30px; color: #666; font-size: 12px;">
-            Este é um email automático. Em caso de dúvidas, entre em contato com o Espaço Mindware Psicologia.
+          <p style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 13px;">
+            <strong>Espaço Mindware Psicologia</strong><br>
+            Em caso de dúvidas, entre em contato conosco.<br>
+            <em>Este é um email automático, não é necessário respondê-lo.</em>
           </p>
         </div>
       `,
