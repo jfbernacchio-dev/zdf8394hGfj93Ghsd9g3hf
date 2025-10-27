@@ -407,7 +407,7 @@ Assinatura do Profissional`;
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-foreground">{patient.name}</h1>
-                <p className="text-muted-foreground">{patient.email}</p>
+                <p className="text-muted-foreground">{patient.email || 'Email não informado'}</p>
               </div>
             </div>
             <div className="flex gap-2">
@@ -601,11 +601,11 @@ Assinatura do Profissional`;
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Email</p>
-                  <p className="font-medium">{patient.email}</p>
+                  <p className="font-medium">{patient.email || 'Não informado'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Telefone</p>
-                  <p className="font-medium">{patient.phone}</p>
+                  <p className="font-medium">{patient.phone || 'Não informado'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">CPF</p>
@@ -613,7 +613,7 @@ Assinatura do Profissional`;
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Data de Nascimento</p>
-                  <p className="font-medium">{format(parseISO(patient.birth_date), 'dd/MM/yyyy')}</p>
+                  <p className="font-medium">{patient.birth_date ? format(parseISO(patient.birth_date), 'dd/MM/yyyy') : 'Não informada'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Frequência</p>
@@ -621,11 +621,11 @@ Assinatura do Profissional`;
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Dia da Sessão</p>
-                  <p className="font-medium">{patient.session_day}</p>
+                  <p className="font-medium">{patient.session_day || 'Não definido'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Horário da Sessão</p>
-                  <p className="font-medium">{patient.session_time}</p>
+                  <p className="font-medium">{patient.session_time || 'Não definido'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Valor da Sessão</p>
