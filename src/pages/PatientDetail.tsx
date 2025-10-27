@@ -125,6 +125,13 @@ const PatientDetail = () => {
       filtered = [...filtered, ...additionalScheduled];
     }
 
+    // Ordenar por data decrescente (mais recentes/futuras no topo)
+    filtered.sort((a, b) => {
+      const dateA = parseISO(a.date);
+      const dateB = parseISO(b.date);
+      return dateB.getTime() - dateA.getTime();
+    });
+
     setSessions(filtered);
   };
 
