@@ -59,8 +59,47 @@ const Patients = () => {
   });
 
   const getPatientStats = (patientId: string) => {
+    const patient = patients.find(p => p.id === patientId);
     const patientSessions = sessions.filter(s => s.patient_id === patientId && s.status === 'attended');
     const unpaidSessions = patientSessions.filter(s => !s.paid);
+    
+    // For monthly pricing, calculate by months instead of sessions
+    if (patient?.monthly_price) {
+      // Group unpaid sessions by month
+      const unpaidByMonth = unpaidSessions.reduce((acc, session) => {
+        const monthYear = format(parseISO(session.date), 'MM/yyyy');
+        if (!acc[monthYear]) {
+          acc[monthYear] = [];
+        }
+        acc[monthYear].push(session);
+        return acc;
+      }, {} as Record<string, any[]>);
+      
+      const unpaidMonthsCount = Object.keys(unpaidByMonth).length;
+      const unpaidValue = unpaidMonthsCount * Number(patient.session_value);
+      
+      // Group all sessions by month
+      const totalByMonth = patientSessions.reduce((acc, session) => {
+        const monthYear = format(parseISO(session.date), 'MM/yyyy');
+        if (!acc[monthYear]) {
+          acc[monthYear] = [];
+        }
+        acc[monthYear].push(session);
+        return acc;
+      }, {} as Record<string, any[]>);
+      
+      const totalMonthsCount = Object.keys(totalByMonth).length;
+      const totalValue = totalMonthsCount * Number(patient.session_value);
+      
+      return { 
+        totalSessions: patientSessions.length, 
+        totalValue, 
+        unpaidCount: unpaidSessions.length, 
+        unpaidValue 
+      };
+    }
+    
+    // For per-session pricing
     const total = patientSessions.reduce((sum, s) => sum + Number(s.value), 0);
     const unpaid = unpaidSessions.reduce((sum, s) => sum + Number(s.value), 0);
     return { totalSessions: patientSessions.length, totalValue: total, unpaidCount: unpaidSessions.length, unpaidValue: unpaid };

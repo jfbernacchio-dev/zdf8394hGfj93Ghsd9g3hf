@@ -545,7 +545,7 @@ Assinatura do Profissional`;
             </div>
             <div className="flex items-center gap-3">
               <DollarSign className="w-5 h-5 text-success" />
-              <div>
+              <div className="flex-1">
                 <p className="text-sm text-muted-foreground">Sessões em Aberto</p>
                 <p className="text-xl font-semibold text-foreground">
                   {patient.monthly_price ? (() => {
@@ -560,7 +560,15 @@ Assinatura do Profissional`;
                     }, {} as Record<string, any[]>);
                     const monthsCount = Object.keys(sessionsByMonth).length;
                     const totalValue = monthsCount * Number(patient.session_value);
-                    return `${monthsCount} ${monthsCount === 1 ? 'mês' : 'meses'} (${unpaidSessions.length} ${unpaidSessions.length === 1 ? 'sessão' : 'sessões'}) - R$ ${totalValue.toFixed(2)}`;
+                    return (
+                      <>
+                        {monthsCount} {monthsCount === 1 ? 'mês' : 'meses'}{' '}
+                        <span className="text-sm text-muted-foreground">
+                          ({unpaidSessions.length} {unpaidSessions.length === 1 ? 'sessão' : 'sessões'})
+                        </span>
+                        {' - '}R$ {totalValue.toFixed(2)}
+                      </>
+                    );
                   })() : (() => {
                     const totalValue = unpaidSessions.reduce((sum, s) => sum + Number(s.value || 0), 0);
                     return `${unpaidSessions.length} (R$ ${totalValue.toFixed(2)})`;
