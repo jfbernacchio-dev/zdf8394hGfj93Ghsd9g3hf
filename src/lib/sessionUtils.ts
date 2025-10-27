@@ -93,6 +93,62 @@ export const getNextSessionDate = (
   return format(nextDate, 'yyyy-MM-dd');
 };
 
+export const generateTwiceWeeklySessions = (
+  startDate: string,
+  sessionDay1: string,
+  sessionTime1: string,
+  sessionDay2: string,
+  sessionTime2: string,
+  endDate?: Date
+) => {
+  const sessions: { date: string; status: string; time: string }[] = [];
+  
+  const start = parseISO(startDate);
+  const targetDay1 = dayOfWeekMap[sessionDay1.toLowerCase()];
+  const targetDay2 = dayOfWeekMap[sessionDay2.toLowerCase()];
+  const end = endDate || new Date();
+  const now = new Date();
+
+  // Generate sessions for day 1
+  let currentDate1 = start;
+  const currentDayOfWeek1 = getDay(currentDate1);
+  let daysToAdd1 = targetDay1 - currentDayOfWeek1;
+  if (daysToAdd1 < 0) daysToAdd1 += 7;
+  currentDate1 = addDays(currentDate1, daysToAdd1);
+
+  while (isBefore(currentDate1, end) || currentDate1.getTime() === startOfDay(end).getTime()) {
+    const sessionDate = format(currentDate1, 'yyyy-MM-dd');
+    const [hours, minutes] = sessionTime1.split(':').map(Number);
+    const sessionDateTime = new Date(currentDate1);
+    sessionDateTime.setHours(hours, minutes, 0, 0);
+    const status = sessionDateTime < now ? 'attended' : 'scheduled';
+    sessions.push({ date: sessionDate, status, time: sessionTime1 });
+    currentDate1 = addWeeks(currentDate1, 1);
+  }
+
+  // Generate sessions for day 2
+  let currentDate2 = start;
+  const currentDayOfWeek2 = getDay(currentDate2);
+  let daysToAdd2 = targetDay2 - currentDayOfWeek2;
+  if (daysToAdd2 < 0) daysToAdd2 += 7;
+  currentDate2 = addDays(currentDate2, daysToAdd2);
+
+  while (isBefore(currentDate2, end) || currentDate2.getTime() === startOfDay(end).getTime()) {
+    const sessionDate = format(currentDate2, 'yyyy-MM-dd');
+    const [hours, minutes] = sessionTime2.split(':').map(Number);
+    const sessionDateTime = new Date(currentDate2);
+    sessionDateTime.setHours(hours, minutes, 0, 0);
+    const status = sessionDateTime < now ? 'attended' : 'scheduled';
+    sessions.push({ date: sessionDate, status, time: sessionTime2 });
+    currentDate2 = addWeeks(currentDate2, 1);
+  }
+
+  // Sort by date
+  sessions.sort((a, b) => a.date.localeCompare(b.date));
+
+  return sessions;
+};
+
 export const ensureFutureSessions = async (
   patientId: string,
   patient: any,

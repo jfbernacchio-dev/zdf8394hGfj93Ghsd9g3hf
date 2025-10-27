@@ -67,28 +67,44 @@ const NewPatient = () => {
 
       let sessionsCount = 0;
 
-      // Only generate sessions if all scheduling data is complete and frequency is not twice_weekly
-      // twice_weekly requires manual session management due to two different days
-      if (formData.startDate && formData.sessionDay && formData.sessionTime && formData.frequency !== 'twice_weekly') {
-        const { generateRecurringSessions } = await import('@/lib/sessionUtils');
-        const sessionData = generateRecurringSessions(
-          formData.startDate,
-          formData.sessionDay,
-          formData.sessionTime,
-          formData.frequency as 'weekly' | 'biweekly',
-          new Date()
-        );
+      // Generate sessions based on frequency
+      if (formData.startDate && formData.sessionDay && formData.sessionTime) {
+        let sessionData: { date: string; status: string; time?: string }[] = [];
+        
+        if (formData.frequency === 'twice_weekly' && formData.sessionDay2 && formData.sessionTime2) {
+          // Generate sessions for twice weekly frequency
+          const { generateTwiceWeeklySessions } = await import('@/lib/sessionUtils');
+          sessionData = generateTwiceWeeklySessions(
+            formData.startDate,
+            formData.sessionDay,
+            formData.sessionTime,
+            formData.sessionDay2,
+            formData.sessionTime2,
+            new Date()
+          );
+        } else if (formData.frequency !== 'twice_weekly') {
+          // Generate sessions for weekly/biweekly frequency
+          const { generateRecurringSessions } = await import('@/lib/sessionUtils');
+          sessionData = generateRecurringSessions(
+            formData.startDate,
+            formData.sessionDay,
+            formData.sessionTime,
+            formData.frequency as 'weekly' | 'biweekly',
+            new Date()
+          );
+        }
 
         // Create sessions in the database
-        const sessionsToInsert = sessionData.map(({ date, status }) => ({
-          patient_id: patient.id,
-          date,
-          status,
-          value: parseFloat(formData.sessionValue),
-          paid: false,
-        }));
+        if (sessionData.length > 0) {
+          const sessionsToInsert = sessionData.map(({ date, status, time }) => ({
+            patient_id: patient.id,
+            date,
+            status,
+            value: parseFloat(formData.sessionValue),
+            paid: false,
+            time: time || formData.sessionTime,
+          }));
 
-        if (sessionsToInsert.length > 0) {
           const { error: sessionsError } = await supabase
             .from('sessions')
             .insert(sessionsToInsert);
