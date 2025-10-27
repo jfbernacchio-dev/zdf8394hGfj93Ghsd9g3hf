@@ -547,7 +547,25 @@ Assinatura do Profissional`;
               <DollarSign className="w-5 h-5 text-success" />
               <div>
                 <p className="text-sm text-muted-foreground">Sessões em Aberto</p>
-                <p className="text-xl font-semibold text-foreground">{unpaidSessions.length}</p>
+                <p className="text-xl font-semibold text-foreground">
+                  {patient.monthly_price ? (() => {
+                    // Group unpaid sessions by month for monthly pricing
+                    const sessionsByMonth = unpaidSessions.reduce((acc, session) => {
+                      const monthYear = format(parseISO(session.date), 'MM/yyyy');
+                      if (!acc[monthYear]) {
+                        acc[monthYear] = [];
+                      }
+                      acc[monthYear].push(session);
+                      return acc;
+                    }, {} as Record<string, any[]>);
+                    const monthsCount = Object.keys(sessionsByMonth).length;
+                    const totalValue = monthsCount * Number(patient.session_value);
+                    return `${monthsCount} ${monthsCount === 1 ? 'mês' : 'meses'} (${unpaidSessions.length} ${unpaidSessions.length === 1 ? 'sessão' : 'sessões'}) - R$ ${totalValue.toFixed(2)}`;
+                  })() : (() => {
+                    const totalValue = unpaidSessions.reduce((sum, s) => sum + Number(s.value || 0), 0);
+                    return `${unpaidSessions.length} (R$ ${totalValue.toFixed(2)})`;
+                  })()}
+                </p>
               </div>
             </div>
           </div>

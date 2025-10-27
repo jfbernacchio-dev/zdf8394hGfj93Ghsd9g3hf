@@ -71,27 +71,36 @@ const NewPatient = () => {
       if (formData.startDate && formData.sessionDay && formData.sessionTime) {
         let sessionData: { date: string; status: string; time?: string }[] = [];
         
-        if (formData.frequency === 'twice_weekly' && formData.sessionDay2 && formData.sessionTime2) {
-          // Generate sessions for twice weekly frequency
-          const { generateTwiceWeeklySessions } = await import('@/lib/sessionUtils');
-          sessionData = generateTwiceWeeklySessions(
-            formData.startDate,
-            formData.sessionDay,
-            formData.sessionTime,
-            formData.sessionDay2,
-            formData.sessionTime2,
-            new Date()
-          );
-        } else if (formData.frequency !== 'twice_weekly') {
-          // Generate sessions for weekly/biweekly frequency
-          const { generateRecurringSessions } = await import('@/lib/sessionUtils');
-          sessionData = generateRecurringSessions(
-            formData.startDate,
-            formData.sessionDay,
-            formData.sessionTime,
-            formData.frequency as 'weekly' | 'biweekly',
-            new Date()
-          );
+        // Only generate sessions if start date is in the past or today
+        const startDate = new Date(formData.startDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        startDate.setHours(0, 0, 0, 0);
+        
+        // If start date is in the future, don't generate any sessions yet
+        if (startDate <= today) {
+          if (formData.frequency === 'twice_weekly' && formData.sessionDay2 && formData.sessionTime2) {
+            // Generate sessions for twice weekly frequency
+            const { generateTwiceWeeklySessions } = await import('@/lib/sessionUtils');
+            sessionData = generateTwiceWeeklySessions(
+              formData.startDate,
+              formData.sessionDay,
+              formData.sessionTime,
+              formData.sessionDay2,
+              formData.sessionTime2,
+              today
+            );
+          } else if (formData.frequency !== 'twice_weekly') {
+            // Generate sessions for weekly/biweekly frequency
+            const { generateRecurringSessions } = await import('@/lib/sessionUtils');
+            sessionData = generateRecurringSessions(
+              formData.startDate,
+              formData.sessionDay,
+              formData.sessionTime,
+              formData.frequency as 'weekly' | 'biweekly',
+              today
+            );
+          }
         }
 
         // Create sessions in the database
