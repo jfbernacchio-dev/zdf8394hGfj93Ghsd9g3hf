@@ -292,55 +292,55 @@ export type Database = {
       }
       patients: {
         Row: {
-          birth_date: string
+          birth_date: string | null
           cpf: string
           created_at: string
-          email: string
+          email: string | null
           frequency: string
           id: string
           lgpd_consent_date: string | null
           name: string
-          phone: string
-          session_day: string
-          session_time: string
+          phone: string | null
+          session_day: string | null
+          session_time: string | null
           session_value: number
-          start_date: string
+          start_date: string | null
           status: string
           updated_at: string
           user_id: string
         }
         Insert: {
-          birth_date: string
+          birth_date?: string | null
           cpf: string
           created_at?: string
-          email: string
+          email?: string | null
           frequency: string
           id?: string
           lgpd_consent_date?: string | null
           name: string
-          phone: string
-          session_day: string
-          session_time: string
+          phone?: string | null
+          session_day?: string | null
+          session_time?: string | null
           session_value: number
-          start_date: string
+          start_date?: string | null
           status?: string
           updated_at?: string
           user_id: string
         }
         Update: {
-          birth_date?: string
+          birth_date?: string | null
           cpf?: string
           created_at?: string
-          email?: string
+          email?: string | null
           frequency?: string
           id?: string
           lgpd_consent_date?: string | null
           name?: string
-          phone?: string
-          session_day?: string
-          session_time?: string
+          phone?: string | null
+          session_day?: string | null
+          session_time?: string | null
           session_value?: number
-          start_date?: string
+          start_date?: string | null
           status?: string
           updated_at?: string
           user_id?: string
