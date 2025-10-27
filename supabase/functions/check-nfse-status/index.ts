@@ -42,7 +42,8 @@ serve(async (req) => {
       .select(`
         *,
         patients (
-          name
+          name,
+          email
         )
       `)
       .eq('id', nfseId)
@@ -236,6 +237,30 @@ serve(async (req) => {
       } catch (sessionError) {
         console.error('Error processing session payments:', sessionError);
         // Don't fail the entire operation if session update fails
+      }
+
+      // Send email automatically when NFSe is authorized
+      const patientEmail = (nfseRecord.patients as any)?.email;
+      if (patientEmail) {
+        console.log('NFSe authorized, triggering email send to:', patientEmail);
+        
+        // Trigger email send (don't wait for it)
+        supabase.functions.invoke('send-nfse-email', {
+          body: { nfseId: nfseRecord.id },
+          headers: {
+            Authorization: authHeader,
+          },
+        }).then(emailResult => {
+          if (emailResult.error) {
+            console.error('Error sending NFSe email:', emailResult.error);
+          } else {
+            console.log('NFSe email sent successfully');
+          }
+        }).catch(err => {
+          console.error('Failed to invoke send-nfse-email:', err);
+        });
+      } else {
+        console.log('No email found for patient, skipping email send');
       }
     }
 
