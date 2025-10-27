@@ -252,6 +252,7 @@ export default function NFSeHistory() {
                 <TableRow>
                   <TableHead>Paciente</TableHead>
                   <TableHead>Número NFSe</TableHead>
+                  <TableHead>Cód. Verificação</TableHead>
                   <TableHead>Data Emissão</TableHead>
                   <TableHead>Valor</TableHead>
                   <TableHead>Status</TableHead>
@@ -263,6 +264,9 @@ export default function NFSeHistory() {
                   <TableRow key={nfse.id}>
                     <TableCell className="font-medium">{nfse.patients.name}</TableCell>
                     <TableCell>{nfse.nfse_number || '-'}</TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {nfse.verification_code || '-'}
+                    </TableCell>
                     <TableCell>
                       {format(parseISO(nfse.issue_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                     </TableCell>

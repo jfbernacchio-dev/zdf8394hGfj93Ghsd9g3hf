@@ -279,8 +279,8 @@ Data de emissão: ${new Date().toLocaleDateString('pt-BR')}`;
     if (focusNFeResult.codigo_verificacao) {
       updateData.verification_code = focusNFeResult.codigo_verificacao;
     }
-    if (focusNFeResult.url) {
-      updateData.pdf_url = focusNFeResult.url;
+    if (focusNFeResult.url_danfse) {
+      updateData.pdf_url = focusNFeResult.url_danfse;
     }
     if (focusNFeResult.caminho_xml_nota_fiscal) {
       updateData.xml_url = focusNFeResult.caminho_xml_nota_fiscal;
