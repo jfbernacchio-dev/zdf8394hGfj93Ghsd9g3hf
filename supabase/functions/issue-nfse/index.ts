@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { checkRateLimit, getRateLimitHeaders } from "../rate-limit/index.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,7 +15,7 @@ serve(async (req) => {
     const requestBody = await req.json();
     const { patientId, sessionIds } = requestBody;
 
-    // Get authorization header early for rate limiting
+    // Get authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       throw new Error('Não autorizado');
@@ -32,29 +31,6 @@ serve(async (req) => {
     
     if (userError || !user) {
       throw new Error('Usuário não autenticado');
-    }
-
-    // Rate limiting: 10 NFSe per hour per user
-    const rateLimitResult = checkRateLimit(`nfse_${user.id}`, {
-      maxRequests: 10,
-      windowMs: 60 * 60 * 1000, // 1 hour
-    });
-
-    if (!rateLimitResult.allowed) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'Taxa de requisições excedida. Tente novamente mais tarde.',
-          resetTime: new Date(rateLimitResult.resetTime).toISOString()
-        }),
-        { 
-          status: 429, 
-          headers: { 
-            ...corsHeaders, 
-            ...getRateLimitHeaders(rateLimitResult),
-            'Content-Type': 'application/json'
-          } 
-        }
-      );
     }
 
     // Input validation
