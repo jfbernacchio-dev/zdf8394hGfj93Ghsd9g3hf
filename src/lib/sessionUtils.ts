@@ -15,14 +15,12 @@ export const generateRecurringSessions = (
   sessionDay: string,
   sessionTime: string,
   frequency: 'weekly' | 'biweekly',
-  endDate?: Date
+  numberOfSessions: number = 8
 ) => {
   const sessions: { date: string; status: string }[] = [];
   
-  // Parse the start date and ensure we're working with start of day
   const start = startOfDay(parseISO(startDate));
   const targetDayOfWeek = dayOfWeekMap[sessionDay.toLowerCase()];
-  const end = endDate || new Date();
   const now = new Date();
   now.setHours(0, 0, 0, 0);
 
@@ -30,41 +28,29 @@ export const generateRecurringSessions = (
   let currentDate = new Date(start);
   const startDayOfWeek = getDay(start);
   
-  // Calculate days until target day
   let daysUntilTarget = targetDayOfWeek - startDayOfWeek;
-  
-  // If the target day is before the start day in the same week, go to next week
-  // If it's the same day, use the start date itself
   if (daysUntilTarget < 0) {
     daysUntilTarget += 7;
   }
   
-  // Set to the first session date (must be >= start date)
   currentDate = addDays(start, daysUntilTarget);
 
-  // CRITICAL: Only generate sessions if currentDate is on or after startDate
-  // This prevents creating sessions before the patient's start date
-  if (isBefore(currentDate, start)) {
-    return sessions;
-  }
-
-  // Generate sessions until end date
-  while (!isBefore(end, currentDate)) {
-    // CRITICAL: Double check that we're not creating sessions before start date
+  // Generate only the specified number of sessions
+  let count = 0;
+  while (count < numberOfSessions) {
+    // Only create sessions on or after the start date
     if (!isBefore(currentDate, start)) {
       const sessionDate = format(currentDate, 'yyyy-MM-dd');
       
-      // Create a Date object with the session date and time for status check
       const [hours, minutes] = sessionTime.split(':').map(Number);
       const sessionDateTime = new Date(currentDate);
       sessionDateTime.setHours(hours, minutes, 0, 0);
       
-      // Mark sessions that have passed as "attended", future ones as "scheduled"
       const status = sessionDateTime < now ? 'attended' : 'scheduled';
       sessions.push({ date: sessionDate, status });
+      count++;
     }
     
-    // Move to next session
     currentDate = addWeeks(currentDate, frequency === 'weekly' ? 1 : 2);
   }
 
@@ -109,14 +95,13 @@ export const generateTwiceWeeklySessions = (
   sessionTime1: string,
   sessionDay2: string,
   sessionTime2: string,
-  endDate?: Date
+  numberOfWeeks: number = 8
 ) => {
   const sessions: { date: string; status: string; time: string }[] = [];
   
   const start = startOfDay(parseISO(startDate));
   const targetDay1 = dayOfWeekMap[sessionDay1.toLowerCase()];
   const targetDay2 = dayOfWeekMap[sessionDay2.toLowerCase()];
-  const end = endDate || new Date();
   const now = new Date();
   now.setHours(0, 0, 0, 0);
 
@@ -126,8 +111,8 @@ export const generateTwiceWeeklySessions = (
   if (daysToAdd1 < 0) daysToAdd1 += 7;
   let currentDate1 = addDays(start, daysToAdd1);
 
-  // CRITICAL: Only generate if first session is on or after start date
-  while (!isBefore(end, currentDate1) && !isBefore(currentDate1, start)) {
+  let count1 = 0;
+  while (count1 < numberOfWeeks && !isBefore(currentDate1, start)) {
     const sessionDate = format(currentDate1, 'yyyy-MM-dd');
     const [hours, minutes] = sessionTime1.split(':').map(Number);
     const sessionDateTime = new Date(currentDate1);
@@ -135,6 +120,7 @@ export const generateTwiceWeeklySessions = (
     const status = sessionDateTime < now ? 'attended' : 'scheduled';
     sessions.push({ date: sessionDate, status, time: sessionTime1 });
     currentDate1 = addWeeks(currentDate1, 1);
+    count1++;
   }
 
   // Generate sessions for day 2
@@ -143,8 +129,8 @@ export const generateTwiceWeeklySessions = (
   if (daysToAdd2 < 0) daysToAdd2 += 7;
   let currentDate2 = addDays(start, daysToAdd2);
 
-  // CRITICAL: Only generate if first session is on or after start date
-  while (!isBefore(end, currentDate2) && !isBefore(currentDate2, start)) {
+  let count2 = 0;
+  while (count2 < numberOfWeeks && !isBefore(currentDate2, start)) {
     const sessionDate = format(currentDate2, 'yyyy-MM-dd');
     const [hours, minutes] = sessionTime2.split(':').map(Number);
     const sessionDateTime = new Date(currentDate2);
@@ -152,6 +138,7 @@ export const generateTwiceWeeklySessions = (
     const status = sessionDateTime < now ? 'attended' : 'scheduled';
     sessions.push({ date: sessionDate, status, time: sessionTime2 });
     currentDate2 = addWeeks(currentDate2, 1);
+    count2++;
   }
 
   // Sort by date
