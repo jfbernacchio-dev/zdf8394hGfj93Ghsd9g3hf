@@ -231,7 +231,7 @@ serve(async (req) => {
             console.log(`Successfully marked ${sessionIds.length} sessions as paid`);
           }
         } else {
-          console.log('No session IDs found in this NFSe record');
+          console.log('No session IDs found in this NFSe record - skipping payment update');
         }
       } catch (sessionError) {
         console.error('Error processing session payments:', sessionError);
