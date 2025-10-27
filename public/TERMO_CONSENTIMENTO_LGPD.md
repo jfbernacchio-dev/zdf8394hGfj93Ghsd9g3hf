@@ -29,8 +29,10 @@ Eu, **[NOME DO PACIENTE]**, declaro estar ciente e concordo expressamente que me
 - Prestação de serviços de psicoterapia e acompanhamento psicológico;
 - Registro de prontuário clínico e evolução terapêutica (conforme Resolução CFP nº 01/2009);
 - Agendamento e controle de sessões de psicoterapia;
-- Gestão administrativa e financeira (controle de pagamentos, emissão de notas fiscais);
-- Comunicação sobre consultas, lembretes de sessões e informações relevantes ao tratamento;
+- Gestão administrativa e financeira (controle de pagamentos, emissão de notas fiscais eletrônicas - NFSe);
+- Comunicação sobre consultas, lembretes de sessões e informações relevantes ao tratamento através de notificações e mensagens;
+- Armazenamento seguro de documentos relacionados ao tratamento (laudos, exames, documentos complementares);
+- Controle de acesso e segurança do sistema através de logs de auditoria;
 - Cumprimento de obrigações legais e regulatórias (Conselho Federal de Psicologia, Receita Federal, etc.).
 
 ---
@@ -55,7 +57,13 @@ Os seguintes dados pessoais serão coletados e armazenados:
 
 ### Dados Financeiros:
 - Informações sobre pagamentos de sessões
-- Dados para emissão de notas fiscais (quando aplicável)
+- Dados para emissão de notas fiscais eletrônicas (NFSe)
+- Histórico de fechamentos e faturas
+
+### Documentos e Arquivos:
+- Documentos complementares ao tratamento (laudos médicos, exames, relatórios)
+- Arquivos anexados pelo profissional durante o acompanhamento terapêutico
+- Imagens ou documentos relevantes ao processo terapêutico
 
 ---
 
@@ -68,9 +76,14 @@ Meus dados pessoais **NÃO serão compartilhados** com terceiros, exceto nas seg
    - Atendimento a requisições judiciais ou do Conselho Federal de Psicologia (CFP);
    - Emissão de laudos, atestados ou relatórios solicitados por autoridades competentes;
 ✅ **Com prestadores de serviços essenciais**, sob contratos de confidencialidade:
-   - Serviços de armazenamento em nuvem (dados criptografados);
-   - Contabilidade e emissão de notas fiscais;
-   - Plataformas de agendamento (se utilizadas).
+   - Serviços de armazenamento em nuvem seguro (Supabase/Lovable Cloud) com dados criptografados;
+   - Serviços de emissão de notas fiscais eletrônicas (FocusNFe ou similar);
+   - Contabilidade e gestão fiscal;
+   - Plataformas de infraestrutura de TI e segurança.
+✅ **Com supervisores ou administradores autorizados**, quando aplicável:
+   - Em casos de supervisão clínica por profissional habilitado;
+   - Em estruturas administrativas com hierarquia de acesso, sempre respeitando o sigilo profissional;
+   - Todo acesso por supervisores/administradores é registrado em logs de auditoria.
 
 **Importante:** Não será realizada venda, aluguel ou transferência dos dados para fins comerciais.
 
@@ -80,9 +93,11 @@ Meus dados pessoais **NÃO serão compartilhados** com terceiros, exceto nas seg
 
 O(a) psicólogo(a) se compromete a adotar medidas técnicas e administrativas para proteger os dados pessoais contra acessos não autorizados, perda, destruição ou alteração, incluindo:
 
-- Armazenamento em sistemas seguros com criptografia;
-- Controle de acesso restrito aos dados;
-- Backup periódico das informações;
+- Armazenamento em sistemas seguros com criptografia de dados;
+- Controle de acesso restrito aos dados com autenticação multifator (MFA);
+- Backup periódico e automático das informações;
+- Registro de logs de acesso para auditoria de segurança;
+- Armazenamento de arquivos em buckets seguros com controle de permissões;
 - Conformidade com as normas do Conselho Federal de Psicologia e com a Lei nº 13.709/2018 (LGPD).
 
 ---

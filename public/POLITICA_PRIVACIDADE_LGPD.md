@@ -51,7 +51,18 @@ Conforme a **LGPD (art. 5º, II e art. 11)**, dados relacionados à saúde são 
 
 ### 3.3. Dados Financeiros
 - Informações sobre pagamentos de sessões
-- Dados fiscais para emissão de notas fiscais (quando aplicável)
+- Dados fiscais para emissão de notas fiscais eletrônicas (NFSe)
+- Histórico de fechamentos e faturas
+
+### 3.4. Documentos e Arquivos
+- Documentos complementares ao tratamento (laudos médicos, exames, relatórios)
+- Arquivos anexados pelo profissional durante o acompanhamento terapêutico
+- Imagens ou documentos relevantes ao processo terapêutico
+
+### 3.5. Dados de Sistema e Auditoria
+- Logs de acesso administrativo para fins de segurança e auditoria
+- Registros de autenticação e controle de acesso
+- Histórico de alterações em dados críticos
 
 ---
 
@@ -61,9 +72,11 @@ Os dados pessoais coletados são utilizados **exclusivamente** para as seguintes
 
 ✅ **Prestação de serviços de psicoterapia**, incluindo avaliação, acompanhamento e evolução do tratamento;  
 ✅ **Elaboração e manutenção de prontuário clínico**, conforme exigido pela Resolução CFP nº 01/2009;  
-✅ **Agendamento e controle de sessões**, com envio de lembretes e confirmações;  
-✅ **Gestão administrativa e financeira**, incluindo controle de pagamentos e emissão de notas fiscais;  
+✅ **Agendamento e controle de sessões**, com envio de lembretes e confirmações através de notificações;  
+✅ **Gestão administrativa e financeira**, incluindo controle de pagamentos e emissão de notas fiscais eletrônicas (NFSe);  
+✅ **Armazenamento seguro de documentos** relacionados ao tratamento psicológico;  
 ✅ **Comunicação com o paciente** sobre assuntos relacionados ao tratamento;  
+✅ **Controle de acesso e auditoria** para garantia de segurança das informações;  
 ✅ **Cumprimento de obrigações legais**, como atendimento a requisições judiciais, do Conselho Federal de Psicologia (CFP) ou de outras autoridades competentes.
 
 **Importante:** Nenhum dado será utilizado para fins comerciais, publicitários ou compartilhado com terceiros sem o consentimento expresso do paciente, exceto nas hipóteses legais previstas.
@@ -101,9 +114,10 @@ Os dados podem ser compartilhados para cumprimento de determinações legais, ta
 
 ### 6.3. Com Prestadores de Serviços Essenciais
 Dados podem ser compartilhados com empresas contratadas para prestação de serviços necessários, sempre sob **acordos de confidencialidade**, incluindo:
-- Serviços de armazenamento em nuvem (dados criptografados);
-- Contabilidade e emissão de notas fiscais;
-- Plataformas de agendamento e gestão de consultas.
+- Serviços de armazenamento em nuvem seguro (Supabase/Lovable Cloud) com dados criptografados;
+- Serviços de emissão de notas fiscais eletrônicas (FocusNFe ou similar);
+- Contabilidade e gestão fiscal;
+- Plataformas de infraestrutura de TI e segurança.
 
 **Garantia:** Todos os prestadores de serviços estão obrigados a tratar os dados de acordo com a LGPD e com padrões rigorosos de segurança.
 
@@ -114,8 +128,10 @@ Dados podem ser compartilhados com empresas contratadas para prestação de serv
 Adotamos medidas técnicas, administrativas e organizacionais para proteger os dados pessoais contra acessos não autorizados, perda, destruição, alteração ou uso indevido, incluindo:
 
 🔒 **Criptografia de dados** em armazenamento e transmissão;  
-🔒 **Controle de acesso restrito** aos dados, apenas por profissionais autorizados;  
-🔒 **Backup periódico** das informações para prevenir perdas;  
+🔒 **Controle de acesso restrito** aos dados, apenas por profissionais autorizados, com autenticação multifator (MFA);  
+🔒 **Backup periódico e automático** das informações para prevenir perdas;  
+🔒 **Logs de auditoria** para rastreamento de acessos e garantia de segurança;  
+🔒 **Armazenamento de arquivos em buckets seguros** com controle de permissões por nível de acesso;  
 🔒 **Atualizações de segurança** em sistemas e softwares utilizados;  
 🔒 **Treinamento e conscientização** sobre boas práticas de proteção de dados.
 
@@ -170,14 +186,42 @@ Para exercer qualquer um desses direitos, o paciente deve entrar em contato com 
 
 ---
 
+## 10.1. SISTEMA MULTIUSUÁRIO E HIERARQUIA DE ACESSO
+
+Quando aplicável, o sistema pode operar em modelo multiusuário com diferentes níveis de acesso:
+
+**Terapeutas:** Têm acesso completo aos dados dos seus próprios pacientes e sessões.
+
+**Administradores:** Podem ter acesso aos dados de terapeutas subordinados e seus respectivos pacientes para fins de:
+- Supervisão clínica e administrativa
+- Gestão financeira e fiscal
+- Auditoria e controle de qualidade
+- Suporte operacional
+
+**Garantias de segurança:**
+- Todos os acessos são registrados em logs de auditoria
+- Cada usuário possui credenciais individuais e intransferíveis
+- Autenticação multifator (MFA) disponível para maior segurança
+- Políticas de controle de acesso baseadas em função (RLS - Row Level Security)
+
+**Importante:** Administradores só terão acesso aos dados quando houver relação de subordinação estabelecida, e todo acesso é registrado para fins de auditoria e compliance com a LGPD.
+
+---
+
 ## 11. USO DE COOKIES E TECNOLOGIAS DE RASTREAMENTO
 
-Caso sejam utilizados sistemas online para agendamento ou comunicação com pacientes (sites, aplicativos, plataformas), podem ser coletados dados técnicos, como:
-- Endereço IP
+O sistema utiliza tecnologias modernas para gerenciamento de sessões e segurança, podendo coletar dados técnicos como:
+- Informações de autenticação e sessão do usuário
+- Endereço IP para fins de segurança e auditoria
 - Informações sobre o dispositivo utilizado
-- Cookies para melhorar a experiência do usuário
+- Dados de navegação para melhorar a experiência do usuário
 
-**Controle de cookies:** O paciente pode configurar seu navegador para bloquear ou excluir cookies, porém isso pode afetar o funcionamento de algumas funcionalidades.
+**Armazenamento local:** O sistema pode utilizar armazenamento local do navegador para:
+- Manter preferências do usuário
+- Gerenciar sessões de autenticação
+- Melhorar a performance da aplicação
+
+**Controle:** O paciente pode limpar os dados armazenados através das configurações do navegador, porém isso pode afetar o funcionamento de algumas funcionalidades e exigir nova autenticação.
 
 ---
 
