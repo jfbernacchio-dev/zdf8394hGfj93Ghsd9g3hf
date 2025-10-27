@@ -159,9 +159,16 @@ const NewPatient = () => {
                   id="cpf"
                   required
                   value={formData.cpf}
-                  onChange={(e) => setFormData({ ...formData, cpf: e.target.value.replace(/\D/g, '') })}
-                  maxLength={11}
-                  placeholder="00000000000"
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '');
+                    let formatted = value;
+                    if (value.length > 3) formatted = value.slice(0, 3) + '.' + value.slice(3);
+                    if (value.length > 6) formatted = formatted.slice(0, 7) + '.' + value.slice(6);
+                    if (value.length > 9) formatted = formatted.slice(0, 11) + '-' + value.slice(9);
+                    setFormData({ ...formData, cpf: formatted });
+                  }}
+                  maxLength={14}
+                  placeholder="000.000.000-00"
                 />
               </div>
 
