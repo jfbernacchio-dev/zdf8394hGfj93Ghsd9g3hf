@@ -59,9 +59,18 @@ export default function NFSeConfig() {
 
       if (data) {
         setConfigExists(true);
+        // Format CNPJ for display
+        const formattedCnpj = data.cnpj 
+          ? data.cnpj
+              .replace(/^(\d{2})(\d)/, '$1.$2')
+              .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+              .replace(/\.(\d{3})(\d)/, '.$1/$2')
+              .replace(/(\d{4})(\d)/, '$1-$2')
+          : '';
+        
         setConfig({
           inscricao_municipal: data.inscricao_municipal || '',
-          cnpj: data.cnpj || '',
+          cnpj: formattedCnpj,
           razao_social: data.razao_social || '',
           regime_tributario: data.regime_tributario || 'simples_nacional',
           anexo_simples: data.anexo_simples || 'V',
@@ -118,8 +127,8 @@ export default function NFSeConfig() {
 
       const configData = {
         user_id: user.id,
-        inscricao_municipal: config.inscricao_municipal,
-        cnpj: config.cnpj,
+        inscricao_municipal: config.inscricao_municipal.replace(/\D/g, ''),
+        cnpj: config.cnpj.replace(/\D/g, ''),
         razao_social: config.razao_social,
         regime_tributario: config.regime_tributario,
         anexo_simples: config.anexo_simples,
