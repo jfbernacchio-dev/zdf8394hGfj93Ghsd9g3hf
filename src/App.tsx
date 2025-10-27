@@ -20,6 +20,7 @@ import CreateTherapist from "./pages/CreateTherapist";
 import TherapistDetail from "./pages/TherapistDetail";
 import NFSeConfig from "./pages/NFSeConfig";
 import NFSeHistory from "./pages/NFSeHistory";
+import InvoiceLogs from "./pages/InvoiceLogs";
 import AdminSettings from "./pages/AdminSettings";
 import Install from "./pages/Install";
 
@@ -81,6 +82,7 @@ const App = () => (
             <Route path="/create-therapist" element={<ProtectedRoute><Layout><CreateTherapist /></Layout></ProtectedRoute>} />
             <Route path="/nfse/config" element={<ProtectedRoute><Layout><NFSeConfig /></Layout></ProtectedRoute>} />
             <Route path="/nfse/history" element={<ProtectedRoute><Layout><NFSeHistory /></Layout></ProtectedRoute>} />
+            <Route path="/invoice-logs" element={<ProtectedRoute><Layout><InvoiceLogs /></Layout></ProtectedRoute>} />
             <Route path="/admin/security" element={<ProtectedRoute><Layout><AdminSettings /></Layout></ProtectedRoute>} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

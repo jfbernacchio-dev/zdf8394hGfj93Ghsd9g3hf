@@ -107,6 +107,9 @@ const Navbar = () => {
                   <DropdownMenuItem onClick={() => navigate('/nfse/history')}>
                     Histórico
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/invoice-logs')}>
+                    Fechamentos
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

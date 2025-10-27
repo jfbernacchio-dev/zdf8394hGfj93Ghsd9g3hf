@@ -127,37 +127,32 @@ const Patients = () => {
       return acc;
     }, {} as Record<string, any[]>);
 
-    // Filter out patients with monthly_price=true or no_nfse=true
+    // Filter patients by eligibility for NFSe
     const eligiblePatients: any[] = [];
-    const excludedPatients: any[] = [];
+    const textOnlyPatients: any[] = [];
 
     Object.keys(sessionsByPatient).forEach(patientId => {
       const patient = patients.find(p => p.id === patientId);
       if (patient) {
         if (patient.monthly_price || patient.no_nfse) {
-          excludedPatients.push(patient);
+          textOnlyPatients.push({ patient, sessions: sessionsByPatient[patientId] });
         } else {
           eligiblePatients.push({ patient, sessions: sessionsByPatient[patientId] });
         }
       }
     });
 
-    // Show confirmation dialog
-    const confirmMessage = eligiblePatients.length > 0
-      ? `Serão emitidas notas fiscais para ${eligiblePatients.length} paciente(s). ${excludedPatients.length > 0 ? `${excludedPatients.length} paciente(s) serão excluídos (mensais ou sem emissão de nota).` : ''}\n\nDeseja continuar?`
-      : `Todos os ${excludedPatients.length} paciente(s) com sessões em aberto estão marcados como mensais ou sem emissão de nota.`;
-
+    // If no eligible patients for NFSe, show text for all patients
     if (eligiblePatients.length === 0) {
-      // No eligible patients, show text generation option
       setAffectedSessions(allUnpaidSessions);
       generateInvoiceText(sessionsByPatient);
       return;
     }
 
+    // Show confirmation dialog for NFSe issuance
+    const confirmMessage = `Serão emitidas notas fiscais para ${eligiblePatients.length} paciente(s). ${textOnlyPatients.length > 0 ? `${textOnlyPatients.length} paciente(s) serão excluídos (mensais ou sem emissão de nota).` : ''}\n\nDeseja continuar?`;
+
     if (!confirm(confirmMessage)) {
-      // User cancelled, offer text generation
-      setAffectedSessions(allUnpaidSessions);
-      generateInvoiceText(sessionsByPatient);
       return;
     }
 
@@ -198,6 +193,18 @@ const Patients = () => {
       description: `${successCount} nota(s) emitida(s) com sucesso. ${errorCount > 0 ? `${errorCount} erro(s).` : ''}`,
     });
 
+    // After NFSe issuance, if there are text-only patients, show their invoice
+    if (textOnlyPatients.length > 0) {
+      const textOnlySessions = textOnlyPatients.flatMap(p => p.sessions);
+      const textOnlySessionsByPatient = textOnlyPatients.reduce((acc, { patient, sessions: patientSessions }) => {
+        acc[patient.id] = patientSessions;
+        return acc;
+      }, {} as Record<string, any[]>);
+      
+      setAffectedSessions(textOnlySessions);
+      generateInvoiceText(textOnlySessionsByPatient);
+    }
+
     loadData();
   };
 
@@ -237,6 +244,25 @@ const Patients = () => {
 
   const markAllSessionsAsPaid = async () => {
     const sessionIds = affectedSessions.map(s => s.id);
+    const totalValue = affectedSessions.reduce((sum, s) => sum + Number(s.value), 0);
+    
+    // Save invoice log
+    const { error: logError } = await supabase
+      .from('invoice_logs')
+      .insert({
+        user_id: user!.id,
+        invoice_text: generalInvoiceText,
+        session_ids: sessionIds,
+        patient_count: new Set(affectedSessions.map(s => s.patient_id)).size,
+        total_sessions: sessionIds.length,
+        total_value: totalValue
+      });
+
+    if (logError) {
+      console.error('Error saving invoice log:', logError);
+      toast({ title: 'Erro ao salvar log', variant: 'destructive' });
+      return;
+    }
     
     const { error } = await supabase
       .from('sessions')
@@ -250,7 +276,7 @@ const Patients = () => {
 
     toast({ 
       title: 'Sessões atualizadas!', 
-      description: `${sessionIds.length} sessão(ões) marcada(s) como paga(s).` 
+      description: `${sessionIds.length} sessão(ões) marcada(s) como paga(s). Log salvo com sucesso.` 
     });
     
     setIsGeneralInvoiceOpen(false);

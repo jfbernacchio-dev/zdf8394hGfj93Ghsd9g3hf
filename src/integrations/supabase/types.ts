@@ -58,6 +58,39 @@ export type Database = {
           },
         ]
       }
+      invoice_logs: {
+        Row: {
+          created_at: string
+          id: string
+          invoice_text: string
+          patient_count: number
+          session_ids: string[]
+          total_sessions: number
+          total_value: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invoice_text: string
+          patient_count: number
+          session_ids: string[]
+          total_sessions: number
+          total_value: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invoice_text?: string
+          patient_count?: number
+          session_ids?: string[]
+          total_sessions?: number
+          total_value?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       nfse_certificates: {
         Row: {
           certificate_data: string

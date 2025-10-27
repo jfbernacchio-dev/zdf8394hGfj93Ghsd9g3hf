@@ -104,6 +104,14 @@ const BottomNav = () => {
                   <FileText className="w-5 h-5 mr-3" />
                   NFSe - Histórico
                 </Button>
+                <Button
+                  variant="ghost"
+                  className="justify-start h-14 text-base rounded-xl active:scale-98 transition-transform"
+                  onClick={() => handleMenuNavigation('/invoice-logs')}
+                >
+                  <FileText className="w-5 h-5 mr-3" />
+                  Fechamentos
+                </Button>
                 {isAdmin && (
                   <>
                     <div className="border-t border-border my-3" />
