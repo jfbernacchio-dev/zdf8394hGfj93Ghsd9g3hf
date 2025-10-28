@@ -22,7 +22,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Calendar as CalendarIcon, Plus, CheckCircle, XCircle, DollarSign, ArrowLeft, Lock, Briefcase, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, CheckCircle, XCircle, DollarSign, ArrowLeft, Lock, Briefcase, Square } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, startOfWeek, addDays, isBefore, parseISO, getDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { DndContext, DragEndEvent, useSensor, useSensors, PointerSensor, DragOverlay, closestCenter } from '@dnd-kit/core';
@@ -69,6 +69,8 @@ const Schedule = () => {
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 8,
+        delay: 150,
+        tolerance: 5,
       },
     })
   );
@@ -1484,7 +1486,7 @@ const Schedule = () => {
 
     return (
       <Card 
-        className={`p-6 transition-opacity duration-300 ${isTransitioning ? 'opacity-50' : 'opacity-100'}`}
+        className={`p-6 transition-all duration-300 ${isTransitioning ? 'opacity-50 translate-x-2' : 'opacity-100 translate-x-0'}`}
         onTouchStart={isMobile ? handleTouchStart : undefined}
         onTouchMove={isMobile ? handleTouchMove : undefined}
         onTouchEnd={isMobile ? handleTouchEnd : undefined}
@@ -1492,27 +1494,18 @@ const Schedule = () => {
         <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
           {isMobile ? (
             <>
-              <h2 className="text-xl font-semibold w-full">
+              <h2 className="text-xl font-semibold w-full text-center">
                 {format(selectedDate, "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
               </h2>
               <div className="flex items-center gap-2 w-full justify-between">
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setSelectedDate(addDays(selectedDate, -1))}>
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => setSelectedDate(addDays(selectedDate, 1))}>
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-                
-                <div className="flex gap-2">
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="ghost" size="icon" title="Selecionar data">
-                        <CalendarIcon className="h-5 w-5" />
+                      <Button variant="ghost" size="icon" className="border-2 border-primary/30" title="Selecionar data">
+                        <Square className="h-5 w-5 text-primary" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="end">
+                    <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
                         selected={selectedDate}
@@ -1526,12 +1519,15 @@ const Schedule = () => {
                   <Button 
                     variant="ghost"
                     size="icon"
+                    className="border-2 border-primary/30"
                     onClick={() => setSelectedDate(new Date())}
                     title="Voltar para hoje"
                   >
-                    <CalendarIcon className="h-5 w-5 fill-current" />
+                    <CalendarIcon className="h-5 w-5 fill-current text-primary" />
                   </Button>
-
+                </div>
+                
+                <div className="flex gap-2">
                   <Button 
                     size="icon" 
                     onClick={() => openNewDialog(selectedDate)}

@@ -9,6 +9,7 @@ interface DraggableSessionProps {
 export const DraggableSession = ({ id, children }: DraggableSessionProps) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: id,
+    disabled: false,
   });
 
   const style = {
