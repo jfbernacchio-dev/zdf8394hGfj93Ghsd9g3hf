@@ -126,6 +126,7 @@ const Schedule = () => {
 
     // Check each session's date + time
     scheduledSessions.forEach(session => {
+      if (!session.date) return; // Skip if no date
       const sessionDate = parseISO(session.date);
       const [hours, minutes] = (session.patients.session_time || '00:00').split(':').map(Number);
       sessionDate.setHours(hours, minutes, 0, 0);
@@ -625,7 +626,7 @@ const Schedule = () => {
 
   const toggleStatus = async (session: any) => {
     // Prevent marking future sessions as attended
-    if (session.status === 'scheduled' && isBefore(new Date(), parseISO(session.date))) {
+    if (session.status === 'scheduled' && session.date && isBefore(new Date(), parseISO(session.date))) {
       toast({ 
         title: 'Não é possível marcar como compareceu', 
         description: 'Sessões futuras não podem ser marcadas como comparecidas.',
@@ -847,7 +848,7 @@ const Schedule = () => {
   };
 
   const getSessionsForDay = (day: Date) => {
-    return sessions.filter(session => isSameDay(parseISO(session.date), day));
+    return sessions.filter(session => session.date && isSameDay(parseISO(session.date), day));
   };
 
   const getStatusColor = (status: string) => {
@@ -1931,7 +1932,7 @@ const Schedule = () => {
               <AlertDialogDescription>
                 {conflictDetails && (
                   <>
-                    Já existe uma sessão agendada para {conflictDetails.existingSession?.patients?.name} no horário {conflictDetails.existingSession?.time || conflictDetails.existingSession?.patients?.session_time} do dia {format(parseISO(conflictDetails.existingSession?.date), 'dd/MM/yyyy')}.
+                    Já existe uma sessão agendada para {conflictDetails.existingSession?.patients?.name} no horário {conflictDetails.existingSession?.time || conflictDetails.existingSession?.patients?.session_time} do dia {conflictDetails.existingSession?.date ? format(parseISO(conflictDetails.existingSession.date), 'dd/MM/yyyy') : 'N/A'}.
                     <br /><br />
                     Deseja agendar mesmo assim? Os dois pacientes ficarão no mesmo horário.
                   </>
