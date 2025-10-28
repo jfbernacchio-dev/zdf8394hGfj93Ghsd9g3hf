@@ -96,11 +96,19 @@ const Financial = () => {
         return date >= monthStart && date <= monthEnd;
       }).length;
 
+      // Count inactive patients in this month
+      const inactiveCount = patients.filter(p => {
+        if (p.status !== 'inactive' || !p.updated_at) return false;
+        const updatedDate = parseISO(p.updated_at);
+        return updatedDate >= monthStart && updatedDate <= monthEnd;
+      }).length;
+
       return {
         month: format(month, 'MMM/yy', { locale: ptBR }),
         receita: revenue,
         sessoes: monthSessions.length,
         esperadas: expected,
+        encerrados: inactiveCount,
       };
     });
   };
@@ -400,7 +408,7 @@ const Financial = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="performance">
+        <TabsContent value="performance" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -434,6 +442,36 @@ const Financial = () => {
                     name="Taxa (%)"
                   />
                 </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Pacientes Encerrados por Mês
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-4 text-sm text-muted-foreground">
+                Número de pacientes que tiveram suas fichas encerradas
+              </div>
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart data={monthlyData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
+                  <YAxis stroke="hsl(var(--muted-foreground))" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                    }}
+                  />
+                  <Legend />
+                  <Bar dataKey="encerrados" fill="hsl(var(--destructive))" name="Pacientes Encerrados" radius={[8, 8, 0, 0]} />
+                </BarChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>

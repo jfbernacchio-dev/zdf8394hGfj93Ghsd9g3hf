@@ -368,8 +368,15 @@ const Patients = () => {
                         </div>
                       )}
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground">{patient.name}</h3>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-foreground">{patient.name}</h3>
+                        {patient.status === 'inactive' && (
+                          <span className="px-2 py-0.5 bg-muted text-muted-foreground text-xs font-medium rounded">
+                            Encerrado
+                          </span>
+                        )}
+                      </div>
                       <p className="text-sm text-muted-foreground">{patient.email}</p>
                     </div>
                   </div>

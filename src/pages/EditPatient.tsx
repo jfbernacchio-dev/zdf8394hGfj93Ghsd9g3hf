@@ -88,6 +88,23 @@ const EditPatient = () => {
     navigate('/patients');
   };
 
+  const handleReactivate = async () => {
+    if (!confirm('Tem certeza que deseja reativar este paciente?')) return;
+    
+    const { error } = await supabase
+      .from('patients')
+      .update({ status: 'active' })
+      .eq('id', id);
+
+    if (error) {
+      toast({ title: 'Erro ao reativar paciente', variant: 'destructive' });
+      return;
+    }
+
+    toast({ title: 'Paciente reativado com sucesso' });
+    loadPatient();
+  };
+
   const handleDelete = async () => {
     if (!confirm('Tem certeza que deseja EXCLUIR este paciente? Esta ação não pode ser desfeita e todos os dados serão perdidos.')) {
       return;
@@ -543,7 +560,16 @@ const EditPatient = () => {
             </Button>
 
             <div className="flex gap-4 pt-6 border-t mt-6">
-              {formData.status === 'active' && (
+              {formData.status === 'inactive' ? (
+                <Button 
+                  type="button" 
+                  variant="default" 
+                  className="flex-1"
+                  onClick={handleReactivate}
+                >
+                  Reativar Paciente
+                </Button>
+              ) : (
                 <Button 
                   type="button" 
                   variant="destructive" 

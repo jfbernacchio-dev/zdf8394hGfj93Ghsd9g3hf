@@ -502,7 +502,14 @@ Assinatura do Profissional`;
                 {patient.name.charAt(0).toUpperCase()}
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-foreground">{patient.name}</h1>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-2xl font-bold text-foreground">{patient.name}</h1>
+                  {patient.status === 'inactive' && (
+                    <span className="px-3 py-1 bg-muted text-muted-foreground text-sm font-medium rounded-md">
+                      Ficha Encerrada
+                    </span>
+                  )}
+                </div>
                 <p className="text-muted-foreground">{patient.email || 'Email não informado'}</p>
               </div>
             </div>
