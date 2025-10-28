@@ -7,6 +7,16 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle 
+} from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -20,6 +30,11 @@ const NewPatient = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const [showBreakWarning, setShowBreakWarning] = useState(false);
+  const [breakWarningDetails, setBreakWarningDetails] = useState('');
+  const [pendingSessionData, setPendingSessionData] = useState<any[]>([]);
+  const [pendingPatientData, setPendingPatientData] = useState<any>(null);
+  
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -146,40 +161,16 @@ const NewPatient = () => {
         }
         
         if (hasBreakConflict) {
-          toast({
-            title: "Conflito de horário detectado",
-            description: `${conflictDetails}. As sessões precisam de ${breakTime} minutos de descanso entre elas (duração da sessão: ${slotDuration}min).`,
-            variant: "destructive",
-          });
+          setBreakWarningDetails(`${conflictDetails}. As sessões precisam de ${breakTime} minutos de descanso entre elas (duração da sessão: ${slotDuration}min).`);
+          setPendingSessionData(sessionData);
+          setPendingPatientData(patient);
+          setShowBreakWarning(true);
           return;
         }
 
-        // Create sessions in the database
-        if (sessionData.length > 0) {
-          const sessionsToInsert = sessionData.map(({ date, status, time }) => ({
-            patient_id: patient.id,
-            date,
-            status,
-            value: parseFloat(formData.sessionValue),
-            paid: false,
-            time: time || formData.sessionTime,
-          }));
-
-          const { error: sessionsError } = await supabase
-            .from('sessions')
-            .insert(sessionsToInsert);
-
-          if (sessionsError) throw sessionsError;
-          sessionsCount = sessionsToInsert.length;
-        }
+        // Create sessions - use function to allow confirmation override
+        await createSessionsForPatient(patient, sessionData);
       }
-
-      toast({
-        title: "Paciente cadastrado!",
-        description: sessionsCount > 0 
-          ? `O paciente foi adicionado com ${sessionsCount} sessões geradas.`
-          : "O paciente foi adicionado. Você pode adicionar os dados de agendamento depois.",
-      });
 
       navigate('/patients');
     } catch (error: any) {
@@ -191,19 +182,97 @@ const NewPatient = () => {
     }
   };
 
-  return (
-    <div className="container mx-auto px-4 py-8 max-w-2xl">
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/patients')}
-          className="mb-6"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Voltar
-        </Button>
+  const createSessionsForPatient = async (patient: any, sessionData: any[]) => {
+    let sessionsCount = 0;
+    
+    if (sessionData.length > 0) {
+      const sessionsToInsert = sessionData.map(({ date, status, time }) => ({
+        patient_id: patient.id,
+        date,
+        status,
+        value: parseFloat(formData.sessionValue),
+        paid: false,
+        time: time || formData.sessionTime,
+      }));
 
-        <Card className="p-8 shadow-[var(--shadow-card)] border-border">
-          <h1 className="text-2xl font-bold text-foreground mb-6">Novo Paciente</h1>
+      const { error: sessionsError } = await supabase
+        .from('sessions')
+        .insert(sessionsToInsert);
+
+      if (sessionsError) throw sessionsError;
+      sessionsCount = sessionsToInsert.length;
+    }
+
+    toast({
+      title: "Paciente cadastrado!",
+      description: sessionsCount > 0 
+        ? `O paciente foi adicionado com ${sessionsCount} sessões geradas.`
+        : "O paciente foi adicionado. Você pode adicionar os dados de agendamento depois.",
+    });
+  };
+
+  const confirmWithoutBreak = async () => {
+    try {
+      await createSessionsForPatient(pendingPatientData, pendingSessionData);
+      setShowBreakWarning(false);
+      navigate('/patients');
+    } catch (error: any) {
+      toast({
+        title: "Erro ao criar sessões",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Helper to get Brazil date
+  const getBrazilDate = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Helper to format time for display (24h format)
+  const formatTimeForDisplay = (time: string) => {
+    if (!time) return '';
+    return time; // Already in HH:mm format
+  };
+
+  return (
+    <>
+      <AlertDialog open={showBreakWarning} onOpenChange={setShowBreakWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Conflito de Horário Detectado</AlertDialogTitle>
+            <AlertDialogDescription>
+              {breakWarningDetails}
+              <br /><br />
+              Deseja continuar mesmo assim?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmWithoutBreak}>
+              Continuar Mesmo Assim
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <div className="container mx-auto px-4 py-8 max-w-2xl">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/patients')}
+            className="mb-6"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Voltar
+          </Button>
+
+          <Card className="p-8 shadow-[var(--shadow-card)] border-border">
+            <h1 className="text-2xl font-bold text-foreground mb-6">Novo Paciente</h1>
           
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
@@ -504,6 +573,7 @@ const NewPatient = () => {
           </form>
         </Card>
       </div>
+    </>
   );
 };
 
