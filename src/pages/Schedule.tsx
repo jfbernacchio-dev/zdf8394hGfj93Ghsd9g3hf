@@ -1937,6 +1937,27 @@ const Schedule = () => {
           </AlertDialogContent>
         </AlertDialog>
       </div>
+      
+      <DragOverlay>
+        {draggedSession ? (
+          <Card className="cursor-grabbing shadow-2xl border-l-4 p-2 opacity-80" style={{
+            borderLeftColor: draggedSession.status === 'attended' ? 'hsl(var(--chart-2))' : 
+                           draggedSession.status === 'missed' ? 'hsl(var(--destructive))' : 
+                           'hsl(var(--primary))',
+            width: '200px',
+            height: '56px'
+          }}>
+            <div className="flex items-center justify-between h-full">
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-xs truncate">{draggedSession.patients?.name}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {draggedSession.time || draggedSession.patients?.session_time}
+                </p>
+              </div>
+            </div>
+          </Card>
+        ) : null}
+      </DragOverlay>
     </DndContext>
   );
 };
