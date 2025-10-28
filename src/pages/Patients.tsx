@@ -57,7 +57,7 @@ const Patients = () => {
     // Se showOnlyUnpaid estiver ativo, filtrar apenas pacientes com sessões não pagas
     const stats = getPatientStats(p.id);
     return matchesSearch && stats.unpaidCount > 0;
-  });
+  }).sort((a, b) => a.name.localeCompare(b.name));
 
   const getPatientStats = (patientId: string) => {
     const patient = patients.find(p => p.id === patientId);

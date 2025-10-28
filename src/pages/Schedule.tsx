@@ -21,7 +21,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Calendar as CalendarIcon, Plus, CheckCircle, XCircle, DollarSign, ArrowLeft, Lock, Briefcase } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, CheckCircle, XCircle, DollarSign, ArrowLeft, Lock, Briefcase, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, startOfWeek, addDays, isBefore, parseISO, getDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { DndContext, DragEndEvent, useSensor, useSensors, PointerSensor, DragOverlay, closestCenter } from '@dnd-kit/core';
@@ -29,6 +29,9 @@ import { CSS } from '@dnd-kit/utilities';
 import { DraggableSession } from '@/components/DraggableSession';
 import { DroppableSlot } from '@/components/DroppableSlot';
 import { AppointmentDialog } from '@/components/AppointmentDialog';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Schedule = () => {
   const { user } = useAuth();
@@ -36,13 +39,14 @@ const Schedule = () => {
   const therapistId = searchParams.get('therapist'); // ID do terapeuta sendo visualizado pelo admin
   const embedMode = searchParams.get('embed') === 'true'; // Modo embed para não mostrar navbar
   const effectiveUserId = therapistId || user?.id; // Usa therapist ID se fornecido, senão usa o user logado
+  const isMobile = useIsMobile();
   
   const [sessions, setSessions] = useState<any[]>([]);
   const [patients, setPatients] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [viewMode, setViewMode] = useState<'month' | 'day' | 'week'>('month');
+  const [viewMode, setViewMode] = useState<'month' | 'day' | 'week'>(isMobile ? 'day' : 'month');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<any>(null);
   const [scheduleBlocks, setScheduleBlocks] = useState<any[]>([]);
@@ -54,6 +58,8 @@ const Schedule = () => {
   const [appointments, setAppointments] = useState<any[]>([]);
   const [isAppointmentDialogOpen, setIsAppointmentDialogOpen] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<any>(null);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const { toast } = useToast();
 
   // Setup drag sensors
@@ -860,6 +866,34 @@ const Schedule = () => {
     setDraggedSession(session);
   };
 
+  // Handle swipe on mobile
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    const minSwipeDistance = 50;
+    if (touchStart !== null && touchEnd !== null) {
+      const distance = touchStart - touchEnd;
+      const isLeftSwipe = distance > minSwipeDistance;
+      const isRightSwipe = distance < -minSwipeDistance;
+
+      if (isLeftSwipe) {
+        setSelectedDate(addDays(selectedDate, 1));
+      }
+      if (isRightSwipe) {
+        setSelectedDate(addDays(selectedDate, -1));
+      }
+    }
+    setTouchStart(null);
+    setTouchEnd(null);
+  };
+
   const getDaysInMonth = () => {
     const start = startOfMonth(currentMonth);
     const end = endOfMonth(currentMonth);
@@ -1425,26 +1459,79 @@ const Schedule = () => {
     const sessionGroups = groupOverlappingSessions(daySessions);
 
     return (
-      <Card className="p-6">
+      <Card 
+        className="p-6"
+        onTouchStart={isMobile ? handleTouchStart : undefined}
+        onTouchMove={isMobile ? handleTouchMove : undefined}
+        onTouchEnd={isMobile ? handleTouchEnd : undefined}
+      >
         <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
+          {isMobile ? (
+            <>
+              <div className="flex items-center gap-2 w-full justify-between">
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setSelectedDate(addDays(selectedDate, -1))}>
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setSelectedDate(addDays(selectedDate, 1))}>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+                
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <CalendarIcon className="h-4 w-4 mr-2" />
+                      {format(selectedDate, 'MMM', { locale: ptBR })}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={(date) => date && setSelectedDate(date)}
+                      initialFocus
+                      locale={ptBR}
+                    />
+                  </PopoverContent>
+                </Popover>
+                
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setSelectedDate(new Date())}
+                  title="Voltar para hoje"
+                >
+                  Hoje
+                </Button>
+              </div>
+              <h2 className="text-xl font-semibold w-full text-center">
+                {format(selectedDate, "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
+              </h2>
+            </>
+          ) : (
+            <>
+              <div className="flex gap-2">
+                <Button variant="ghost" onClick={() => setViewMode('month')}>
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Voltar ao mês
+                </Button>
+                <Button variant="outline" onClick={() => {
+                  setViewMode('week');
+                  setSelectedDate(selectedDate);
+                }}>
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  Ver Semana
+                </Button>
+              </div>
+              <h2 className="text-xl font-semibold">
+                {format(selectedDate, "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
+              </h2>
+            </>
+          )}
           <div className="flex gap-2">
-            <Button variant="ghost" onClick={() => setViewMode('month')}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Voltar ao mês
-            </Button>
-            <Button variant="outline" onClick={() => {
-              setViewMode('week');
-              setSelectedDate(selectedDate);
-            }}>
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              Ver Semana
-            </Button>
-          </div>
-          <h2 className="text-xl font-semibold">
-            {format(selectedDate, "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
-          </h2>
-          <div className="flex gap-2">
-            <Dialog open={isBlockDialogOpen} onOpenChange={setIsBlockDialogOpen}>
+            {!isMobile && (
+              <Dialog open={isBlockDialogOpen} onOpenChange={setIsBlockDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm">
                   <Lock className="mr-2 h-4 w-4" />
@@ -1556,7 +1643,8 @@ const Schedule = () => {
                   </div>
                 </div>
               </DialogContent>
-            </Dialog>
+              </Dialog>
+            )}
             <Button onClick={() => openNewDialog(selectedDate)}>
               <Plus className="mr-2 h-4 w-4" /> Nova Sessão
             </Button>
@@ -1694,14 +1782,18 @@ const Schedule = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-foreground">Agenda</h1>
-          {viewMode === 'month' && (
+          {!isMobile && viewMode === 'month' && (
             <Button onClick={() => openNewDialog(selectedDate)}>
               <Plus className="mr-2 h-4 w-4" /> Nova Sessão
             </Button>
           )}
         </div>
 
-        {viewMode === 'month' ? (
+        {isMobile ? (
+          getDayView()
+        ) : (
+          <>
+            {viewMode === 'month' ? (
           <Card className="p-6 mb-6">
             <div className="flex justify-between items-center mb-4">
             <div className="flex gap-2">
@@ -1847,7 +1939,11 @@ const Schedule = () => {
             ))}
             
             {getDaysInMonth().map((day, index) => {
-              const daySessions = getSessionsForDay(day);
+              const daySessions = getSessionsForDay(day).sort((a, b) => {
+                const timeA = a.time || a.patients?.session_time || '00:00';
+                const timeB = b.time || b.patients?.session_time || '00:00';
+                return timeA.localeCompare(timeB);
+              });
               const isToday = isSameDay(day, new Date());
               const dayOfWeek = getDay(day);
               const adjustedDay = dayOfWeek === 0 ? 7 : dayOfWeek;
@@ -1896,8 +1992,10 @@ const Schedule = () => {
               );
             })}
           </div>
-        </Card>
-        ) : viewMode === 'week' ? getWeekView() : getDayView()}
+          </Card>
+            ) : viewMode === 'week' ? getWeekView() : getDayView()}
+          </>
+        )}
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="max-w-md">
