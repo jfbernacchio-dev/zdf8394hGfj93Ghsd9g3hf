@@ -809,7 +809,7 @@ const Schedule = () => {
   const handleDragStart = (event: any) => {
     const sessionId = event.active.id;
     const session = sessions.find(s => s.id === sessionId);
-    console.log('[DRAG] Starting drag:', { sessionId, patient: session?.patients?.name });
+    console.log('[DRAG] Starting drag:', { sessionId, patient: session?.patients?.name, session });
     setDraggedSession(session);
   };
 
