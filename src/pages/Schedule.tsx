@@ -944,10 +944,7 @@ const Schedule = () => {
                 const dateStr = format(dayDate, 'yyyy-MM-dd');
                 const timeStr = `${hour.toString().padStart(2, '0')}:00`;
                 
-                // Get all sessions for this day (not filtered by hour)
                 const allDaySessions = sessions.filter(s => s.date === dateStr);
-                
-                // Get blocks for this day
                 const dayBlocks = getBlocksForDay(adjustedDay, dayDate);
 
                 return (
@@ -958,51 +955,53 @@ const Schedule = () => {
                     time={timeStr}
                     className="h-[60px] border-t border-r last:border-r-0 relative hover:bg-accent/20 transition-colors"
                   >
-                    {/* Render blocks with absolute positioning */}
-                    {hour === 7 && dayBlocks.map(block => (
-                      <div
-                        key={block.id}
-                        className="absolute inset-x-0 bg-destructive/15 border-2 border-destructive/30 rounded flex items-center justify-center text-xs text-destructive z-10"
-                        style={{
-                          top: `${(block.startMinutes / 60) * 60}px`,
-                          height: `${((block.endMinutes - block.startMinutes) / 60) * 60}px`,
-                        }}
-                      >
-                        <span className="font-medium">🚫 Bloqueado</span>
-                      </div>
-                    ))}
-                    
-                    {/* Render sessions with absolute positioning */}
-                    {hour === 7 && allDaySessions.map(session => {
-                      const sessionTime = session.time || session.patients?.session_time || '00:00';
-                      const topPosition = getSessionPosition(sessionTime);
-                      
-                      return (
-                        <DraggableSession key={session.id} id={session.id}>
-                          <Card
-                            className="absolute left-1 right-1 cursor-pointer hover:shadow-md transition-all border-l-4 p-2 z-20"
+                    {hour === 7 && (
+                      <>
+                        {dayBlocks.map(block => (
+                          <div
+                            key={block.id}
+                            className="absolute inset-x-0 bg-destructive/15 border-2 border-destructive/30 rounded flex items-center justify-center text-xs text-destructive z-10 pointer-events-none"
                             style={{
-                              top: `${topPosition}px`,
-                              height: '56px',
-                              borderLeftColor: session.status === 'attended' ? 'hsl(var(--chart-2))' : 
-                                             session.status === 'missed' ? 'hsl(var(--destructive))' : 
-                                             'hsl(var(--primary))'
+                              top: `${(block.startMinutes / 60) * 60}px`,
+                              height: `${((block.endMinutes - block.startMinutes) / 60) * 60}px`,
                             }}
-                            onClick={() => openEditDialog(session)}
                           >
-                            <div className="flex items-center justify-between h-full">
-                              <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-xs truncate">{session.patients.name}</p>
-                                <p className="text-[10px] text-muted-foreground">{sessionTime}</p>
-                              </div>
-                              <Badge variant={getStatusVariant(session.status)} className="text-[10px] px-1.5 py-0.5 ml-1 shrink-0">
-                                {getStatusText(session.status)}
-                              </Badge>
-                            </div>
-                          </Card>
-                        </DraggableSession>
-                      );
-                    })}
+                            <span className="font-medium">🚫 Bloqueado</span>
+                          </div>
+                        ))}
+                        
+                        {allDaySessions.map(session => {
+                          const sessionTime = session.time || session.patients?.session_time || '00:00';
+                          const topPosition = getSessionPosition(sessionTime);
+                          
+                          return (
+                            <DraggableSession key={session.id} id={session.id}>
+                              <Card
+                                className="absolute left-1 right-1 cursor-grab active:cursor-grabbing hover:shadow-md transition-all border-l-4 p-2 z-20"
+                                style={{
+                                  top: `${topPosition}px`,
+                                  height: '56px',
+                                  borderLeftColor: session.status === 'attended' ? 'hsl(var(--chart-2))' : 
+                                                 session.status === 'missed' ? 'hsl(var(--destructive))' : 
+                                                 'hsl(var(--primary))'
+                                }}
+                                onClick={() => openEditDialog(session)}
+                              >
+                                <div className="flex items-center justify-between h-full">
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-semibold text-xs truncate">{session.patients.name}</p>
+                                    <p className="text-[10px] text-muted-foreground">{sessionTime}</p>
+                                  </div>
+                                  <Badge variant={getStatusVariant(session.status)} className="text-[10px] px-1.5 py-0.5 ml-1 shrink-0">
+                                    {getStatusText(session.status)}
+                                  </Badge>
+                                </div>
+                              </Card>
+                            </DraggableSession>
+                          );
+                        })}
+                      </>
+                    )}
                   </DroppableSlot>
                 );
               })}
@@ -1222,50 +1221,52 @@ const Schedule = () => {
                   time={timeStr}
                   className="flex-1 relative hover:bg-accent/10 transition-colors"
                 >
-                  {/* Render blocks with absolute positioning (only on first hour) */}
-                  {hour === 7 && dayBlocks.map(block => (
-                    <div
-                      key={block.id}
-                      className="absolute inset-x-0 mx-2 bg-destructive/15 border-2 border-destructive/30 rounded flex items-center justify-center text-xs text-destructive z-10"
-                      style={{
-                        top: `${(block.startMinutes / 60) * 60}px`,
-                        height: `${((block.endMinutes - block.startMinutes) / 60) * 60}px`,
-                      }}
-                    >
-                      <span className="font-medium">🚫 Bloqueado</span>
-                    </div>
-                  ))}
-                  
-                  {/* Render sessions with absolute positioning (only on first hour) */}
-                  {hour === 7 && daySessions.map(session => {
-                    const sessionTime = session.time || session.patients?.session_time || '00:00';
-                    const topPosition = getSessionPosition(sessionTime);
-                    
-                    return (
-                      <DraggableSession key={session.id} id={session.id}>
+                  {hour === 7 && (
+                    <>
+                      {dayBlocks.map(block => (
                         <div
-                          className={`absolute left-2 right-2 p-3 rounded-lg cursor-pointer transition-all z-20 ${getStatusColor(session.status)}`}
+                          key={block.id}
+                          className="absolute inset-x-0 mx-2 bg-destructive/15 border-2 border-destructive/30 rounded flex items-center justify-center text-xs text-destructive z-10 pointer-events-none"
                           style={{
-                            top: `${topPosition}px`,
-                            height: '56px',
+                            top: `${(block.startMinutes / 60) * 60}px`,
+                            height: `${((block.endMinutes - block.startMinutes) / 60) * 60}px`,
                           }}
-                          onClick={() => openEditDialog(session)}
                         >
-                          <div className="flex justify-between items-center h-full">
-                            <div>
-                              <p className="font-semibold text-sm">{session.patients.name}</p>
-                              <p className="text-xs">{sessionTime}</p>
-                            </div>
-                            <div className="text-right text-xs">
-                              {session.paid && <p>💰 Pago</p>}
-                              {session.status === 'missed' && <p>Sem Cobrança</p>}
-                              {session.status === 'attended' && !session.paid && <p>A Pagar</p>}
-                            </div>
-                          </div>
+                          <span className="font-medium">🚫 Bloqueado</span>
                         </div>
-                      </DraggableSession>
-                    );
-                  })}
+                      ))}
+                      
+                      {daySessions.map(session => {
+                        const sessionTime = session.time || session.patients?.session_time || '00:00';
+                        const topPosition = getSessionPosition(sessionTime);
+                        
+                        return (
+                          <DraggableSession key={session.id} id={session.id}>
+                            <div
+                              className={`absolute left-2 right-2 p-3 rounded-lg cursor-grab active:cursor-grabbing transition-all z-20 ${getStatusColor(session.status)}`}
+                              style={{
+                                top: `${topPosition}px`,
+                                height: '56px',
+                              }}
+                              onClick={() => openEditDialog(session)}
+                            >
+                              <div className="flex justify-between items-center h-full">
+                                <div>
+                                  <p className="font-semibold text-sm">{session.patients.name}</p>
+                                  <p className="text-xs">{sessionTime}</p>
+                                </div>
+                                <div className="text-right text-xs">
+                                  {session.paid && <p>💰 Pago</p>}
+                                  {session.status === 'missed' && <p>Sem Cobrança</p>}
+                                  {session.status === 'attended' && !session.paid && <p>A Pagar</p>}
+                                </div>
+                              </div>
+                            </div>
+                          </DraggableSession>
+                        );
+                      })}
+                    </>
+                  )}
                 </DroppableSlot>
               </div>
             );
