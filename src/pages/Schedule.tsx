@@ -729,7 +729,7 @@ const Schedule = () => {
       to: { date: newDate, time: newTime }
     });
     
-    // Check for time conflict at new location
+    // FIRST: Check for time conflict at new location (same exact time)
     if (newTime) {
       const { hasConflict, conflictSession } = await checkTimeConflict(
         newDate,
@@ -747,63 +747,63 @@ const Schedule = () => {
             ...draggedSession, 
             date: newDate, 
             time: newTime,
-            isDragMove: true // Flag to identify this is from drag
+            isDragMove: true
           }
         });
         setShowTimeConflictWarning(true);
         setDraggedSession(null);
         return;
       }
+    }
+    
+    // SECOND: Check for break time conflict (only if no exact time conflict)
+    if (profile && newTime) {
+      const breakTime = profile.break_time || 15;
       
-      // Check for break time conflict
-      if (profile && newTime) {
-        const breakTime = profile.break_time || 15;
+      // Fetch all sessions on the same date from database
+      const { data: sessionsOnSameDate } = await supabase
+        .from('sessions')
+        .select('*, patients!inner(*)')
+        .eq('patients.user_id', effectiveUserId!)
+        .eq('date', newDate);
+      
+      // Check if any session conflicts with break time
+      const hasBreakConflict = sessionsOnSameDate?.some(s => {
+        if (s.id === draggedSession.id) return false; // Skip the session being moved
         
-        // Fetch all sessions on the same date from database
-        const { data: sessionsOnSameDate } = await supabase
-          .from('sessions')
-          .select('*, patients!inner(*)')
-          .eq('patients.user_id', effectiveUserId!)
-          .eq('date', newDate);
+        const otherTime = s.time || s.patients?.session_time;
+        if (!otherTime) return false;
         
-        // Check if any session conflicts with break time
-        const hasBreakConflict = sessionsOnSameDate?.some(s => {
-          if (s.id === draggedSession.id) return false; // Skip the session being moved
-          
-          const otherTime = s.time || s.patients?.session_time;
-          if (!otherTime) return false;
-          
-          const [sessionHour, sessionMin] = newTime.split(':').map(Number);
-          const [otherHour, otherMin] = otherTime.split(':').map(Number);
-          const sessionMinutes = sessionHour * 60 + sessionMin;
-          const otherMinutes = otherHour * 60 + otherMin;
-          const slotDuration = profile.slot_duration || 60;
-          
-          const gap = Math.abs(sessionMinutes - otherMinutes);
-          
-          if (gap === 0) return false;
-          
-          return gap < (slotDuration + breakTime);
+        const [sessionHour, sessionMin] = newTime.split(':').map(Number);
+        const [otherHour, otherMin] = otherTime.split(':').map(Number);
+        const sessionMinutes = sessionHour * 60 + sessionMin;
+        const otherMinutes = otherHour * 60 + otherMin;
+        const slotDuration = profile.slot_duration || 60;
+        
+        const gap = Math.abs(sessionMinutes - otherMinutes);
+        
+        if (gap === 0) return false; // Exact same time - already handled above
+        
+        return gap < (slotDuration + breakTime);
+      });
+      
+      console.log('[DRAG] Break check:', { hasBreakConflict, breakTime });
+      
+      if (hasBreakConflict) {
+        // Store the pending move for confirmation
+        setConflictDetails({
+          existingSession: null,
+          newSession: { 
+            ...draggedSession, 
+            date: newDate, 
+            time: newTime,
+            isDragMove: true,
+            isBreakConflict: true
+          }
         });
-        
-        console.log('[DRAG] Break check:', { hasBreakConflict, breakTime });
-        
-        if (hasBreakConflict) {
-          // Store the pending move for confirmation
-          setConflictDetails({
-            existingSession: null,
-            newSession: { 
-              ...draggedSession, 
-              date: newDate, 
-              time: newTime,
-              isDragMove: true,
-              isBreakConflict: true
-            }
-          });
-          setShowBreakWarning(true);
-          setDraggedSession(null);
-          return;
-        }
+        setShowBreakWarning(true);
+        setDraggedSession(null);
+        return;
       }
     }
     
@@ -933,7 +933,7 @@ const Schedule = () => {
         });
     };
 
-    // Group overlapping sessions
+    // Group overlapping sessions (sessions at the same time)
     const groupOverlappingSessions = (sessions: any[]) => {
       const groups: any[][] = [];
       const sorted = [...sessions].sort((a, b) => {
@@ -946,13 +946,11 @@ const Schedule = () => {
         const sessionTime = session.time || session.patients?.session_time || '00:00';
         let placed = false;
 
+        // Check if there's already a group with this exact time
         for (const group of groups) {
-          const hasOverlap = group.some(s => {
-            const sTime = s.time || s.patients?.session_time || '00:00';
-            return sTime === sessionTime;
-          });
-
-          if (hasOverlap) {
+          const groupTime = group[0].time || group[0].patients?.session_time || '00:00';
+          
+          if (groupTime === sessionTime) {
             group.push(session);
             placed = true;
             break;
