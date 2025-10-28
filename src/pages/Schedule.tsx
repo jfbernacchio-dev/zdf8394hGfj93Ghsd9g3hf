@@ -696,15 +696,16 @@ const Schedule = () => {
     const dateChanged = dropData.date !== draggedSession.date;
     const originalTime = draggedSession.time || draggedSession.patients?.session_time;
     
-    // Extract time from droppable slot ID if it's an hourly slot
-    let newTime = originalTime; // Start with original time
+    // Extract time from droppable slot ID
+    let newTime = originalTime;
     
-    // If over ID contains slot info, extract the hour
     if (over.id && typeof over.id === 'string') {
-      const match = over.id.match(/-(\d+)$/); // Extract hour from "week-slot-2025-10-28-11"
+      // Match pattern like "week-slot-2025-10-28-11-30" or "day-slot-2025-10-28-11-30"
+      const match = over.id.match(/-(\d+)-(\d+)$/);
       if (match) {
         const hour = match[1];
-        newTime = `${hour.padStart(2, '0')}:00`;
+        const minutes = match[2];
+        newTime = `${hour.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
         console.log('[DRAG] Extracted time from slot:', newTime);
       }
     }
@@ -1147,13 +1148,25 @@ const Schedule = () => {
                 const sessionGroups = groupOverlappingSessions(allDaySessions);
 
                 return (
-                  <DroppableSlot
-                    key={`${hour}-${dayIndex}`}
-                    id={`week-slot-${dateStr}-${hour}`}
-                    date={dateStr}
-                    time={`${hour.toString().padStart(2, '0')}:00`}
-                    className="h-[60px] border-t border-r last:border-r-0 relative"
-                  >
+                  <div key={`${hour}-${dayIndex}`} className="h-[60px] border-t border-r last:border-r-0 relative">
+                    {/* Create 4 droppable slots for 15-minute intervals */}
+                    {quarterHours.map(minutes => {
+                      const timeStr = `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                      return (
+                        <DroppableSlot
+                          key={`${hour}-${dayIndex}-${minutes}`}
+                          id={`week-slot-${dateStr}-${hour}-${minutes}`}
+                          date={dateStr}
+                          time={timeStr}
+                          className="absolute inset-x-0"
+                          style={{
+                            top: `${(minutes / 60) * 60}px`,
+                            height: '15px'
+                          }}
+                        />
+                      );
+                    })}
+                    
                     {/* Render blocks and sessions only once per hour (on first hour) */}
                     {hour === 7 && (
                       <>
@@ -1215,7 +1228,7 @@ const Schedule = () => {
                         })}
                       </>
                     )}
-                  </DroppableSlot>
+                  </div>
                 );
               })}
             </div>
@@ -1459,17 +1472,29 @@ const Schedule = () => {
             const dateStr = format(selectedDate, 'yyyy-MM-dd');
             
             return (
-              <DroppableSlot
-                key={hour}
-                id={`day-slot-${dateStr}-${hour}`}
-                date={dateStr}
-                time={`${hour.toString().padStart(2, '0')}:00`}
-                className="flex border-b last:border-b-0 h-[60px] relative"
-              >
+              <div key={hour} className="flex border-b last:border-b-0 h-[60px] relative">
                 <div className="w-20 p-2 text-sm font-semibold text-muted-foreground border-r flex items-start">
                   {hour.toString().padStart(2, '0')}:00
                 </div>
                 <div className="flex-1 relative">
+                  {/* Create 4 droppable slots for 15-minute intervals */}
+                  {quarterHours.map(minutes => {
+                    const timeStr = `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                    return (
+                      <DroppableSlot
+                        key={`${hour}-${minutes}`}
+                        id={`day-slot-${dateStr}-${hour}-${minutes}`}
+                        date={dateStr}
+                        time={timeStr}
+                        className="absolute inset-x-0"
+                        style={{
+                          top: `${(minutes / 60) * 60}px`,
+                          height: '15px'
+                        }}
+                      />
+                    );
+                  })}
+                  
                   {hour === 7 && (
                     <>
                       {dayBlocks.map(block => (
@@ -1530,7 +1555,7 @@ const Schedule = () => {
                     </>
                   )}
                 </div>
-              </DroppableSlot>
+              </div>
             );
           })}
         </div>
