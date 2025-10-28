@@ -14,6 +14,7 @@ interface Profile {
   work_start_time?: string;
   work_end_time?: string;
   slot_duration?: number;
+  break_time?: number;
 }
 
 interface AuthContextType {
@@ -35,6 +36,7 @@ interface AuthContextType {
       work_start_time: string;
       work_end_time: string;
       slot_duration: number;
+      break_time: number;
     }
   ) => Promise<{ error: any; userId?: string }>;
 }
@@ -192,6 +194,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       work_start_time: string;
       work_end_time: string;
       slot_duration: number;
+      break_time: number;
     }
   ) => {
     if (!isAdmin) {
@@ -221,6 +224,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             work_start_time: workHours.work_start_time,
             work_end_time: workHours.work_end_time,
             slot_duration: workHours.slot_duration,
+            break_time: workHours.break_time,
           }),
         }
       }

@@ -29,6 +29,7 @@ const ProfileEdit = () => {
   const [workStartTime, setWorkStartTime] = useState('08:00');
   const [workEndTime, setWorkEndTime] = useState('18:00');
   const [slotDuration, setSlotDuration] = useState(60);
+  const [breakTime, setBreakTime] = useState(15);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -37,6 +38,7 @@ const ProfileEdit = () => {
       setWorkStartTime(profile.work_start_time || '08:00');
       setWorkEndTime(profile.work_end_time || '18:00');
       setSlotDuration(profile.slot_duration || 60);
+      setBreakTime(profile.break_time || 15);
     }
   }, [profile]);
 
@@ -60,6 +62,7 @@ const ProfileEdit = () => {
           work_start_time: workStartTime,
           work_end_time: workEndTime,
           slot_duration: slotDuration,
+          break_time: breakTime,
         })
         .eq('id', user!.id);
 
@@ -157,6 +160,23 @@ const ProfileEdit = () => {
                 onChange={(e) => setSlotDuration(Number(e.target.value))}
                 required
               />
+            </div>
+
+            {/* Tempo de Descanso */}
+            <div>
+              <Label htmlFor="break-time">Tempo de Descanso Entre Sessões (minutos)</Label>
+              <Input
+                id="break-time"
+                type="number"
+                min="0"
+                step="5"
+                value={breakTime}
+                onChange={(e) => setBreakTime(Number(e.target.value))}
+                required
+              />
+              <p className="text-sm text-muted-foreground mt-1">
+                Tempo de intervalo entre atendimentos para recomposição. Este tempo não é contabilizado na taxa de ocupação.
+              </p>
             </div>
 
             <div className="flex gap-3 pt-4">

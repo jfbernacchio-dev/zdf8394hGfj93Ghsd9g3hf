@@ -362,12 +362,15 @@ const Financial = () => {
     const startTime = profile.work_start_time || '08:00';
     const endTime = profile.work_end_time || '18:00';
     const slotDuration = profile.slot_duration || 60;
+    const breakTime = profile.break_time || 15;
     
     // Calculate total available slots per week
     const [startHour, startMin] = startTime.split(':').map(Number);
     const [endHour, endMin] = endTime.split(':').map(Number);
     const totalMinutesPerDay = (endHour * 60 + endMin) - (startHour * 60 + startMin);
-    const slotsPerDay = Math.floor(totalMinutesPerDay / slotDuration);
+    
+    // Slots per day considering session duration + break time
+    const slotsPerDay = Math.floor(totalMinutesPerDay / (slotDuration + breakTime));
     const slotsPerWeek = workDays.length * slotsPerDay;
     
     // Calculate weeks in the selected period
@@ -387,7 +390,7 @@ const Financial = () => {
         const [blockStartHour, blockStartMin] = block.start_time.split(':').map(Number);
         const [blockEndHour, blockEndMin] = block.end_time.split(':').map(Number);
         const blockedMinutes = (blockEndHour * 60 + blockEndMin) - (blockStartHour * 60 + blockStartMin);
-        const blockedSlotsPerOccurrence = Math.floor(blockedMinutes / slotDuration);
+        const blockedSlotsPerOccurrence = Math.floor(blockedMinutes / (slotDuration + breakTime));
         
         // Calculate number of occurrences in the period
         const effectiveStart = blockStart < start ? start : blockStart;

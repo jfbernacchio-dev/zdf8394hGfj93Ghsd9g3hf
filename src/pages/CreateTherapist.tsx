@@ -43,6 +43,7 @@ const CreateTherapist = () => {
     work_start_time: '08:00',
     work_end_time: '18:00',
     slot_duration: 60,
+    break_time: 15,
   });
 
   const weekDays = [
@@ -288,6 +289,21 @@ const CreateTherapist = () => {
                   min="30"
                   step="15"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="break_time">Tempo de Descanso (minutos)</Label>
+                <Input
+                  id="break_time"
+                  type="number"
+                  value={workHours.break_time}
+                  onChange={(e) => setWorkHours({ ...workHours, break_time: parseInt(e.target.value) })}
+                  min="0"
+                  step="5"
+                />
+                <p className="text-sm text-muted-foreground">
+                  Intervalo entre sessões para recomposição. Não conta na taxa de ocupação.
+                </p>
               </div>
             </div>
           </div>

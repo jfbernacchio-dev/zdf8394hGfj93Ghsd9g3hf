@@ -7,6 +7,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle 
+} from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +35,7 @@ const Schedule = () => {
   
   const [sessions, setSessions] = useState<any[]>([]);
   const [patients, setPatients] = useState<any[]>([]);
+  const [profile, setProfile] = useState<any>(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [viewMode, setViewMode] = useState<'month' | 'day' | 'week'>('month');
@@ -32,6 +43,7 @@ const Schedule = () => {
   const [editingSession, setEditingSession] = useState<any>(null);
   const [scheduleBlocks, setScheduleBlocks] = useState<any[]>([]);
   const [isBlockDialogOpen, setIsBlockDialogOpen] = useState(false);
+  const [showBreakWarning, setShowBreakWarning] = useState(false);
   const { toast } = useToast();
 
   const [blockForm, setBlockForm] = useState({
@@ -67,11 +79,22 @@ const Schedule = () => {
 
   useEffect(() => {
     if (effectiveUserId) {
+      loadProfile();
       loadData();
       loadScheduleBlocks();
       autoUpdateOldSessions();
     }
   }, [effectiveUserId, currentMonth]);
+
+  const loadProfile = async () => {
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', effectiveUserId!)
+      .single();
+
+    setProfile(profileData);
+  };
 
   const autoUpdateOldSessions = async () => {
     // Get all scheduled sessions with patient info
@@ -255,6 +278,39 @@ const Schedule = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Check for break time conflict before saving
+    if (!editingSession && profile && formData.time) {
+      const breakTime = profile.break_time || 15;
+      const sessionTime = formData.time;
+      const sessionDate = formData.date;
+      
+      // Find other sessions on the same date
+      const sessionsOnSameDate = sessions.filter(s => 
+        s.date === sessionDate && s.id !== editingSession?.id
+      );
+      
+      // Check if any session conflicts with break time
+      const hasBreakConflict = sessionsOnSameDate.some(s => {
+        const otherTime = s.time || s.patients?.session_time;
+        if (!otherTime) return false;
+        
+        const [sessionHour, sessionMin] = sessionTime.split(':').map(Number);
+        const [otherHour, otherMin] = otherTime.split(':').map(Number);
+        const sessionMinutes = sessionHour * 60 + sessionMin;
+        const otherMinutes = otherHour * 60 + otherMin;
+        const slotDuration = profile.slot_duration || 60;
+        
+        // Check if this session starts within break time of another session
+        const minGap = Math.abs(sessionMinutes - otherMinutes);
+        return minGap > 0 && minGap < (slotDuration + breakTime);
+      });
+      
+      if (hasBreakConflict) {
+        setShowBreakWarning(true);
+        return;
+      }
+    }
+    
     const sessionData = {
       patient_id: formData.patient_id,
       date: formData.date,
@@ -291,6 +347,42 @@ const Schedule = () => {
     setIsDialogOpen(false);
     setEditingSession(null);
       setFormData({
+      patient_id: '',
+      date: format(new Date(), 'yyyy-MM-dd'),
+      status: 'scheduled',
+      notes: '',
+      value: '',
+      paid: false,
+      time: ''
+    });
+    loadData();
+  };
+
+  const confirmWithoutBreak = async () => {
+    setShowBreakWarning(false);
+    
+    const sessionData = {
+      patient_id: formData.patient_id,
+      date: formData.date,
+      status: formData.status,
+      notes: formData.notes,
+      value: parseFloat(formData.value),
+      paid: formData.paid,
+      time: formData.time || null
+    };
+
+    const { error } = await supabase
+      .from('sessions')
+      .insert([sessionData]);
+
+    if (error) {
+      toast({ title: 'Erro ao criar sessão', variant: 'destructive' });
+      return;
+    }
+    
+    toast({ title: 'Sessão criada com sucesso!' });
+    setIsDialogOpen(false);
+    setFormData({
       patient_id: '',
       date: format(new Date(), 'yyyy-MM-dd'),
       status: 'scheduled',
@@ -1293,6 +1385,26 @@ const Schedule = () => {
             </form>
           </DialogContent>
         </Dialog>
+
+        {/* Alert Dialog for Break Time Warning */}
+        <AlertDialog open={showBreakWarning} onOpenChange={setShowBreakWarning}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Atenção: Sem Intervalo de Descanso</AlertDialogTitle>
+              <AlertDialogDescription>
+                Você está agendando uma sessão muito próxima de outra, sem respeitar o tempo de descanso configurado ({profile?.break_time || 15} minutos).
+                <br /><br />
+                Deseja continuar mesmo assim?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmWithoutBreak}>
+                Agendar Mesmo Assim
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
   );
 };

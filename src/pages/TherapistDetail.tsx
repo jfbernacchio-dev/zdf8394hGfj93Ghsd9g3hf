@@ -333,13 +333,19 @@ const TherapistDetail = () => {
                     </p>
                   </div>
                   <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Tempo de Descanso</Label>
+                    <p className="text-base font-semibold mt-1">
+                      {therapist.break_time || 15} minutos
+                    </p>
+                  </div>
+                  <div>
                     <Label className="text-sm font-medium text-muted-foreground">Slots por Semana</Label>
                     <p className="text-base font-semibold mt-1">
                       {(() => {
                         const workDays = therapist.work_days?.length || 5;
                         const startTime = therapist.work_start_time || '08:00';
                         const endTime = therapist.work_end_time || '18:00';
-                        const slotDuration = therapist.slot_duration || 60;
+                        const slotDuration = (therapist.slot_duration || 60) + (therapist.break_time || 15);
                         
                         const [startHour, startMin] = startTime.split(':').map(Number);
                         const [endHour, endMin] = endTime.split(':').map(Number);
