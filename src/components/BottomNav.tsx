@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Calendar, Users, Menu } from 'lucide-react';
+import { Home, Calendar, Users, Menu, TrendingUp } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
 import { Button } from './ui/button';
@@ -27,7 +27,7 @@ const BottomNav = () => {
   };
 
   const navItems = [
-    { path: '/', icon: Home, label: 'Início' },
+    { path: '/sistema', icon: Home, label: 'Início' },
     { path: '/schedule', icon: Calendar, label: 'Agenda' },
     { path: '/patients', icon: Users, label: 'Pacientes' },
   ];
@@ -86,9 +86,17 @@ const BottomNav = () => {
                     <Users className="w-5 h-5 mr-3" />
                     Terapeutas
                   </Button>
-                )}
-                <div className="border-t border-border my-3" />
-                <Button
+                 )}
+                 <div className="border-t border-border my-3" />
+                 <Button
+                   variant="ghost"
+                   className="justify-start h-14 text-base rounded-xl active:scale-98 transition-transform"
+                   onClick={() => handleMenuNavigation('/financial')}
+                 >
+                   <TrendingUp className="w-5 h-5 mr-3" />
+                   Financeiro
+                 </Button>
+                 <Button
                   variant="ghost"
                   className="justify-start h-14 text-base rounded-xl active:scale-98 transition-transform"
                   onClick={() => handleMenuNavigation('/nfse/config')}

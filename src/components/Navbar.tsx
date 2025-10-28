@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Users, Calendar, LogOut, FileText, ChevronDown, Shield, Menu } from 'lucide-react';
+import { Users, Calendar, LogOut, FileText, ChevronDown, Shield, Menu, TrendingUp } from 'lucide-react';
 import { Button } from './ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
@@ -90,22 +90,25 @@ const Navbar = () => {
                 <DropdownMenuTrigger asChild>
                   <button
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                      location.pathname.startsWith('/nfse')
+                      location.pathname.startsWith('/financial') || location.pathname.startsWith('/nfse') || location.pathname.startsWith('/invoice-logs')
                         ? 'bg-primary text-primary-foreground'
                         : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
                     }`}
                   >
-                    <FileText className="w-4 h-4" />
-                    <span className="font-medium">NFSe</span>
+                    <TrendingUp className="w-4 h-4" />
+                    <span className="font-medium">Financeiro</span>
                     <ChevronDown className="w-3 h-3" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="bg-popover z-50">
+                  <DropdownMenuItem onClick={() => navigate('/financial')}>
+                    Análise Financeira
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate('/nfse/config')}>
-                    Configuração
+                    Configuração NFSe
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate('/nfse/history')}>
-                    Histórico
+                    Histórico NFSe
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate('/invoice-logs')}>
                     Fechamentos

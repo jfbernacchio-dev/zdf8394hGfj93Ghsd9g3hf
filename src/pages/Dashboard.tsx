@@ -4,7 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Users, Calendar, DollarSign, TrendingUp, AlertCircle } from 'lucide-react';
+import { Users, Calendar, DollarSign, TrendingUp, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,6 +21,8 @@ const Dashboard = () => {
   const [period, setPeriod] = useState('month');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogType, setDialogType] = useState<'expected' | 'actual' | 'unpaid' | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -135,6 +139,70 @@ const Dashboard = () => {
   const unpaidSessions = allAttendedSessions.filter(s => !s.paid);
   const unpaidValue = unpaidSessions.reduce((sum, s) => sum + Number(s.value), 0);
 
+  const openDialog = (type: 'expected' | 'actual' | 'unpaid') => {
+    setDialogType(type);
+    setDialogOpen(true);
+  };
+
+  const getDialogData = () => {
+    if (dialogType === 'expected') {
+      const activePatients = patients.filter(p => p.status === 'active');
+      return activePatients.map(patient => {
+        const patientStart = new Date(patient.start_date);
+        const periodStart = patientStart > start ? patientStart : start;
+        const weeks = Math.floor((end.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24 * 7));
+        const multiplier = patient.frequency === 'weekly' ? 1 : 0.5;
+        const expectedSessions = Math.max(1, Math.ceil(weeks * multiplier));
+        const expectedValue = expectedSessions * Number(patient.session_value || 0);
+        
+        return {
+          patient: patient.name,
+          sessions: expectedSessions,
+          value: expectedValue,
+        };
+      });
+    } else if (dialogType === 'actual') {
+      const patientRevenue = new Map<string, { sessions: number; value: number }>();
+      
+      attendedSessions.forEach(session => {
+        const patient = patients.find(p => p.id === session.patient_id);
+        if (patient) {
+          const current = patientRevenue.get(patient.name) || { sessions: 0, value: 0 };
+          patientRevenue.set(patient.name, {
+            sessions: current.sessions + 1,
+            value: current.value + Number(session.value),
+          });
+        }
+      });
+      
+      return Array.from(patientRevenue.entries()).map(([patient, data]) => ({
+        patient,
+        sessions: data.sessions,
+        value: data.value,
+      }));
+    } else if (dialogType === 'unpaid') {
+      const patientUnpaid = new Map<string, { sessions: number; value: number }>();
+      
+      unpaidSessions.forEach(session => {
+        const patient = patients.find(p => p.id === session.patient_id);
+        if (patient) {
+          const current = patientUnpaid.get(patient.name) || { sessions: 0, value: 0 };
+          patientUnpaid.set(patient.name, {
+            sessions: current.sessions + 1,
+            value: current.value + Number(session.value),
+          });
+        }
+      });
+      
+      return Array.from(patientUnpaid.entries()).map(([patient, data]) => ({
+        patient,
+        sessions: data.sessions,
+        value: data.value,
+      }));
+    }
+    return [];
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
@@ -183,7 +251,7 @@ const Dashboard = () => {
           </div>
         </Card>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
           <Card className="p-6 shadow-[var(--shadow-card)] border-border">
             <div className="flex items-center justify-between mb-4">
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -194,7 +262,10 @@ const Dashboard = () => {
             <p className="text-sm text-muted-foreground">Total de Pacientes</p>
           </Card>
 
-          <Card className="p-6 shadow-[var(--shadow-card)] border-border">
+          <Card 
+            className="p-6 shadow-[var(--shadow-card)] border-border cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={() => openDialog('expected')}
+          >
             <div className="flex items-center justify-between mb-4">
               <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center">
                 <TrendingUp className="w-6 h-6 text-blue-500" />
@@ -206,7 +277,10 @@ const Dashboard = () => {
             <p className="text-sm text-muted-foreground">Receita Esperada</p>
           </Card>
 
-          <Card className="p-6 shadow-[var(--shadow-card)] border-border">
+          <Card 
+            className="p-6 shadow-[var(--shadow-card)] border-border cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={() => openDialog('actual')}
+          >
             <div className="flex items-center justify-between mb-4">
               <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center">
                 <DollarSign className="w-6 h-6 text-[hsl(var(--success))]" />
@@ -216,6 +290,18 @@ const Dashboard = () => {
               {formatBrazilianCurrency(totalActual)}
             </h3>
             <p className="text-sm text-muted-foreground">Receita Efetiva ({revenuePercent}%)</p>
+          </Card>
+
+          <Card className="p-6 shadow-[var(--shadow-card)] border-border">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center">
+                <CheckCircle2 className="w-6 h-6 text-accent" />
+              </div>
+            </div>
+            <h3 className="text-2xl font-bold text-foreground mb-1">
+              {attendedSessions.length}
+            </h3>
+            <p className="text-sm text-muted-foreground">Sessões Realizadas</p>
           </Card>
         </div>
 
@@ -256,7 +342,10 @@ const Dashboard = () => {
             <p className="text-sm text-muted-foreground">Sessões Pendentes ({pendingPercent}%)</p>
           </Card>
 
-          <Card className="p-6 shadow-[var(--shadow-card)] border-border">
+          <Card 
+            className="p-6 shadow-[var(--shadow-card)] border-border cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={() => openDialog('unpaid')}
+          >
             <div className="flex items-center justify-between mb-4">
               <div className="w-12 h-12 rounded-xl bg-warning/10 flex items-center justify-center">
                 <DollarSign className="w-6 h-6 text-[hsl(var(--warning))]" />
@@ -268,6 +357,52 @@ const Dashboard = () => {
             <p className="text-sm text-muted-foreground">Em Aberto ({unpaidSessions.length})</p>
           </Card>
         </div>
+
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                {dialogType === 'expected' && 'Detalhes da Receita Esperada'}
+                {dialogType === 'actual' && 'Detalhes da Receita Efetiva'}
+                {dialogType === 'unpaid' && 'Detalhes dos Valores em Aberto'}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="mt-4">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Paciente</TableHead>
+                    <TableHead>Sessões</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {getDialogData().map((row, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell>{row.patient}</TableCell>
+                      <TableCell>{row.sessions}</TableCell>
+                      <TableCell className="text-right font-medium">
+                        {formatBrazilianCurrency(row.value)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow className="font-bold bg-muted/50">
+                    <TableCell>Total</TableCell>
+                    <TableCell>
+                      {getDialogData().reduce((sum, row) => sum + row.sessions, 0)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {formatBrazilianCurrency(
+                        getDialogData().reduce((sum, row) => sum + row.value, 0)
+                      )}
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          </DialogContent>
+        </Dialog>
+
     <NotificationPrompt />
     </div>
   );
