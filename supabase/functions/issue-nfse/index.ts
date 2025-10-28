@@ -199,6 +199,8 @@ Data de emissão: ${new Date().toLocaleDateString('pt-BR')}`;
     const brazilDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
     const dataEmissao = brazilDate.toISOString().split('T')[0];
     
+    console.log('Emitting NFSe with date:', dataEmissao);
+    
     const focusNFePayload = {
       data_emissao: dataEmissao,
       natureza_operacao: '1', // Tributação no município
