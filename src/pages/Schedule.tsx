@@ -20,11 +20,14 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-
 import { useToast } from '@/hooks/use-toast';
 import { Calendar as CalendarIcon, Plus, CheckCircle, XCircle, DollarSign, ArrowLeft, Lock } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, startOfWeek, addDays, isBefore, parseISO, getDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { DndContext, DragEndEvent, useSensor, useSensors, PointerSensor, DragOverlay } from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
+import { DraggableSession } from '@/components/DraggableSession';
+import { DroppableSlot } from '@/components/DroppableSlot';
 
 const Schedule = () => {
   const { user } = useAuth();
@@ -44,7 +47,19 @@ const Schedule = () => {
   const [scheduleBlocks, setScheduleBlocks] = useState<any[]>([]);
   const [isBlockDialogOpen, setIsBlockDialogOpen] = useState(false);
   const [showBreakWarning, setShowBreakWarning] = useState(false);
+  const [showTimeConflictWarning, setShowTimeConflictWarning] = useState(false);
+  const [conflictDetails, setConflictDetails] = useState<{existingSession: any, newSession: any} | null>(null);
+  const [draggedSession, setDraggedSession] = useState<any>(null);
   const { toast } = useToast();
+
+  // Setup drag sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
 
   const [blockForm, setBlockForm] = useState({
     day_of_week: '1',
@@ -275,8 +290,51 @@ const Schedule = () => {
     }
   };
 
+  const checkTimeConflict = async (date: string, time: string, excludeSessionId?: string): Promise<{hasConflict: boolean, conflictSession?: any}> => {
+    if (!time) return { hasConflict: false };
+    
+    // Fetch all sessions on the same date
+    const { data: sessionsOnSameDate } = await supabase
+      .from('sessions')
+      .select('*, patients!inner(*)')
+      .eq('patients.user_id', effectiveUserId!)
+      .eq('date', date);
+    
+    if (!sessionsOnSameDate) return { hasConflict: false };
+    
+    // Check if any session is at the exact same time
+    const conflictSession = sessionsOnSameDate.find(s => {
+      if (excludeSessionId && s.id === excludeSessionId) return false;
+      const otherTime = s.time || s.patients?.session_time;
+      return otherTime === time;
+    });
+    
+    return {
+      hasConflict: !!conflictSession,
+      conflictSession
+    };
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check for time conflict (same time slot)
+    if (formData.time) {
+      const { hasConflict, conflictSession } = await checkTimeConflict(
+        formData.date, 
+        formData.time,
+        editingSession?.id
+      );
+      
+      if (hasConflict) {
+        setConflictDetails({
+          existingSession: conflictSession,
+          newSession: formData
+        });
+        setShowTimeConflictWarning(true);
+        return;
+      }
+    }
     
     // Check for break time conflict before saving (both new and edited sessions)
     if (profile && formData.time) {
@@ -402,6 +460,56 @@ const Schedule = () => {
     loadData();
   };
 
+  const confirmWithTimeConflict = async () => {
+    setShowTimeConflictWarning(false);
+    
+    const sessionData = {
+      patient_id: formData.patient_id,
+      date: formData.date,
+      status: formData.status,
+      notes: formData.notes,
+      value: parseFloat(formData.value),
+      paid: formData.paid,
+      time: formData.time || null
+    };
+
+    if (editingSession) {
+      const { error } = await supabase
+        .from('sessions')
+        .update(sessionData)
+        .eq('id', editingSession.id);
+
+      if (error) {
+        toast({ title: 'Erro ao atualizar sessão', variant: 'destructive' });
+        return;
+      }
+      toast({ title: 'Sessão atualizada com sucesso!' });
+    } else {
+      const { error } = await supabase
+        .from('sessions')
+        .insert([sessionData]);
+
+      if (error) {
+        toast({ title: 'Erro ao criar sessão', variant: 'destructive' });
+        return;
+      }
+      toast({ title: 'Sessão criada com sucesso!' });
+    }
+
+    setIsDialogOpen(false);
+    setEditingSession(null);
+    setFormData({
+      patient_id: '',
+      date: format(new Date(), 'yyyy-MM-dd'),
+      status: 'scheduled',
+      notes: '',
+      value: '',
+      paid: false,
+      time: ''
+    });
+    loadData();
+  };
+
   const deleteSession = async () => {
     if (!editingSession) return;
     
@@ -492,6 +600,79 @@ const Schedule = () => {
       toast({ title: session.paid ? 'Marcado como não pago' : 'Marcado como pago' });
       loadData();
     }
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (!over || !draggedSession) {
+      setDraggedSession(null);
+      return;
+    }
+    
+    const dropData = over.data.current as { date: string; time?: string };
+    
+    if (!dropData) {
+      setDraggedSession(null);
+      return;
+    }
+    
+    // Check if date or time changed
+    const dateChanged = dropData.date !== draggedSession.date;
+    const timeChanged = dropData.time && dropData.time !== (draggedSession.time || draggedSession.patients?.session_time);
+    
+    if (!dateChanged && !timeChanged) {
+      setDraggedSession(null);
+      return;
+    }
+    
+    // Check for time conflict at new location
+    if (dropData.time) {
+      const { hasConflict, conflictSession } = await checkTimeConflict(
+        dropData.date,
+        dropData.time,
+        draggedSession.id
+      );
+      
+      if (hasConflict) {
+        setConflictDetails({
+          existingSession: conflictSession,
+          newSession: { ...draggedSession, date: dropData.date, time: dropData.time }
+        });
+        setShowTimeConflictWarning(true);
+        setDraggedSession(null);
+        return;
+      }
+    }
+    
+    // Update session
+    const updateData: any = {
+      date: dropData.date
+    };
+    
+    if (dropData.time) {
+      updateData.time = dropData.time;
+    }
+    
+    const { error } = await supabase
+      .from('sessions')
+      .update(updateData)
+      .eq('id', draggedSession.id);
+    
+    if (error) {
+      toast({ title: 'Erro ao mover sessão', variant: 'destructive' });
+    } else {
+      toast({ title: 'Sessão movida com sucesso!' });
+      loadData();
+    }
+    
+    setDraggedSession(null);
+  };
+
+  const handleDragStart = (event: any) => {
+    const sessionId = event.active.id;
+    const session = sessions.find(s => s.id === sessionId);
+    setDraggedSession(session);
   };
 
   const getDaysInMonth = () => {
@@ -760,16 +941,21 @@ const Schedule = () => {
               {weekDays.map((dayDate, dayIndex) => {
                 const dayOfWeek = getDay(dayDate);
                 const adjustedDay = dayOfWeek === 0 ? 7 : dayOfWeek;
+                const dateStr = format(dayDate, 'yyyy-MM-dd');
+                const timeStr = `${hour.toString().padStart(2, '0')}:00`;
                 
                 // Get all sessions for this day (not filtered by hour)
-                const allDaySessions = sessions.filter(s => s.date === format(dayDate, 'yyyy-MM-dd'));
+                const allDaySessions = sessions.filter(s => s.date === dateStr);
                 
                 // Get blocks for this day
                 const dayBlocks = getBlocksForDay(adjustedDay, dayDate);
 
                 return (
-                  <div
+                  <DroppableSlot
                     key={`${hour}-${dayIndex}`}
+                    id={`week-slot-${dateStr}-${timeStr}`}
+                    date={dateStr}
+                    time={timeStr}
                     className="h-[60px] border-t border-r last:border-r-0 relative hover:bg-accent/20 transition-colors"
                   >
                     {/* Render blocks with absolute positioning */}
@@ -792,31 +978,32 @@ const Schedule = () => {
                       const topPosition = getSessionPosition(sessionTime);
                       
                       return (
-                        <Card
-                          key={session.id}
-                          className="absolute left-1 right-1 cursor-pointer hover:shadow-md transition-all border-l-4 p-2 z-20"
-                          style={{
-                            top: `${topPosition}px`,
-                            height: '56px', // 1 hour minus some padding
-                            borderLeftColor: session.status === 'attended' ? 'hsl(var(--chart-2))' : 
-                                           session.status === 'missed' ? 'hsl(var(--destructive))' : 
-                                           'hsl(var(--primary))'
-                          }}
-                          onClick={() => openEditDialog(session)}
-                        >
-                          <div className="flex items-center justify-between h-full">
-                            <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-xs truncate">{session.patients.name}</p>
-                              <p className="text-[10px] text-muted-foreground">{sessionTime}</p>
+                        <DraggableSession key={session.id} id={session.id}>
+                          <Card
+                            className="absolute left-1 right-1 cursor-pointer hover:shadow-md transition-all border-l-4 p-2 z-20"
+                            style={{
+                              top: `${topPosition}px`,
+                              height: '56px',
+                              borderLeftColor: session.status === 'attended' ? 'hsl(var(--chart-2))' : 
+                                             session.status === 'missed' ? 'hsl(var(--destructive))' : 
+                                             'hsl(var(--primary))'
+                            }}
+                            onClick={() => openEditDialog(session)}
+                          >
+                            <div className="flex items-center justify-between h-full">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-xs truncate">{session.patients.name}</p>
+                                <p className="text-[10px] text-muted-foreground">{sessionTime}</p>
+                              </div>
+                              <Badge variant={getStatusVariant(session.status)} className="text-[10px] px-1.5 py-0.5 ml-1 shrink-0">
+                                {getStatusText(session.status)}
+                              </Badge>
                             </div>
-                            <Badge variant={getStatusVariant(session.status)} className="text-[10px] px-1.5 py-0.5 ml-1 shrink-0">
-                              {getStatusText(session.status)}
-                            </Badge>
-                          </div>
-                        </Card>
+                          </Card>
+                        </DraggableSession>
                       );
                     })}
-                  </div>
+                  </DroppableSlot>
                 );
               })}
             </div>
@@ -1020,65 +1207,77 @@ const Schedule = () => {
 
         {/* Timeline view with proportional positioning */}
         <div className="relative border rounded-lg">
-          {hours.map(hour => (
-            <div key={hour} className="flex border-b last:border-b-0 h-[60px] relative">
-              <div className="w-20 p-2 text-sm font-semibold text-muted-foreground border-r flex items-start">
-                {hour.toString().padStart(2, '0')}:00
-              </div>
-              <div className="flex-1 relative hover:bg-accent/10 transition-colors">
-                {/* Render blocks with absolute positioning (only on first hour) */}
-                {hour === 7 && dayBlocks.map(block => (
-                  <div
-                    key={block.id}
-                    className="absolute inset-x-0 mx-2 bg-destructive/15 border-2 border-destructive/30 rounded flex items-center justify-center text-xs text-destructive z-10"
-                    style={{
-                      top: `${(block.startMinutes / 60) * 60}px`,
-                      height: `${((block.endMinutes - block.startMinutes) / 60) * 60}px`,
-                    }}
-                  >
-                    <span className="font-medium">🚫 Bloqueado</span>
-                  </div>
-                ))}
-                
-                {/* Render sessions with absolute positioning (only on first hour) */}
-                {hour === 7 && daySessions.map(session => {
-                  const sessionTime = session.time || session.patients?.session_time || '00:00';
-                  const topPosition = getSessionPosition(sessionTime);
-                  
-                  return (
+          {hours.map(hour => {
+            const dateStr = format(selectedDate, 'yyyy-MM-dd');
+            const timeStr = `${hour.toString().padStart(2, '0')}:00`;
+            
+            return (
+              <div key={hour} className="flex border-b last:border-b-0 h-[60px] relative">
+                <div className="w-20 p-2 text-sm font-semibold text-muted-foreground border-r flex items-start">
+                  {hour.toString().padStart(2, '0')}:00
+                </div>
+                <DroppableSlot
+                  id={`day-slot-${dateStr}-${timeStr}`}
+                  date={dateStr}
+                  time={timeStr}
+                  className="flex-1 relative hover:bg-accent/10 transition-colors"
+                >
+                  {/* Render blocks with absolute positioning (only on first hour) */}
+                  {hour === 7 && dayBlocks.map(block => (
                     <div
-                      key={session.id}
-                      className={`absolute left-2 right-2 p-3 rounded-lg cursor-pointer transition-all z-20 ${getStatusColor(session.status)}`}
+                      key={block.id}
+                      className="absolute inset-x-0 mx-2 bg-destructive/15 border-2 border-destructive/30 rounded flex items-center justify-center text-xs text-destructive z-10"
                       style={{
-                        top: `${topPosition}px`,
-                        height: '56px',
+                        top: `${(block.startMinutes / 60) * 60}px`,
+                        height: `${((block.endMinutes - block.startMinutes) / 60) * 60}px`,
                       }}
-                      onClick={() => openEditDialog(session)}
                     >
-                      <div className="flex justify-between items-center h-full">
-                        <div>
-                          <p className="font-semibold text-sm">{session.patients.name}</p>
-                          <p className="text-xs">{sessionTime}</p>
-                        </div>
-                        <div className="text-right text-xs">
-                          {session.paid && <p>💰 Pago</p>}
-                          {session.status === 'missed' && <p>Sem Cobrança</p>}
-                          {session.status === 'attended' && !session.paid && <p>A Pagar</p>}
-                        </div>
-                      </div>
+                      <span className="font-medium">🚫 Bloqueado</span>
                     </div>
-                  );
-                })}
+                  ))}
+                  
+                  {/* Render sessions with absolute positioning (only on first hour) */}
+                  {hour === 7 && daySessions.map(session => {
+                    const sessionTime = session.time || session.patients?.session_time || '00:00';
+                    const topPosition = getSessionPosition(sessionTime);
+                    
+                    return (
+                      <DraggableSession key={session.id} id={session.id}>
+                        <div
+                          className={`absolute left-2 right-2 p-3 rounded-lg cursor-pointer transition-all z-20 ${getStatusColor(session.status)}`}
+                          style={{
+                            top: `${topPosition}px`,
+                            height: '56px',
+                          }}
+                          onClick={() => openEditDialog(session)}
+                        >
+                          <div className="flex justify-between items-center h-full">
+                            <div>
+                              <p className="font-semibold text-sm">{session.patients.name}</p>
+                              <p className="text-xs">{sessionTime}</p>
+                            </div>
+                            <div className="text-right text-xs">
+                              {session.paid && <p>💰 Pago</p>}
+                              {session.status === 'missed' && <p>Sem Cobrança</p>}
+                              {session.status === 'attended' && !session.paid && <p>A Pagar</p>}
+                            </div>
+                          </div>
+                        </div>
+                      </DraggableSession>
+                    );
+                  })}
+                </DroppableSlot>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </Card>
     );
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <DndContext sensors={sensors} onDragEnd={handleDragEnd} onDragStart={handleDragStart}>
+      <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-foreground">Agenda</h1>
           {viewMode === 'month' && (
@@ -1238,41 +1437,48 @@ const Schedule = () => {
               const isToday = isSameDay(day, new Date());
               const dayOfWeek = getDay(day);
               const adjustedDay = dayOfWeek === 0 ? 7 : dayOfWeek;
+              const dateStr = format(day, 'yyyy-MM-dd');
               
               // Check if any part of the day has blocks
               const hasBlocks = scheduleBlocks.some(block => block.day_of_week === adjustedDay);
               
               return (
-                <div
+                <DroppableSlot
                   key={index}
+                  id={`day-${dateStr}`}
+                  date={dateStr}
                   className={`min-h-[100px] p-2 border rounded-lg cursor-pointer hover:bg-accent/50 transition-colors ${
                     isToday ? 'border-primary bg-primary/5' : ''
                   }`}
-                  onClick={() => {
-                    setSelectedDate(day);
-                    setViewMode('day');
-                  }}
                 >
-                  <div className="font-semibold text-sm mb-1 flex justify-between items-center">
-                    <span>{format(day, 'd')}</span>
-                    {hasBlocks && <Lock className="h-3 w-3 text-destructive" />}
+                  <div
+                    onClick={() => {
+                      setSelectedDate(day);
+                      setViewMode('day');
+                    }}
+                  >
+                    <div className="font-semibold text-sm mb-1 flex justify-between items-center">
+                      <span>{format(day, 'd')}</span>
+                      {hasBlocks && <Lock className="h-3 w-3 text-destructive" />}
+                    </div>
+                    <div className="space-y-1">
+                      {daySessions.map(session => (
+                        <DraggableSession key={session.id} id={session.id}>
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEditDialog(session);
+                            }}
+                            className={`text-xs p-1 rounded ${getStatusColor(session.status)}`}
+                          >
+                            {session.patients.name}
+                            {session.paid && ' 💰'}
+                          </div>
+                        </DraggableSession>
+                      ))}
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    {daySessions.map(session => (
-                      <div
-                        key={session.id}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openEditDialog(session);
-                        }}
-                        className={`text-xs p-1 rounded ${getStatusColor(session.status)}`}
-                      >
-                        {session.patients.name}
-                        {session.paid && ' 💰'}
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                </DroppableSlot>
               );
             })}
           </div>
@@ -1413,7 +1619,32 @@ const Schedule = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Alert Dialog for Time Conflict Warning */}
+        <AlertDialog open={showTimeConflictWarning} onOpenChange={setShowTimeConflictWarning}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Atenção: Horário Ocupado</AlertDialogTitle>
+              <AlertDialogDescription>
+                {conflictDetails && (
+                  <>
+                    Já existe uma sessão agendada para {conflictDetails.existingSession?.patients?.name} no horário {conflictDetails.existingSession?.time || conflictDetails.existingSession?.patients?.session_time} do dia {format(parseISO(conflictDetails.existingSession?.date), 'dd/MM/yyyy')}.
+                    <br /><br />
+                    Deseja agendar mesmo assim? Os dois pacientes ficarão no mesmo horário.
+                  </>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmWithTimeConflict}>
+                Sim, Agendar Mesmo Assim
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
+    </DndContext>
   );
 };
 
