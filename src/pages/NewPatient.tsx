@@ -44,6 +44,15 @@ const NewPatient = () => {
     if (!user) return;
 
     try {
+      // Get user profile to check break time settings
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('slot_duration, break_time')
+        .eq('id', user.id)
+        .single();
+
+      const slotDuration = profile?.slot_duration || 60;
+      const breakTime = profile?.break_time || 15;
       const { data: patient, error: patientError } = await supabase
         .from('patients')
         .insert({
@@ -97,6 +106,52 @@ const NewPatient = () => {
             formData.frequency as 'weekly' | 'biweekly',
             8
           );
+        }
+
+        // Check for break time conflicts with existing sessions
+        let hasBreakConflict = false;
+        let conflictDetails = '';
+        
+        for (const newSession of sessionData) {
+          const sessionTime = newSession.time || formData.sessionTime;
+          
+          // Fetch existing sessions on the same date
+          const { data: existingSessions } = await supabase
+            .from('sessions')
+            .select('*, patients!inner(*)')
+            .eq('patients.user_id', user.id)
+            .eq('date', newSession.date);
+          
+          // Check if any session conflicts
+          const conflict = existingSessions?.some(s => {
+            const otherTime = s.time || s.patients?.session_time;
+            if (!otherTime) return false;
+            
+            const [sessionHour, sessionMin] = sessionTime.split(':').map(Number);
+            const [otherHour, otherMin] = otherTime.split(':').map(Number);
+            const sessionMinutes = sessionHour * 60 + sessionMin;
+            const otherMinutes = otherHour * 60 + otherMin;
+            
+            const gap = Math.abs(sessionMinutes - otherMinutes);
+            if (gap === 0) return false; // Same time
+            
+            return gap < (slotDuration + breakTime);
+          });
+          
+          if (conflict) {
+            hasBreakConflict = true;
+            conflictDetails = `Conflito detectado em ${format(new Date(newSession.date), 'dd/MM/yyyy', { locale: ptBR })} às ${sessionTime}`;
+            break;
+          }
+        }
+        
+        if (hasBreakConflict) {
+          toast({
+            title: "Conflito de horário detectado",
+            description: `${conflictDetails}. As sessões precisam de ${breakTime} minutos de descanso entre elas (duração da sessão: ${slotDuration}min).`,
+            variant: "destructive",
+          });
+          return;
         }
 
         // Create sessions in the database
@@ -388,6 +443,7 @@ const NewPatient = () => {
                   type="time"
                   value={formData.sessionTime}
                   onChange={(e) => setFormData({ ...formData, sessionTime: e.target.value })}
+                  className="[&::-webkit-calendar-picker-indicator]:dark:invert"
                 />
               </div>
             </div>
@@ -422,6 +478,7 @@ const NewPatient = () => {
                     type="time"
                     value={formData.sessionTime2}
                     onChange={(e) => setFormData({ ...formData, sessionTime2: e.target.value })}
+                    className="[&::-webkit-calendar-picker-indicator]:dark:invert"
                   />
                 </div>
               </div>

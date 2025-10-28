@@ -278,8 +278,8 @@ const Schedule = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Check for break time conflict before saving
-    if (!editingSession && profile && formData.time) {
+    // Check for break time conflict before saving (both new and edited sessions)
+    if (profile && formData.time) {
       const breakTime = profile.break_time || 15;
       const sessionTime = formData.time;
       const sessionDate = formData.date;
