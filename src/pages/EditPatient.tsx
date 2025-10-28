@@ -325,7 +325,10 @@ const EditPatient = () => {
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
-                    selected={formData.birth_date ? new Date(formData.birth_date + 'T12:00:00') : undefined}
+                    selected={formData.birth_date ? (() => {
+                      const [year, month, day] = formData.birth_date.split('-').map(Number);
+                      return new Date(year, month - 1, day);
+                    })() : undefined}
                     onSelect={(date) => {
                       if (date) {
                         const year = date.getFullYear();
@@ -450,7 +453,10 @@ const EditPatient = () => {
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
-                    selected={formData.start_date ? new Date(formData.start_date + 'T12:00:00') : undefined}
+                    selected={formData.start_date ? (() => {
+                      const [year, month, day] = formData.start_date.split('-').map(Number);
+                      return new Date(year, month - 1, day);
+                    })() : undefined}
                     onSelect={(date) => {
                       if (date) {
                         const year = date.getFullYear();

@@ -302,9 +302,15 @@ const Schedule = () => {
         const otherMinutes = otherHour * 60 + otherMin;
         const slotDuration = profile.slot_duration || 60;
         
-        // Check if sessions are too close together
-        const minGap = Math.abs(sessionMinutes - otherMinutes);
-        return minGap > 0 && minGap < (slotDuration + breakTime);
+        // Check if one session starts before the other ends + break time
+        // If session A ends at 11:00 and session B starts at 11:15, gap is 15 minutes
+        const gap = Math.abs(sessionMinutes - otherMinutes);
+        
+        // Sessions overlap or don't have enough break time between them
+        if (gap === 0) return false; // Same time, will be caught by other validation
+        
+        // Check if the gap between session start times is less than slot duration + break
+        return gap < (slotDuration + breakTime);
       });
       
       if (hasBreakConflict) {
