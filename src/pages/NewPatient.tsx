@@ -337,9 +337,10 @@ const NewPatient = () => {
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formData.birthDate ? (
-                        format(new Date(formData.birthDate), "dd/MM/yyyy", { locale: ptBR })
-                      ) : (
+                      {formData.birthDate ? (() => {
+                        const [year, month, day] = formData.birthDate.split('-').map(Number);
+                        return format(new Date(year, month - 1, day), "dd/MM/yyyy", { locale: ptBR });
+                      })() : (
                         <span>Selecione a data</span>
                       )}
                     </Button>
@@ -449,9 +450,10 @@ const NewPatient = () => {
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formData.startDate ? (
-                        format(new Date(formData.startDate), "dd/MM/yyyy", { locale: ptBR })
-                      ) : (
+                      {formData.startDate ? (() => {
+                        const [year, month, day] = formData.startDate.split('-').map(Number);
+                        return format(new Date(year, month - 1, day), "dd/MM/yyyy", { locale: ptBR });
+                      })() : (
                         <span>Selecione a data</span>
                       )}
                     </Button>
@@ -510,9 +512,9 @@ const NewPatient = () => {
                 <Input
                   id="sessionTime"
                   type="time"
+                  step="60"
                   value={formData.sessionTime}
                   onChange={(e) => setFormData({ ...formData, sessionTime: e.target.value })}
-                  className="[&::-webkit-calendar-picker-indicator]:dark:invert"
                 />
               </div>
             </div>
@@ -545,9 +547,9 @@ const NewPatient = () => {
                   <Input
                     id="sessionTime2"
                     type="time"
+                    step="60"
                     value={formData.sessionTime2}
                     onChange={(e) => setFormData({ ...formData, sessionTime2: e.target.value })}
-                    className="[&::-webkit-calendar-picker-indicator]:dark:invert"
                   />
                 </div>
               </div>
