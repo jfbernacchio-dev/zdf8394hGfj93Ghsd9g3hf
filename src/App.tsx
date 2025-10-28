@@ -59,6 +59,22 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const PublicRedirect = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+
+  // Se estiver carregando, mostra o site normalmente
+  if (loading) {
+    return <>{children}</>;
+  }
+
+  // Se tiver usuário logado, redireciona para o sistema
+  if (user) {
+    return <Navigate to="/sistema" replace />;
+  }
+
+  return <>{children}</>;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -67,8 +83,12 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            {/* Site Institucional */}
-            <Route path="/" element={<Index />} />
+            {/* Site Institucional - redireciona para sistema se logado */}
+            <Route path="/" element={
+              <PublicRedirect>
+                <Index />
+              </PublicRedirect>
+            } />
             
             {/* Sistema de Gestão */}
             <Route path="/install" element={<Install />} />
