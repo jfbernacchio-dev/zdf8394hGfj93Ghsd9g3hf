@@ -195,10 +195,15 @@ Data de emissão: ${new Date().toLocaleDateString('pt-BR')}`;
 
     // Prepare FocusNFe payload
     // Get current date in Brazil timezone (UTC-3)
+    // Convert UTC to Brazil time by subtracting 3 hours
     const now = new Date();
-    const brazilDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-    const dataEmissao = brazilDate.toISOString().split('T')[0];
+    const brazilOffset = -3 * 60; // Brazil is UTC-3
+    const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const brazilTime = new Date(utcTime + (brazilOffset * 60000));
+    const dataEmissao = brazilTime.toISOString().split('T')[0];
     
+    console.log('Current UTC time:', now.toISOString());
+    console.log('Brazil time calculated:', brazilTime.toISOString());
     console.log('Emitting NFSe with date:', dataEmissao);
     
     const focusNFePayload = {

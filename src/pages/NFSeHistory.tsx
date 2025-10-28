@@ -113,7 +113,7 @@ export default function NFSeHistory() {
 
   const handleRefreshAll = async () => {
     const notIssuedNotes = nfseList.filter(
-      n => n.environment === activeTab && (n.status === 'processing' || n.status === 'issued')
+      n => n.environment === activeTab && (n.status === 'processing' || n.status === 'error')
     );
 
     if (notIssuedNotes.length === 0) {
@@ -389,7 +389,7 @@ export default function NFSeHistory() {
                     <TableCell>{getStatusBadge(nfse.status)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        {(nfse.status === 'processing' || nfse.status === 'issued') && (
+                        {(nfse.status === 'processing' || nfse.status === 'error') && (
                           <Button
                             variant="ghost"
                             size="sm"
