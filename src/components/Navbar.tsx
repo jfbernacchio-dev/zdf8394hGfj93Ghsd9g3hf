@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Users, Calendar, LogOut, FileText, ChevronDown, Shield, Menu, TrendingUp, User } from 'lucide-react';
 import { Button } from './ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from './ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from './ui/dropdown-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
 import { useState } from 'react';
 import mindwareLogo from '@/assets/mindware-logo.png';
@@ -105,12 +105,21 @@ const Navbar = () => {
                     Análise Financeira
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => navigate('/nfse/config')}>
-                    Configuração NFSe
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/nfse/history')}>
-                    Histórico NFSe
-                  </DropdownMenuItem>
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      <FileText className="w-4 h-4 mr-2" />
+                      NFSe
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent className="bg-popover">
+                      <DropdownMenuItem onClick={() => navigate('/nfse/config')}>
+                        Configuração
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate('/nfse/history')}>
+                        Histórico
+                      </DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => navigate('/invoice-logs')}>
                     Fechamentos
                   </DropdownMenuItem>
