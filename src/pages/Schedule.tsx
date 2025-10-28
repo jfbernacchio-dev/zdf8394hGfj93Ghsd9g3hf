@@ -430,8 +430,8 @@ const Schedule = () => {
     // Check if this is a drag move
     const isDragMove = conflictDetails?.newSession?.isDragMove;
     
-    if (isDragMove && draggedSession) {
-      // Handle drag move with break conflict
+    if (isDragMove) {
+      // Handle drag move with break conflict - use conflictDetails because draggedSession was reset
       const updateData: any = {
         date: conflictDetails?.newSession?.date
       };
@@ -443,7 +443,7 @@ const Schedule = () => {
       const { error } = await supabase
         .from('sessions')
         .update(updateData)
-        .eq('id', draggedSession.id);
+        .eq('id', conflictDetails.newSession.id);
 
       if (error) {
         toast({ title: 'Erro ao mover sessão', variant: 'destructive' });
@@ -498,8 +498,8 @@ const Schedule = () => {
     // Check if this is a drag move or manual form submission
     const isDragMove = conflictDetails?.newSession?.isDragMove;
     
-    if (isDragMove && draggedSession) {
-      // Handle drag move
+    if (isDragMove) {
+      // Handle drag move - use conflictDetails because draggedSession was reset
       const updateData: any = {
         date: conflictDetails?.newSession?.date
       };
@@ -511,7 +511,7 @@ const Schedule = () => {
       const { error } = await supabase
         .from('sessions')
         .update(updateData)
-        .eq('id', draggedSession.id);
+        .eq('id', conflictDetails.newSession.id);
 
       if (error) {
         toast({ title: 'Erro ao mover sessão', variant: 'destructive' });
@@ -669,14 +669,25 @@ const Schedule = () => {
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     
+    console.log('[DRAG] handleDragEnd called:', { 
+      hasOver: !!over, 
+      hasDraggedSession: !!draggedSession,
+      overId: over?.id,
+      activeId: active?.id 
+    });
+    
     if (!over || !draggedSession) {
+      console.log('[DRAG] Early exit - no over or draggedSession');
       setDraggedSession(null);
       return;
     }
     
     const dropData = over.data.current as { date: string; time?: string };
     
+    console.log('[DRAG] Drop data:', dropData);
+    
     if (!dropData) {
+      console.log('[DRAG] Early exit - no dropData');
       setDraggedSession(null);
       return;
     }
