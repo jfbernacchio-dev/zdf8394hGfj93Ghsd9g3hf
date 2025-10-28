@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface AppointmentDialogProps {
   isOpen: boolean;
@@ -26,6 +28,7 @@ export const AppointmentDialog = ({
   editingAppointment
 }: AppointmentDialogProps) => {
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [formData, setFormData] = useState({
     date: editingAppointment?.date || format(selectedDate, 'yyyy-MM-dd'),
     start_time: editingAppointment?.start_time || '09:00',
@@ -107,6 +110,85 @@ export const AppointmentDialog = ({
     });
   };
 
+  const formContent = (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <Label>Data</Label>
+        <Input
+          type="date"
+          value={formData.date}
+          onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+          required
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>Horário Início</Label>
+          <Input
+            type="time"
+            value={formData.start_time}
+            onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+            required
+          />
+        </div>
+        <div>
+          <Label>Horário Fim</Label>
+          <Input
+            type="time"
+            value={formData.end_time}
+            onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
+            required
+          />
+        </div>
+      </div>
+
+      <div>
+        <Label>Descrição</Label>
+        <Textarea
+          value={formData.description}
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          placeholder="Ex: Consulta médica, Reunião com escola..."
+          required
+          rows={3}
+        />
+      </div>
+
+      <div className="flex gap-2 justify-between">
+        {editingAppointment && (
+          <Button type="button" variant="destructive" onClick={handleDelete}>
+            Excluir
+          </Button>
+        )}
+        <div className="flex gap-2 ml-auto">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button type="submit">
+            {editingAppointment ? 'Atualizar' : 'Criar'}
+          </Button>
+        </div>
+      </div>
+    </form>
+  );
+
+  if (isMobile) {
+    return (
+      <Sheet open={isOpen} onOpenChange={onOpenChange}>
+        <SheetContent side="bottom" className="h-[85vh]">
+          <SheetHeader>
+            <SheetTitle>
+              {editingAppointment ? 'Editar Compromisso' : 'Novo Compromisso'}
+            </SheetTitle>
+          </SheetHeader>
+          <div className="mt-4">
+            {formContent}
+          </div>
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -115,65 +197,7 @@ export const AppointmentDialog = ({
             {editingAppointment ? 'Editar Compromisso' : 'Novo Compromisso'}
           </DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label>Data</Label>
-            <Input
-              type="date"
-              value={formData.date}
-              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Horário Início</Label>
-              <Input
-                type="time"
-                value={formData.start_time}
-                onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
-                required
-              />
-            </div>
-            <div>
-              <Label>Horário Fim</Label>
-              <Input
-                type="time"
-                value={formData.end_time}
-                onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
-                required
-              />
-            </div>
-          </div>
-
-          <div>
-            <Label>Descrição</Label>
-            <Textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Ex: Consulta médica, Reunião com escola..."
-              required
-              rows={3}
-            />
-          </div>
-
-          <div className="flex gap-2 justify-between">
-            {editingAppointment && (
-              <Button type="button" variant="destructive" onClick={handleDelete}>
-                Excluir
-              </Button>
-            )}
-            <div className="flex gap-2 ml-auto">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit">
-                {editingAppointment ? 'Atualizar' : 'Criar'}
-              </Button>
-            </div>
-          </div>
-        </form>
+        {formContent}
       </DialogContent>
     </Dialog>
   );

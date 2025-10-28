@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { 
   AlertDialog, 
   AlertDialogAction, 
@@ -60,6 +61,7 @@ const Schedule = () => {
   const [editingAppointment, setEditingAppointment] = useState<any>(null);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const { toast } = useToast();
 
   // Setup drag sensors
@@ -883,11 +885,17 @@ const Schedule = () => {
       const isLeftSwipe = distance > minSwipeDistance;
       const isRightSwipe = distance < -minSwipeDistance;
 
-      if (isLeftSwipe) {
-        setSelectedDate(addDays(selectedDate, 1));
-      }
-      if (isRightSwipe) {
-        setSelectedDate(addDays(selectedDate, -1));
+      if (isLeftSwipe || isRightSwipe) {
+        setIsTransitioning(true);
+        setTimeout(() => {
+          if (isLeftSwipe) {
+            setSelectedDate(addDays(selectedDate, 1));
+          }
+          if (isRightSwipe) {
+            setSelectedDate(addDays(selectedDate, -1));
+          }
+          setIsTransitioning(false);
+        }, 150);
       }
     }
     setTouchStart(null);
@@ -1476,7 +1484,7 @@ const Schedule = () => {
 
     return (
       <Card 
-        className="p-6"
+        className={`p-6 transition-opacity duration-300 ${isTransitioning ? 'opacity-50' : 'opacity-100'}`}
         onTouchStart={isMobile ? handleTouchStart : undefined}
         onTouchMove={isMobile ? handleTouchMove : undefined}
         onTouchEnd={isMobile ? handleTouchEnd : undefined}
@@ -1484,6 +1492,9 @@ const Schedule = () => {
         <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
           {isMobile ? (
             <>
+              <h2 className="text-xl font-semibold w-full">
+                {format(selectedDate, "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
+              </h2>
               <div className="flex items-center gap-2 w-full justify-between">
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={() => setSelectedDate(addDays(selectedDate, -1))}>
@@ -1494,36 +1505,42 @@ const Schedule = () => {
                   </Button>
                 </div>
                 
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <CalendarIcon className="h-4 w-4 mr-2" />
-                      {format(selectedDate, 'MMM', { locale: ptBR })}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="end">
-                    <Calendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={(date) => date && setSelectedDate(date)}
-                      initialFocus
-                      locale={ptBR}
-                    />
-                  </PopoverContent>
-                </Popover>
-                
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setSelectedDate(new Date())}
-                  title="Voltar para hoje"
-                >
-                  Hoje
-                </Button>
+                <div className="flex gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" size="icon" title="Selecionar data">
+                        <CalendarIcon className="h-5 w-5" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="end">
+                      <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={(date) => date && setSelectedDate(date)}
+                        initialFocus
+                        locale={ptBR}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  
+                  <Button 
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setSelectedDate(new Date())}
+                    title="Voltar para hoje"
+                  >
+                    <CalendarIcon className="h-5 w-5 fill-current" />
+                  </Button>
+
+                  <Button 
+                    size="icon" 
+                    onClick={() => openNewDialog(selectedDate)}
+                    title="Nova Sessão"
+                  >
+                    <Plus className="h-5 w-5" />
+                  </Button>
+                </div>
               </div>
-              <h2 className="text-xl font-semibold w-full text-center">
-                {format(selectedDate, "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
-              </h2>
             </>
           ) : (
             <>
@@ -1545,8 +1562,8 @@ const Schedule = () => {
               </h2>
             </>
           )}
-          <div className="flex gap-2">
-            {!isMobile && (
+          {!isMobile && (
+            <div className="flex gap-2">
               <Dialog open={isBlockDialogOpen} onOpenChange={setIsBlockDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm">
@@ -1660,15 +1677,17 @@ const Schedule = () => {
                 </div>
               </DialogContent>
               </Dialog>
-            )}
-            <Button onClick={() => openNewDialog(selectedDate)}>
-              <Plus className="mr-2 h-4 w-4" /> Nova Sessão
-            </Button>
-          </div>
+              <Button onClick={() => openNewDialog(selectedDate)}>
+                <Plus className="mr-2 h-4 w-4" /> Nova Sessão
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Timeline view with proportional positioning */}
-        <div className="relative border rounded-lg">
+        <div 
+          className={`relative border rounded-lg transition-opacity duration-150 ${isTransitioning ? 'opacity-50' : 'opacity-100'}`}
+        >
           {hours.map(hour => {
             const dateStr = format(selectedDate, 'yyyy-MM-dd');
             
@@ -2013,120 +2032,238 @@ const Schedule = () => {
           </>
         )}
 
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>{editingSession ? 'Editar Sessão' : 'Nova Sessão'}</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label>Paciente</Label>
-                <Select value={formData.patient_id} onValueChange={(value) => {
-                  setFormData({ ...formData, patient_id: value });
-                  const patient = patients.find(p => p.id === value);
-                  if (patient) setFormData({ ...formData, patient_id: value, value: patient.session_value.toString() });
-                }}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o paciente" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {patients.map(patient => (
-                      <SelectItem key={patient.id} value={patient.id}>
-                        {patient.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+        {isMobile ? (
+          <Sheet open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <SheetContent side="bottom" className="h-[90vh] overflow-y-auto">
+              <SheetHeader>
+                <SheetTitle>{editingSession ? 'Editar Sessão' : 'Nova Sessão'}</SheetTitle>
+              </SheetHeader>
+              <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+                <div>
+                  <Label>Paciente</Label>
+                  <Select value={formData.patient_id} onValueChange={(value) => {
+                    setFormData({ ...formData, patient_id: value });
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um paciente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {patients.map(patient => (
+                        <SelectItem key={patient.id} value={patient.id}>
+                          {patient.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div>
-                <Label>Data</Label>
-                <Input
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  required
-                />
-              </div>
+                <div>
+                  <Label>Data</Label>
+                  <Input
+                    type="date"
+                    value={formData.date}
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    required
+                  />
+                </div>
 
-              <div>
-                <Label>Horário</Label>
-                <Input
-                  type="time"
-                  value={formData.time || ''}
-                  onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                />
-              </div>
+                <div>
+                  <Label>Horário</Label>
+                  <Input
+                    type="time"
+                    value={formData.time || ''}
+                    onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                  />
+                </div>
 
-              <div>
-                <Label>Status</Label>
-                <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="scheduled">Agendada</SelectItem>
-                    <SelectItem value="attended">Compareceu</SelectItem>
-                    <SelectItem value="missed">Não Compareceu</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                <div>
+                  <Label>Status</Label>
+                  <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="scheduled">Agendada</SelectItem>
+                      <SelectItem value="attended">Compareceu</SelectItem>
+                      <SelectItem value="missed">Não Compareceu</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div>
-                <Label>Valor (R$)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={formData.value}
-                  onChange={(e) => setFormData({ ...formData, value: e.target.value })}
-                  required
-                />
-              </div>
+                <div>
+                  <Label>Valor (R$)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={formData.value}
+                    onChange={(e) => setFormData({ ...formData, value: e.target.value })}
+                    required
+                  />
+                </div>
 
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="paid"
-                  checked={formData.paid}
-                  onChange={(e) => setFormData({ ...formData, paid: e.target.checked })}
-                  className="h-4 w-4"
-                />
-                <Label htmlFor="paid">Pago</Label>
-              </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="paid"
+                    checked={formData.paid}
+                    onChange={(e) => setFormData({ ...formData, paid: e.target.checked })}
+                    className="h-4 w-4"
+                  />
+                  <Label htmlFor="paid">Pago</Label>
+                </div>
 
-              <div>
-                <Label>Observações</Label>
-                <Textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  rows={3}
-                />
-              </div>
+                <div>
+                  <Label>Observações</Label>
+                  <Textarea
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    rows={3}
+                  />
+                </div>
 
-              {editingSession && (
-                <div className="space-y-2 pt-4 border-t">
-                  <div className="flex gap-2">
-                    <Button type="button" variant="outline" onClick={() => toggleStatus(editingSession)} className="flex-1">
-                      {editingSession.status === 'scheduled' ? <CheckCircle className="mr-2 h-4 w-4" /> : <XCircle className="mr-2 h-4 w-4" />}
-                      Alterar Status
-                    </Button>
-                    <Button type="button" variant="outline" onClick={() => togglePaid(editingSession)} className="flex-1">
-                      <DollarSign className="mr-2 h-4 w-4" />
-                      {editingSession.paid ? 'Marcar não pago' : 'Marcar pago'}
+                {editingSession && (
+                  <div className="space-y-2 pt-4 border-t">
+                    <div className="flex gap-2">
+                      <Button type="button" variant="outline" onClick={() => toggleStatus(editingSession)} className="flex-1">
+                        {editingSession.status === 'scheduled' ? <CheckCircle className="mr-2 h-4 w-4" /> : <XCircle className="mr-2 h-4 w-4" />}
+                        Alterar Status
+                      </Button>
+                      <Button type="button" variant="outline" onClick={() => togglePaid(editingSession)} className="flex-1">
+                        <DollarSign className="mr-2 h-4 w-4" />
+                        {editingSession.paid ? 'Marcar não pago' : 'Marcar pago'}
+                      </Button>
+                    </div>
+                    <Button type="button" variant="destructive" onClick={deleteSession} className="w-full">
+                      Excluir Sessão
                     </Button>
                   </div>
-                  <Button type="button" variant="destructive" onClick={deleteSession} className="w-full">
-                    Excluir Sessão
-                  </Button>
-                </div>
-              )}
+                )}
 
-              <Button type="submit" className="w-full">
-                {editingSession ? 'Atualizar' : 'Criar'} Sessão
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+                <SheetFooter className="flex gap-2 pt-4">
+                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="flex-1">
+                    Cancelar
+                  </Button>
+                  <Button type="submit" className="flex-1">
+                    {editingSession ? 'Atualizar' : 'Criar'}
+                  </Button>
+                </SheetFooter>
+              </form>
+            </SheetContent>
+          </Sheet>
+        ) : (
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>{editingSession ? 'Editar Sessão' : 'Nova Sessão'}</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <Label>Paciente</Label>
+                  <Select value={formData.patient_id} onValueChange={(value) => {
+                    setFormData({ ...formData, patient_id: value });
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um paciente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {patients.map(patient => (
+                        <SelectItem key={patient.id} value={patient.id}>
+                          {patient.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Data</Label>
+                  <Input
+                    type="date"
+                    value={formData.date}
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label>Horário</Label>
+                  <Input
+                    type="time"
+                    value={formData.time || ''}
+                    onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <Label>Status</Label>
+                  <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="scheduled">Agendada</SelectItem>
+                      <SelectItem value="attended">Compareceu</SelectItem>
+                      <SelectItem value="missed">Não Compareceu</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Valor (R$)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={formData.value}
+                    onChange={(e) => setFormData({ ...formData, value: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="paid"
+                    checked={formData.paid}
+                    onChange={(e) => setFormData({ ...formData, paid: e.target.checked })}
+                    className="h-4 w-4"
+                  />
+                  <Label htmlFor="paid">Pago</Label>
+                </div>
+
+                <div>
+                  <Label>Observações</Label>
+                  <Textarea
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    rows={3}
+                  />
+                </div>
+
+                {editingSession && (
+                  <div className="space-y-2 pt-4 border-t">
+                    <div className="flex gap-2">
+                      <Button type="button" variant="outline" onClick={() => toggleStatus(editingSession)} className="flex-1">
+                        {editingSession.status === 'scheduled' ? <CheckCircle className="mr-2 h-4 w-4" /> : <XCircle className="mr-2 h-4 w-4" />}
+                        Alterar Status
+                      </Button>
+                      <Button type="button" variant="outline" onClick={() => togglePaid(editingSession)} className="flex-1">
+                        <DollarSign className="mr-2 h-4 w-4" />
+                        {editingSession.paid ? 'Marcar não pago' : 'Marcar pago'}
+                      </Button>
+                    </div>
+                    <Button type="button" variant="destructive" onClick={deleteSession} className="w-full">
+                      Excluir Sessão
+                    </Button>
+                  </div>
+                )}
+
+                <Button type="submit" className="w-full">
+                  {editingSession ? 'Atualizar' : 'Criar'} Sessão
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        )}
 
         {/* Alert Dialog for Break Time Warning */}
         <AlertDialog open={showBreakWarning} onOpenChange={setShowBreakWarning}>
