@@ -24,7 +24,17 @@ const EditPatient = () => {
   const [formData, setFormData] = useState<any>(null);
   const [originalData, setOriginalData] = useState<any>(null);
   const [isChangeDialogOpen, setIsChangeDialogOpen] = useState(false);
-  const [changeFromDate, setChangeFromDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  
+  // Helper to get Brazil date
+  const getBrazilDate = () => {
+    const now = new Date();
+    const brazilOffset = -3 * 60; // Brazil is UTC-3
+    const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const brazilTime = new Date(utcTime + (brazilOffset * 60000));
+    return format(brazilTime, 'yyyy-MM-dd');
+  };
+  
+  const [changeFromDate, setChangeFromDate] = useState(getBrazilDate());
 
   useEffect(() => {
     loadPatient();
@@ -66,7 +76,7 @@ const EditPatient = () => {
 
     await supabase.from('patients').update({ status: 'inactive' }).eq('id', id);
     
-    const today = new Date().toISOString().split('T')[0];
+    const today = getBrazilDate();
     await supabase.from('sessions').delete().eq('patient_id', id).gte('date', today);
 
     toast({

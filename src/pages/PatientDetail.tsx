@@ -40,8 +40,17 @@ const PatientDetail = () => {
   const [customEndDate, setCustomEndDate] = useState('');
   const [showScheduled, setShowScheduled] = useState(false);
   const [showUnpaid, setShowUnpaid] = useState(false);
+  // Helper to get Brazil date
+  const getBrazilDate = () => {
+    const now = new Date();
+    const brazilOffset = -3 * 60; // Brazil is UTC-3
+    const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const brazilTime = new Date(utcTime + (brazilOffset * 60000));
+    return format(brazilTime, 'yyyy-MM-dd');
+  };
+
   const [formData, setFormData] = useState({
-    date: format(new Date(), 'yyyy-MM-dd'),
+    date: getBrazilDate(),
     status: 'attended',
     notes: '',
     value: '',
@@ -140,7 +149,7 @@ const PatientDetail = () => {
   const openNewSessionDialog = () => {
     setEditingSession(null);
     setFormData({
-      date: format(new Date(), 'yyyy-MM-dd'),
+      date: getBrazilDate(),
       status: 'scheduled',
       notes: '',
       value: patient?.session_value?.toString() || '',
