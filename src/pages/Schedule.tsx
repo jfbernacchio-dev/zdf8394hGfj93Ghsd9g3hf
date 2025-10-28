@@ -1131,7 +1131,7 @@ const Schedule = () => {
                           id={`week-slot-${dateStr}-${timeStr}`}
                           date={dateStr}
                           time={timeStr}
-                          className="absolute inset-x-0 z-0"
+                          className="absolute inset-x-0 z-20"
                           style={{
                             top: `${(minutes / 60) * 60}px`,
                             height: '15px'
@@ -1459,7 +1459,7 @@ const Schedule = () => {
                         id={`day-slot-${dateStr}-${timeStr}`}
                         date={dateStr}
                         time={timeStr}
-                        className="absolute inset-x-0 z-0"
+                        className="absolute inset-x-0 z-20"
                         style={{
                           top: `${(minutes / 60) * 60}px`,
                           height: '15px'

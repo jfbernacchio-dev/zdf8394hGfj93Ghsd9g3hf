@@ -19,7 +19,7 @@ export const DroppableSlot = ({ id, date, time, children, className, style }: Dr
   return (
     <div 
       ref={setNodeRef} 
-      className={`${className} ${isOver ? 'bg-primary/10 ring-2 ring-primary' : ''}`}
+      className={`pointer-events-none ${className} ${isOver ? 'bg-primary/10 ring-2 ring-primary' : ''}`}
       style={style}
     >
       {children}
