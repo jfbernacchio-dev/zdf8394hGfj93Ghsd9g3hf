@@ -90,7 +90,21 @@ const Financial = () => {
         return date >= monthStart && date <= monthEnd && s.status === 'attended';
       });
 
-      const revenue = monthSessions.reduce((sum, s) => sum + Number(s.value), 0);
+      // Calculate revenue considering monthly patients
+      const monthlyPatients = new Set<string>();
+      const revenue = monthSessions.reduce((sum, s) => {
+        const patient = patients.find(p => p.id === s.patient_id);
+        if (patient?.monthly_price) {
+          // For monthly patients, count only once per month
+          if (!monthlyPatients.has(s.patient_id)) {
+            monthlyPatients.add(s.patient_id);
+            return sum + Number(s.value);
+          }
+          return sum;
+        }
+        return sum + Number(s.value);
+      }, 0);
+
       const expected = sessions.filter(s => {
         const date = parseISO(s.date);
         return date >= monthStart && date <= monthEnd;
@@ -116,12 +130,28 @@ const Financial = () => {
   // Distribuição por paciente
   const getPatientDistribution = () => {
     const patientRevenue = new Map<string, number>();
+    const monthlyPatients = new Map<string, Set<string>>();
     
     periodSessions.forEach(session => {
       if (session.status === 'attended') {
         const patientName = session.patients?.name || 'Desconhecido';
+        const patient = patients.find(p => p.id === session.patient_id);
         const current = patientRevenue.get(patientName) || 0;
-        patientRevenue.set(patientName, current + Number(session.value));
+        
+        if (patient?.monthly_price) {
+          // For monthly patients, count once per month
+          const monthKey = format(parseISO(session.date), 'yyyy-MM');
+          if (!monthlyPatients.has(patientName)) {
+            monthlyPatients.set(patientName, new Set());
+          }
+          const months = monthlyPatients.get(patientName)!;
+          if (!months.has(monthKey)) {
+            months.add(monthKey);
+            patientRevenue.set(patientName, current + Number(session.value));
+          }
+        } else {
+          patientRevenue.set(patientName, current + Number(session.value));
+        }
       }
     });
 
@@ -158,16 +188,42 @@ const Financial = () => {
 
   // Faturamento médio por paciente
   const getAvgRevenuePerPatient = () => {
-    const patientRevenue = new Map<string, { revenue: number; sessions: number }>();
+    const patientRevenue = new Map<string, { revenue: number; sessions: number; monthly: boolean }>();
+    const monthlyPatients = new Map<string, Set<string>>();
     
     periodSessions.forEach(session => {
       if (session.status === 'attended') {
         const patientName = session.patients?.name || 'Desconhecido';
-        const current = patientRevenue.get(patientName) || { revenue: 0, sessions: 0 };
-        patientRevenue.set(patientName, {
-          revenue: current.revenue + Number(session.value),
-          sessions: current.sessions + 1,
-        });
+        const patient = patients.find(p => p.id === session.patient_id);
+        const current = patientRevenue.get(patientName) || { revenue: 0, sessions: 0, monthly: false };
+        
+        if (patient?.monthly_price) {
+          // For monthly patients, count revenue once per month
+          const monthKey = format(parseISO(session.date), 'yyyy-MM');
+          if (!monthlyPatients.has(patientName)) {
+            monthlyPatients.set(patientName, new Set());
+          }
+          const months = monthlyPatients.get(patientName)!;
+          if (!months.has(monthKey)) {
+            months.add(monthKey);
+            patientRevenue.set(patientName, {
+              revenue: current.revenue + Number(session.value),
+              sessions: current.sessions + 1,
+              monthly: true,
+            });
+          } else {
+            patientRevenue.set(patientName, {
+              ...current,
+              sessions: current.sessions + 1,
+            });
+          }
+        } else {
+          patientRevenue.set(patientName, {
+            revenue: current.revenue + Number(session.value),
+            sessions: current.sessions + 1,
+            monthly: false,
+          });
+        }
       }
     });
 
@@ -178,12 +234,30 @@ const Financial = () => {
         media: data.sessions > 0 ? data.revenue / data.sessions : 0,
         sessoes: data.sessions,
       }))
-      .sort((a, b) => b.faturamento - a.faturamento);
+      .sort((a, b) => b.faturamento - a.faturamento)
+      .slice(0, 10); // Limit to top 10 patients
   };
 
+  // Calculate total revenue considering monthly patients
+  const monthlyPatientsTracked = new Map<string, Set<string>>();
   const totalRevenue = periodSessions
     .filter(s => s.status === 'attended')
-    .reduce((sum, s) => sum + Number(s.value), 0);
+    .reduce((sum, s) => {
+      const patient = patients.find(p => p.id === s.patient_id);
+      if (patient?.monthly_price) {
+        const monthKey = format(parseISO(s.date), 'yyyy-MM');
+        if (!monthlyPatientsTracked.has(s.patient_id)) {
+          monthlyPatientsTracked.set(s.patient_id, new Set());
+        }
+        const months = monthlyPatientsTracked.get(s.patient_id)!;
+        if (!months.has(monthKey)) {
+          months.add(monthKey);
+          return sum + Number(s.value);
+        }
+        return sum;
+      }
+      return sum + Number(s.value);
+    }, 0);
 
   const totalSessions = periodSessions.filter(s => s.status === 'attended').length;
   const missedSessions = periodSessions.filter(s => s.status === 'missed').length;
@@ -194,10 +268,47 @@ const Financial = () => {
   const avgPerSession = totalSessions > 0 ? totalRevenue / totalSessions : 0;
   const activePatients = patients.filter(p => p.status === 'active').length;
 
+  // Faltas por paciente
+  const getMissedByPatient = () => {
+    const patientMissed = new Map<string, number>();
+    
+    periodSessions.forEach(session => {
+      if (session.status === 'missed') {
+        const patientName = session.patients?.name || 'Desconhecido';
+        const current = patientMissed.get(patientName) || 0;
+        patientMissed.set(patientName, current + 1);
+      }
+    });
+
+    return Array.from(patientMissed.entries())
+      .map(([name, faltas]) => ({ name, faltas }))
+      .sort((a, b) => b.faltas - a.faltas);
+  };
+
+  // Distribuição de faltas por paciente
+  const getMissedDistribution = () => {
+    const patientMissed = new Map<string, number>();
+    
+    periodSessions.forEach(session => {
+      if (session.status === 'missed') {
+        const patientName = session.patients?.name || 'Desconhecido';
+        const current = patientMissed.get(patientName) || 0;
+        patientMissed.set(patientName, current + 1);
+      }
+    });
+
+    return Array.from(patientMissed.entries())
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  };
+
   const monthlyData = getMonthlyRevenue();
   const patientDistribution = getPatientDistribution();
   const missedRateData = getMissedRate();
   const avgRevenueData = getAvgRevenuePerPatient();
+  const missedByPatient = getMissedByPatient();
+  const missedDistribution = getMissedDistribution();
+  const totalMissed = missedDistribution.reduce((sum, p) => sum + p.value, 0);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -298,11 +409,10 @@ const Financial = () => {
       </div>
 
       <Tabs defaultValue="revenue" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="revenue">Receita</TabsTrigger>
           <TabsTrigger value="distribution">Distribuição</TabsTrigger>
           <TabsTrigger value="performance">Desempenho</TabsTrigger>
-          <TabsTrigger value="patients">Por Paciente</TabsTrigger>
         </TabsList>
 
         <TabsContent value="revenue" className="space-y-6">
@@ -367,9 +477,57 @@ const Financial = () => {
               </ResponsiveContainer>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Faturamento por Paciente (Top 10)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-4 text-sm text-muted-foreground">
+                Comparativo de faturamento total e valor médio por sessão
+              </div>
+              <ResponsiveContainer width="100%" height={Math.max(400, avgRevenueData.length * 60)}>
+                <BarChart data={avgRevenueData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis 
+                    dataKey="name" 
+                    stroke="hsl(var(--muted-foreground))"
+                    angle={-45}
+                    textAnchor="end"
+                    height={100}
+                    interval={0}
+                    tick={({ x, y, payload }) => {
+                      const words = payload.value.split(' ');
+                      const displayText = words.length > 2 ? `${words[0]} ${words[1]}` : payload.value;
+                      return (
+                        <text x={x} y={y} textAnchor="end" transform={`rotate(-45 ${x} ${y})`} fill="hsl(var(--muted-foreground))">
+                          {displayText}
+                        </text>
+                      );
+                    }}
+                  />
+                  <YAxis stroke="hsl(var(--muted-foreground))" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                    }}
+                    formatter={(value: any) => formatBrazilianCurrency(value)}
+                  />
+                  <Legend />
+                  <Bar dataKey="faturamento" fill="hsl(var(--primary))" name="Faturamento Total" radius={[8, 8, 0, 0]} />
+                  <Bar dataKey="media" fill="hsl(var(--accent))" name="Média por Sessão" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
         </TabsContent>
 
-        <TabsContent value="distribution">
+        <TabsContent value="distribution" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -475,43 +633,37 @@ const Financial = () => {
               </ResponsiveContainer>
             </CardContent>
           </Card>
-        </TabsContent>
 
-        <TabsContent value="patients">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                Faturamento por Paciente
+                <AlertCircle className="w-5 h-5" />
+                Faltas por Paciente
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="mb-4 text-sm text-muted-foreground">
-                Comparativo de faturamento total e valor médio por sessão de cada paciente
+                Número de faltas de cada paciente no período
               </div>
-              <ResponsiveContainer width="100%" height={Math.max(400, avgRevenueData.length * 60)}>
-                <BarChart data={avgRevenueData}>
+              <ResponsiveContainer width="100%" height={Math.max(400, missedByPatient.length * 50)}>
+                <BarChart data={missedByPatient} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis 
+                  <XAxis type="number" stroke="hsl(var(--muted-foreground))" allowDecimals={false} />
+                  <YAxis 
                     dataKey="name" 
+                    type="category"
                     stroke="hsl(var(--muted-foreground))"
-                    angle={-45}
-                    textAnchor="end"
-                    height={100}
-                    interval={0}
+                    width={150}
                   />
-                  <YAxis stroke="hsl(var(--muted-foreground))" />
                   <Tooltip 
                     contentStyle={{ 
                       backgroundColor: 'hsl(var(--card))',
                       border: '1px solid hsl(var(--border))',
                       borderRadius: '8px',
                     }}
-                    formatter={(value: any) => formatBrazilianCurrency(value)}
                   />
                   <Legend />
-                  <Bar dataKey="faturamento" fill="hsl(var(--primary))" name="Faturamento Total" radius={[8, 8, 0, 0]} />
-                  <Bar dataKey="media" fill="hsl(var(--accent))" name="Média por Sessão" radius={[8, 8, 0, 0]} />
+                  <Bar dataKey="faltas" fill="hsl(var(--destructive))" name="Faltas" radius={[0, 8, 8, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
