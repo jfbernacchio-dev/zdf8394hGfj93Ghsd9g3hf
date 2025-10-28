@@ -896,19 +896,24 @@ const Schedule = () => {
         .filter(block => {
           if (block.day_of_week !== dayOfWeek) return false;
           
-          // Check date range
-          if (block.start_date) {
-            const blockStart = parseISO(block.start_date);
-            const checkDate = new Date(date);
-            checkDate.setHours(0, 0, 0, 0);
-            blockStart.setHours(0, 0, 0, 0);
-            
-            if (checkDate < blockStart) return false;
-            
-            if (block.end_date) {
-              const blockEnd = parseISO(block.end_date);
-              blockEnd.setHours(0, 0, 0, 0);
-              if (checkDate > blockEnd) return false;
+          // Check date range - add null checks
+          if (block.start_date && block.start_date !== null) {
+            try {
+              const blockStart = parseISO(block.start_date);
+              const checkDate = new Date(date);
+              checkDate.setHours(0, 0, 0, 0);
+              blockStart.setHours(0, 0, 0, 0);
+              
+              if (checkDate < blockStart) return false;
+              
+              if (block.end_date && block.end_date !== null) {
+                const blockEnd = parseISO(block.end_date);
+                blockEnd.setHours(0, 0, 0, 0);
+                if (checkDate > blockEnd) return false;
+              }
+            } catch (error) {
+              console.error('[BLOCK] Error parsing date:', error);
+              return false;
             }
           }
           
@@ -1259,19 +1264,24 @@ const Schedule = () => {
         .filter(block => {
           if (block.day_of_week !== adjustedDay) return false;
           
-          // Check date range
-          if (block.start_date) {
-            const blockStart = parseISO(block.start_date);
-            const checkDate = new Date(selectedDate);
-            checkDate.setHours(0, 0, 0, 0);
-            blockStart.setHours(0, 0, 0, 0);
-            
-            if (checkDate < blockStart) return false;
-            
-            if (block.end_date) {
-              const blockEnd = parseISO(block.end_date);
-              blockEnd.setHours(0, 0, 0, 0);
-              if (checkDate > blockEnd) return false;
+          // Check date range - add null checks
+          if (block.start_date && block.start_date !== null) {
+            try {
+              const blockStart = parseISO(block.start_date);
+              const checkDate = new Date(selectedDate);
+              checkDate.setHours(0, 0, 0, 0);
+              blockStart.setHours(0, 0, 0, 0);
+              
+              if (checkDate < blockStart) return false;
+              
+              if (block.end_date && block.end_date !== null) {
+                const blockEnd = parseISO(block.end_date);
+                blockEnd.setHours(0, 0, 0, 0);
+                if (checkDate > blockEnd) return false;
+              }
+            } catch (error) {
+              console.error('[BLOCK] Error parsing date:', error);
+              return false;
             }
           }
           
