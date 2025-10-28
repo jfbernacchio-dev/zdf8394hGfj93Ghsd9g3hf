@@ -19,6 +19,7 @@ const Financial = () => {
   const [patients, setPatients] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
+  const [scheduleBlocks, setScheduleBlocks] = useState<any[]>([]);
   const [period, setPeriod] = useState('year');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
@@ -38,6 +39,14 @@ const Financial = () => {
       .single();
 
     setProfile(profileData);
+
+    // Load schedule blocks
+    const { data: blocksData } = await supabase
+      .from('schedule_blocks')
+      .select('*')
+      .eq('user_id', user!.id);
+
+    setScheduleBlocks(blocksData || []);
 
     const { data: patientsData } = await supabase
       .from('patients')
@@ -367,10 +376,36 @@ const Financial = () => {
     
     const totalAvailableSlots = slotsPerWeek * diffWeeks;
     
+    // Calculate blocked slots from schedule_blocks
+    let blockedSlots = 0;
+    scheduleBlocks.forEach(block => {
+      const blockStart = block.start_date ? parseISO(block.start_date) : start;
+      const blockEnd = block.end_date ? parseISO(block.end_date) : end;
+      
+      // Only count blocks that overlap with the selected period
+      if (blockStart <= end && blockEnd >= start) {
+        const [blockStartHour, blockStartMin] = block.start_time.split(':').map(Number);
+        const [blockEndHour, blockEndMin] = block.end_time.split(':').map(Number);
+        const blockedMinutes = (blockEndHour * 60 + blockEndMin) - (blockStartHour * 60 + blockStartMin);
+        const blockedSlotsPerOccurrence = Math.floor(blockedMinutes / slotDuration);
+        
+        // Calculate number of occurrences in the period
+        const effectiveStart = blockStart < start ? start : blockStart;
+        const effectiveEnd = blockEnd > end ? end : blockEnd;
+        const daysDiff = Math.ceil((effectiveEnd.getTime() - effectiveStart.getTime()) / (1000 * 60 * 60 * 24));
+        const weeksDiff = Math.ceil(daysDiff / 7);
+        
+        blockedSlots += blockedSlotsPerOccurrence * weeksDiff;
+      }
+    });
+    
     // Calculate actually used slots (attended sessions)
     const usedSlots = periodSessions.filter(s => s.status === 'attended').length;
     
-    return totalAvailableSlots > 0 ? (usedSlots / totalAvailableSlots) * 100 : 0;
+    // Available slots minus blocked slots
+    const effectiveAvailableSlots = Math.max(totalAvailableSlots - blockedSlots, 0);
+    
+    return effectiveAvailableSlots > 0 ? (usedSlots / effectiveAvailableSlots) * 100 : 0;
   };
 
   const occupationRate = calculateOccupationRate();

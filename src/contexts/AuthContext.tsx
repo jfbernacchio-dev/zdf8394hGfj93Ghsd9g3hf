@@ -10,6 +10,10 @@ interface Profile {
   crp: string;
   birth_date: string;
   created_by?: string;
+  work_days?: number[];
+  work_start_time?: string;
+  work_end_time?: string;
+  slot_duration?: number;
 }
 
 interface AuthContextType {

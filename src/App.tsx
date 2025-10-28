@@ -24,6 +24,7 @@ import NFSeConfig from "./pages/NFSeConfig";
 import NFSeHistory from "./pages/NFSeHistory";
 import InvoiceLogs from "./pages/InvoiceLogs";
 import AdminSettings from "./pages/AdminSettings";
+import ProfileEdit from "./pages/ProfileEdit";
 import Install from "./pages/Install";
 
 const queryClient = new QueryClient();
@@ -111,6 +112,7 @@ const App = () => (
             <Route path="/nfse/history" element={<ProtectedRoute><Layout><NFSeHistory /></Layout></ProtectedRoute>} />
             <Route path="/invoice-logs" element={<ProtectedRoute><Layout><InvoiceLogs /></Layout></ProtectedRoute>} />
             <Route path="/admin/security" element={<ProtectedRoute><Layout><AdminSettings /></Layout></ProtectedRoute>} />
+            <Route path="/profile/edit" element={<ProtectedRoute><Layout><ProfileEdit /></Layout></ProtectedRoute>} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

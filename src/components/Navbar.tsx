@@ -1,8 +1,8 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Users, Calendar, LogOut, FileText, ChevronDown, Shield, Menu, TrendingUp } from 'lucide-react';
+import { Users, Calendar, LogOut, FileText, ChevronDown, Shield, Menu, TrendingUp, User } from 'lucide-react';
 import { Button } from './ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from './ui/dropdown-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
 import { useState } from 'react';
 import mindwareLogo from '@/assets/mindware-logo.png';
@@ -104,6 +104,7 @@ const Navbar = () => {
                   <DropdownMenuItem onClick={() => navigate('/financial')}>
                     Análise Financeira
                   </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => navigate('/nfse/config')}>
                     Configuração NFSe
                   </DropdownMenuItem>
@@ -119,9 +120,20 @@ const Navbar = () => {
             
             <div className="flex items-center gap-3 ml-4 pl-4 border-l border-border">
               {profile && (
-                <span className="text-sm text-muted-foreground">
-                  {profile.full_name.split(' ')[0]}
-                </span>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+                      {profile.full_name.split(' ')[0]}
+                      <ChevronDown className="w-3 h-3" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-popover z-50">
+                    <DropdownMenuItem onClick={() => navigate('/profile/edit')}>
+                      <User className="w-4 h-4 mr-2" />
+                      Perfil
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
               {isAdmin && (
                 <Button
