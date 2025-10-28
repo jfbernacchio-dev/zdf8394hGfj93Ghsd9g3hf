@@ -22,7 +22,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Calendar as CalendarIcon, Plus, CheckCircle, XCircle, DollarSign, ArrowLeft, Lock, Briefcase, Square } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, CheckCircle, XCircle, DollarSign, ArrowLeft, Lock, Briefcase } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, startOfWeek, addDays, isBefore, parseISO, getDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { DndContext, DragEndEvent, useSensor, useSensors, PointerSensor, DragOverlay, closestCenter } from '@dnd-kit/core';
@@ -69,7 +69,7 @@ const Schedule = () => {
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 8,
-        delay: 150,
+        delay: 250,
         tolerance: 5,
       },
     })
@@ -1486,7 +1486,7 @@ const Schedule = () => {
 
     return (
       <Card 
-        className={`p-6 transition-all duration-300 ${isTransitioning ? 'opacity-50 translate-x-2' : 'opacity-100 translate-x-0'}`}
+        className={`p-6 transition-all duration-500 ease-out ${isTransitioning ? 'opacity-30 scale-95 translate-x-8' : 'opacity-100 scale-100 translate-x-0'}`}
         onTouchStart={isMobile ? handleTouchStart : undefined}
         onTouchMove={isMobile ? handleTouchMove : undefined}
         onTouchEnd={isMobile ? handleTouchEnd : undefined}
@@ -1501,8 +1501,8 @@ const Schedule = () => {
                 <div className="flex gap-2">
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="ghost" size="icon" className="border-2 border-primary/30" title="Selecionar data">
-                        <Square className="h-5 w-5 text-primary" />
+                      <Button variant="ghost" size="icon" title="Selecionar data">
+                        <CalendarIcon className="h-5 w-5 text-primary" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -1519,7 +1519,6 @@ const Schedule = () => {
                   <Button 
                     variant="ghost"
                     size="icon"
-                    className="border-2 border-primary/30"
                     onClick={() => setSelectedDate(new Date())}
                     title="Voltar para hoje"
                   >
