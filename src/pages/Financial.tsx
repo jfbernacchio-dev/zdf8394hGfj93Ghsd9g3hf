@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { TrendingUp, DollarSign, Users, AlertCircle, Calendar, PieChartIcon } from 'lucide-react';
+import { TrendingUp, DollarSign, Users, AlertCircle, Calendar, PieChartIcon, Target, Activity, Percent } from 'lucide-react';
 import { parseISO, format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -310,6 +310,225 @@ const Financial = () => {
   const missedDistribution = getMissedDistribution();
   const totalMissed = missedDistribution.reduce((sum, p) => sum + p.value, 0);
 
+  // Valor perdido por faltas
+  const lostRevenue = periodSessions
+    .filter(s => s.status === 'missed')
+    .reduce((sum, s) => sum + Number(s.value), 0);
+
+  // Receita média por paciente ativo
+  const avgRevenuePerActivePatient = activePatients > 0 ? totalRevenue / activePatients : 0;
+
+  // Previsão de receita mensal
+  const getForecastRevenue = () => {
+    const monthlyTotal = patients
+      .filter(p => p.status === 'active' && p.monthly_price)
+      .reduce((sum, p) => sum + Number(p.session_value), 0);
+    
+    const weeklyPatients = patients.filter(p => p.status === 'active' && !p.monthly_price);
+    const weeklyTotal = weeklyPatients.reduce((sum, p) => {
+      const frequency = p.frequency === 'weekly' ? 4 : p.frequency === 'biweekly' ? 2 : 0;
+      return sum + (Number(p.session_value) * frequency);
+    }, 0);
+
+    return monthlyTotal + weeklyTotal;
+  };
+
+  const forecastRevenue = getForecastRevenue();
+
+  // Taxa de ocupação da agenda (estimativa baseada em sessões realizadas vs esperadas)
+  const totalExpected = sessions.filter(s => {
+    const date = parseISO(s.date);
+    return date >= start && date <= end;
+  }).length;
+  const occupationRate = totalExpected > 0 ? (totalSessions / totalExpected) * 100 : 0;
+
+  // Ticket médio mensal vs semanal
+  const getTicketComparison = () => {
+    const monthlyPatientRevenue = new Map<string, number>();
+    const weeklyPatientRevenue = new Map<string, number>();
+    const monthlyPatientsSet = new Map<string, Set<string>>();
+
+    periodSessions.forEach(session => {
+      if (session.status === 'attended') {
+        const patient = patients.find(p => p.id === session.patient_id);
+        if (patient) {
+          const current = patient.monthly_price 
+            ? monthlyPatientRevenue.get(session.patient_id) || 0
+            : weeklyPatientRevenue.get(session.patient_id) || 0;
+
+          if (patient.monthly_price) {
+            const monthKey = format(parseISO(session.date), 'yyyy-MM');
+            if (!monthlyPatientsSet.has(session.patient_id)) {
+              monthlyPatientsSet.set(session.patient_id, new Set());
+            }
+            const months = monthlyPatientsSet.get(session.patient_id)!;
+            if (!months.has(monthKey)) {
+              months.add(monthKey);
+              monthlyPatientRevenue.set(session.patient_id, current + Number(session.value));
+            }
+          } else {
+            weeklyPatientRevenue.set(session.patient_id, current + Number(session.value));
+          }
+        }
+      }
+    });
+
+    const monthlyCount = monthlyPatientRevenue.size;
+    const weeklyCount = weeklyPatientRevenue.size;
+    const monthlyTotal = Array.from(monthlyPatientRevenue.values()).reduce((a, b) => a + b, 0);
+    const weeklyTotal = Array.from(weeklyPatientRevenue.values()).reduce((a, b) => a + b, 0);
+
+    return [
+      { tipo: 'Mensais', ticket: monthlyCount > 0 ? monthlyTotal / monthlyCount : 0, quantidade: monthlyCount },
+      { tipo: 'Semanais', ticket: weeklyCount > 0 ? weeklyTotal / weeklyCount : 0, quantidade: weeklyCount },
+    ];
+  };
+
+  // Tendência de crescimento mês a mês
+  const getGrowthTrend = () => {
+    const months = eachMonthOfInterval({ start, end });
+    
+    return months.map((month, index) => {
+      const monthStart = startOfMonth(month);
+      const monthEnd = endOfMonth(month);
+      
+      const monthSessions = periodSessions.filter(s => {
+        const date = parseISO(s.date);
+        return date >= monthStart && date <= monthEnd && s.status === 'attended';
+      });
+
+      const monthlyPatientsInMonth = new Set<string>();
+      const revenue = monthSessions.reduce((sum, s) => {
+        const patient = patients.find(p => p.id === s.patient_id);
+        if (patient?.monthly_price) {
+          if (!monthlyPatientsInMonth.has(s.patient_id)) {
+            monthlyPatientsInMonth.add(s.patient_id);
+            return sum + Number(s.value);
+          }
+          return sum;
+        }
+        return sum + Number(s.value);
+      }, 0);
+
+      let growth = 0;
+      if (index > 0) {
+        const prevMonth = months[index - 1];
+        const prevMonthStart = startOfMonth(prevMonth);
+        const prevMonthEnd = endOfMonth(prevMonth);
+        
+        const prevMonthSessions = periodSessions.filter(s => {
+          const date = parseISO(s.date);
+          return date >= prevMonthStart && date <= prevMonthEnd && s.status === 'attended';
+        });
+
+        const prevMonthlyPatients = new Set<string>();
+        const prevRevenue = prevMonthSessions.reduce((sum, s) => {
+          const patient = patients.find(p => p.id === s.patient_id);
+          if (patient?.monthly_price) {
+            if (!prevMonthlyPatients.has(s.patient_id)) {
+              prevMonthlyPatients.add(s.patient_id);
+              return sum + Number(s.value);
+            }
+            return sum;
+          }
+          return sum + Number(s.value);
+        }, 0);
+
+        growth = prevRevenue > 0 ? ((revenue - prevRevenue) / prevRevenue) * 100 : 0;
+      }
+
+      return {
+        month: format(month, 'MMM/yy', { locale: ptBR }),
+        receita: revenue,
+        crescimento: Number(growth.toFixed(1)),
+      };
+    });
+  };
+
+  // Pacientes novos vs encerrados
+  const getNewVsInactive = () => {
+    const months = eachMonthOfInterval({ start, end });
+    
+    return months.map(month => {
+      const monthStart = startOfMonth(month);
+      const monthEnd = endOfMonth(month);
+      
+      const newPatients = patients.filter(p => {
+        if (!p.created_at) return false;
+        const createdDate = parseISO(p.created_at);
+        return createdDate >= monthStart && createdDate <= monthEnd;
+      }).length;
+
+      const inactivePatients = patients.filter(p => {
+        if (p.status !== 'inactive' || !p.updated_at) return false;
+        const updatedDate = parseISO(p.updated_at);
+        return updatedDate >= monthStart && updatedDate <= monthEnd;
+      }).length;
+
+      return {
+        month: format(month, 'MMM/yy', { locale: ptBR }),
+        novos: newPatients,
+        encerrados: inactivePatients,
+      };
+    });
+  };
+
+  // Taxa de retenção
+  const getRetentionRate = () => {
+    const now = new Date();
+    const threeMonthsAgo = subMonths(now, 3);
+    const sixMonthsAgo = subMonths(now, 6);
+    const twelveMonthsAgo = subMonths(now, 12);
+
+    const calculateRetention = (startDate: Date) => {
+      const patientsAtStart = patients.filter(p => {
+        if (!p.created_at) return false;
+        const createdDate = parseISO(p.created_at);
+        return createdDate <= startDate;
+      });
+
+      const stillActive = patientsAtStart.filter(p => p.status === 'active');
+      
+      return patientsAtStart.length > 0 
+        ? (stillActive.length / patientsAtStart.length) * 100 
+        : 0;
+    };
+
+    return [
+      { periodo: '3 meses', taxa: Number(calculateRetention(threeMonthsAgo).toFixed(1)) },
+      { periodo: '6 meses', taxa: Number(calculateRetention(sixMonthsAgo).toFixed(1)) },
+      { periodo: '12 meses', taxa: Number(calculateRetention(twelveMonthsAgo).toFixed(1)) },
+    ];
+  };
+
+  // Valor perdido por faltas por mês
+  const getLostRevenueByMonth = () => {
+    const months = eachMonthOfInterval({ start, end });
+    
+    return months.map(month => {
+      const monthStart = startOfMonth(month);
+      const monthEnd = endOfMonth(month);
+      
+      const missedInMonth = periodSessions.filter(s => {
+        const date = parseISO(s.date);
+        return date >= monthStart && date <= monthEnd && s.status === 'missed';
+      });
+
+      const lost = missedInMonth.reduce((sum, s) => sum + Number(s.value), 0);
+
+      return {
+        month: format(month, 'MMM/yy', { locale: ptBR }),
+        perdido: lost,
+      };
+    });
+  };
+
+  const ticketComparison = getTicketComparison();
+  const growthTrend = getGrowthTrend();
+  const newVsInactive = getNewVsInactive();
+  const retentionRate = getRetentionRate();
+  const lostRevenueByMonth = getLostRevenueByMonth();
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
@@ -408,11 +627,63 @@ const Financial = () => {
         </Card>
       </div>
 
+      {/* Métricas secundárias */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <Card className="p-6 shadow-[var(--shadow-card)] border-border">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Target className="w-6 h-6 text-primary" />
+            </div>
+          </div>
+          <h3 className="text-2xl font-bold text-foreground mb-1">
+            {formatBrazilianCurrency(forecastRevenue)}
+          </h3>
+          <p className="text-sm text-muted-foreground">Previsão Mensal</p>
+        </Card>
+
+        <Card className="p-6 shadow-[var(--shadow-card)] border-border">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center">
+              <Activity className="w-6 h-6 text-accent" />
+            </div>
+          </div>
+          <h3 className="text-2xl font-bold text-foreground mb-1">
+            {formatBrazilianCurrency(avgRevenuePerActivePatient)}
+          </h3>
+          <p className="text-sm text-muted-foreground">Média por Paciente Ativo</p>
+        </Card>
+
+        <Card className="p-6 shadow-[var(--shadow-card)] border-border">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 rounded-xl bg-destructive/10 flex items-center justify-center">
+              <AlertCircle className="w-6 h-6 text-destructive" />
+            </div>
+          </div>
+          <h3 className="text-2xl font-bold text-foreground mb-1">
+            {formatBrazilianCurrency(lostRevenue)}
+          </h3>
+          <p className="text-sm text-muted-foreground">Perdido com Faltas</p>
+        </Card>
+
+        <Card className="p-6 shadow-[var(--shadow-card)] border-border">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center">
+              <Percent className="w-6 h-6 text-[hsl(var(--success))]" />
+            </div>
+          </div>
+          <h3 className="text-2xl font-bold text-foreground mb-1">
+            {occupationRate.toFixed(1)}%
+          </h3>
+          <p className="text-sm text-muted-foreground">Taxa de Ocupação</p>
+        </Card>
+      </div>
+
       <Tabs defaultValue="revenue" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="revenue">Receita</TabsTrigger>
           <TabsTrigger value="distribution">Distribuição</TabsTrigger>
           <TabsTrigger value="performance">Desempenho</TabsTrigger>
+          <TabsTrigger value="retention">Retenção</TabsTrigger>
         </TabsList>
 
         <TabsContent value="revenue" className="space-y-6">
@@ -481,6 +752,46 @@ const Financial = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5" />
+                Tendência de Crescimento
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-4 text-sm text-muted-foreground">
+                Variação percentual da receita mês a mês
+              </div>
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart data={growthTrend}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
+                  <YAxis stroke="hsl(var(--muted-foreground))" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                    }}
+                    formatter={(value: any, name: string) => {
+                      if (name === 'crescimento') return `${value}%`;
+                      return formatBrazilianCurrency(value);
+                    }}
+                  />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="crescimento" 
+                    stroke="hsl(var(--primary))" 
+                    strokeWidth={2}
+                    name="Crescimento (%)"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
                 <Users className="w-5 h-5" />
                 Faturamento por Paciente (Top 10)
               </CardTitle>
@@ -525,6 +836,38 @@ const Financial = () => {
               </ResponsiveContainer>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="w-5 h-5" />
+                Previsão vs Realizado
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-4 text-sm text-muted-foreground">
+                Comparação entre receita prevista (baseada em pacientes ativos) e receita real por mês
+              </div>
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart data={monthlyData.map((m, i) => ({ ...m, previsao: forecastRevenue }))}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
+                  <YAxis stroke="hsl(var(--muted-foreground))" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                    }}
+                    formatter={(value: any) => formatBrazilianCurrency(value)}
+                  />
+                  <Legend />
+                  <Bar dataKey="previsao" fill="hsl(var(--muted))" name="Previsão Mensal" radius={[8, 8, 0, 0]} />
+                  <Bar dataKey="receita" fill="hsl(var(--primary))" name="Realizado" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="distribution" className="space-y-6">
@@ -562,6 +905,46 @@ const Financial = () => {
                   />
                 </PieChart>
               </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="w-5 h-5" />
+                Ticket Médio: Mensais vs Semanais
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-4 text-sm text-muted-foreground">
+                Comparação do faturamento médio entre pacientes mensais e semanais
+              </div>
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart data={ticketComparison}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="tipo" stroke="hsl(var(--muted-foreground))" />
+                  <YAxis stroke="hsl(var(--muted-foreground))" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                    }}
+                    formatter={(value: any) => formatBrazilianCurrency(value)}
+                  />
+                  <Legend />
+                  <Bar dataKey="ticket" fill="hsl(var(--primary))" name="Ticket Médio" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+              <div className="mt-4 grid grid-cols-2 gap-4">
+                {ticketComparison.map(item => (
+                  <div key={item.tipo} className="p-4 bg-muted/30 rounded-lg">
+                    <p className="text-sm text-muted-foreground">{item.tipo}</p>
+                    <p className="text-lg font-bold text-foreground">{formatBrazilianCurrency(item.ticket)}</p>
+                    <p className="text-xs text-muted-foreground">{item.quantidade} pacientes</p>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -664,6 +1047,109 @@ const Financial = () => {
                   />
                   <Legend />
                   <Bar dataKey="faltas" fill="hsl(var(--destructive))" name="Faltas" radius={[0, 8, 8, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="w-5 h-5" />
+                Valor Perdido por Faltas
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-4 text-sm text-muted-foreground">
+                Receita não realizada devido a faltas por mês
+              </div>
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart data={lostRevenueByMonth}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
+                  <YAxis stroke="hsl(var(--muted-foreground))" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                    }}
+                    formatter={(value: any) => formatBrazilianCurrency(value)}
+                  />
+                  <Legend />
+                  <Bar dataKey="perdido" fill="hsl(var(--destructive))" name="Valor Perdido" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="retention" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Taxa de Retenção de Pacientes
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-4 text-sm text-muted-foreground">
+                Percentual de pacientes que continuam ativos após determinados períodos
+              </div>
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart data={retentionRate}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="periodo" stroke="hsl(var(--muted-foreground))" />
+                  <YAxis stroke="hsl(var(--muted-foreground))" domain={[0, 100]} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                    }}
+                    formatter={(value: any) => `${value}%`}
+                  />
+                  <Legend />
+                  <Bar dataKey="taxa" fill="hsl(var(--success))" name="Taxa de Retenção (%)" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+              <div className="mt-4 grid grid-cols-3 gap-4">
+                {retentionRate.map(item => (
+                  <div key={item.periodo} className="p-4 bg-muted/30 rounded-lg text-center">
+                    <p className="text-sm text-muted-foreground">{item.periodo}</p>
+                    <p className="text-2xl font-bold text-foreground">{item.taxa}%</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="w-5 h-5" />
+                Pacientes Novos vs Encerrados
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-4 text-sm text-muted-foreground">
+                Comparativo mensal entre novos cadastros e fichas encerradas
+              </div>
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart data={newVsInactive}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
+                  <YAxis stroke="hsl(var(--muted-foreground))" allowDecimals={false} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                    }}
+                  />
+                  <Legend />
+                  <Bar dataKey="novos" fill="hsl(var(--success))" name="Novos Pacientes" radius={[8, 8, 0, 0]} />
+                  <Bar dataKey="encerrados" fill="hsl(var(--destructive))" name="Pacientes Encerrados" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
