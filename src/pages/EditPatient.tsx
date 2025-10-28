@@ -25,13 +25,14 @@ const EditPatient = () => {
   const [originalData, setOriginalData] = useState<any>(null);
   const [isChangeDialogOpen, setIsChangeDialogOpen] = useState(false);
   
-  // Helper to get Brazil date
+  // Helper to get Brazil date using native timezone conversion
   const getBrazilDate = () => {
-    const now = new Date();
-    const brazilOffset = -3 * 60; // Brazil is UTC-3
-    const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-    const brazilTime = new Date(utcTime + (brazilOffset * 60000));
-    return format(brazilTime, 'yyyy-MM-dd');
+    return new Date().toLocaleString('en-CA', { 
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).split(',')[0]; // Returns 'YYYY-MM-DD'
   };
   
   const [changeFromDate, setChangeFromDate] = useState(getBrazilDate());

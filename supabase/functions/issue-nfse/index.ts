@@ -194,17 +194,16 @@ Data de emissão: ${new Date().toLocaleDateString('pt-BR')}`;
     console.log('NFSe record created:', nfseRecord.id);
 
     // Prepare FocusNFe payload
-    // Get current date in Brazil timezone (UTC-3)
-    // Convert UTC to Brazil time by subtracting 3 hours
-    const now = new Date();
-    const brazilOffset = -3 * 60; // Brazil is UTC-3
-    const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-    const brazilTime = new Date(utcTime + (brazilOffset * 60000));
-    const dataEmissao = brazilTime.toISOString().split('T')[0];
+    // Get Brazil date using native timezone conversion (most reliable method)
+    const brazilDateStr = new Date().toLocaleString('en-CA', { 
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).split(',')[0]; // Returns 'YYYY-MM-DD'
     
-    console.log('Current UTC time:', now.toISOString());
-    console.log('Brazil time calculated:', brazilTime.toISOString());
-    console.log('Emitting NFSe with date:', dataEmissao);
+    const dataEmissao = brazilDateStr;
+    console.log('Brazil date for NFSe:', dataEmissao);
     
     const focusNFePayload = {
       data_emissao: dataEmissao,

@@ -45,13 +45,14 @@ const Schedule = () => {
     replicate_weeks: 1
   });
 
-  // Helper to get Brazil date
+  // Helper to get Brazil date using native timezone conversion
   const getBrazilDate = () => {
-    const now = new Date();
-    const brazilOffset = -3 * 60; // Brazil is UTC-3
-    const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-    const brazilTime = new Date(utcTime + (brazilOffset * 60000));
-    return format(brazilTime, 'yyyy-MM-dd');
+    return new Date().toLocaleString('en-CA', { 
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).split(',')[0]; // Returns 'YYYY-MM-DD'
   };
 
   const [formData, setFormData] = useState({
@@ -338,14 +339,9 @@ const Schedule = () => {
 
   const openNewDialog = (date: Date) => {
     setEditingSession(null);
-    // Convert the clicked date to Brazil timezone
-    const brazilOffset = -3 * 60;
-    const utcTime = date.getTime() + (date.getTimezoneOffset() * 60000);
-    const brazilDate = new Date(utcTime + (brazilOffset * 60000));
-    
     setFormData({
       patient_id: '',
-      date: format(brazilDate, 'yyyy-MM-dd'),
+      date: format(date, 'yyyy-MM-dd'),
       status: 'scheduled',
       notes: '',
       value: '',

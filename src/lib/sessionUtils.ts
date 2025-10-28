@@ -155,12 +155,14 @@ export const ensureFutureSessions = async (
   supabase: any,
   targetCount: number = 4
 ) => {
-  // Get Brazil date
-  const now = new Date();
-  const brazilOffset = -3 * 60; // Brazil is UTC-3
-  const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-  const brazilTime = new Date(utcTime + (brazilOffset * 60000));
-  const today = format(brazilTime, 'yyyy-MM-dd');
+  // Get Brazil date using native timezone conversion
+  const brazilDateStr = new Date().toLocaleString('en-CA', { 
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).split(',')[0];
+  const today = brazilDateStr;
   
   // Get all future scheduled sessions for this patient
   const { data: futureSessions } = await supabase
