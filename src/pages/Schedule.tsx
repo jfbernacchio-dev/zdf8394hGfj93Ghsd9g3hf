@@ -696,13 +696,24 @@ const Schedule = () => {
     const dateChanged = dropData.date !== draggedSession.date;
     const originalTime = draggedSession.time || draggedSession.patients?.session_time;
     
-    // For weekly/daily views, keep the original time since we only drop on hourly slots
-    // Time will be the same as original unless user explicitly edits
-    const newTime = originalTime;
+    // Extract time from droppable slot ID if it's an hourly slot
+    let newTime = originalTime; // Start with original time
     
-    // Only proceed if date actually changed
-    if (!dateChanged) {
-      console.log('[DRAG] No date change, skipping');
+    // If over ID contains slot info, extract the hour
+    if (over.id && typeof over.id === 'string') {
+      const match = over.id.match(/-(\d+)$/); // Extract hour from "week-slot-2025-10-28-11"
+      if (match) {
+        const hour = match[1];
+        newTime = `${hour.padStart(2, '0')}:00`;
+        console.log('[DRAG] Extracted time from slot:', newTime);
+      }
+    }
+    
+    const timeChanged = newTime !== originalTime;
+    
+    // Only proceed if something changed
+    if (!dateChanged && !timeChanged) {
+      console.log('[DRAG] No change, skipping');
       setDraggedSession(null);
       return;
     }
