@@ -22,7 +22,17 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any }>;
-  createTherapist: (email: string, password: string, userData: Omit<Profile, 'id' | 'created_by'>) => Promise<{ error: any }>;
+  createTherapist: (
+    email: string, 
+    password: string, 
+    userData: Omit<Profile, 'id' | 'created_by'>,
+    workHours?: {
+      work_days: number[];
+      work_start_time: string;
+      work_end_time: string;
+      slot_duration: number;
+    }
+  ) => Promise<{ error: any; userId?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -169,7 +179,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return { error };
   };
 
-  const createTherapist = async (email: string, password: string, userData: Omit<Profile, 'id' | 'created_by'>) => {
+  const createTherapist = async (
+    email: string, 
+    password: string, 
+    userData: Omit<Profile, 'id' | 'created_by'>,
+    workHours?: {
+      work_days: number[];
+      work_start_time: string;
+      work_end_time: string;
+      slot_duration: number;
+    }
+  ) => {
     if (!isAdmin) {
       toast({
         title: "Acesso negado",
@@ -181,7 +201,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const redirectUrl = `${window.location.origin}/`;
     
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -192,6 +212,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           crp: userData.crp,
           birth_date: userData.birth_date,
           created_by: user?.id,
+          ...(workHours && {
+            work_days: workHours.work_days,
+            work_start_time: workHours.work_start_time,
+            work_end_time: workHours.work_end_time,
+            slot_duration: workHours.slot_duration,
+          }),
         }
       }
     });
@@ -205,11 +231,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } else {
       toast({
         title: "Terapeuta criado!",
-        description: "O novo terapeuta já pode fazer login.",
+        description: "O terapeuta foi criado com sucesso.",
       });
     }
 
-    return { error };
+    return { error, userId: data?.user?.id };
   };
 
   return (

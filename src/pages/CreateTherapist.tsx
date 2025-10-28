@@ -5,8 +5,10 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { ArrowLeft } from 'lucide-react';
 import { z } from 'zod';
+import { supabase } from '@/integrations/supabase/client';
 
 const therapistSchema = z.object({
   full_name: z.string().min(1, 'Nome completo é obrigatório'),
@@ -36,6 +38,23 @@ const CreateTherapist = () => {
     confirmPassword: '',
   });
 
+  const [workHours, setWorkHours] = useState({
+    work_days: [1, 2, 3, 4, 5], // Segunda a Sexta por padrão
+    work_start_time: '08:00',
+    work_end_time: '18:00',
+    slot_duration: 60,
+  });
+
+  const weekDays = [
+    { value: 0, label: 'Domingo' },
+    { value: 1, label: 'Segunda' },
+    { value: 2, label: 'Terça' },
+    { value: 3, label: 'Quarta' },
+    { value: 4, label: 'Quinta' },
+    { value: 5, label: 'Sexta' },
+    { value: 6, label: 'Sábado' },
+  ];
+
   if (!isAdmin) {
     navigate('/');
     return null;
@@ -49,7 +68,7 @@ const CreateTherapist = () => {
     try {
       const validatedData = therapistSchema.parse(formData);
       
-      const { error } = await createTherapist(
+      const { error, userId } = await createTherapist(
         validatedData.email,
         validatedData.password,
         {
@@ -57,7 +76,8 @@ const CreateTherapist = () => {
           cpf: validatedData.cpf,
           crp: validatedData.crp,
           birth_date: validatedData.birth_date,
-        }
+        },
+        workHours
       );
 
       if (!error) {
@@ -201,6 +221,75 @@ const CreateTherapist = () => {
             {errors.confirmPassword && (
               <p className="text-sm text-destructive">{errors.confirmPassword}</p>
             )}
+          </div>
+
+          <div className="border-t pt-4 mt-6">
+            <h3 className="text-lg font-semibold mb-4">Horários de Trabalho</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <Label className="mb-2 block">Dias da Semana</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  {weekDays.map((day) => (
+                    <div key={day.value} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`day-${day.value}`}
+                        checked={workHours.work_days.includes(day.value)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setWorkHours({
+                              ...workHours,
+                              work_days: [...workHours.work_days, day.value].sort(),
+                            });
+                          } else {
+                            setWorkHours({
+                              ...workHours,
+                              work_days: workHours.work_days.filter((d) => d !== day.value),
+                            });
+                          }
+                        }}
+                      />
+                      <Label htmlFor={`day-${day.value}`} className="cursor-pointer">
+                        {day.label}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="work_start_time">Horário de Início</Label>
+                  <Input
+                    id="work_start_time"
+                    type="time"
+                    value={workHours.work_start_time}
+                    onChange={(e) => setWorkHours({ ...workHours, work_start_time: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="work_end_time">Horário de Fim</Label>
+                  <Input
+                    id="work_end_time"
+                    type="time"
+                    value={workHours.work_end_time}
+                    onChange={(e) => setWorkHours({ ...workHours, work_end_time: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="slot_duration">Duração de Cada Sessão (minutos)</Label>
+                <Input
+                  id="slot_duration"
+                  type="number"
+                  value={workHours.slot_duration}
+                  onChange={(e) => setWorkHours({ ...workHours, slot_duration: parseInt(e.target.value) })}
+                  min="30"
+                  step="15"
+                />
+              </div>
+            </div>
           </div>
 
           <Button type="submit" className="w-full" disabled={loading}>

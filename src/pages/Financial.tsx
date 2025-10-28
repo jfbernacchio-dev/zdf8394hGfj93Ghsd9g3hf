@@ -18,6 +18,7 @@ const Financial = () => {
   const { user } = useAuth();
   const [patients, setPatients] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
+  const [profile, setProfile] = useState<any>(null);
   const [period, setPeriod] = useState('year');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
@@ -29,6 +30,15 @@ const Financial = () => {
   }, [user]);
 
   const loadData = async () => {
+    // Load profile data
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user!.id)
+      .single();
+
+    setProfile(profileData);
+
     const { data: patientsData } = await supabase
       .from('patients')
       .select('*')
@@ -335,12 +345,35 @@ const Financial = () => {
 
   const forecastRevenue = getForecastRevenue();
 
-  // Taxa de ocupação da agenda (estimativa baseada em sessões realizadas vs esperadas)
-  const totalExpected = sessions.filter(s => {
-    const date = parseISO(s.date);
-    return date >= start && date <= end;
-  }).length;
-  const occupationRate = totalExpected > 0 ? (totalSessions / totalExpected) * 100 : 0;
+  // Taxa de ocupação da agenda baseada nos horários de trabalho configurados
+  const calculateOccupationRate = () => {
+    if (!profile) return 0;
+    
+    const workDays = profile.work_days || [1, 2, 3, 4, 5];
+    const startTime = profile.work_start_time || '08:00';
+    const endTime = profile.work_end_time || '18:00';
+    const slotDuration = profile.slot_duration || 60;
+    
+    // Calculate total available slots per week
+    const [startHour, startMin] = startTime.split(':').map(Number);
+    const [endHour, endMin] = endTime.split(':').map(Number);
+    const totalMinutesPerDay = (endHour * 60 + endMin) - (startHour * 60 + startMin);
+    const slotsPerDay = Math.floor(totalMinutesPerDay / slotDuration);
+    const slotsPerWeek = workDays.length * slotsPerDay;
+    
+    // Calculate weeks in the selected period
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffWeeks = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 7));
+    
+    const totalAvailableSlots = slotsPerWeek * diffWeeks;
+    
+    // Calculate actually used slots (attended sessions)
+    const usedSlots = periodSessions.filter(s => s.status === 'attended').length;
+    
+    return totalAvailableSlots > 0 ? (usedSlots / totalAvailableSlots) * 100 : 0;
+  };
+
+  const occupationRate = calculateOccupationRate();
 
   // Ticket médio mensal vs semanal
   const getTicketComparison = () => {
@@ -661,6 +694,9 @@ const Financial = () => {
           </div>
           <h3 className="text-2xl font-bold text-foreground mb-1">
             {formatBrazilianCurrency(lostRevenue)}
+            <span className="text-sm font-normal text-muted-foreground ml-2">
+              ({totalRevenue > 0 ? ((lostRevenue / totalRevenue) * 100).toFixed(1) : '0.0'}%)
+            </span>
           </h3>
           <p className="text-sm text-muted-foreground">Perdido com Faltas</p>
         </Card>

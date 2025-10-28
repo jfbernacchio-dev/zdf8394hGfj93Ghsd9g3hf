@@ -302,6 +302,57 @@ const TherapistDetail = () => {
                 </div>
               </div>
             </Card>
+
+            <Card className="p-6 mt-4">
+              <div className="flex items-center gap-3 mb-6">
+                <Clock className="h-6 w-6 text-primary" />
+                <h3 className="text-lg font-semibold">Horários de Trabalho</h3>
+              </div>
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Dias da Semana</Label>
+                    <p className="text-base font-semibold mt-1">
+                      {therapist.work_days?.map((day: number) => 
+                        ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][day]
+                      ).join(', ') || 'Não configurado'}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Horário de Trabalho</Label>
+                    <p className="text-base font-semibold mt-1">
+                      {therapist.work_start_time || '08:00'} - {therapist.work_end_time || '18:00'}
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Duração da Sessão</Label>
+                    <p className="text-base font-semibold mt-1">
+                      {therapist.slot_duration || 60} minutos
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Slots por Semana</Label>
+                    <p className="text-base font-semibold mt-1">
+                      {(() => {
+                        const workDays = therapist.work_days?.length || 5;
+                        const startTime = therapist.work_start_time || '08:00';
+                        const endTime = therapist.work_end_time || '18:00';
+                        const slotDuration = therapist.slot_duration || 60;
+                        
+                        const [startHour, startMin] = startTime.split(':').map(Number);
+                        const [endHour, endMin] = endTime.split(':').map(Number);
+                        const totalMinutes = (endHour * 60 + endMin) - (startHour * 60 + startMin);
+                        const slotsPerDay = Math.floor(totalMinutes / slotDuration);
+                        
+                        return workDays * slotsPerDay;
+                      })()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Card>
           </TabsContent>
 
           <TabsContent value="patients">

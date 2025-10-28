@@ -410,7 +410,11 @@ export type Database = {
           crp: string
           full_name: string
           id: string
+          slot_duration: number | null
           updated_at: string
+          work_days: number[] | null
+          work_end_time: string | null
+          work_start_time: string | null
         }
         Insert: {
           birth_date: string
@@ -420,7 +424,11 @@ export type Database = {
           crp: string
           full_name: string
           id: string
+          slot_duration?: number | null
           updated_at?: string
+          work_days?: number[] | null
+          work_end_time?: string | null
+          work_start_time?: string | null
         }
         Update: {
           birth_date?: string
@@ -430,7 +438,11 @@ export type Database = {
           crp?: string
           full_name?: string
           id?: string
+          slot_duration?: number | null
           updated_at?: string
+          work_days?: number[] | null
+          work_end_time?: string | null
+          work_start_time?: string | null
         }
         Relationships: []
       }
