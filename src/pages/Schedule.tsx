@@ -1131,7 +1131,7 @@ const Schedule = () => {
                           id={`week-slot-${dateStr}-${timeStr}`}
                           date={dateStr}
                           time={timeStr}
-                          className="absolute inset-x-0 z-20"
+                          className="absolute inset-x-0 z-10"
                           style={{
                             top: `${(minutes / 60) * 60}px`,
                             height: '15px'
@@ -1168,7 +1168,7 @@ const Schedule = () => {
                             return (
                               <DraggableSession key={session.id} id={session.id}>
                                 <Card
-                                  className="absolute cursor-grab active:cursor-grabbing hover:shadow-md transition-all border-l-4 p-2 z-30"
+                                  className="absolute cursor-grab active:cursor-grabbing hover:shadow-md transition-all border-l-4 p-2 z-20"
                                   style={{
                                     top: `${topPosition}px`,
                                     left: `${leftPercent}%`,
@@ -1459,7 +1459,7 @@ const Schedule = () => {
                         id={`day-slot-${dateStr}-${timeStr}`}
                         date={dateStr}
                         time={timeStr}
-                        className="absolute inset-x-0 z-20"
+                        className="absolute inset-x-0 z-10"
                         style={{
                           top: `${(minutes / 60) * 60}px`,
                           height: '15px'
@@ -1495,7 +1495,7 @@ const Schedule = () => {
                           return (
                             <DraggableSession key={session.id} id={session.id}>
                               <div
-                                className={`absolute p-3 rounded-lg cursor-grab active:cursor-grabbing transition-all z-30 ${getStatusColor(session.status)}`}
+                                className={`absolute p-3 rounded-lg cursor-grab active:cursor-grabbing transition-all z-20 ${getStatusColor(session.status)}`}
                                 style={{
                                   top: `${topPosition}px`,
                                   left: `calc(${leftPercent}% + 0.5rem)`,
