@@ -21,13 +21,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Calendar as CalendarIcon, Plus, CheckCircle, XCircle, DollarSign, ArrowLeft, Lock } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, CheckCircle, XCircle, DollarSign, ArrowLeft, Lock, Briefcase } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, startOfWeek, addDays, isBefore, parseISO, getDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { DndContext, DragEndEvent, useSensor, useSensors, PointerSensor, DragOverlay, closestCenter } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { DraggableSession } from '@/components/DraggableSession';
 import { DroppableSlot } from '@/components/DroppableSlot';
+import { AppointmentDialog } from '@/components/AppointmentDialog';
 
 const Schedule = () => {
   const { user } = useAuth();
@@ -50,6 +51,9 @@ const Schedule = () => {
   const [showTimeConflictWarning, setShowTimeConflictWarning] = useState(false);
   const [conflictDetails, setConflictDetails] = useState<{existingSession: any, newSession: any} | null>(null);
   const [draggedSession, setDraggedSession] = useState<any>(null);
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [isAppointmentDialogOpen, setIsAppointmentDialogOpen] = useState(false);
+  const [editingAppointment, setEditingAppointment] = useState<any>(null);
   const { toast } = useToast();
 
   // Setup drag sensors
@@ -97,6 +101,7 @@ const Schedule = () => {
       loadProfile();
       loadData();
       loadScheduleBlocks();
+      loadAppointments();
       autoUpdateOldSessions();
     }
   }, [effectiveUserId, currentMonth]);
@@ -176,6 +181,20 @@ const Schedule = () => {
       .eq('user_id', effectiveUserId!);
     
     setScheduleBlocks(data || []);
+  };
+
+  const loadAppointments = async () => {
+    const start = startOfMonth(currentMonth);
+    const end = endOfMonth(currentMonth);
+
+    const { data } = await supabase
+      .from('appointments')
+      .select('*')
+      .eq('user_id', effectiveUserId!)
+      .gte('date', format(start, 'yyyy-MM-dd'))
+      .lte('date', format(end, 'yyyy-MM-dd'));
+    
+    setAppointments(data || []);
   };
 
   const isTimeBlocked = (dayOfWeek: number, time: string, date?: Date) => {
@@ -933,6 +952,24 @@ const Schedule = () => {
         });
     };
 
+    // Get appointments for a specific day with positions
+    const getAppointmentsForDay = (date: Date) => {
+      const dateStr = format(date, 'yyyy-MM-dd');
+      return appointments
+        .filter(apt => apt.date === dateStr)
+        .map(apt => {
+          const [startHours, startMinutes] = apt.start_time.split(':').map(Number);
+          const [endHours, endMinutes] = apt.end_time.split(':').map(Number);
+          const startMinutesTotal = (startHours - startHour) * 60 + startMinutes;
+          const endMinutesTotal = (endHours - startHour) * 60 + endMinutes;
+          return {
+            ...apt,
+            startMinutes: startMinutesTotal,
+            endMinutes: endMinutesTotal
+          };
+        });
+    };
+
     // Group overlapping sessions (sessions at the same time)
     const groupOverlappingSessions = (sessions: any[]) => {
       const groups: any[][] = [];
@@ -1115,6 +1152,13 @@ const Schedule = () => {
               <Button size="sm" onClick={() => openNewDialog(selectedDate)}>
                 <Plus className="mr-2 h-4 w-4" /> Nova Sessão
               </Button>
+              
+              <Button size="sm" variant="outline" onClick={() => {
+                setEditingAppointment(null);
+                setIsAppointmentDialogOpen(true);
+              }}>
+                <Briefcase className="mr-2 h-4 w-4" /> Compromisso
+              </Button>
             </div>
           </div>
         </div>
@@ -1149,6 +1193,7 @@ const Schedule = () => {
                 
                 const allDaySessions = sessions.filter(s => s.date === dateStr);
                 const dayBlocks = getBlocksForDay(adjustedDay, dayDate);
+                const dayAppointments = getAppointmentsForDay(dayDate);
                 const sessionGroups = groupOverlappingSessions(allDaySessions);
 
                 return (
@@ -1184,6 +1229,30 @@ const Schedule = () => {
                             }}
                           >
                             <span className="font-medium">🚫 Bloqueado</span>
+                          </div>
+                        ))}
+                        
+                        {dayAppointments.map(appointment => (
+                          <div
+                            key={appointment.id}
+                            className="absolute inset-x-0 bg-purple-100 dark:bg-purple-900/30 border-2 border-purple-300 dark:border-purple-700 rounded flex items-center justify-center text-xs text-purple-700 dark:text-purple-300 z-15 cursor-pointer hover:bg-purple-200 dark:hover:bg-purple-900/50"
+                            style={{
+                              top: `${(appointment.startMinutes / 60) * 60}px`,
+                              height: `${((appointment.endMinutes - appointment.startMinutes) / 60) * 60}px`,
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingAppointment(appointment);
+                              setIsAppointmentDialogOpen(true);
+                            }}
+                          >
+                            <div className="font-medium px-2 text-center">
+                              <div className="flex items-center gap-1 justify-center">
+                                <Briefcase className="w-3 h-3" />
+                                <span className="truncate">{appointment.description}</span>
+                              </div>
+                              <div className="text-[10px] opacity-75">{appointment.start_time} - {appointment.end_time}</div>
+                            </div>
                           </div>
                         ))}
                         
@@ -1299,6 +1368,24 @@ const Schedule = () => {
         });
     };
 
+    // Get appointments for this day with positions
+    const getAppointmentsForDay = () => {
+      const dateStr = format(selectedDate, 'yyyy-MM-dd');
+      return appointments
+        .filter(apt => apt.date === dateStr)
+        .map(apt => {
+          const [startHours, startMinutes] = apt.start_time.split(':').map(Number);
+          const [endHours, endMinutes] = apt.end_time.split(':').map(Number);
+          const startMinutesTotal = (startHours - startHour) * 60 + startMinutes;
+          const endMinutesTotal = (endHours - startHour) * 60 + endMinutes;
+          return {
+            ...apt,
+            startMinutes: startMinutesTotal,
+            endMinutes: endMinutesTotal
+          };
+        });
+    };
+
     // Group overlapping sessions
     const groupOverlappingSessions = (sessions: any[]) => {
       const groups: any[][] = [];
@@ -1334,6 +1421,7 @@ const Schedule = () => {
     };
 
     const dayBlocks = getBlocksForDay();
+    const dayAppointments = getAppointmentsForDay();
     const sessionGroups = groupOverlappingSessions(daySessions);
 
     return (
@@ -1516,6 +1604,30 @@ const Schedule = () => {
                           }}
                         >
                           <span className="font-medium">🚫 Bloqueado</span>
+                        </div>
+                      ))}
+                      
+                      {dayAppointments.map(appointment => (
+                        <div
+                          key={appointment.id}
+                          className="absolute inset-x-0 mx-2 bg-purple-100 dark:bg-purple-900/30 border-2 border-purple-300 dark:border-purple-700 rounded flex items-center justify-center text-xs text-purple-700 dark:text-purple-300 z-15 cursor-pointer hover:bg-purple-200 dark:hover:bg-purple-900/50"
+                          style={{
+                            top: `${(appointment.startMinutes / 60) * 60}px`,
+                            height: `${((appointment.endMinutes - appointment.startMinutes) / 60) * 60}px`,
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingAppointment(appointment);
+                            setIsAppointmentDialogOpen(true);
+                          }}
+                        >
+                          <div className="font-medium px-2 text-center">
+                            <div className="flex items-center gap-1 justify-center">
+                              <Briefcase className="w-3 h-3" />
+                              <span className="truncate">{appointment.description}</span>
+                            </div>
+                            <div className="text-[10px] opacity-75">{appointment.start_time} - {appointment.end_time}</div>
+                          </div>
                         </div>
                       ))}
                       
@@ -1945,6 +2057,16 @@ const Schedule = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        
+        {/* Appointment Dialog */}
+        <AppointmentDialog
+          isOpen={isAppointmentDialogOpen}
+          onOpenChange={setIsAppointmentDialogOpen}
+          userId={effectiveUserId!}
+          selectedDate={selectedDate}
+          onSuccess={loadAppointments}
+          editingAppointment={editingAppointment}
+        />
       </div>
       
       <DragOverlay>
