@@ -1420,7 +1420,7 @@ const Schedule = () => {
         });
     };
 
-    // Group overlapping sessions - sessions at the exact same time
+    // Group overlapping sessions - sessions that overlap in time
     const groupOverlappingSessions = (sessions: any[]) => {
       const groups: any[][] = [];
       const sorted = [...sessions].sort((a, b) => {
@@ -1429,15 +1429,33 @@ const Schedule = () => {
         return timeA.localeCompare(timeB);
       });
 
+      // Helper to get time in minutes
+      const timeToMinutes = (time: string) => {
+        const [hours, minutes] = time.split(':').map(Number);
+        return hours * 60 + minutes;
+      };
+
+      // Get session duration (default 60 minutes)
+      const slotDuration = profile?.slot_duration || 60;
+
       sorted.forEach(session => {
         const sessionTime = session.time || session.patients?.session_time || '00:00';
+        const sessionStart = timeToMinutes(sessionTime);
+        const sessionEnd = sessionStart + slotDuration;
         let placed = false;
 
-        // Check if there's already a group with this exact time
+        // Check if this session overlaps with any session in existing groups
         for (const group of groups) {
-          const groupTime = group[0].time || group[0].patients?.session_time || '00:00';
-          
-          if (groupTime === sessionTime) {
+          const hasOverlap = group.some(s => {
+            const sTime = s.time || s.patients?.session_time || '00:00';
+            const sStart = timeToMinutes(sTime);
+            const sEnd = sStart + slotDuration;
+            
+            // Two intervals overlap if: start1 < end2 AND start2 < end1
+            return sessionStart < sEnd && sStart < sessionEnd;
+          });
+
+          if (hasOverlap) {
             group.push(session);
             placed = true;
             break;
