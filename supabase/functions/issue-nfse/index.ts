@@ -194,8 +194,13 @@ Data de emissão: ${new Date().toLocaleDateString('pt-BR')}`;
     console.log('NFSe record created:', nfseRecord.id);
 
     // Prepare FocusNFe payload
+    // Get current date in Brazil timezone (UTC-3)
+    const now = new Date();
+    const brazilDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    const dataEmissao = brazilDate.toISOString().split('T')[0];
+    
     const focusNFePayload = {
-      data_emissao: new Date().toISOString().split('T')[0],
+      data_emissao: dataEmissao,
       natureza_operacao: '1', // Tributação no município
       prestador: {
         cnpj: config.cnpj,
