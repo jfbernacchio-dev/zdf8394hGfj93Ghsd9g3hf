@@ -1136,15 +1136,13 @@ const Schedule = () => {
                 const sessionGroups = groupOverlappingSessions(allDaySessions);
 
                 return (
-                  <div key={`${hour}-${dayIndex}`} className="h-[60px] border-t border-r last:border-r-0 relative">
-                    {/* Single droppable slot for the whole hour */}
-                    <DroppableSlot
-                      id={`week-slot-${dateStr}-${hour}`}
-                      date={dateStr}
-                      time={`${hour.toString().padStart(2, '0')}:00`}
-                      className="absolute inset-0 z-10"
-                    />
-                    
+                  <DroppableSlot
+                    key={`${hour}-${dayIndex}`}
+                    id={`week-slot-${dateStr}-${hour}`}
+                    date={dateStr}
+                    time={`${hour.toString().padStart(2, '0')}:00`}
+                    className="h-[60px] border-t border-r last:border-r-0 relative"
+                  >
                     {/* Render blocks and sessions only once per hour (on first hour) */}
                     {hour === 7 && (
                       <>
@@ -1206,7 +1204,7 @@ const Schedule = () => {
                         })}
                       </>
                     )}
-                  </div>
+                  </DroppableSlot>
                 );
               })}
             </div>
@@ -1450,19 +1448,17 @@ const Schedule = () => {
             const dateStr = format(selectedDate, 'yyyy-MM-dd');
             
             return (
-              <div key={hour} className="flex border-b last:border-b-0 h-[60px] relative">
+              <DroppableSlot
+                key={hour}
+                id={`day-slot-${dateStr}-${hour}`}
+                date={dateStr}
+                time={`${hour.toString().padStart(2, '0')}:00`}
+                className="flex border-b last:border-b-0 h-[60px] relative"
+              >
                 <div className="w-20 p-2 text-sm font-semibold text-muted-foreground border-r flex items-start">
                   {hour.toString().padStart(2, '0')}:00
                 </div>
                 <div className="flex-1 relative">
-                  {/* Single droppable slot for the whole hour */}
-                  <DroppableSlot
-                    id={`day-slot-${dateStr}-${hour}`}
-                    date={dateStr}
-                    time={`${hour.toString().padStart(2, '0')}:00`}
-                    className="absolute inset-0 z-10"
-                  />
-                  
                   {hour === 7 && (
                     <>
                       {dayBlocks.map(block => (
@@ -1523,7 +1519,7 @@ const Schedule = () => {
                     </>
                   )}
                 </div>
-              </div>
+              </DroppableSlot>
             );
           })}
         </div>
