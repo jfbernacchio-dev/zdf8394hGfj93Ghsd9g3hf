@@ -55,23 +55,7 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (user) {
-    return <Navigate to="/sistema" replace />;
-  }
-
-  return <>{children}</>;
-};
-
-const PublicRedirect = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
-
-  // Se estiver carregando, mostra o site normalmente
-  if (loading) {
-    return <>{children}</>;
-  }
-
-  // Se tiver usuário logado, redireciona para o sistema
-  if (user) {
-    return <Navigate to="/sistema" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;
@@ -85,20 +69,13 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            {/* Site Institucional - redireciona para sistema se logado */}
-            <Route path="/" element={
-              <PublicRedirect>
-                <Index />
-              </PublicRedirect>
-            } />
-            
             {/* Sistema de Gestão */}
+            <Route path="/" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
             <Route path="/install" element={<Install />} />
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
             <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
             
-            <Route path="/sistema" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
             <Route path="/financial" element={<ProtectedRoute><Layout><Financial /></Layout></ProtectedRoute>} />
             <Route path="/schedule" element={<ProtectedRoute><Layout><Schedule /></Layout></ProtectedRoute>} />
             <Route path="/patients" element={<ProtectedRoute><Layout><Patients /></Layout></ProtectedRoute>} />
