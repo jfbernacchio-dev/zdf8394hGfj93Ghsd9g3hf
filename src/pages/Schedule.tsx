@@ -427,6 +427,37 @@ const Schedule = () => {
   const confirmWithoutBreak = async () => {
     setShowBreakWarning(false);
     
+    // Check if this is a drag move
+    const isDragMove = conflictDetails?.newSession?.isDragMove;
+    
+    if (isDragMove && draggedSession) {
+      // Handle drag move with break conflict
+      const updateData: any = {
+        date: conflictDetails?.newSession?.date
+      };
+      
+      if (conflictDetails?.newSession?.time) {
+        updateData.time = conflictDetails?.newSession?.time;
+      }
+      
+      const { error } = await supabase
+        .from('sessions')
+        .update(updateData)
+        .eq('id', draggedSession.id);
+
+      if (error) {
+        toast({ title: 'Erro ao mover sessão', variant: 'destructive' });
+      } else {
+        toast({ title: 'Sessão movida com sucesso!' });
+        loadData();
+      }
+      
+      setDraggedSession(null);
+      setConflictDetails(null);
+      return;
+    }
+    
+    // Handle manual form submission with break conflict
     const sessionData = {
       patient_id: formData.patient_id,
       date: formData.date,
@@ -457,6 +488,7 @@ const Schedule = () => {
       paid: false,
       time: ''
     });
+    setConflictDetails(null);
     loadData();
   };
 
@@ -651,20 +683,33 @@ const Schedule = () => {
     
     // Check if date or time changed
     const dateChanged = dropData.date !== draggedSession.date;
-    const timeChanged = dropData.time && dropData.time !== (draggedSession.time || draggedSession.patients?.session_time);
+    const originalTime = draggedSession.time || draggedSession.patients?.session_time;
+    const timeChanged = dropData.time && dropData.time !== originalTime;
     
     if (!dateChanged && !timeChanged) {
       setDraggedSession(null);
       return;
     }
     
+    const newDate = dropData.date;
+    const newTime = dropData.time || originalTime;
+    
+    console.log('[DRAG] Moving session:', {
+      sessionId: draggedSession.id,
+      patient: draggedSession.patients?.name,
+      from: { date: draggedSession.date, time: originalTime },
+      to: { date: newDate, time: newTime }
+    });
+    
     // Check for time conflict at new location
-    if (dropData.time) {
+    if (newTime) {
       const { hasConflict, conflictSession } = await checkTimeConflict(
-        dropData.date,
-        dropData.time,
+        newDate,
+        newTime,
         draggedSession.id
       );
+      
+      console.log('[DRAG] Conflict check:', { hasConflict, conflictSession: conflictSession?.patients?.name });
       
       if (hasConflict) {
         // Show conflict warning and store the pending move
@@ -672,8 +717,8 @@ const Schedule = () => {
           existingSession: conflictSession,
           newSession: { 
             ...draggedSession, 
-            date: dropData.date, 
-            time: dropData.time,
+            date: newDate, 
+            time: newTime,
             isDragMove: true // Flag to identify this is from drag
           }
         });
@@ -681,16 +726,69 @@ const Schedule = () => {
         setDraggedSession(null);
         return;
       }
+      
+      // Check for break time conflict
+      if (profile && newTime) {
+        const breakTime = profile.break_time || 15;
+        
+        // Fetch all sessions on the same date from database
+        const { data: sessionsOnSameDate } = await supabase
+          .from('sessions')
+          .select('*, patients!inner(*)')
+          .eq('patients.user_id', effectiveUserId!)
+          .eq('date', newDate);
+        
+        // Check if any session conflicts with break time
+        const hasBreakConflict = sessionsOnSameDate?.some(s => {
+          if (s.id === draggedSession.id) return false; // Skip the session being moved
+          
+          const otherTime = s.time || s.patients?.session_time;
+          if (!otherTime) return false;
+          
+          const [sessionHour, sessionMin] = newTime.split(':').map(Number);
+          const [otherHour, otherMin] = otherTime.split(':').map(Number);
+          const sessionMinutes = sessionHour * 60 + sessionMin;
+          const otherMinutes = otherHour * 60 + otherMin;
+          const slotDuration = profile.slot_duration || 60;
+          
+          const gap = Math.abs(sessionMinutes - otherMinutes);
+          
+          if (gap === 0) return false;
+          
+          return gap < (slotDuration + breakTime);
+        });
+        
+        console.log('[DRAG] Break check:', { hasBreakConflict, breakTime });
+        
+        if (hasBreakConflict) {
+          // Store the pending move for confirmation
+          setConflictDetails({
+            existingSession: null,
+            newSession: { 
+              ...draggedSession, 
+              date: newDate, 
+              time: newTime,
+              isDragMove: true,
+              isBreakConflict: true
+            }
+          });
+          setShowBreakWarning(true);
+          setDraggedSession(null);
+          return;
+        }
+      }
     }
     
     // Update session
     const updateData: any = {
-      date: dropData.date
+      date: newDate
     };
     
-    if (dropData.time) {
-      updateData.time = dropData.time;
+    if (newTime) {
+      updateData.time = newTime;
     }
+    
+    console.log('[DRAG] Updating session:', updateData);
     
     const { error } = await supabase
       .from('sessions')
@@ -698,6 +796,7 @@ const Schedule = () => {
       .eq('id', draggedSession.id);
     
     if (error) {
+      console.error('[DRAG] Error:', error);
       toast({ title: 'Erro ao mover sessão', variant: 'destructive' });
     } else {
       toast({ title: 'Sessão movida com sucesso!' });
@@ -710,6 +809,7 @@ const Schedule = () => {
   const handleDragStart = (event: any) => {
     const sessionId = event.active.id;
     const session = sessions.find(s => s.id === sessionId);
+    console.log('[DRAG] Starting drag:', { sessionId, patient: session?.patients?.name });
     setDraggedSession(session);
   };
 
@@ -1022,6 +1122,7 @@ const Schedule = () => {
 
                 return (
                   <div key={`${hour}-${dayIndex}`} className="h-[60px] border-t border-r last:border-r-0 relative">
+                    {/* Create droppable zones for each 15-minute interval */}
                     {quarterHours.map(minutes => {
                       const timeStr = `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
                       return (
@@ -1030,7 +1131,7 @@ const Schedule = () => {
                           id={`week-slot-${dateStr}-${timeStr}`}
                           date={dateStr}
                           time={timeStr}
-                          className="absolute inset-x-0 hover:bg-accent/20 transition-colors"
+                          className="absolute inset-x-0 z-0"
                           style={{
                             top: `${(minutes / 60) * 60}px`,
                             height: '15px'
@@ -1039,6 +1140,7 @@ const Schedule = () => {
                       );
                     })}
                     
+                    {/* Render blocks and sessions only once per hour (on first hour) */}
                     {hour === 7 && (
                       <>
                         {dayBlocks.map(block => (
@@ -1066,7 +1168,7 @@ const Schedule = () => {
                             return (
                               <DraggableSession key={session.id} id={session.id}>
                                 <Card
-                                  className="absolute cursor-grab active:cursor-grabbing hover:shadow-md transition-all border-l-4 p-2 z-20"
+                                  className="absolute cursor-grab active:cursor-grabbing hover:shadow-md transition-all border-l-4 p-2 z-30"
                                   style={{
                                     top: `${topPosition}px`,
                                     left: `${leftPercent}%`,
@@ -1348,6 +1450,7 @@ const Schedule = () => {
                   {hour.toString().padStart(2, '0')}:00
                 </div>
                 <div className="flex-1 relative">
+                  {/* Create droppable zones for each 15-minute interval */}
                   {quarterHours.map(minutes => {
                     const timeStr = `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
                     return (
@@ -1356,7 +1459,7 @@ const Schedule = () => {
                         id={`day-slot-${dateStr}-${timeStr}`}
                         date={dateStr}
                         time={timeStr}
-                        className="absolute inset-x-0 hover:bg-accent/10 transition-colors"
+                        className="absolute inset-x-0 z-0"
                         style={{
                           top: `${(minutes / 60) * 60}px`,
                           height: '15px'
@@ -1392,7 +1495,7 @@ const Schedule = () => {
                           return (
                             <DraggableSession key={session.id} id={session.id}>
                               <div
-                                className={`absolute p-3 rounded-lg cursor-grab active:cursor-grabbing transition-all z-20 ${getStatusColor(session.status)}`}
+                                className={`absolute p-3 rounded-lg cursor-grab active:cursor-grabbing transition-all z-30 ${getStatusColor(session.status)}`}
                                 style={{
                                   top: `${topPosition}px`,
                                   left: `calc(${leftPercent}% + 0.5rem)`,
