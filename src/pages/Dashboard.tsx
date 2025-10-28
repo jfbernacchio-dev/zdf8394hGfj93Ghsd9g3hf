@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { parseISO } from 'date-fns';
+import { parseISO, format, startOfMonth, endOfMonth, eachMonthOfInterval } from 'date-fns';
 import { NotificationPrompt } from '@/components/NotificationPrompt';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 
@@ -124,20 +124,61 @@ const Dashboard = () => {
       
       if (periodStart > end) return sum;
       
-      const weeks = Math.floor((end.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24 * 7));
-      const multiplier = patient.frequency === 'weekly' ? 1 : 0.5;
-      const sessions = Math.max(1, Math.ceil(weeks * multiplier));
-      
-      return sum + (sessions * Number(patient.session_value || 0));
+      if (patient.monthly_price) {
+        // For monthly patients, count the value once per month in the period
+        const months = eachMonthOfInterval({ start: periodStart, end });
+        return sum + (months.length * Number(patient.session_value || 0));
+      } else {
+        // For weekly/biweekly patients, calculate based on frequency
+        const weeks = Math.floor((end.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24 * 7));
+        const multiplier = patient.frequency === 'weekly' ? 1 : 0.5;
+        const sessions = Math.max(1, Math.ceil(weeks * multiplier));
+        return sum + (sessions * Number(patient.session_value || 0));
+      }
     }, 0);
   
-  const totalActual = attendedSessions.reduce((sum, s) => sum + Number(s.value), 0);
+  // Calculate actual revenue considering monthly patients
+  const monthlyPatientsTracked = new Map<string, Set<string>>();
+  const totalActual = attendedSessions.reduce((sum, s) => {
+    const patient = patients.find(p => p.id === s.patient_id);
+    if (patient?.monthly_price) {
+      const monthKey = format(parseISO(s.date), 'yyyy-MM');
+      if (!monthlyPatientsTracked.has(s.patient_id)) {
+        monthlyPatientsTracked.set(s.patient_id, new Set());
+      }
+      const months = monthlyPatientsTracked.get(s.patient_id)!;
+      if (!months.has(monthKey)) {
+        months.add(monthKey);
+        return sum + Number(s.value);
+      }
+      return sum;
+    }
+    return sum + Number(s.value);
+  }, 0);
   const revenuePercent = totalExpected > 0 ? ((totalActual / totalExpected) * 100).toFixed(0) : 0;
   
   // Em Aberto: TOTAL acumulado, não respeita período
   const allAttendedSessions = sessions.filter(s => s.status === 'attended');
   const unpaidSessions = allAttendedSessions.filter(s => !s.paid);
-  const unpaidValue = unpaidSessions.reduce((sum, s) => sum + Number(s.value), 0);
+  
+  // Calculate unpaid value considering monthly patients
+  const unpaidMonthlyTracked = new Map<string, Set<string>>();
+  const unpaidValue = unpaidSessions.reduce((sum, s) => {
+    const patient = patients.find(p => p.id === s.patient_id);
+    if (patient?.monthly_price) {
+      const monthKey = format(parseISO(s.date), 'yyyy-MM');
+      if (!unpaidMonthlyTracked.has(s.patient_id)) {
+        unpaidMonthlyTracked.set(s.patient_id, new Set());
+      }
+      const months = unpaidMonthlyTracked.get(s.patient_id)!;
+      if (!months.has(monthKey)) {
+        months.add(monthKey);
+        return sum + Number(s.value);
+      }
+      return sum;
+    }
+    return sum + Number(s.value);
+  }, 0);
 
   const openDialog = (type: 'expected' | 'actual' | 'unpaid') => {
     setDialogType(type);
@@ -150,28 +191,72 @@ const Dashboard = () => {
       return activePatients.map(patient => {
         const patientStart = new Date(patient.start_date);
         const periodStart = patientStart > start ? patientStart : start;
-        const weeks = Math.floor((end.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24 * 7));
-        const multiplier = patient.frequency === 'weekly' ? 1 : 0.5;
-        const expectedSessions = Math.max(1, Math.ceil(weeks * multiplier));
-        const expectedValue = expectedSessions * Number(patient.session_value || 0);
         
-        return {
-          patient: patient.name,
-          sessions: expectedSessions,
-          value: expectedValue,
-        };
+        if (periodStart > end) {
+          return {
+            patient: patient.name,
+            sessions: 0,
+            value: 0,
+          };
+        }
+        
+        if (patient.monthly_price) {
+          // For monthly patients, count once per month
+          const months = eachMonthOfInterval({ start: periodStart, end });
+          return {
+            patient: patient.name,
+            sessions: months.length,
+            value: months.length * Number(patient.session_value || 0),
+          };
+        } else {
+          // For weekly/biweekly patients
+          const weeks = Math.floor((end.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24 * 7));
+          const multiplier = patient.frequency === 'weekly' ? 1 : 0.5;
+          const expectedSessions = Math.max(1, Math.ceil(weeks * multiplier));
+          const expectedValue = expectedSessions * Number(patient.session_value || 0);
+          
+          return {
+            patient: patient.name,
+            sessions: expectedSessions,
+            value: expectedValue,
+          };
+        }
       });
     } else if (dialogType === 'actual') {
-      const patientRevenue = new Map<string, { sessions: number; value: number }>();
+      const patientRevenue = new Map<string, { sessions: number; value: number; monthly: boolean }>();
+      const monthlyPatientsInDialog = new Map<string, Set<string>>();
       
       attendedSessions.forEach(session => {
         const patient = patients.find(p => p.id === session.patient_id);
         if (patient) {
-          const current = patientRevenue.get(patient.name) || { sessions: 0, value: 0 };
-          patientRevenue.set(patient.name, {
-            sessions: current.sessions + 1,
-            value: current.value + Number(session.value),
-          });
+          const current = patientRevenue.get(patient.name) || { sessions: 0, value: 0, monthly: false };
+          
+          if (patient.monthly_price) {
+            const monthKey = format(parseISO(session.date), 'yyyy-MM');
+            if (!monthlyPatientsInDialog.has(patient.name)) {
+              monthlyPatientsInDialog.set(patient.name, new Set());
+            }
+            const months = monthlyPatientsInDialog.get(patient.name)!;
+            if (!months.has(monthKey)) {
+              months.add(monthKey);
+              patientRevenue.set(patient.name, {
+                sessions: current.sessions + 1,
+                value: current.value + Number(session.value),
+                monthly: true,
+              });
+            } else {
+              patientRevenue.set(patient.name, {
+                ...current,
+                sessions: current.sessions + 1,
+              });
+            }
+          } else {
+            patientRevenue.set(patient.name, {
+              sessions: current.sessions + 1,
+              value: current.value + Number(session.value),
+              monthly: false,
+            });
+          }
         }
       });
       
@@ -181,16 +266,40 @@ const Dashboard = () => {
         value: data.value,
       }));
     } else if (dialogType === 'unpaid') {
-      const patientUnpaid = new Map<string, { sessions: number; value: number }>();
+      const patientUnpaid = new Map<string, { sessions: number; value: number; monthly: boolean }>();
+      const unpaidMonthlyInDialog = new Map<string, Set<string>>();
       
       unpaidSessions.forEach(session => {
         const patient = patients.find(p => p.id === session.patient_id);
         if (patient) {
-          const current = patientUnpaid.get(patient.name) || { sessions: 0, value: 0 };
-          patientUnpaid.set(patient.name, {
-            sessions: current.sessions + 1,
-            value: current.value + Number(session.value),
-          });
+          const current = patientUnpaid.get(patient.name) || { sessions: 0, value: 0, monthly: false };
+          
+          if (patient.monthly_price) {
+            const monthKey = format(parseISO(session.date), 'yyyy-MM');
+            if (!unpaidMonthlyInDialog.has(patient.name)) {
+              unpaidMonthlyInDialog.set(patient.name, new Set());
+            }
+            const months = unpaidMonthlyInDialog.get(patient.name)!;
+            if (!months.has(monthKey)) {
+              months.add(monthKey);
+              patientUnpaid.set(patient.name, {
+                sessions: current.sessions + 1,
+                value: current.value + Number(session.value),
+                monthly: true,
+              });
+            } else {
+              patientUnpaid.set(patient.name, {
+                ...current,
+                sessions: current.sessions + 1,
+              });
+            }
+          } else {
+            patientUnpaid.set(patient.name, {
+              sessions: current.sessions + 1,
+              value: current.value + Number(session.value),
+              monthly: false,
+            });
+          }
         }
       });
       
