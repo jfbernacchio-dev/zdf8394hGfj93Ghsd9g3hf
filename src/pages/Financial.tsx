@@ -448,11 +448,21 @@ const Financial = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={500}>
-                <BarChart data={avgRevenueData} layout="horizontal">
+              <div className="mb-4 text-sm text-muted-foreground">
+                Comparativo de faturamento total e valor médio por sessão de cada paciente
+              </div>
+              <ResponsiveContainer width="100%" height={Math.max(400, avgRevenueData.length * 60)}>
+                <BarChart data={avgRevenueData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis type="number" stroke="hsl(var(--muted-foreground))" />
-                  <YAxis type="category" dataKey="name" stroke="hsl(var(--muted-foreground))" width={120} />
+                  <XAxis 
+                    dataKey="name" 
+                    stroke="hsl(var(--muted-foreground))"
+                    angle={-45}
+                    textAnchor="end"
+                    height={100}
+                    interval={0}
+                  />
+                  <YAxis stroke="hsl(var(--muted-foreground))" />
                   <Tooltip 
                     contentStyle={{ 
                       backgroundColor: 'hsl(var(--card))',
@@ -462,8 +472,8 @@ const Financial = () => {
                     formatter={(value: any) => formatBrazilianCurrency(value)}
                   />
                   <Legend />
-                  <Bar dataKey="faturamento" fill="hsl(var(--primary))" name="Faturamento Total" />
-                  <Bar dataKey="media" fill="hsl(var(--accent))" name="Média por Sessão" />
+                  <Bar dataKey="faturamento" fill="hsl(var(--primary))" name="Faturamento Total" radius={[8, 8, 0, 0]} />
+                  <Bar dataKey="media" fill="hsl(var(--accent))" name="Média por Sessão" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>

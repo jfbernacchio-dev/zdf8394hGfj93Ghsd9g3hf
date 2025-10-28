@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Users, Calendar, DollarSign, TrendingUp, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 import { supabase } from '@/integrations/supabase/client';
@@ -366,6 +366,9 @@ const Dashboard = () => {
                 {dialogType === 'actual' && 'Detalhes da Receita Efetiva'}
                 {dialogType === 'unpaid' && 'Detalhes dos Valores em Aberto'}
               </DialogTitle>
+              <DialogDescription>
+                Detalhamento por paciente das sessões e valores
+              </DialogDescription>
             </DialogHeader>
             <div className="mt-4">
               <Table>
