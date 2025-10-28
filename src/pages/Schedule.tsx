@@ -1420,7 +1420,7 @@ const Schedule = () => {
         });
     };
 
-    // Group overlapping sessions
+    // Group overlapping sessions - sessions at the exact same time
     const groupOverlappingSessions = (sessions: any[]) => {
       const groups: any[][] = [];
       const sorted = [...sessions].sort((a, b) => {
@@ -1433,13 +1433,11 @@ const Schedule = () => {
         const sessionTime = session.time || session.patients?.session_time || '00:00';
         let placed = false;
 
+        // Check if there's already a group with this exact time
         for (const group of groups) {
-          const hasOverlap = group.some(s => {
-            const sTime = s.time || s.patients?.session_time || '00:00';
-            return sTime === sessionTime;
-          });
-
-          if (hasOverlap) {
+          const groupTime = group[0].time || group[0].patients?.session_time || '00:00';
+          
+          if (groupTime === sessionTime) {
             group.push(session);
             placed = true;
             break;
