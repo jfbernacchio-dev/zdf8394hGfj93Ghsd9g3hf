@@ -463,6 +463,37 @@ const Schedule = () => {
   const confirmWithTimeConflict = async () => {
     setShowTimeConflictWarning(false);
     
+    // Check if this is a drag move or manual form submission
+    const isDragMove = conflictDetails?.newSession?.isDragMove;
+    
+    if (isDragMove && draggedSession) {
+      // Handle drag move
+      const updateData: any = {
+        date: conflictDetails?.newSession?.date
+      };
+      
+      if (conflictDetails?.newSession?.time) {
+        updateData.time = conflictDetails?.newSession?.time;
+      }
+      
+      const { error } = await supabase
+        .from('sessions')
+        .update(updateData)
+        .eq('id', draggedSession.id);
+
+      if (error) {
+        toast({ title: 'Erro ao mover sessão', variant: 'destructive' });
+      } else {
+        toast({ title: 'Sessão movida com sucesso!' });
+        loadData();
+      }
+      
+      setDraggedSession(null);
+      setConflictDetails(null);
+      return;
+    }
+    
+    // Handle manual form submission
     const sessionData = {
       patient_id: formData.patient_id,
       date: formData.date,
@@ -507,6 +538,7 @@ const Schedule = () => {
       paid: false,
       time: ''
     });
+    setConflictDetails(null);
     loadData();
   };
 
@@ -635,9 +667,15 @@ const Schedule = () => {
       );
       
       if (hasConflict) {
+        // Show conflict warning and store the pending move
         setConflictDetails({
           existingSession: conflictSession,
-          newSession: { ...draggedSession, date: dropData.date, time: dropData.time }
+          newSession: { 
+            ...draggedSession, 
+            date: dropData.date, 
+            time: dropData.time,
+            isDragMove: true // Flag to identify this is from drag
+          }
         });
         setShowTimeConflictWarning(true);
         setDraggedSession(null);
@@ -716,6 +754,7 @@ const Schedule = () => {
     const weekDays = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
     const hours = Array.from({ length: 15 }, (_, i) => i + 7); // 7:00 to 21:00
     const startHour = 7;
+    const quarterHours = [0, 15, 30, 45]; // 15-minute intervals
 
     // Calculate position based on exact time
     const getSessionPosition = (time: string) => {
@@ -759,6 +798,40 @@ const Schedule = () => {
             endMinutes: endMinutesTotal
           };
         });
+    };
+
+    // Group overlapping sessions
+    const groupOverlappingSessions = (sessions: any[]) => {
+      const groups: any[][] = [];
+      const sorted = [...sessions].sort((a, b) => {
+        const timeA = a.time || a.patients?.session_time || '00:00';
+        const timeB = b.time || b.patients?.session_time || '00:00';
+        return timeA.localeCompare(timeB);
+      });
+
+      sorted.forEach(session => {
+        const sessionTime = session.time || session.patients?.session_time || '00:00';
+        let placed = false;
+
+        for (const group of groups) {
+          const hasOverlap = group.some(s => {
+            const sTime = s.time || s.patients?.session_time || '00:00';
+            return sTime === sessionTime;
+          });
+
+          if (hasOverlap) {
+            group.push(session);
+            placed = true;
+            break;
+          }
+        }
+
+        if (!placed) {
+          groups.push([session]);
+        }
+      });
+
+      return groups;
     };
 
     return (
@@ -942,19 +1015,30 @@ const Schedule = () => {
                 const dayOfWeek = getDay(dayDate);
                 const adjustedDay = dayOfWeek === 0 ? 7 : dayOfWeek;
                 const dateStr = format(dayDate, 'yyyy-MM-dd');
-                const timeStr = `${hour.toString().padStart(2, '0')}:00`;
                 
                 const allDaySessions = sessions.filter(s => s.date === dateStr);
                 const dayBlocks = getBlocksForDay(adjustedDay, dayDate);
+                const sessionGroups = groupOverlappingSessions(allDaySessions);
 
                 return (
-                  <DroppableSlot
-                    key={`${hour}-${dayIndex}`}
-                    id={`week-slot-${dateStr}-${timeStr}`}
-                    date={dateStr}
-                    time={timeStr}
-                    className="h-[60px] border-t border-r last:border-r-0 relative hover:bg-accent/20 transition-colors"
-                  >
+                  <div key={`${hour}-${dayIndex}`} className="h-[60px] border-t border-r last:border-r-0 relative">
+                    {quarterHours.map(minutes => {
+                      const timeStr = `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                      return (
+                        <DroppableSlot
+                          key={`${hour}-${dayIndex}-${minutes}`}
+                          id={`week-slot-${dateStr}-${timeStr}`}
+                          date={dateStr}
+                          time={timeStr}
+                          className="absolute inset-x-0 hover:bg-accent/20 transition-colors"
+                          style={{
+                            top: `${(minutes / 60) * 60}px`,
+                            height: '15px'
+                          }}
+                        />
+                      );
+                    })}
+                    
                     {hour === 7 && (
                       <>
                         {dayBlocks.map(block => (
@@ -970,39 +1054,52 @@ const Schedule = () => {
                           </div>
                         ))}
                         
-                        {allDaySessions.map(session => {
-                          const sessionTime = session.time || session.patients?.session_time || '00:00';
-                          const topPosition = getSessionPosition(sessionTime);
+                        {sessionGroups.map((group, groupIndex) => {
+                          const groupCount = group.length;
                           
-                          return (
-                            <DraggableSession key={session.id} id={session.id}>
-                              <Card
-                                className="absolute left-1 right-1 cursor-grab active:cursor-grabbing hover:shadow-md transition-all border-l-4 p-2 z-20"
-                                style={{
-                                  top: `${topPosition}px`,
-                                  height: '56px',
-                                  borderLeftColor: session.status === 'attended' ? 'hsl(var(--chart-2))' : 
-                                                 session.status === 'missed' ? 'hsl(var(--destructive))' : 
-                                                 'hsl(var(--primary))'
-                                }}
-                                onClick={() => openEditDialog(session)}
-                              >
-                                <div className="flex items-center justify-between h-full">
-                                  <div className="flex-1 min-w-0">
-                                    <p className="font-semibold text-xs truncate">{session.patients.name}</p>
-                                    <p className="text-[10px] text-muted-foreground">{sessionTime}</p>
+                          return group.map((session, indexInGroup) => {
+                            const sessionTime = session.time || session.patients?.session_time || '00:00';
+                            const topPosition = getSessionPosition(sessionTime);
+                            const widthPercent = 100 / groupCount;
+                            const leftPercent = (indexInGroup * widthPercent);
+                            
+                            return (
+                              <DraggableSession key={session.id} id={session.id}>
+                                <Card
+                                  className="absolute cursor-grab active:cursor-grabbing hover:shadow-md transition-all border-l-4 p-2 z-20"
+                                  style={{
+                                    top: `${topPosition}px`,
+                                    left: `${leftPercent}%`,
+                                    width: `${widthPercent}%`,
+                                    height: '56px',
+                                    borderLeftColor: session.status === 'attended' ? 'hsl(var(--chart-2))' : 
+                                                   session.status === 'missed' ? 'hsl(var(--destructive))' : 
+                                                   'hsl(var(--primary))'
+                                  }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openEditDialog(session);
+                                  }}
+                                >
+                                  <div className="flex items-center justify-between h-full">
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-semibold text-xs truncate">{session.patients.name}</p>
+                                      <p className="text-[10px] text-muted-foreground">{sessionTime}</p>
+                                    </div>
+                                    {groupCount === 1 && (
+                                      <Badge variant={getStatusVariant(session.status)} className="text-[10px] px-1.5 py-0.5 ml-1 shrink-0">
+                                        {getStatusText(session.status)}
+                                      </Badge>
+                                    )}
                                   </div>
-                                  <Badge variant={getStatusVariant(session.status)} className="text-[10px] px-1.5 py-0.5 ml-1 shrink-0">
-                                    {getStatusText(session.status)}
-                                  </Badge>
-                                </div>
-                              </Card>
-                            </DraggableSession>
-                          );
+                                </Card>
+                              </DraggableSession>
+                            );
+                          });
                         })}
                       </>
                     )}
-                  </DroppableSlot>
+                  </div>
                 );
               })}
             </div>
@@ -1018,6 +1115,7 @@ const Schedule = () => {
     const dayOfWeek = getDay(selectedDate);
     const adjustedDay = dayOfWeek === 0 ? 7 : dayOfWeek;
     const startHour = 7;
+    const quarterHours = [0, 15, 30, 45]; // 15-minute intervals
 
     // Calculate position based on exact time
     const getSessionPosition = (time: string) => {
@@ -1063,7 +1161,42 @@ const Schedule = () => {
         });
     };
 
+    // Group overlapping sessions
+    const groupOverlappingSessions = (sessions: any[]) => {
+      const groups: any[][] = [];
+      const sorted = [...sessions].sort((a, b) => {
+        const timeA = a.time || a.patients?.session_time || '00:00';
+        const timeB = b.time || b.patients?.session_time || '00:00';
+        return timeA.localeCompare(timeB);
+      });
+
+      sorted.forEach(session => {
+        const sessionTime = session.time || session.patients?.session_time || '00:00';
+        let placed = false;
+
+        for (const group of groups) {
+          const hasOverlap = group.some(s => {
+            const sTime = s.time || s.patients?.session_time || '00:00';
+            return sTime === sessionTime;
+          });
+
+          if (hasOverlap) {
+            group.push(session);
+            placed = true;
+            break;
+          }
+        }
+
+        if (!placed) {
+          groups.push([session]);
+        }
+      });
+
+      return groups;
+    };
+
     const dayBlocks = getBlocksForDay();
+    const sessionGroups = groupOverlappingSessions(daySessions);
 
     return (
       <Card className="p-6">
@@ -1208,19 +1341,30 @@ const Schedule = () => {
         <div className="relative border rounded-lg">
           {hours.map(hour => {
             const dateStr = format(selectedDate, 'yyyy-MM-dd');
-            const timeStr = `${hour.toString().padStart(2, '0')}:00`;
             
             return (
               <div key={hour} className="flex border-b last:border-b-0 h-[60px] relative">
                 <div className="w-20 p-2 text-sm font-semibold text-muted-foreground border-r flex items-start">
                   {hour.toString().padStart(2, '0')}:00
                 </div>
-                <DroppableSlot
-                  id={`day-slot-${dateStr}-${timeStr}`}
-                  date={dateStr}
-                  time={timeStr}
-                  className="flex-1 relative hover:bg-accent/10 transition-colors"
-                >
+                <div className="flex-1 relative">
+                  {quarterHours.map(minutes => {
+                    const timeStr = `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                    return (
+                      <DroppableSlot
+                        key={`${hour}-${minutes}`}
+                        id={`day-slot-${dateStr}-${timeStr}`}
+                        date={dateStr}
+                        time={timeStr}
+                        className="absolute inset-x-0 hover:bg-accent/10 transition-colors"
+                        style={{
+                          top: `${(minutes / 60) * 60}px`,
+                          height: '15px'
+                        }}
+                      />
+                    );
+                  })}
+                  
                   {hour === 7 && (
                     <>
                       {dayBlocks.map(block => (
@@ -1236,38 +1380,51 @@ const Schedule = () => {
                         </div>
                       ))}
                       
-                      {daySessions.map(session => {
-                        const sessionTime = session.time || session.patients?.session_time || '00:00';
-                        const topPosition = getSessionPosition(sessionTime);
+                      {sessionGroups.map((group, groupIndex) => {
+                        const groupCount = group.length;
                         
-                        return (
-                          <DraggableSession key={session.id} id={session.id}>
-                            <div
-                              className={`absolute left-2 right-2 p-3 rounded-lg cursor-grab active:cursor-grabbing transition-all z-20 ${getStatusColor(session.status)}`}
-                              style={{
-                                top: `${topPosition}px`,
-                                height: '56px',
-                              }}
-                              onClick={() => openEditDialog(session)}
-                            >
-                              <div className="flex justify-between items-center h-full">
-                                <div>
-                                  <p className="font-semibold text-sm">{session.patients.name}</p>
-                                  <p className="text-xs">{sessionTime}</p>
-                                </div>
-                                <div className="text-right text-xs">
-                                  {session.paid && <p>💰 Pago</p>}
-                                  {session.status === 'missed' && <p>Sem Cobrança</p>}
-                                  {session.status === 'attended' && !session.paid && <p>A Pagar</p>}
+                        return group.map((session, indexInGroup) => {
+                          const sessionTime = session.time || session.patients?.session_time || '00:00';
+                          const topPosition = getSessionPosition(sessionTime);
+                          const widthPercent = 100 / groupCount;
+                          const leftPercent = (indexInGroup * widthPercent);
+                          
+                          return (
+                            <DraggableSession key={session.id} id={session.id}>
+                              <div
+                                className={`absolute p-3 rounded-lg cursor-grab active:cursor-grabbing transition-all z-20 ${getStatusColor(session.status)}`}
+                                style={{
+                                  top: `${topPosition}px`,
+                                  left: `calc(${leftPercent}% + 0.5rem)`,
+                                  width: `calc(${widthPercent}% - 1rem)`,
+                                  height: '56px',
+                                }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openEditDialog(session);
+                                }}
+                              >
+                                <div className="flex justify-between items-center h-full">
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-semibold text-sm truncate">{session.patients.name}</p>
+                                    <p className="text-xs">{sessionTime}</p>
+                                  </div>
+                                  {groupCount === 1 && (
+                                    <div className="text-right text-xs ml-2">
+                                      {session.paid && <p>💰 Pago</p>}
+                                      {session.status === 'missed' && <p>Sem Cobrança</p>}
+                                      {session.status === 'attended' && !session.paid && <p>A Pagar</p>}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
-                            </div>
-                          </DraggableSession>
-                        );
+                            </DraggableSession>
+                          );
+                        });
                       })}
                     </>
                   )}
-                </DroppableSlot>
+                </div>
               </div>
             );
           })}
