@@ -24,7 +24,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Calendar as CalendarIcon, Plus, CheckCircle, XCircle, DollarSign, ArrowLeft, Lock } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, startOfWeek, addDays, isBefore, parseISO, getDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { DndContext, DragEndEvent, useSensor, useSensors, PointerSensor, DragOverlay } from '@dnd-kit/core';
+import { DndContext, DragEndEvent, useSensor, useSensors, PointerSensor, DragOverlay, closestCenter } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { DraggableSession } from '@/components/DraggableSession';
 import { DroppableSlot } from '@/components/DroppableSlot';
@@ -1528,7 +1528,12 @@ const Schedule = () => {
   };
 
   return (
-    <DndContext sensors={sensors} onDragEnd={handleDragEnd} onDragStart={handleDragStart}>
+    <DndContext 
+      sensors={sensors} 
+      onDragEnd={handleDragEnd} 
+      onDragStart={handleDragStart}
+      collisionDetection={closestCenter}
+    >
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-foreground">Agenda</h1>

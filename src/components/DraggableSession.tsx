@@ -15,6 +15,7 @@ export const DraggableSession = ({ id, children }: DraggableSessionProps) => {
     transform: CSS.Translate.toString(transform),
     opacity: isDragging ? 0.5 : 1,
     cursor: 'grab',
+    pointerEvents: isDragging ? 'none' as const : 'auto' as const,
   };
 
   return (
