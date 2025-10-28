@@ -223,12 +223,15 @@ const NewPatient = () => {
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
-                      selected={formData.birthDate ? new Date(formData.birthDate) : undefined}
+                      selected={formData.birthDate ? new Date(formData.birthDate + 'T12:00:00') : undefined}
                       onSelect={(date) => {
                         if (date) {
+                          const year = date.getFullYear();
+                          const month = String(date.getMonth() + 1).padStart(2, '0');
+                          const day = String(date.getDate()).padStart(2, '0');
                           setFormData({ 
                             ...formData, 
-                            birthDate: format(date, "yyyy-MM-dd")
+                            birthDate: `${year}-${month}-${day}`
                           });
                         }
                       }}
@@ -329,12 +332,15 @@ const NewPatient = () => {
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
-                      selected={formData.startDate ? new Date(formData.startDate) : undefined}
+                      selected={formData.startDate ? new Date(formData.startDate + 'T12:00:00') : undefined}
                       onSelect={(date) => {
                         if (date) {
+                          const year = date.getFullYear();
+                          const month = String(date.getMonth() + 1).padStart(2, '0');
+                          const day = String(date.getDate()).padStart(2, '0');
                           setFormData({ 
                             ...formData, 
-                            startDate: format(date, "yyyy-MM-dd")
+                            startDate: `${year}-${month}-${day}`
                           });
                         }
                       }}

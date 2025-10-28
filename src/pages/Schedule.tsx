@@ -284,13 +284,15 @@ const Schedule = () => {
       const sessionTime = formData.time;
       const sessionDate = formData.date;
       
-      // Find other sessions on the same date
-      const sessionsOnSameDate = sessions.filter(s => 
-        s.date === sessionDate && s.id !== editingSession?.id
-      );
+      // Fetch all sessions on the same date from database
+      const { data: sessionsOnSameDate } = await supabase
+        .from('sessions')
+        .select('*, patients!inner(*)')
+        .eq('patients.user_id', effectiveUserId!)
+        .eq('date', sessionDate);
       
       // Check if any session conflicts with break time
-      const hasBreakConflict = sessionsOnSameDate.some(s => {
+      const hasBreakConflict = sessionsOnSameDate?.some(s => {
         const otherTime = s.time || s.patients?.session_time;
         if (!otherTime) return false;
         
@@ -300,7 +302,7 @@ const Schedule = () => {
         const otherMinutes = otherHour * 60 + otherMin;
         const slotDuration = profile.slot_duration || 60;
         
-        // Check if this session starts within break time of another session
+        // Check if sessions are too close together
         const minGap = Math.abs(sessionMinutes - otherMinutes);
         return minGap > 0 && minGap < (slotDuration + breakTime);
       });
