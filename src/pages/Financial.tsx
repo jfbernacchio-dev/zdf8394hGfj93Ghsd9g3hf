@@ -461,7 +461,7 @@ const Financial = () => {
                 <BarChart data={monthlyData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
-                  <YAxis stroke="hsl(var(--muted-foreground))" />
+                  <YAxis stroke="hsl(var(--muted-foreground))" allowDecimals={false} />
                   <Tooltip 
                     contentStyle={{ 
                       backgroundColor: 'hsl(var(--card))',
