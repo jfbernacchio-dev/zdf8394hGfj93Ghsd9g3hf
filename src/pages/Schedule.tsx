@@ -695,15 +695,19 @@ const Schedule = () => {
     // Check if date or time changed
     const dateChanged = dropData.date !== draggedSession.date;
     const originalTime = draggedSession.time || draggedSession.patients?.session_time;
-    const timeChanged = dropData.time && dropData.time !== originalTime;
     
-    if (!dateChanged && !timeChanged) {
+    // For weekly/daily views, keep the original time since we only drop on hourly slots
+    // Time will be the same as original unless user explicitly edits
+    const newTime = originalTime;
+    
+    // Only proceed if date actually changed
+    if (!dateChanged) {
+      console.log('[DRAG] No date change, skipping');
       setDraggedSession(null);
       return;
     }
     
     const newDate = dropData.date;
-    const newTime = dropData.time || originalTime;
     
     console.log('[DRAG] Moving session:', {
       sessionId: draggedSession.id,
@@ -1133,23 +1137,13 @@ const Schedule = () => {
 
                 return (
                   <div key={`${hour}-${dayIndex}`} className="h-[60px] border-t border-r last:border-r-0 relative">
-                    {/* Create droppable zones for each 15-minute interval */}
-                    {quarterHours.map(minutes => {
-                      const timeStr = `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-                      return (
-                        <DroppableSlot
-                          key={`${hour}-${dayIndex}-${minutes}`}
-                          id={`week-slot-${dateStr}-${timeStr}`}
-                          date={dateStr}
-                          time={timeStr}
-                          className="absolute inset-x-0 z-10"
-                          style={{
-                            top: `${(minutes / 60) * 60}px`,
-                            height: '15px'
-                          }}
-                        />
-                      );
-                    })}
+                    {/* Single droppable slot for the whole hour */}
+                    <DroppableSlot
+                      id={`week-slot-${dateStr}-${hour}`}
+                      date={dateStr}
+                      time={`${hour.toString().padStart(2, '0')}:00`}
+                      className="absolute inset-0 z-10"
+                    />
                     
                     {/* Render blocks and sessions only once per hour (on first hour) */}
                     {hour === 7 && (
@@ -1461,23 +1455,13 @@ const Schedule = () => {
                   {hour.toString().padStart(2, '0')}:00
                 </div>
                 <div className="flex-1 relative">
-                  {/* Create droppable zones for each 15-minute interval */}
-                  {quarterHours.map(minutes => {
-                    const timeStr = `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-                    return (
-                      <DroppableSlot
-                        key={`${hour}-${minutes}`}
-                        id={`day-slot-${dateStr}-${timeStr}`}
-                        date={dateStr}
-                        time={timeStr}
-                        className="absolute inset-x-0 z-10"
-                        style={{
-                          top: `${(minutes / 60) * 60}px`,
-                          height: '15px'
-                        }}
-                      />
-                    );
-                  })}
+                  {/* Single droppable slot for the whole hour */}
+                  <DroppableSlot
+                    id={`day-slot-${dateStr}-${hour}`}
+                    date={dateStr}
+                    time={`${hour.toString().padStart(2, '0')}:00`}
+                    className="absolute inset-0 z-10"
+                  />
                   
                   {hour === 7 && (
                     <>
