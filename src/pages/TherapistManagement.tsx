@@ -27,7 +27,7 @@ const TherapistManagement = () => {
 
   useEffect(() => {
     if (!isAdmin) {
-      navigate('/');
+      navigate('/dashboard');
       return;
     }
     fetchTherapists();

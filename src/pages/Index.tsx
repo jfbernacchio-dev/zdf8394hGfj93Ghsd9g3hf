@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, Phone, Mail, Clock, Users, Building2 } from "lucide-react";
+import { MapPin, Phone, Mail, Clock, Users, Building2, LogIn } from "lucide-react";
+import { Link } from "react-router-dom";
 import heroBackground from "@/assets/hero-background.jpg";
 import plantsHeader from "@/assets/plants-header.jpg";
 import familyCourse from "@/assets/family-course.jpg";
@@ -9,10 +10,29 @@ import workspace from "@/assets/workspace.jpg";
 import concreteWall from "@/assets/concrete-wall.jpg";
 import larissaPhoto from "@/assets/larissa-photo.jpg";
 import joaoPhoto from "@/assets/joao-photo.jpg";
+import mindwareLogo from "@/assets/mindware-logo.png";
 
 const Index = () => {
   return (
     <div className="min-h-screen">
+      {/* Top Navigation */}
+      <nav className="bg-card/95 backdrop-blur-lg shadow-sm border-b border-border sticky top-0 z-50">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-3">
+              <img src={mindwareLogo} alt="Mindware" className="w-10 h-10" />
+              <span className="text-xl font-semibold text-foreground">Espaço Mindware</span>
+            </div>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/login">
+                <LogIn className="w-4 h-4 mr-2" />
+                Acesso Restrito
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </nav>
+
       {/* Hero Section */}
       <section 
         className="relative bg-gradient-to-br from-primary/10 via-background to-primary/5 py-20 lg:py-32 overflow-hidden"

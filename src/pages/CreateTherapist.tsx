@@ -57,7 +57,7 @@ const CreateTherapist = () => {
   ];
 
   if (!isAdmin) {
-    navigate('/');
+    navigate('/dashboard');
     return null;
   }
 

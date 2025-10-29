@@ -27,7 +27,7 @@ const BottomNav = () => {
   };
 
   const navItems = [
-    { path: '/', icon: Home, label: 'Início' },
+    { path: '/dashboard', icon: Home, label: 'Início' },
     { path: '/schedule', icon: Calendar, label: 'Agenda' },
     { path: '/patients', icon: Users, label: 'Pacientes' },
   ];

@@ -55,7 +55,7 @@ const TherapistDetail = () => {
 
   useEffect(() => {
     if (!isAdmin) {
-      navigate('/');
+      navigate('/dashboard');
       return;
     }
     loadTherapistData();

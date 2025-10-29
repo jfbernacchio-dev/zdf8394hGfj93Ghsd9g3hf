@@ -18,7 +18,7 @@ const AdminSettings = () => {
 
   useEffect(() => {
     if (!isAdmin) {
-      navigate('/');
+      navigate('/dashboard');
       return;
     }
     loadMFAStatus();
@@ -68,7 +68,7 @@ const AdminSettings = () => {
     <div className="container mx-auto px-4 py-8 max-w-2xl">
         <Button
           variant="ghost"
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/dashboard')}
           className="mb-6"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
