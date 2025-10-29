@@ -1,70 +1,239 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, Phone, Mail, Clock, Users, Building2, LogIn } from "lucide-react";
+import { MapPin, Phone, Mail, MessageCircle, Instagram, Facebook, Youtube, LogIn } from "lucide-react";
 import { Link } from "react-router-dom";
-import heroBackground from "@/assets/hero-background.jpg";
-import plantsHeader from "@/assets/plants-header.jpg";
-import familyCourse from "@/assets/family-course.jpg";
-import kidsTherapy from "@/assets/kids-therapy.jpg";
-import workspace from "@/assets/workspace.jpg";
-import concreteWall from "@/assets/concrete-wall.jpg";
-import larissaPhoto from "@/assets/larissa-photo.jpg";
-import joaoPhoto from "@/assets/joao-photo.jpg";
+import heroMain from "@/assets/hero-main.jpg";
+import plantsBanner from "@/assets/plants-banner.jpg";
+import mothersCourse from "@/assets/mothers-course.jpg";
+import toys from "@/assets/toys.jpg";
+import desk from "@/assets/desk.jpg";
+import concreteWallBanner from "@/assets/concrete-wall-banner.jpg";
+import larissaFull from "@/assets/larissa-full.jpg";
+import joaoFull from "@/assets/joao-full.jpg";
 import mindwareLogo from "@/assets/mindware-logo.png";
+import { useState, useEffect } from "react";
 
 const Index = () => {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
     <div className="min-h-screen">
       {/* Top Navigation */}
-      <nav className="bg-card/95 backdrop-blur-lg shadow-sm border-b border-border sticky top-0 z-50">
+      <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${
+        scrolled ? "bg-background/95 backdrop-blur-lg shadow-lg" : "bg-background/80 backdrop-blur-sm"
+      }`}>
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3">
-              <img src={mindwareLogo} alt="Mindware" className="w-10 h-10" />
-              <span className="text-xl font-semibold text-foreground">Espaço Mindware</span>
+          <div className="flex items-center justify-between h-20">
+            <div className="flex items-center gap-3 animate-fade-in">
+              <img src={mindwareLogo} alt="Mindware" className="w-12 h-12" />
+              <span className="text-xl font-semibold text-foreground hidden sm:block">Espaço Mindware</span>
             </div>
-            <Button variant="outline" size="sm" asChild>
-              <Link to="/login">
-                <LogIn className="w-4 h-4 mr-2" />
-                Acesso Restrito
-              </Link>
-            </Button>
+            
+            {/* Desktop Navigation */}
+            <div className="hidden lg:flex items-center gap-6">
+              <a href="#inicio" className="text-sm font-medium hover:text-primary transition-colors">INÍCIO</a>
+              <a href="#servicos" className="text-sm font-medium hover:text-primary transition-colors">SERVIÇOS</a>
+              <a href="#sobre-nos" className="text-sm font-medium hover:text-primary transition-colors">SOBRE NÓS</a>
+              <a href="#espaco" className="text-sm font-medium hover:text-primary transition-colors">O ESPAÇO</a>
+              <a href="#curso" className="text-sm font-medium hover:text-primary transition-colors">CURSO DE MÃES</a>
+              <a href="#contato" className="text-sm font-medium hover:text-primary transition-colors">CONTATO</a>
+            </div>
+
+            {/* Social Icons & Login */}
+            <div className="flex items-center gap-3">
+              <a href="https://api.whatsapp.com/send?phone=5511988802007" target="_blank" rel="noopener noreferrer" 
+                className="p-2 rounded-full hover:bg-primary/10 transition-colors">
+                <MessageCircle className="w-5 h-5" />
+              </a>
+              <a href="https://www.instagram.com/espacomindware" target="_blank" rel="noopener noreferrer" 
+                className="p-2 rounded-full hover:bg-primary/10 transition-colors">
+                <Instagram className="w-5 h-5" />
+              </a>
+              <a href="https://www.facebook.com/espacomindware" target="_blank" rel="noopener noreferrer" 
+                className="p-2 rounded-full hover:bg-primary/10 transition-colors">
+                <Facebook className="w-5 h-5" />
+              </a>
+              <a href="https://www.youtube.com/@espacomindware" target="_blank" rel="noopener noreferrer" 
+                className="p-2 rounded-full hover:bg-primary/10 transition-colors">
+                <Youtube className="w-5 h-5" />
+              </a>
+              <Button variant="ghost" size="sm" asChild className="ml-2">
+                <Link to="/login">
+                  <LogIn className="w-4 h-4 mr-2" />
+                  <span className="hidden sm:inline">Acesso</span>
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
       </nav>
 
       {/* Hero Section */}
       <section 
-        className="relative bg-gradient-to-br from-primary/10 via-background to-primary/5 py-20 lg:py-32 overflow-hidden"
+        id="inicio"
+        className="relative h-screen min-h-[600px] flex items-center justify-center overflow-hidden pt-20"
+      >
+        <div 
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage: `url(${heroMain})`,
+            backgroundAttachment: 'fixed',
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/40 to-background/60" />
+        
+        <div className="relative container mx-auto px-4 text-center z-10">
+          <div className="max-w-4xl mx-auto animate-fade-in">
+            <p className="text-lg lg:text-xl text-foreground/90 mb-8 leading-relaxed">
+              Localizados no coração da Zona Oeste de São Paulo, no bairro da Pompeia, 
+              nossos psicólogos contam com um Espaço acolhedor, confortável e com toda 
+              privacidade que nossa atuação requer.
+            </p>
+            <Button size="lg" className="text-lg shadow-lg hover:shadow-xl transition-shadow" asChild>
+              <a href="#servicos">
+                Conheça nosso Espaço, nossa equipe de psicólogos e nosso trabalho!
+              </a>
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Plants Banner */}
+      <section 
+        className="relative h-64 lg:h-80 overflow-hidden"
         style={{
-          backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.85)), url(${heroBackground})`,
+          backgroundImage: `url(${plantsBanner})`,
           backgroundSize: 'cover',
-          backgroundPosition: 'center',
+          backgroundPosition: 'top',
         }}
       >
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center animate-fade-in">
-            <h1 className="text-4xl lg:text-6xl font-bold mb-6 text-foreground">
-              Espaço Mindware Psicologia
-            </h1>
-            <p className="text-lg lg:text-xl text-muted-foreground mb-4 max-w-3xl mx-auto">
-              Localizados no coração da Zona Oeste de São Paulo, no bairro da Pompeia, nossos psicólogos contam com um Espaço acolhedor, confortável e com toda privacidade que nossa atuação requer.
-            </p>
-            <p className="text-xl lg:text-2xl font-semibold text-primary mb-8">
-              Psicologia Clínica e Psicologia Educacional
-            </p>
-            <p className="text-lg text-muted-foreground mb-8 italic">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/30 to-background/60" />
+        <div className="relative h-full flex items-end justify-center pb-8">
+          <div className="text-center animate-fade-in">
+            <h2 className="text-3xl lg:text-4xl font-bold mb-2">Psicologia Clínica e Psicologia Educacional</h2>
+            <p className="text-xl lg:text-2xl italic text-muted-foreground">
               Cultivando consciência, bem estar, saúde e autoconhecimento.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="text-lg" asChild>
+          </div>
+        </div>
+      </section>
+
+      {/* Services Section */}
+      <section id="servicos" className="py-16 lg:py-24 bg-background">
+        <div className="container mx-auto px-4">
+          {/* Course Card */}
+          <div className="max-w-5xl mx-auto mb-16">
+            <Card className="overflow-hidden card-hover">
+              <div className="grid md:grid-cols-2 gap-0">
+                <div 
+                  className="h-64 md:h-auto bg-cover bg-center"
+                  style={{ backgroundImage: `url(${mothersCourse})` }}
+                />
+                <CardContent className="p-8 flex flex-col justify-center">
+                  <h3 className="text-2xl font-bold mb-4 text-primary">CURSO DE MÃES, PAIS E CUIDADORES</h3>
+                  <p className="text-muted-foreground mb-6 leading-relaxed">
+                    Grupo de apoio e aprendizado para mães, pais e cuidadores desenvolverem habilidades parentais 
+                    e trocarem experiências em um ambiente acolhedor.
+                  </p>
+                  <Button asChild>
+                    <a href="https://chat.whatsapp.com/DkUrLuuixmk1cfvkzW9k2A" target="_blank" rel="noopener noreferrer">
+                      Participe do Grupo!
+                    </a>
+                  </Button>
+                </CardContent>
+              </div>
+            </Card>
+          </div>
+
+          {/* Adult Services */}
+          <div className="mb-16">
+            <h3 className="text-center text-lg font-semibold text-muted-foreground mb-8">PARA ADULTOS</h3>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+              <Card className="card-hover">
+                <CardContent className="p-8">
+                  <h4 className="text-2xl font-bold mb-4 text-primary">Terapia Cognitiva e Comportamental</h4>
+                  <p className="text-muted-foreground leading-relaxed">
+                    É uma abordagem da psicologia clínica que procura promover um espaço terapêutico voltado à reflexão e reconstrução 
+                    dos pensamentos, emoções e comportamentos do paciente. Nossos pensamentos, e os significados que damos às nossas 
+                    experiências, é o que nos leva a vivenciar as nossas emoções e comportamentos, que serão explorados ao longo das 
+                    sessões pelo paciente e psicólogo.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="card-hover">
+                <CardContent className="p-8">
+                  <h4 className="text-2xl font-bold mb-4 text-primary">Terapia Junguiana</h4>
+                  <p className="text-muted-foreground leading-relaxed">
+                    Abordagem da psicologia clínica na qual os símbolos presentes na vida do paciente são a chave para a compreensão 
+                    do sentido de suas escolhas. Este é um espaço terapêutico de vínculo entre o paciente e o psicólogo, para que as 
+                    pessoas possam pensar sobre a própria vida. O espaço de escuta e acolhimento pretende oferecer reflexão, 
+                    sensibilização e consciência a respeito de si e do mundo à sua volta.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="card-hover">
+                <CardContent className="p-8">
+                  <h4 className="text-2xl font-bold mb-4 text-primary">Terapia Online</h4>
+                  <p className="text-muted-foreground leading-relaxed">
+                    O Espaço Mindware agora oferece a possibilidade da terapia online. Não importando a abordagem escolhida, 
+                    a experiência terapêutica é a mesma de quando realizada presencialmente, mas com você no conforto da sua casa. 
+                    Basta escolher uma abordagem, entrar em contato conosco por um de nossos canais de comunicação e agendar um 
+                    horário para sua terapia virtual!
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Kids Therapy with Image */}
+          <div 
+            className="relative h-[600px] overflow-hidden rounded-lg mb-8"
+            style={{
+              backgroundImage: `url(${toys})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
+            <div className="relative h-full flex items-end justify-center pb-16">
+              <div className="max-w-3xl mx-auto text-center px-4">
+                <h3 className="text-lg font-semibold text-muted-foreground mb-4">PARA CRIANÇAS</h3>
+                <h4 className="text-3xl font-bold mb-6 text-primary">Terapia Infantil</h4>
+                <p className="text-lg leading-relaxed mb-6">
+                  A clínica psicológica infantil é um espaço para a criança e a família. Este processo procura oferecer aos 
+                  cuidadores ferramentas e condições para entender as demandas da criança. O objetivo da terapia é transformar 
+                  as dinâmicas da criança e da família, visando um desenvolvimento e uma relação familiar mais saudável e bem adaptada. 
+                  Os focos de trabalho do psicólogo são as habilidades sociais e emocionais da criança, os ambientes em que vive 
+                  e orientação parental.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* CTA Section */}
+          <div 
+            className="relative h-[400px] overflow-hidden rounded-lg"
+            style={{
+              backgroundImage: `url(${desk})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }}
+          >
+            <div className="absolute inset-0 bg-background/70" />
+            <div className="relative h-full flex items-center justify-center">
+              <Button size="lg" className="text-xl px-8 py-6 shadow-xl" asChild>
                 <a href="https://api.whatsapp.com/send?phone=5511988802007" target="_blank" rel="noopener noreferrer">
-                  Agende sua Consulta
-                </a>
-              </Button>
-              <Button size="lg" variant="outline" className="text-lg" asChild>
-                <a href="#sobre">
-                  Conheça a Clínica
+                  FALE CONOSCO
                 </a>
               </Button>
             </div>
@@ -72,134 +241,53 @@ const Index = () => {
         </div>
       </section>
 
-      {/* About Section */}
-      <section id="sobre" className="py-16 lg:py-24 bg-background">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center mb-12">
-            <h2 className="text-3xl lg:text-4xl font-bold mb-6">Nossos Serviços</h2>
-            <p className="text-lg text-muted-foreground leading-relaxed">
-              Oferecemos diferentes abordagens terapêuticas para atender às necessidades de cada paciente, 
-              proporcionando um espaço de acolhimento, reflexão e transformação.
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            <Card className="card-hover">
-              <CardContent className="p-6">
-                <h3 className="text-xl font-semibold mb-3 text-primary">Terapia Cognitiva e Comportamental</h3>
-                <p className="text-sm text-muted-foreground mb-2 font-semibold">Para Adultos</p>
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  Abordagem da psicologia clínica que promove um espaço terapêutico voltado à reflexão e reconstrução 
-                  dos pensamentos, emoções e comportamentos do paciente.
-                </p>
-              </CardContent>
-            </Card>
-            
-            <Card className="card-hover">
-              <CardContent className="p-6">
-                <h3 className="text-xl font-semibold mb-3 text-primary">Terapia Junguiana</h3>
-                <p className="text-sm text-muted-foreground mb-2 font-semibold">Para Adultos</p>
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  Abordagem onde os símbolos presentes na vida do paciente são a chave para a compreensão do sentido de suas escolhas. 
-                  Espaço de escuta e acolhimento para reflexão, sensibilização e consciência.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="card-hover">
-              <CardContent className="p-6">
-                <h3 className="text-xl font-semibold mb-3 text-primary">Terapia Infantil</h3>
-                <p className="text-sm text-muted-foreground mb-2 font-semibold">Para Crianças</p>
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  Espaço para a criança e a família. Oferecemos ferramentas para entender as demandas da criança, 
-                  focando em habilidades sociais, emocionais e orientação parental.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="card-hover">
-              <CardContent className="p-6">
-                <h3 className="text-xl font-semibold mb-3 text-primary">Terapia Online</h3>
-                <p className="text-sm text-muted-foreground mb-2 font-semibold">Todas as Abordagens</p>
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  A experiência terapêutica é a mesma de quando realizada presencialmente, mas com você no conforto da sua casa. 
-                  Escolha sua abordagem e agende seu horário.
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="card-hover">
-              <CardContent className="p-6">
-                <h3 className="text-xl font-semibold mb-3 text-primary">Curso de Mães, Pais e Cuidadores</h3>
-                <p className="text-sm text-muted-foreground mb-2 font-semibold">Grupos</p>
-                <p className="text-muted-foreground text-sm leading-relaxed mb-4">
-                  Grupo de apoio e aprendizado para mães, pais e cuidadores desenvolverem habilidades parentais 
-                  e trocarem experiências em um ambiente acolhedor.
-                </p>
-                <Button size="sm" variant="outline" asChild className="w-full">
-                  <a href="https://chat.whatsapp.com/DkUrLuuixmk1cfvkzW9k2A" target="_blank" rel="noopener noreferrer">
-                    Participe do Grupo
-                  </a>
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="card-hover bg-primary/5">
-              <CardContent className="p-6 flex flex-col justify-center items-center text-center h-full">
-                <MapPin className="w-12 h-12 mb-4 text-primary" />
-                <h3 className="text-xl font-semibold mb-2">Localização Privilegiada</h3>
-                <p className="text-muted-foreground text-sm">Pompeia, Zona Oeste de São Paulo, com fácil acesso e ambiente acolhedor</p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
       {/* Psychologists Section */}
-      <section className="py-16 lg:py-24 bg-muted/30">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl lg:text-4xl font-bold text-center mb-4">Nossos Profissionais</h2>
-          <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
-            Conheça nossa equipe de psicólogos especializados
+      <section 
+        id="sobre-nos"
+        className="relative py-24 lg:py-32 overflow-hidden"
+        style={{
+          backgroundImage: `url(${concreteWallBanner})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed',
+        }}
+      >
+        <div className="absolute inset-0 bg-background/90" />
+        <div className="relative container mx-auto px-4">
+          <h2 className="text-4xl lg:text-5xl font-bold text-center mb-4">QUEM SOMOS</h2>
+          <p className="text-center text-muted-foreground mb-16 text-lg">
+            Nossa equipe de psicólogos especializados
           </p>
           
-          <div className="grid md:grid-cols-2 gap-12 max-w-5xl mx-auto">
-            {/* João Felipe Bernacchio */}
-            <Card className="card-hover">
-              <CardContent className="p-8">
-                <div className="aspect-square rounded-lg mb-6 overflow-hidden">
-                  <img 
-                    src={joaoPhoto} 
-                    alt="João Felipe Bernacchio - Psicólogo CRP 06/124232"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <h3 className="text-2xl font-bold mb-2">João Felipe Bernacchio</h3>
-                <p className="text-sm text-muted-foreground mb-4">CRP 06/124232</p>
-                <p className="text-primary font-semibold mb-4">Psicologia Analítica Junguiana</p>
-                <p className="text-muted-foreground">
-                  Psicólogo clínico especializado na abordagem da psicologia analítica junguiana, 
-                  com atendimento voltado para adultos.
+          <div className="grid md:grid-cols-2 gap-12 lg:gap-20 max-w-5xl mx-auto">
+            {/* Larissa */}
+            <Card className="card-hover overflow-hidden">
+              <div 
+                className="h-96 bg-cover bg-center"
+                style={{ backgroundImage: `url(${larissaFull})` }}
+              />
+              <CardContent className="p-8 text-center">
+                <h3 className="text-2xl font-bold mb-2">Larissa Schwarcz Zein</h3>
+                <p className="text-sm text-muted-foreground mb-1">Psicóloga</p>
+                <p className="text-sm text-muted-foreground mb-4">CRP 06/124230</p>
+                <p className="text-primary font-semibold mb-2">
+                  Psicologia clínica na abordagem Cognitiva e Comportamental (infantil e adulto)
                 </p>
               </CardContent>
             </Card>
 
-            {/* Larissa Schwarcz Zein */}
-            <Card className="card-hover">
-              <CardContent className="p-8">
-                <div className="aspect-square rounded-lg mb-6 overflow-hidden">
-                  <img 
-                    src={larissaPhoto} 
-                    alt="Larissa Schwarcz Zein - Psicóloga CRP 06/124230"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <h3 className="text-2xl font-bold mb-2">Larissa Schwarcz Zein</h3>
-                <p className="text-sm text-muted-foreground mb-4">CRP 06/124230</p>
-                <p className="text-primary font-semibold mb-4">Psicologia Cognitiva e Comportamental</p>
-                <p className="text-muted-foreground">
-                  Psicologia clínica na abordagem Cognitiva e Comportamental, 
-                  com atendimento especializado para crianças e adultos.
+            {/* João */}
+            <Card className="card-hover overflow-hidden">
+              <div 
+                className="h-96 bg-cover bg-center"
+                style={{ backgroundImage: `url(${joaoFull})` }}
+              />
+              <CardContent className="p-8 text-center">
+                <h3 className="text-2xl font-bold mb-2">João Felipe Bernacchio</h3>
+                <p className="text-sm text-muted-foreground mb-1">Psicólogo</p>
+                <p className="text-sm text-muted-foreground mb-4">CRP 06/124232</p>
+                <p className="text-primary font-semibold mb-2">
+                  Psicólogo clínico na abordagem da psicologia analítica junguiana
                 </p>
               </CardContent>
             </Card>
@@ -208,27 +296,19 @@ const Index = () => {
       </section>
 
       {/* Room Rental Section */}
-      <section className="py-16 lg:py-24 bg-background">
+      <section id="espaco" className="py-16 lg:py-24 bg-background">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
-            <Building2 className="w-16 h-16 mx-auto mb-6 text-primary" />
-            <h2 className="text-3xl lg:text-4xl font-bold mb-6">Aluguel de Salas</h2>
-            <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
-              O Espaço Mindware oferece salas para locação mensal para profissionais da saúde. 
-              Nosso espaço conta com consultórios totalmente equipados e preparados para atendimentos, 
-              em um ambiente acolhedor e profissional.
-            </p>
-            <Card className="max-w-2xl mx-auto">
-              <CardContent className="p-8">
-                <div className="bg-primary/10 rounded-lg p-6 mb-6">
-                  <p className="text-xl font-semibold text-primary">Aluguel Mensal</p>
-                  <p className="text-sm text-muted-foreground mt-2">Para profissionais da saúde</p>
-                </div>
-                <p className="text-muted-foreground mb-6">
-                  Interessado em fazer parte do nosso espaço? Entre em contato para mais informações 
-                  sobre disponibilidade e valores.
+            <h2 className="text-3xl lg:text-4xl font-bold mb-12">SALAS PARA ALUGUEL MENSAL</h2>
+            <Card className="overflow-hidden">
+              <CardContent className="p-12">
+                <h3 className="text-2xl font-semibold text-primary mb-6">PARA PROFISSIONAIS DA SAÚDE</h3>
+                <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
+                  O Espaço Mindware oferece salas para locação mensal para profissionais da saúde. 
+                  Nosso espaço conta com consultórios totalmente equipados e preparados para atendimentos, 
+                  em um ambiente acolhedor e profissional.
                 </p>
-                <Button size="lg" variant="outline" asChild>
+                <Button size="lg" asChild>
                   <a href="https://api.whatsapp.com/send?phone=5511988802007" target="_blank" rel="noopener noreferrer">
                     Entrar em Contato
                   </a>
@@ -239,82 +319,63 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Location & Contact Section */}
-      <section className="py-16 lg:py-24 bg-muted/30">
+      {/* Contact Section */}
+      <section id="contato" className="py-16 lg:py-24 bg-muted/30">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl lg:text-4xl font-bold text-center mb-12">Localização e Contato</h2>
+          <h2 className="text-3xl lg:text-4xl font-bold text-center mb-4">REDES SOCIAIS</h2>
+          <p className="text-center text-muted-foreground mb-12 text-lg">Entre em contato conosco</p>
           
-          <div className="grid lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
+          <div className="max-w-4xl mx-auto">
             <Card>
               <CardContent className="p-8">
-                <h3 className="text-2xl font-bold mb-6">Como Chegar</h3>
-                <div className="space-y-4">
-                  <div className="flex items-start gap-4">
-                    <MapPin className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
-                    <div>
-                      <p className="font-semibold">Endereço</p>
-                      <p className="text-muted-foreground">Pompeia, Zona Oeste<br />São Paulo - SP</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-4">
-                    <Clock className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
-                    <div>
-                      <p className="font-semibold">Horário de Atendimento</p>
-                      <p className="text-muted-foreground">Segunda a Sexta: 8h às 20h<br />Sábado: 8h às 14h</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="mt-8 aspect-video bg-primary/10 rounded-lg flex items-center justify-center">
-                  <MapPin className="w-16 h-16 text-primary" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-8">
-                <h3 className="text-2xl font-bold mb-6">Entre em Contato</h3>
-                <div className="space-y-4 mb-8">
+                <div className="grid md:grid-cols-2 gap-8 mb-8">
                   <div className="flex items-center gap-4">
-                    <Phone className="w-6 h-6 text-primary flex-shrink-0" />
+                    <MessageCircle className="w-8 h-8 text-primary flex-shrink-0" />
                     <div>
-                      <p className="font-semibold">WhatsApp</p>
-                      <a href="https://api.whatsapp.com/send?phone=5511988802007" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                      <p className="font-semibold mb-1">WhatsApp</p>
+                      <a href="https://api.whatsapp.com/send?phone=5511988802007" target="_blank" rel="noopener noreferrer" 
+                        className="text-muted-foreground hover:text-primary transition-colors">
                         (11) 98880-2007
                       </a>
                     </div>
                   </div>
                   
                   <div className="flex items-center gap-4">
-                    <Mail className="w-6 h-6 text-primary flex-shrink-0" />
+                    <Mail className="w-8 h-8 text-primary flex-shrink-0" />
                     <div>
-                      <p className="font-semibold">E-mail</p>
-                      <a href="mailto:contato@espacomindware.com.br" className="text-muted-foreground hover:text-primary transition-colors">
+                      <p className="font-semibold mb-1">E-mail</p>
+                      <a href="mailto:contato@espacomindware.com.br" 
+                        className="text-muted-foreground hover:text-primary transition-colors">
                         contato@espacomindware.com.br
+                      </a>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <MapPin className="w-8 h-8 text-primary flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold mb-1">Endereço</p>
+                      <p className="text-muted-foreground">Pompeia, Zona Oeste<br />São Paulo - SP</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <Instagram className="w-8 h-8 text-primary flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold mb-1">Instagram</p>
+                      <a href="https://www.instagram.com/espacomindware" target="_blank" rel="noopener noreferrer" 
+                        className="text-muted-foreground hover:text-primary transition-colors">
+                        @espacomindware
                       </a>
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <input 
-                    type="text" 
-                    placeholder="Seu nome" 
-                    className="w-full px-4 py-3 rounded-md border bg-background"
-                  />
-                  <input 
-                    type="email" 
-                    placeholder="Seu e-mail" 
-                    className="w-full px-4 py-3 rounded-md border bg-background"
-                  />
-                  <textarea 
-                    placeholder="Sua mensagem" 
-                    rows={4}
-                    className="w-full px-4 py-3 rounded-md border bg-background"
-                  />
-                  <Button size="lg" className="w-full">
-                    Enviar Mensagem
+                <div className="flex justify-center gap-4 pt-6 border-t">
+                  <Button size="lg" asChild>
+                    <a href="https://api.whatsapp.com/send?phone=5511988802007" target="_blank" rel="noopener noreferrer">
+                      Agendar Consulta
+                    </a>
                   </Button>
                 </div>
               </CardContent>
@@ -324,11 +385,35 @@ const Index = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-primary/10 py-8">
-        <div className="container mx-auto px-4 text-center">
-          <p className="text-muted-foreground">
-            © 2025 Espaço Mindware Psicologia. Todos os direitos reservados.
-          </p>
+      <footer className="bg-primary/5 py-12">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col items-center gap-6">
+            <div className="flex items-center gap-3">
+              <img src={mindwareLogo} alt="Mindware" className="w-10 h-10" />
+              <span className="text-xl font-semibold">Espaço Mindware</span>
+            </div>
+            <div className="flex gap-4">
+              <a href="https://api.whatsapp.com/send?phone=5511988802007" target="_blank" rel="noopener noreferrer" 
+                className="p-3 rounded-full hover:bg-primary/10 transition-colors">
+                <MessageCircle className="w-5 h-5" />
+              </a>
+              <a href="https://www.instagram.com/espacomindware" target="_blank" rel="noopener noreferrer" 
+                className="p-3 rounded-full hover:bg-primary/10 transition-colors">
+                <Instagram className="w-5 h-5" />
+              </a>
+              <a href="https://www.facebook.com/espacomindware" target="_blank" rel="noopener noreferrer" 
+                className="p-3 rounded-full hover:bg-primary/10 transition-colors">
+                <Facebook className="w-5 h-5" />
+              </a>
+              <a href="https://www.youtube.com/@espacomindware" target="_blank" rel="noopener noreferrer" 
+                className="p-3 rounded-full hover:bg-primary/10 transition-colors">
+                <Youtube className="w-5 h-5" />
+              </a>
+            </div>
+            <p className="text-muted-foreground text-sm">
+              © 2025 Espaço Mindware Psicologia. Todos os direitos reservados.
+            </p>
+          </div>
         </div>
       </footer>
     </div>
