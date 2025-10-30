@@ -130,6 +130,47 @@ export type Database = {
         }
         Relationships: []
       }
+      consent_submissions: {
+        Row: {
+          accepted_at: string | null
+          created_at: string | null
+          guardian_document_path: string | null
+          id: string
+          ip_address: string | null
+          patient_id: string
+          submission_type: string
+          user_agent: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string | null
+          guardian_document_path?: string | null
+          id?: string
+          ip_address?: string | null
+          patient_id: string
+          submission_type: string
+          user_agent?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string | null
+          guardian_document_path?: string | null
+          id?: string
+          ip_address?: string | null
+          patient_id?: string
+          submission_type?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consent_submissions_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_logs: {
         Row: {
           created_at: string
@@ -444,12 +485,17 @@ export type Database = {
           created_at: string
           email: string | null
           frequency: string
+          guardian_cpf: string | null
+          guardian_name: string | null
           id: string
+          is_minor: boolean | null
           lgpd_consent_date: string | null
           monthly_price: boolean | null
           name: string
           no_nfse: boolean | null
           phone: string | null
+          privacy_policy_accepted: boolean | null
+          privacy_policy_accepted_at: string | null
           session_day: string | null
           session_day_2: string | null
           session_time: string | null
@@ -466,12 +512,17 @@ export type Database = {
           created_at?: string
           email?: string | null
           frequency: string
+          guardian_cpf?: string | null
+          guardian_name?: string | null
           id?: string
+          is_minor?: boolean | null
           lgpd_consent_date?: string | null
           monthly_price?: boolean | null
           name: string
           no_nfse?: boolean | null
           phone?: string | null
+          privacy_policy_accepted?: boolean | null
+          privacy_policy_accepted_at?: string | null
           session_day?: string | null
           session_day_2?: string | null
           session_time?: string | null
@@ -488,12 +539,17 @@ export type Database = {
           created_at?: string
           email?: string | null
           frequency?: string
+          guardian_cpf?: string | null
+          guardian_name?: string | null
           id?: string
+          is_minor?: boolean | null
           lgpd_consent_date?: string | null
           monthly_price?: boolean | null
           name?: string
           no_nfse?: boolean | null
           phone?: string | null
+          privacy_policy_accepted?: boolean | null
+          privacy_policy_accepted_at?: string | null
           session_day?: string | null
           session_day_2?: string | null
           session_time?: string | null

@@ -31,6 +31,7 @@ import SecurityIncidents from "./pages/SecurityIncidents";
 import LogReview from "./pages/LogReview";
 import PermissionReview from "./pages/PermissionReview";
 import BackupTests from "./pages/BackupTests";
+import ConsentForm from "./pages/ConsentForm";
 
 const queryClient = new QueryClient();
 
@@ -76,6 +77,9 @@ const App = () => (
           <Routes>
             {/* Landing Page Pública */}
             <Route path="/" element={<Index />} />
+            
+            {/* Formulário Público de Consentimento */}
+            <Route path="/consent/:token" element={<ConsentForm />} />
             
             {/* Sistema de Gestão */}
             <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
