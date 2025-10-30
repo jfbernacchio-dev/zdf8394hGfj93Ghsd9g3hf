@@ -3,6 +3,9 @@ project_id = "klxyilxprlzhxnwjzcvv"
 [functions.auto-mark-sessions]
 verify_jwt = false
 
+[functions.get-consent-data]
+verify_jwt = false
+
 [functions.issue-nfse]
 verify_jwt = true
 
