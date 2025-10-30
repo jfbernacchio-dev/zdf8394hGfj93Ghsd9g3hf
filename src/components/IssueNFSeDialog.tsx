@@ -81,10 +81,10 @@ export default function IssueNFSeDialog({
 
     setLoading(true);
     try {
-      // Validate patient has CPF
+      // Validate patient has CPF and consent
       const { data: patientData, error: patientError } = await supabase
         .from('patients')
-        .select('cpf')
+        .select('cpf, privacy_policy_accepted, email, name')
         .eq('id', patientId)
         .single();
 
@@ -95,6 +95,40 @@ export default function IssueNFSeDialog({
           title: 'CPF obrigatório',
           description: 'O paciente precisa ter CPF cadastrado para emitir NFSe. Edite o cadastro do paciente primeiro.',
           variant: 'destructive',
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Check if patient has accepted consent
+      if (!patientData.privacy_policy_accepted) {
+        toast({
+          title: 'Termo de consentimento pendente',
+          description: 'Enviando termo de consentimento para o paciente...',
+        });
+
+        // Send consent form email
+        const { error: consentError } = await supabase.functions.invoke('send-consent-form', {
+          body: {
+            patientId,
+            patientEmail: patientData.email,
+            patientName: patientData.name,
+          },
+        });
+
+        if (consentError) {
+          toast({
+            title: 'Erro ao enviar termo',
+            description: 'Não foi possível enviar o termo de consentimento. Tente novamente.',
+            variant: 'destructive',
+          });
+          setLoading(false);
+          return;
+        }
+
+        toast({
+          title: 'Termo enviado com sucesso',
+          description: 'O paciente receberá um email com o termo de consentimento. A NFSe só poderá ser emitida após a aceitação.',
         });
         setLoading(false);
         return;
