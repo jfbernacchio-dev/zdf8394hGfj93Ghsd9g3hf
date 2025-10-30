@@ -27,37 +27,23 @@ export default function ConsentForm() {
 
   const loadPatientData = async () => {
     try {
-      // First, find the consent submission by token
-      const { data: submission, error: submissionError } = await supabase
-        .from("consent_submissions")
-        .select("patient_id, accepted_at")
-        .eq("token", token)
-        .single();
+      // Call edge function to validate token and get patient data
+      const { data, error } = await supabase.functions.invoke("get-consent-data", {
+        body: { token }
+      });
 
-      if (submissionError || !submission) {
-        toast.error("Link inválido ou expirado");
+      if (error) throw error;
+
+      if (data.error) {
+        if (data.alreadyAccepted) {
+          setSubmitted(true);
+        }
+        toast.error(data.error);
         setLoading(false);
         return;
       }
 
-      // Check if already submitted
-      if (submission.accepted_at) {
-        toast.error("Termos já foram aceitos anteriormente");
-        setSubmitted(true);
-        setLoading(false);
-        return;
-      }
-
-      // Now get patient data
-      const { data: patientData, error: patientError } = await supabase
-        .from("patients")
-        .select("*")
-        .eq("id", submission.patient_id)
-        .single();
-
-      if (patientError) throw patientError;
-
-      setPatient(patientData);
+      setPatient(data.patient);
     } catch (error: any) {
       console.error("Error loading patient:", error);
       toast.error("Link inválido ou expirado");
