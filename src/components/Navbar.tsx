@@ -131,7 +131,7 @@ const Navbar = () => {
               </DropdownMenu>
             </div>
             
-            <div className="flex items-center gap-2 ml-2 pl-2 border-l border-border">
+            <div className="flex items-center gap-1 ml-2 pl-2 border-l border-border">
               {profile && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -161,9 +161,8 @@ const Navbar = () => {
                       variant="ghost"
                       size="icon"
                       title="Segurança & Compliance"
-                      className="border-2 border-primary/20"
                     >
-                      <Shield className="w-4 h-4 text-primary" />
+                      <Shield className="w-4 h-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="bg-popover z-50">
