@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { parseISO, format, startOfMonth, endOfMonth, eachMonthOfInterval } from 'date-fns';
 import { NotificationPrompt } from '@/components/NotificationPrompt';
+import { ComplianceReminder } from '@/components/ComplianceReminder';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 
 const Dashboard = () => {
@@ -318,6 +319,8 @@ const Dashboard = () => {
           <h1 className="text-3xl font-bold text-foreground mb-2">Dashboard</h1>
           <p className="text-muted-foreground">Visão geral da sua clínica</p>
         </div>
+
+        <ComplianceReminder />
 
         <Card className="p-6 mb-6 shadow-[var(--shadow-card)] border-border">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
