@@ -100,38 +100,25 @@ export default function IssueNFSeDialog({
         return;
       }
 
-      // Check if patient has accepted consent
+      // Check if patient needs consent - send email in parallel
+      let consentEmailSent = false;
       if (!patientData.privacy_policy_accepted) {
-        toast({
-          title: 'Termo de consentimento pendente',
-          description: 'Enviando termo de consentimento para o paciente...',
-        });
-
-        // Send consent form email
-        const { error: consentError } = await supabase.functions.invoke('send-consent-form', {
+        // Send consent form email (non-blocking)
+        supabase.functions.invoke('send-consent-form', {
           body: {
             patientId,
             patientEmail: patientData.email,
             patientName: patientData.name,
           },
+        }).then(({ error: consentError }) => {
+          if (!consentError) {
+            toast({
+              title: 'Termo de consentimento enviado',
+              description: 'O paciente receberá um email com o termo de consentimento junto com a NFSe.',
+            });
+          }
         });
-
-        if (consentError) {
-          toast({
-            title: 'Erro ao enviar termo',
-            description: 'Não foi possível enviar o termo de consentimento. Tente novamente.',
-            variant: 'destructive',
-          });
-          setLoading(false);
-          return;
-        }
-
-        toast({
-          title: 'Termo enviado com sucesso',
-          description: 'O paciente receberá um email com o termo de consentimento. A NFSe só poderá ser emitida após a aceitação.',
-        });
-        setLoading(false);
-        return;
+        consentEmailSent = true;
       }
 
       const sessionIds = unpaidSessions.map(s => s.id);
@@ -146,9 +133,13 @@ export default function IssueNFSeDialog({
       if (error) throw error;
 
       if (data.success) {
+        const description = consentEmailSent 
+          ? 'A nota fiscal está sendo emitida e o termo de consentimento foi enviado ao paciente.'
+          : 'A nota fiscal está sendo emitida. Consulte o histórico em alguns instantes.';
+        
         toast({
           title: 'NFSe em processamento',
-          description: 'A nota fiscal está sendo emitida. Consulte o histórico em alguns instantes.',
+          description,
         });
         setOpen(false);
       } else {
