@@ -163,8 +163,15 @@ export const NotificationCenter = () => {
     </div>
   );
 
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (newOpen && unreadCount > 0) {
+      markAllAsRead();
+    }
+  };
+
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="w-4 h-4" />
