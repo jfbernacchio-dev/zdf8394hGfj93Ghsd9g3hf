@@ -139,6 +139,7 @@ export type Database = {
           ip_address: string | null
           patient_id: string
           submission_type: string
+          token: string | null
           user_agent: string | null
         }
         Insert: {
@@ -149,6 +150,7 @@ export type Database = {
           ip_address?: string | null
           patient_id: string
           submission_type: string
+          token?: string | null
           user_agent?: string | null
         }
         Update: {
@@ -159,6 +161,7 @@ export type Database = {
           ip_address?: string | null
           patient_id?: string
           submission_type?: string
+          token?: string | null
           user_agent?: string | null
         }
         Relationships: [

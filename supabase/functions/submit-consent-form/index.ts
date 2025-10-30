@@ -45,12 +45,22 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("É necessário aceitar os termos");
     }
 
-    // Find consent submission by token (we'll need to modify this approach)
-    // For now, we'll get patient by token stored in a temp table
-    // This is a simplified version - in production you'd want a proper token table
-    
-    // Get patient data from token (this is placeholder - needs proper implementation)
-    const patientId = token; // This should be decoded from a proper token system
+    // Find consent submission by token
+    const { data: submission, error: submissionError } = await supabase
+      .from("consent_submissions")
+      .select("patient_id, accepted_at")
+      .eq("token", token)
+      .single();
+
+    if (submissionError || !submission) {
+      throw new Error("Token inválido ou expirado");
+    }
+
+    if (submission.accepted_at) {
+      throw new Error("Termos já foram aceitos anteriormente");
+    }
+
+    const patientId = submission.patient_id;
 
     // Get patient
     const { data: patient, error: patientError } = await supabase
@@ -102,7 +112,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Update consent submission
-    const { error: submissionError } = await supabase
+    const { error: updateSubmissionError } = await supabase
       .from("consent_submissions")
       .update({
         accepted_at: new Date().toISOString(),
@@ -110,11 +120,10 @@ const handler = async (req: Request): Promise<Response> => {
         user_agent: userAgent,
         guardian_document_path: guardianDocPath
       })
-      .eq("patient_id", patientId)
-      .is("accepted_at", null);
+      .eq("token", token);
 
-    if (submissionError) {
-      console.error("Error updating submission:", submissionError);
+    if (updateSubmissionError) {
+      console.error("Error updating submission:", updateSubmissionError);
     }
 
     // Update patient record

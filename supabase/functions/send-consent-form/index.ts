@@ -74,6 +74,7 @@ const handler = async (req: Request): Promise<Response> => {
       .insert({
         patient_id: patientId,
         submission_type: patient.is_minor ? 'minor' : 'adult',
+        token: token_hash,
         ip_address: null,
         user_agent: null,
         accepted_at: null // Will be set when form is submitted

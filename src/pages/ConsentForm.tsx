@@ -27,23 +27,37 @@ export default function ConsentForm() {
 
   const loadPatientData = async () => {
     try {
-      // In a real implementation, decode token to get patient ID
-      // For now, using token as patient ID (simplified)
-      const { data, error } = await supabase
-        .from("patients")
-        .select("*")
-        .eq("id", token)
+      // First, find the consent submission by token
+      const { data: submission, error: submissionError } = await supabase
+        .from("consent_submissions")
+        .select("patient_id, accepted_at")
+        .eq("token", token)
         .single();
 
-      if (error) throw error;
-
-      if (data.lgpd_consent_date && data.privacy_policy_accepted) {
-        toast.error("Termos já foram aceitos anteriormente");
-        setSubmitted(true);
+      if (submissionError || !submission) {
+        toast.error("Link inválido ou expirado");
+        setLoading(false);
         return;
       }
 
-      setPatient(data);
+      // Check if already submitted
+      if (submission.accepted_at) {
+        toast.error("Termos já foram aceitos anteriormente");
+        setSubmitted(true);
+        setLoading(false);
+        return;
+      }
+
+      // Now get patient data
+      const { data: patientData, error: patientError } = await supabase
+        .from("patients")
+        .select("*")
+        .eq("id", submission.patient_id)
+        .single();
+
+      if (patientError) throw patientError;
+
+      setPatient(patientData);
     } catch (error: any) {
       console.error("Error loading patient:", error);
       toast.error("Link inválido ou expirado");
