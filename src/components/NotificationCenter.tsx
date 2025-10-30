@@ -203,6 +203,7 @@ export const NotificationCenter = () => {
             <TabsTrigger value="scheduling" className="text-xs">Agendamentos</TabsTrigger>
             <TabsTrigger value="messages" className="text-xs">Mensagens</TabsTrigger>
             <TabsTrigger value="team" className="text-xs">Equipe</TabsTrigger>
+            <TabsTrigger value="system" className="text-xs">Sistema</TabsTrigger>
             <TabsTrigger value="compliance" className="text-xs">Compliance</TabsTrigger>
             <TabsTrigger value="security" className="text-xs">Segurança</TabsTrigger>
           </TabsList>
@@ -246,6 +247,16 @@ export const NotificationCenter = () => {
                 </div>
               ) : (
                 filterByCategory('team').map(renderNotification)
+              )}
+            </TabsContent>
+
+            <TabsContent value="system" className="space-y-3 mt-0">
+              {filterByCategory('system').length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>Nenhuma notificação do sistema</p>
+                </div>
+              ) : (
+                filterByCategory('system').map(renderNotification)
               )}
             </TabsContent>
 

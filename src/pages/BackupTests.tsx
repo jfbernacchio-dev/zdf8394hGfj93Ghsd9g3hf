@@ -81,6 +81,21 @@ export default function BackupTests() {
       return;
     }
 
+    // Create notification for the admin
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase
+        .from('system_notifications')
+        .insert({
+          user_id: user.id,
+          title: 'Teste de Backup Concluído',
+          message: `Teste manual de backup executado com sucesso em ${restorationTime}s. Integridade dos dados verificada.`,
+          category: 'system',
+          severity: 'info',
+          action_url: '/backup-tests'
+        });
+    }
+
     toast.success('Teste de backup concluído com sucesso');
     loadTests();
     setRunning(false);
