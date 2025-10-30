@@ -8,14 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, CalendarIcon } from 'lucide-react';
 
 import { useToast } from '@/hooks/use-toast';
-import { format, addWeeks, parseISO, getDay } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { addWeeks, parseISO, getDay, format } from 'date-fns';
 
 const EditPatient = () => {
   const { id } = useParams<{ id: string }>();
@@ -145,16 +142,67 @@ const EditPatient = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Check if session day or time changed
+    // Check if session day, time, or start date changed
     const dayChanged = formData.session_day !== originalData.session_day;
     const timeChanged = formData.session_time !== originalData.session_time;
+    const startDateChanged = formData.start_date !== originalData.start_date;
     
     if (dayChanged || timeChanged) {
       setIsChangeDialogOpen(true);
       return;
     }
     
+    // If only start date changed, regenerate sessions from new start date
+    if (startDateChanged) {
+      await updatePatientWithNewStartDate();
+      return;
+    }
+    
     await updatePatient();
+  };
+
+  const updatePatientWithNewStartDate = async () => {
+    // First update the patient data
+    await updatePatient();
+    
+    // Then regenerate all sessions from the new start date
+    const today = getBrazilDate();
+    
+    // Delete all existing sessions
+    await supabase
+      .from('sessions')
+      .delete()
+      .eq('patient_id', id);
+    
+    // Generate new sessions from start date
+    const { generateRecurringSessions } = await import('@/lib/sessionUtils');
+    
+    const sessions = generateRecurringSessions(
+      formData.start_date,
+      formData.session_day,
+      formData.session_time,
+      formData.frequency as 'weekly' | 'biweekly',
+      20 // Generate 20 sessions
+    );
+    
+    // Insert new sessions
+    const sessionsToInsert = sessions.map(session => ({
+      patient_id: id,
+      date: session.date,
+      status: session.status,
+      value: formData.session_value,
+      paid: false,
+      time: formData.session_time,
+    }));
+    
+    await supabase.from('sessions').insert(sessionsToInsert);
+    
+    toast({
+      title: "Paciente atualizado!",
+      description: "A data de início foi alterada e as sessões foram regeneradas.",
+    });
+    
+    navigate('/patients');
   };
 
   const updatePatient = async () => {
@@ -310,47 +358,12 @@ const EditPatient = () => {
 
             <div className="space-y-2">
               <Label htmlFor="birth_date">Data de nascimento</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !formData.birth_date && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.birth_date ? (
-                      format(new Date(formData.birth_date), "dd/MM/yyyy", { locale: ptBR })
-                    ) : (
-                      <span>Selecione a data</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={formData.birth_date ? (() => {
-                      const [year, month, day] = formData.birth_date.split('-').map(Number);
-                      return new Date(year, month - 1, day);
-                    })() : undefined}
-                    onSelect={(date) => {
-                      if (date) {
-                        const year = date.getFullYear();
-                        const month = String(date.getMonth() + 1).padStart(2, '0');
-                        const day = String(date.getDate()).padStart(2, '0');
-                        setFormData({ 
-                          ...formData, 
-                          birth_date: `${year}-${month}-${day}`
-                        });
-                      }
-                    }}
-                    locale={ptBR}
-                    initialFocus
-                    className={cn("p-3 pointer-events-auto")}
-                  />
-                </PopoverContent>
-              </Popover>
+              <Input
+                id="birth_date"
+                type="date"
+                value={formData.birth_date || ''}
+                onChange={(e) => setFormData({ ...formData, birth_date: e.target.value })}
+              />
             </div>
 
             <div className="space-y-2">
@@ -549,47 +562,12 @@ const EditPatient = () => {
 
             <div className="space-y-2">
               <Label htmlFor="start_date">Data de início</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !formData.start_date && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.start_date ? (
-                      format(new Date(formData.start_date), "dd/MM/yyyy", { locale: ptBR })
-                    ) : (
-                      <span>Selecione a data</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={formData.start_date ? (() => {
-                      const [year, month, day] = formData.start_date.split('-').map(Number);
-                      return new Date(year, month - 1, day);
-                    })() : undefined}
-                    onSelect={(date) => {
-                      if (date) {
-                        const year = date.getFullYear();
-                        const month = String(date.getMonth() + 1).padStart(2, '0');
-                        const day = String(date.getDate()).padStart(2, '0');
-                        setFormData({ 
-                          ...formData, 
-                          start_date: `${year}-${month}-${day}`
-                        });
-                      }
-                    }}
-                    locale={ptBR}
-                    initialFocus
-                    className={cn("p-3 pointer-events-auto")}
-                  />
-                </PopoverContent>
-              </Popover>
+              <Input
+                id="start_date"
+                type="date"
+                value={formData.start_date || ''}
+                onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -728,40 +706,14 @@ const EditPatient = () => {
                 Você alterou o dia da semana ou horário da sessão. A partir de qual data deseja aplicar essa mudança?
               </p>
               <div>
-                <Label>Aplicar mudanças a partir de:</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !changeFromDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {changeFromDate ? (
-                        format(new Date(changeFromDate), "dd/MM/yyyy", { locale: ptBR })
-                      ) : (
-                        <span>Selecione a data</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={changeFromDate ? new Date(changeFromDate) : undefined}
-                      onSelect={(date) => {
-                        if (date) {
-                          setChangeFromDate(format(date, "yyyy-MM-dd"));
-                        }
-                      }}
-                      disabled={(date) => date < new Date()}
-                      locale={ptBR}
-                      initialFocus
-                      className={cn("p-3 pointer-events-auto")}
-                    />
-                  </PopoverContent>
-                </Popover>
+                <Label htmlFor="changeFromDate">Aplicar mudanças a partir de:</Label>
+                <Input
+                  id="changeFromDate"
+                  type="date"
+                  value={changeFromDate}
+                  onChange={(e) => setChangeFromDate(e.target.value)}
+                  min={getBrazilDate()}
+                />
               </div>
               <div className="flex gap-2">
                 <Button onClick={updateFutureSessions} className="flex-1">
