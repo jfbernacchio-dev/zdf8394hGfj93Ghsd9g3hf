@@ -142,6 +142,11 @@ const Navbar = () => {
                       <User className="w-4 h-4 mr-2" />
                       Perfil
                     </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout}>
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sair
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
@@ -187,14 +192,6 @@ const Navbar = () => {
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleLogout}
-                title="Sair"
-              >
-                <LogOut className="w-4 h-4" />
-              </Button>
             </div>
           </div>
 
