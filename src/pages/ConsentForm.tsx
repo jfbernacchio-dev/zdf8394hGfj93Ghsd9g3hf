@@ -28,17 +28,26 @@ export default function ConsentForm() {
   const loadPatientData = async () => {
     try {
       // Call edge function to validate token and get patient data
-      const { data, error } = await supabase.functions.invoke("get-consent-data", {
-        body: { token }
-      });
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/get-consent-data?token=${token}`,
+        {
+          method: 'GET',
+          headers: {
+            'apikey': supabaseKey,
+          }
+        }
+      );
 
-      if (error) throw error;
+      const data = await response.json();
 
-      if (data.error) {
+      if (!response.ok || data.error) {
         if (data.alreadyAccepted) {
           setSubmitted(true);
         }
-        toast.error(data.error);
+        toast.error(data.error || "Link inválido ou expirado");
         setLoading(false);
         return;
       }
