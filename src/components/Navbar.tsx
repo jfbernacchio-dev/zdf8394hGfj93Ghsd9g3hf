@@ -14,9 +14,6 @@ const Navbar = () => {
   const { signOut, profile, isAdmin } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Debug log
-  console.log('Navbar - isAdmin:', isAdmin, 'profile:', profile?.full_name);
-
   const isActive = (path: string) => location.pathname === path;
 
   const handleLogout = async () => {

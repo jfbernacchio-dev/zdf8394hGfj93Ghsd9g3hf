@@ -30,6 +30,9 @@ const categoryLabels: Record<string, string> = {
   permission: 'Permissões',
   incident: 'Incidentes',
   system: 'Sistema',
+  scheduling: 'Agendamentos',
+  messages: 'Mensagens',
+  team: 'Equipe',
 };
 
 const severityColors: Record<string, string> = {
@@ -188,18 +191,20 @@ export const NotificationCenter = () => {
         </SheetHeader>
 
         <Tabs defaultValue="all" className="mt-6">
-          <TabsList className="w-full grid grid-cols-4 mb-4">
-            <TabsTrigger value="all">
+          <TabsList className="w-full grid grid-cols-2 gap-1 mb-4 h-auto">
+            <TabsTrigger value="all" className="text-xs">
               Todas
               {unreadCount > 0 && (
-                <Badge variant="secondary" className="ml-1 h-5 w-5 rounded-full p-0 text-xs">
-                  {unreadCount}
+                <Badge variant="secondary" className="ml-1 h-4 w-4 rounded-full p-0 text-[10px]">
+                  {unreadCount > 9 ? '9+' : unreadCount}
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="compliance">Compliance</TabsTrigger>
-            <TabsTrigger value="security">Segurança</TabsTrigger>
-            <TabsTrigger value="audit">Auditoria</TabsTrigger>
+            <TabsTrigger value="scheduling" className="text-xs">Agendamentos</TabsTrigger>
+            <TabsTrigger value="messages" className="text-xs">Mensagens</TabsTrigger>
+            <TabsTrigger value="team" className="text-xs">Equipe</TabsTrigger>
+            <TabsTrigger value="compliance" className="text-xs">Compliance</TabsTrigger>
+            <TabsTrigger value="security" className="text-xs">Segurança</TabsTrigger>
           </TabsList>
 
           <ScrollArea className="h-[calc(100vh-180px)]">
@@ -211,6 +216,36 @@ export const NotificationCenter = () => {
                 </div>
               ) : (
                 notifications.map(renderNotification)
+              )}
+            </TabsContent>
+
+            <TabsContent value="scheduling" className="space-y-3 mt-0">
+              {filterByCategory('scheduling').length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>Nenhuma notificação de agendamentos</p>
+                </div>
+              ) : (
+                filterByCategory('scheduling').map(renderNotification)
+              )}
+            </TabsContent>
+
+            <TabsContent value="messages" className="space-y-3 mt-0">
+              {filterByCategory('messages').length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>Nenhuma mensagem</p>
+                </div>
+              ) : (
+                filterByCategory('messages').map(renderNotification)
+              )}
+            </TabsContent>
+
+            <TabsContent value="team" className="space-y-3 mt-0">
+              {filterByCategory('team').length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>Nenhuma notificação da equipe</p>
+                </div>
+              ) : (
+                filterByCategory('team').map(renderNotification)
               )}
             </TabsContent>
 
@@ -231,16 +266,6 @@ export const NotificationCenter = () => {
                 </div>
               ) : (
                 filterByCategory('security').map(renderNotification)
-              )}
-            </TabsContent>
-
-            <TabsContent value="audit" className="space-y-3 mt-0">
-              {filterByCategory('audit').length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>Nenhuma notificação de auditoria</p>
-                </div>
-              ) : (
-                filterByCategory('audit').map(renderNotification)
               )}
             </TabsContent>
           </ScrollArea>
