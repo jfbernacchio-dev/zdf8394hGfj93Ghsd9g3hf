@@ -187,6 +187,10 @@ const PatientDetail = () => {
     };
 
     if (editingSession) {
+      // Check if date or time changed to record in session_history
+      const dateChanged = editingSession.date !== formData.date;
+      const timeChanged = editingSession.time !== formData.time;
+
       const { error } = await supabase
         .from('sessions')
         .update(sessionData)
@@ -196,6 +200,28 @@ const PatientDetail = () => {
         toast({ title: 'Erro ao atualizar sessão', variant: 'destructive' });
         return;
       }
+
+      // If date or time changed, record in session_history for notification
+      if (dateChanged || timeChanged) {
+        const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+        
+        const oldDate = new Date(editingSession.date);
+        const newDate = new Date(formData.date);
+        
+        const oldDay = dayNames[oldDate.getDay()];
+        const newDay = dayNames[newDate.getDay()];
+        
+        await supabase
+          .from('session_history')
+          .insert({
+            patient_id: id,
+            old_day: oldDay,
+            old_time: editingSession.time || '-',
+            new_day: newDay,
+            new_time: formData.time || '-'
+          });
+      }
+
       toast({ title: 'Sessão atualizada!' });
     } else {
       const { error } = await supabase
