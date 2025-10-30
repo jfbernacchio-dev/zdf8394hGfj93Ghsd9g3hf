@@ -24,20 +24,37 @@ interface AuditLog {
 }
 
 export default function AuditLogs() {
-  const { user, userRole } = useAuth();
+  const { user } = useAuth();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ total: 0, thisMonth: 0, nearExpiry: 0 });
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    if (userRole !== 'admin') {
-      toast.error('Acesso negado. Apenas administradores podem visualizar logs de auditoria.');
-      return;
+    async function checkAdminRole() {
+      if (!user) return;
+      
+      const { data } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('role', 'admin')
+        .single();
+      
+      const adminStatus = !!data;
+      setIsAdmin(adminStatus);
+      
+      if (!adminStatus) {
+        toast.error('Acesso negado. Apenas administradores podem visualizar logs de auditoria.');
+        return;
+      }
+      
+      loadLogs();
+      loadStats();
     }
     
-    loadLogs();
-    loadStats();
-  }, [userRole]);
+    checkAdminRole();
+  }, [user]);
 
   async function loadLogs() {
     try {
@@ -145,7 +162,7 @@ export default function AuditLogs() {
     return variants[type] || 'default';
   };
 
-  if (userRole !== 'admin') {
+  if (!isAdmin && !loading) {
     return (
       <div className="container mx-auto py-8">
         <Card>
