@@ -122,9 +122,9 @@ A severidade do incidente deve ser avaliada considerando:
    - Como o incidente foi descoberto
 
 2. **Notificar o DPO** em até **24 horas**:
-   - E-mail: privacidade@espacomindware.com.br
-   - Telefone: [Telefone de emergência do DPO]
-   - WhatsApp: [Número para emergências]
+   - E-mail: contato@espacomindware.com.br
+   - Telefone: (11) 9.8456-4364
+   - WhatsApp: (11) 9.8456-4364
 
 3. **Preservar evidências**:
    - Não apagar logs ou registros
@@ -268,8 +268,8 @@ A severidade do incidente deve ser avaliada considerando:
 ### 5.1 Encarregado de Proteção de Dados (DPO)
 
 **Nome**: João Felipe Monteiro Dias Bernacchio  
-**E-mail**: privacidade@espacomindware.com.br  
-**Telefone**: [Telefone]
+**E-mail**: contato@espacomindware.com.br  
+**Telefone**: (11) 9.8456-4364
 
 **Atribuições:**
 - Coordenar a resposta ao incidente
@@ -456,17 +456,15 @@ ENCERRAMENTO
 
 | Função | Nome | Telefone | E-mail | Canal Alternativo |
 |--------|------|----------|--------|-------------------|
-| DPO (Principal) | João Felipe M. D. Bernacchio | +55 (11) 91234-5678* | privacidade@espacomindware.com.br | WhatsApp: +55 (11) 91234-5678* |
-| Administrador TI | João Felipe M. D. Bernacchio | +55 (11) 91234-5678* | joao@espacomindware.com.br | Telefone pessoal |
-| Sócio-Administrador | João Felipe M. D. Bernacchio | +55 (11) 91234-5678* | contato@espacomindware.com.br | SMS |
-
-**Observação**: *Substituir por números reais. Contato de emergência deve estar disponível 24/7 para incidentes críticos.
+| DPO (Principal) | João Felipe M. D. Bernacchio | (11) 9.8456-4364 | contato@espacomindware.com.br | WhatsApp: (11) 9.8456-4364 |
+| Administrador TI | João Felipe M. D. Bernacchio | (11) 9.8456-4364 | contato@espacomindware.com.br | SMS |
+| Sócio-Administrador | João Felipe M. D. Bernacchio | (11) 9.8456-4364 | contato@espacomindware.com.br | SMS |
 
 **Canal Alternativo (caso e-mail DPO indisponível)**:
-1. WhatsApp do DPO
-2. Telefone do Sócio-Administrador
-3. E-mail secundário: joao@espacomindware.com.br
-4. Se nenhum canal funcionar: Registrar incidente em papel e enviar carta registrada
+1. WhatsApp do DPO: (11) 9.8456-4364
+2. Telefone do Sócio-Administrador: (11) 9.8456-4364
+3. SMS para: (11) 9.8456-4364
+4. Se nenhum canal funcionar: Registrar incidente em papel e enviar carta registrada ao endereço da clínica
 
 ### 10.2 Externos
 

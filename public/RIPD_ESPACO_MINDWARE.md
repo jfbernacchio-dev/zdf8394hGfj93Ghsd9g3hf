@@ -303,14 +303,43 @@ Após implementação das medidas de segurança técnicas, organizacionais e de 
 **Encarregado de Proteção de Dados (DPO):**  
 João Felipe Monteiro Dias Bernacchio  
 CRP: 06/178261  
-E-mail: privacidade@espacomindware.com.br  
+E-mail: contato@espacomindware.com.br  
+Telefone/WhatsApp: (11) 9.8456-4364
 
 **Data de Elaboração**: Novembro/2025  
 **Aprovado por**: João Felipe Monteiro Dias Bernacchio (Sócio-Administrador)
 
 ---
 
-## 13. ANEXO METODOLÓGICO - PROCESSO DE AVALIAÇÃO DE RISCO
+## 13. ANEXO A - TABELA DE RASTREABILIDADE DE RISCOS
+
+Esta tabela rastreia o ciclo de vida dos riscos identificados neste RIPD e os controles implementados para mitigá-los.
+
+**Atualização Automática**: Esta tabela é atualizada automaticamente quando:
+- Um novo controle de segurança é criado no sistema MindWare
+- Um risco muda de status (ex.: "em andamento" → "mitigado")
+- Há revisões trimestrais ou anuais de segurança
+
+| ID   | Descrição do Risco                | Origem / Processo               | Impacto Potencial | Controle Implementado                                  | Evidência / Local          | Status       | Próxima Revisão |
+| ---- | --------------------------------- | ------------------------------- | ----------------- | ------------------------------------------------------ | -------------------------- | ------------ | --------------- |
+| R-01 | Vazamento de dados clínicos       | Acesso indevido a prontuário    | Alto              | Criptografia AES-256 + MFA + logs automáticos          | Norma de Segurança §4.2    | Mitigado     | 11/2026         |
+| R-02 | Falha de backup ou perda de dados | Erro de replicação ou corrupção | Médio             | Backup diário + teste mensal + monitoramento           | Logs de backup Mindware    | Mitigado     | 02/2026         |
+| R-03 | Acesso indevido por colaborador   | Erro humano ou negligência      | Alto              | Segregação de perfis + treinamento + confidencialidade | Termo de Confidencialidade | Mitigado     | 11/2026         |
+| R-04 | Transferência internacional       | Hospedagem Lovable.dev (EUA)    | Médio             | DPA + cláusulas contratuais padrão                     | Contrato Lovable DPA       | Em andamento | 12/2025         |
+| R-05 | Consentimento de menores          | Falha na validação documental   | Alto              | Dupla checagem + termo separado + logs                 | Prontuário Digital         | Mitigado     | 05/2026         |
+
+**Legenda de Status:**
+- **Mitigado**: Controle implementado e funcionando conforme esperado
+- **Em andamento**: Controle em implementação ou aguardando documentação
+- **Identificado**: Risco mapeado, controle a ser implementado
+- **Aceito**: Risco consciente, sem controle adicional planejado
+
+**Responsável pela Manutenção**: DPO (João Felipe M. D. Bernacchio)  
+**Última Atualização**: Novembro/2025
+
+---
+
+## 14. ANEXO METODOLÓGICO - PROCESSO DE AVALIAÇÃO DE RISCO
 
 ### 13.1 Metodologia Aplicada
 
@@ -372,7 +401,7 @@ Este RIPD foi elaborado seguindo a metodologia baseada em:
 
 ---
 
-## 14. CONCLUSÃO
+## 15. CONCLUSÃO
 
 O tratamento de dados pessoais e sensíveis realizado pelo Espaço Mindware Psicologia Ltda. apresenta riscos inerentes à natureza dos serviços de saúde mental. No entanto, com a implementação de controles técnicos robustos, processos organizacionais bem definidos e conformidade com as regulamentações aplicáveis (LGPD, CFP, ANPD), o **risco residual é considerado BAIXO A MÉDIO e ACEITÁVEL**.
 
