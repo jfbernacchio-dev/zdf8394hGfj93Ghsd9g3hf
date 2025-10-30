@@ -180,7 +180,7 @@ Gerado automaticamente pelo Sistema Espaço Mindware
     const { error: consentUploadError } = await supabase.storage
       .from("patient-files")
       .upload(txtPath, new TextEncoder().encode(consentContent), {
-        contentType: "application/octet-stream",
+        contentType: "text/plain",
         upsert: false
       });
 
@@ -192,7 +192,7 @@ Gerado automaticamente pelo Sistema Espaço Mindware
         patient_id: patient.id,
         file_name: txtFileName,
         file_path: txtPath,
-        file_type: "application/octet-stream",
+        file_type: "text/plain",
         category: "consentimentos",
         uploaded_by: patient.user_id
       });
