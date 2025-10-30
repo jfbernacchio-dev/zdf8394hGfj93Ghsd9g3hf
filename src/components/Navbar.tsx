@@ -31,8 +31,8 @@ const Navbar = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <div className="flex items-center">
-            <img src={mindwareLogo} alt="Mindware Clinic" className="h-10 md:h-12 w-auto" />
+          <div className="flex items-center h-full">
+            <img src={mindwareLogo} alt="Mindware Clinic" className="h-12 w-auto" />
           </div>
 
           {/* Desktop Navigation */}
