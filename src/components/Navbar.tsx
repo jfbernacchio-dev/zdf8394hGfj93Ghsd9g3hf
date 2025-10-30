@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Users, Calendar, LogOut, FileText, ChevronDown, Shield, Menu, TrendingUp, User } from 'lucide-react';
+import { Users, Calendar, LogOut, FileText, ChevronDown, Shield, Menu, TrendingUp, User, AlertTriangle } from 'lucide-react';
 import { Button } from './ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from './ui/dropdown-menu';
@@ -145,14 +145,31 @@ const Navbar = () => {
                 </DropdownMenu>
               )}
               {isAdmin && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => navigate('/admin/security')}
-                  title="Configurações de Segurança"
-                >
-                  <Shield className="w-4 h-4" />
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="Segurança"
+                    >
+                      <Shield className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-popover z-50">
+                    <DropdownMenuItem onClick={() => navigate('/admin/security')}>
+                      <Shield className="w-4 h-4 mr-2" />
+                      MFA / 2FA
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/admin/incidents')}>
+                      <AlertTriangle className="w-4 h-4 mr-2" />
+                      Gestão de Incidentes
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/admin/audit-logs')}>
+                      <FileText className="w-4 h-4 mr-2" />
+                      Logs de Auditoria
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
               <Button
                 variant="ghost"

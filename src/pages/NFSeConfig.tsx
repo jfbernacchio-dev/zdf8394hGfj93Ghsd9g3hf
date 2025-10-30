@@ -65,6 +65,33 @@ export default function NFSeConfig() {
 
       if (data) {
         setConfigExists(true);
+        
+        // Descriptografar tokens se existirem
+        let tokenHomologacao = '';
+        let tokenProduction = '';
+        
+        if (data.focusnfe_token_homologacao) {
+          try {
+            const { data: decrypted } = await supabase.functions.invoke('decrypt-credentials', {
+              body: { encryptedData: data.focusnfe_token_homologacao }
+            });
+            tokenHomologacao = decrypted?.decrypted || '';
+          } catch (e) {
+            console.error('Error decrypting token homologacao:', e);
+          }
+        }
+        
+        if (data.focusnfe_token_production) {
+          try {
+            const { data: decrypted } = await supabase.functions.invoke('decrypt-credentials', {
+              body: { encryptedData: data.focusnfe_token_production }
+            });
+            tokenProduction = decrypted?.decrypted || '';
+          } catch (e) {
+            console.error('Error decrypting token production:', e);
+          }
+        }
+        
         // Format CNPJ for display
         const formattedCnpj = data.cnpj 
           ? data.cnpj
@@ -83,8 +110,8 @@ export default function NFSeConfig() {
           iss_rate: data.iss_rate?.toString() || '5.00',
           service_code: data.service_code || '05118',
           service_description: data.service_description || 'Atendimento psicológico individual',
-          focusnfe_token_homologacao: data.focusnfe_token_homologacao || '',
-          focusnfe_token_production: data.focusnfe_token_production || '',
+          focusnfe_token_homologacao: tokenHomologacao,
+          focusnfe_token_production: tokenProduction,
           focusnfe_environment: data.focusnfe_environment || 'homologacao',
         });
       }

@@ -521,6 +521,84 @@ export type Database = {
         }
         Relationships: []
       }
+      security_incidents: {
+        Row: {
+          affected_data_types: string[] | null
+          affected_users_count: number | null
+          anpd_notification_details: string | null
+          anpd_notified_at: string | null
+          contained_at: string | null
+          containment_actions: string | null
+          created_at: string
+          data_sensitivity: string | null
+          description: string
+          detected_at: string
+          evidence_links: string[] | null
+          id: string
+          incident_type: string
+          internal_notes: string | null
+          preventive_measures: string | null
+          reported_by: string
+          requires_anpd_notification: boolean | null
+          resolution_actions: string | null
+          resolved_at: string | null
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          affected_data_types?: string[] | null
+          affected_users_count?: number | null
+          anpd_notification_details?: string | null
+          anpd_notified_at?: string | null
+          contained_at?: string | null
+          containment_actions?: string | null
+          created_at?: string
+          data_sensitivity?: string | null
+          description: string
+          detected_at?: string
+          evidence_links?: string[] | null
+          id?: string
+          incident_type: string
+          internal_notes?: string | null
+          preventive_measures?: string | null
+          reported_by: string
+          requires_anpd_notification?: boolean | null
+          resolution_actions?: string | null
+          resolved_at?: string | null
+          severity: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          affected_data_types?: string[] | null
+          affected_users_count?: number | null
+          anpd_notification_details?: string | null
+          anpd_notified_at?: string | null
+          contained_at?: string | null
+          containment_actions?: string | null
+          created_at?: string
+          data_sensitivity?: string | null
+          description?: string
+          detected_at?: string
+          evidence_links?: string[] | null
+          id?: string
+          incident_type?: string
+          internal_notes?: string | null
+          preventive_measures?: string | null
+          reported_by?: string
+          requires_anpd_notification?: boolean | null
+          resolution_actions?: string | null
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       session_history: {
         Row: {
           changed_at: string
