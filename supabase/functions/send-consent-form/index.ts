@@ -85,7 +85,10 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Create consent form URL
-    const baseUrl = Deno.env.get("SUPABASE_URL")?.replace("supabase.co", "lovable.app") || "https://mindware.lovable.app";
+    const baseUrl = Deno.env.get("FRONTEND_URL");
+    if (!baseUrl) {
+      throw new Error("FRONTEND_URL não configurada");
+    }
     const consentUrl = `${baseUrl}/consent/${token_hash}`;
 
     // Prepare email
