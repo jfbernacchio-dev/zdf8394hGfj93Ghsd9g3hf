@@ -87,7 +87,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       .from('profiles')
       .select('*')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Error fetching profile:', error);
@@ -102,7 +102,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       .select('role')
       .eq('user_id', userId)
       .eq('role', 'admin')
-      .single();
+      .maybeSingle();
 
     setIsAdmin(!!roleData);
   };
@@ -162,6 +162,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(null);
     setSession(null);
     setProfile(null);
+    setIsAdmin(false);
   };
 
   const resetPassword = async (email: string) => {
