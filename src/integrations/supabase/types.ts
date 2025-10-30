@@ -94,6 +94,42 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_tests: {
+        Row: {
+          created_at: string
+          data_integrity_verified: boolean
+          details: string | null
+          id: string
+          restoration_time_seconds: number | null
+          status: string
+          test_date: string
+          test_type: string
+          tested_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          data_integrity_verified?: boolean
+          details?: string | null
+          id?: string
+          restoration_time_seconds?: number | null
+          status: string
+          test_date: string
+          test_type?: string
+          tested_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          data_integrity_verified?: boolean
+          details?: string | null
+          id?: string
+          restoration_time_seconds?: number | null
+          status?: string
+          test_date?: string
+          test_type?: string
+          tested_by?: string | null
+        }
+        Relationships: []
+      }
       invoice_logs: {
         Row: {
           created_at: string
@@ -124,6 +160,39 @@ export type Database = {
           total_sessions?: number
           total_value?: number
           user_id?: string
+        }
+        Relationships: []
+      }
+      log_reviews: {
+        Row: {
+          actions_taken: string | null
+          created_at: string
+          findings: string | null
+          id: string
+          logs_reviewed: number
+          review_period_end: string
+          review_period_start: string
+          reviewed_by: string
+        }
+        Insert: {
+          actions_taken?: string | null
+          created_at?: string
+          findings?: string | null
+          id?: string
+          logs_reviewed?: number
+          review_period_end: string
+          review_period_start: string
+          reviewed_by: string
+        }
+        Update: {
+          actions_taken?: string | null
+          created_at?: string
+          findings?: string | null
+          id?: string
+          logs_reviewed?: number
+          review_period_end?: string
+          review_period_start?: string
+          reviewed_by?: string
         }
         Relationships: []
       }
@@ -437,6 +506,42 @@ export type Database = {
         }
         Relationships: []
       }
+      permission_reviews: {
+        Row: {
+          actions_taken: string | null
+          created_at: string
+          findings: string | null
+          id: string
+          next_review_date: string
+          review_date: string
+          reviewed_by: string
+          roles_modified: number
+          users_reviewed: number
+        }
+        Insert: {
+          actions_taken?: string | null
+          created_at?: string
+          findings?: string | null
+          id?: string
+          next_review_date: string
+          review_date: string
+          reviewed_by: string
+          roles_modified?: number
+          users_reviewed?: number
+        }
+        Update: {
+          actions_taken?: string | null
+          created_at?: string
+          findings?: string | null
+          id?: string
+          next_review_date?: string
+          review_date?: string
+          reviewed_by?: string
+          roles_modified?: number
+          users_reviewed?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           birth_date: string
@@ -683,6 +788,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      system_notifications: {
+        Row: {
+          action_url: string | null
+          category: string
+          created_at: string
+          id: string
+          message: string
+          metadata: Json | null
+          read: boolean
+          severity: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          action_url?: string | null
+          category: string
+          created_at?: string
+          id?: string
+          message: string
+          metadata?: Json | null
+          read?: boolean
+          severity?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          action_url?: string | null
+          category?: string
+          created_at?: string
+          id?: string
+          message?: string
+          metadata?: Json | null
+          read?: boolean
+          severity?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       therapist_notifications: {
         Row: {

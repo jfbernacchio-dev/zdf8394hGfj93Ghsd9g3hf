@@ -28,6 +28,9 @@ import ProfileEdit from "./pages/ProfileEdit";
 import Install from "./pages/Install";
 import AuditLogs from "./pages/AuditLogs";
 import SecurityIncidents from "./pages/SecurityIncidents";
+import LogReview from "./pages/LogReview";
+import PermissionReview from "./pages/PermissionReview";
+import BackupTests from "./pages/BackupTests";
 
 const queryClient = new QueryClient();
 
@@ -96,6 +99,9 @@ const App = () => (
             <Route path="/admin/security" element={<ProtectedRoute><Layout><AdminSettings /></Layout></ProtectedRoute>} />
             <Route path="/admin/audit-logs" element={<ProtectedRoute><Layout><AuditLogs /></Layout></ProtectedRoute>} />
             <Route path="/admin/incidents" element={<ProtectedRoute><Layout><SecurityIncidents /></Layout></ProtectedRoute>} />
+            <Route path="/admin/log-review" element={<ProtectedRoute><Layout><LogReview /></Layout></ProtectedRoute>} />
+            <Route path="/admin/permission-review" element={<ProtectedRoute><Layout><PermissionReview /></Layout></ProtectedRoute>} />
+            <Route path="/admin/backup-tests" element={<ProtectedRoute><Layout><BackupTests /></Layout></ProtectedRoute>} />
             <Route path="/profile/edit" element={<ProtectedRoute><Layout><ProfileEdit /></Layout></ProtectedRoute>} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

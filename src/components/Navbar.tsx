@@ -1,11 +1,12 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Users, Calendar, LogOut, FileText, ChevronDown, Shield, Menu, TrendingUp, User, AlertTriangle } from 'lucide-react';
+import { Users, Calendar, LogOut, FileText, ChevronDown, Shield, Menu, TrendingUp, User, AlertTriangle, Database, ClipboardCheck } from 'lucide-react';
 import { Button } from './ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from './ui/dropdown-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
 import { useState } from 'react';
 import mindwareLogo from '@/assets/mindware-logo.png';
+import { NotificationCenter } from './NotificationCenter';
 
 const Navbar = () => {
   const location = useLocation();
@@ -145,31 +146,48 @@ const Navbar = () => {
                 </DropdownMenu>
               )}
               {isAdmin && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      title="Segurança"
-                    >
-                      <Shield className="w-4 h-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-popover z-50">
-                    <DropdownMenuItem onClick={() => navigate('/admin/security')}>
-                      <Shield className="w-4 h-4 mr-2" />
-                      MFA / 2FA
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/admin/incidents')}>
-                      <AlertTriangle className="w-4 h-4 mr-2" />
-                      Gestão de Incidentes
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/admin/audit-logs')}>
-                      <FileText className="w-4 h-4 mr-2" />
-                      Logs de Auditoria
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <>
+                  <NotificationCenter />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Segurança & Compliance"
+                      >
+                        <Shield className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="bg-popover z-50">
+                      <DropdownMenuItem onClick={() => navigate('/admin/security')}>
+                        <Shield className="w-4 h-4 mr-2" />
+                        MFA / 2FA
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => navigate('/admin/incidents')}>
+                        <AlertTriangle className="w-4 h-4 mr-2" />
+                        Gestão de Incidentes
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate('/admin/audit-logs')}>
+                        <FileText className="w-4 h-4 mr-2" />
+                        Logs de Auditoria
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => navigate('/admin/log-review')}>
+                        <ClipboardCheck className="w-4 h-4 mr-2" />
+                        Revisão de Logs
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate('/admin/permission-review')}>
+                        <Shield className="w-4 h-4 mr-2" />
+                        Revisão de Permissões
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate('/admin/backup-tests')}>
+                        <Database className="w-4 h-4 mr-2" />
+                        Testes de Backup
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </>
               )}
               <Button
                 variant="ghost"
