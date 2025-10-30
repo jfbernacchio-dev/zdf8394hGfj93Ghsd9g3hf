@@ -492,6 +492,7 @@ export type Database = {
           lgpd_consent_date: string | null
           monthly_price: boolean | null
           name: string
+          nfse_issue_to: string | null
           no_nfse: boolean | null
           phone: string | null
           privacy_policy_accepted: boolean | null
@@ -519,6 +520,7 @@ export type Database = {
           lgpd_consent_date?: string | null
           monthly_price?: boolean | null
           name: string
+          nfse_issue_to?: string | null
           no_nfse?: boolean | null
           phone?: string | null
           privacy_policy_accepted?: boolean | null
@@ -546,6 +548,7 @@ export type Database = {
           lgpd_consent_date?: string | null
           monthly_price?: boolean | null
           name?: string
+          nfse_issue_to?: string | null
           no_nfse?: boolean | null
           phone?: string | null
           privacy_policy_accepted?: boolean | null

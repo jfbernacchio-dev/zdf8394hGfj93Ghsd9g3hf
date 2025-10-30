@@ -153,14 +153,38 @@ serve(async (req) => {
       return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
     }).join(', ');
 
-    const serviceDescription = `${config.service_description}
+    // Determine who the invoice should be issued to
+    const issueTo = patient.nfse_issue_to || 'patient';
+    const isMinor = patient.is_minor || false;
+    
+    // Choose CPF and name based on issueTo
+    const invoiceCpf = (issueTo === 'guardian' && isMinor && patient.guardian_cpf) 
+      ? patient.guardian_cpf 
+      : patient.cpf;
+    
+    const invoiceName = (issueTo === 'guardian' && isMinor && patient.guardian_name) 
+      ? patient.guardian_name 
+      : patient.name;
+
+    // Base service description
+    let serviceDescription = `${config.service_description}
 
 Profissional: ${profile.full_name}
 CPF: ${profile.cpf}
 CRP: ${profile.crp}
 
-Paciente: ${patient.name}
-CPF: ${patient.cpf || 'Não informado'}
+Tomador: ${invoiceName}
+CPF: ${invoiceCpf || 'Não informado'}`;
+
+    // Add minor patient info if issuing to guardian
+    if (issueTo === 'guardian' && isMinor) {
+      serviceDescription += `
+
+Atendimento referente ao paciente menor de idade ${patient.name}, CPF ${patient.cpf || 'não informado'}`;
+    }
+
+    // Add session details
+    serviceDescription += `
 
 Sessões realizadas nas datas: ${sessionDates}
 Quantidade de sessões: ${sessions.length}
@@ -169,6 +193,11 @@ Valor unitário por sessão: R$ ${Number(patient.session_value).toFixed(2).repla
 Valor total: R$ ${serviceValue.toFixed(2).replace('.', ',')}
 
 Data de emissão: ${new Date().toLocaleDateString('pt-BR')}`;
+
+    // Validate that we have a CPF for the invoice
+    if (!invoiceCpf) {
+      throw new Error('CPF do tomador é obrigatório para emitir NFSe');
+    }
 
     // Create NFSe record first
     const { data: nfseRecord, error: insertError } = await supabase
@@ -214,8 +243,8 @@ Data de emissão: ${new Date().toLocaleDateString('pt-BR')}`;
         codigo_municipio: '3550308', // São Paulo
       },
       tomador: {
-        cpf: patient.cpf.replace(/\D/g, ''),
-        razao_social: patient.name,
+        cpf: invoiceCpf.replace(/\D/g, ''),
+        razao_social: invoiceName,
         email: patient.email,
         codigo_municipio: '3550308', // Assumindo São Paulo
       },

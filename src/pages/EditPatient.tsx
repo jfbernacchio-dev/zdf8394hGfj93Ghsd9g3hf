@@ -67,6 +67,7 @@ const EditPatient = () => {
         is_minor: data.is_minor || false,
         guardian_name: data.guardian_name || '',
         guardian_cpf: data.guardian_cpf || '',
+        nfse_issue_to: data.nfse_issue_to || 'patient',
       };
       setFormData(patientData);
       setOriginalData(patientData);
@@ -176,6 +177,7 @@ const EditPatient = () => {
       is_minor: formData.is_minor,
       guardian_name: formData.is_minor ? (formData.guardian_name || null) : null,
       guardian_cpf: formData.is_minor ? (formData.guardian_cpf || null) : null,
+      nfse_issue_to: formData.is_minor ? formData.nfse_issue_to : 'patient',
     }).eq('id', id);
 
     if (error) {
@@ -465,6 +467,60 @@ const EditPatient = () => {
                       maxLength={14}
                       placeholder="000.000.000-00"
                     />
+                  </div>
+
+                  {/* NFSe Issue Options */}
+                  <div className="border-t pt-4 space-y-3">
+                    <Label className="text-sm font-semibold">Emissão de Nota Fiscal</Label>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          id="nfsePatient"
+                          name="nfseIssueTo"
+                          value="patient"
+                          checked={formData.nfse_issue_to === 'patient'}
+                          onChange={(e) => setFormData({ ...formData, nfse_issue_to: 'patient' })}
+                          disabled={formData.no_nfse}
+                          className="cursor-pointer disabled:cursor-not-allowed"
+                        />
+                        <Label 
+                          htmlFor="nfsePatient" 
+                          className={cn(
+                            "cursor-pointer text-sm",
+                            formData.no_nfse && "text-muted-foreground"
+                          )}
+                        >
+                          Emitir Nota em Nome do Paciente
+                        </Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          id="nfseGuardian"
+                          name="nfseIssueTo"
+                          value="guardian"
+                          checked={formData.nfse_issue_to === 'guardian'}
+                          onChange={(e) => setFormData({ ...formData, nfse_issue_to: 'guardian' })}
+                          disabled={formData.no_nfse}
+                          className="cursor-pointer disabled:cursor-not-allowed"
+                        />
+                        <Label 
+                          htmlFor="nfseGuardian" 
+                          className={cn(
+                            "cursor-pointer text-sm",
+                            formData.no_nfse && "text-muted-foreground"
+                          )}
+                        >
+                          Emitir Nota em Nome do Responsável
+                        </Label>
+                      </div>
+                    </div>
+                    {formData.no_nfse && (
+                      <p className="text-xs text-muted-foreground italic">
+                        ⓘ Opções desabilitadas porque "Não Emitir NF" está marcado
+                      </p>
+                    )}
                   </div>
 
                   <p className="text-xs text-muted-foreground">
