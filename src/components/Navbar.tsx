@@ -31,11 +31,8 @@ const Navbar = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <div className="flex items-center gap-2 md:gap-3">
-            <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-background flex items-center justify-center">
-              <img src={mindwareLogo} alt="Mindware Clinic" className="w-6 h-6 md:w-8 md:h-8" />
-            </div>
-            <span className="text-base md:text-xl font-semibold text-foreground">Mindware Clinic</span>
+          <div className="flex items-center">
+            <img src={mindwareLogo} alt="Mindware Clinic" className="h-10 md:h-12 w-auto" />
           </div>
 
           {/* Desktop Navigation */}
