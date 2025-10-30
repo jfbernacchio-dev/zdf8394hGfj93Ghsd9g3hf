@@ -1,5 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext';
-import mindwareLogo from '@/assets/mindware-logo.png';
+import mindwareLogo from '@/assets/mindware-logo-new.png';
 
 const MobileHeader = () => {
   const { profile } = useAuth();

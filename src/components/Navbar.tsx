@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from './ui/dropdown-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
 import { useState } from 'react';
-import mindwareLogo from '@/assets/mindware-logo.png';
+import mindwareLogo from '@/assets/mindware-logo-new.png';
 import { NotificationCenter } from './NotificationCenter';
 
 const Navbar = () => {

@@ -276,7 +276,6 @@ const EditPatient = () => {
               <Label htmlFor="name">Nome completo</Label>
               <Input
                 id="name"
-                required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               />
@@ -287,7 +286,6 @@ const EditPatient = () => {
               <Input
                 id="email"
                 type="email"
-                required
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               />
@@ -297,7 +295,6 @@ const EditPatient = () => {
               <Label htmlFor="phone">Telefone</Label>
               <Input
                 id="phone"
-                required
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               />
@@ -375,7 +372,6 @@ const EditPatient = () => {
                   id="session_value"
                   type="number"
                   step="0.01"
-                  required
                   value={formData.session_value}
                   onChange={(e) => setFormData({ ...formData, session_value: e.target.value })}
                 />
@@ -503,7 +499,6 @@ const EditPatient = () => {
                 <Input
                   id="session_time"
                   type="time"
-                  required
                   value={formData.session_time}
                   onChange={(e) => setFormData({ ...formData, session_time: e.target.value })}
                 />

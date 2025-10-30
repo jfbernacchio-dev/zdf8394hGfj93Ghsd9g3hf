@@ -10,7 +10,7 @@ import desk from "@/assets/desk.jpg";
 import concreteWallBanner from "@/assets/concrete-wall-banner.jpg";
 import larissaFull from "@/assets/larissa-full.jpg";
 import joaoFull from "@/assets/joao-full.jpg";
-import mindwareLogo from "@/assets/mindware-logo.png";
+import mindwareLogo from "@/assets/mindware-logo-new.png";
 import { useState, useEffect } from "react";
 
 const Index = () => {
