@@ -142,23 +142,61 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Erro ao atualizar dados do paciente");
     }
 
-    // Generate PDF of signed consent (simplified - in production use proper PDF generation)
+    // Generate consent confirmation document
     const consentType = patient.is_minor ? "TERMO_CONSENTIMENTO_MENORES" : "TERMO_CONSENTIMENTO_ADULTOS";
-    const pdfFileName = `${consentType}_${patient.name}_${Date.now()}.pdf`;
-    const pdfPath = `${patient.id}/${pdfFileName}`;
-
-    // TODO: Generate actual PDF with filled data and signature
-    // For now, we'll just copy the template
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('pt-BR');
+    const timeStr = now.toLocaleTimeString('pt-BR');
     
-    // Add consent document to patient files
-    await supabase.from("patient_files").insert({
-      patient_id: patient.id,
-      file_name: pdfFileName,
-      file_path: pdfPath,
-      file_type: "application/pdf",
-      category: "consentimentos",
-      uploaded_by: patient.user_id
-    });
+    // Create consent document content
+    const consentContent = `
+COMPROVANTE DE ACEITE - ${consentType}
+===========================================
+
+Paciente: ${patient.name}
+${patient.is_minor ? `Responsável: ${patient.guardian_name || 'Não informado'}
+CPF Responsável: ${patient.guardian_cpf || 'Não informado'}` : ''}
+
+Data de Aceite: ${dateStr} às ${timeStr}
+IP: ${ipAddress || 'Não registrado'}
+User Agent: ${userAgent || 'Não registrado'}
+
+TERMOS ACEITOS:
+- Termo de Consentimento para Atendimento Psicológico
+- Política de Privacidade e Proteção de Dados (LGPD)
+
+${patient.is_minor ? 'Documento do Responsável: Anexado' : ''}
+
+Este documento comprova que os termos foram lidos e aceitos eletronicamente.
+
+---
+Gerado automaticamente pelo Sistema Espaço Mindware
+`;
+
+    const txtFileName = `comprovante_aceite_${Date.now()}.txt`;
+    const txtPath = `${patient.id}/${txtFileName}`;
+    
+    // Upload consent document
+    const { error: consentUploadError } = await supabase.storage
+      .from("patient-files")
+      .upload(txtPath, new TextEncoder().encode(consentContent), {
+        contentType: "text/plain",
+        upsert: false
+      });
+
+    if (consentUploadError) {
+      console.error("Error uploading consent document:", consentUploadError);
+    } else {
+      // Add consent document to patient files
+      await supabase.from("patient_files").insert({
+        patient_id: patient.id,
+        file_name: txtFileName,
+        file_path: txtPath,
+        file_type: "text/plain",
+        category: "consentimentos",
+        uploaded_by: patient.user_id
+      });
+    }
 
     return new Response(
       JSON.stringify({ 
