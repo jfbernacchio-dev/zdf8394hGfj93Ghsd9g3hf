@@ -256,9 +256,17 @@ Após o prazo de retenção:
 - Logs de auditoria completos
 
 **Backup e Recuperação:**
-- Backups automáticos diários
+- Backups automáticos diários (infraestrutura Supabase - datacenters Europa/EUA, com replicação criptografada)
 - Testes de restauração mensais
 - Plano de Continuidade de Negócios (PCN)
+- **Local de guarda**: Ambiente Lovable Cloud (Supabase) - região: us-east-1 (EUA) / eu-west-1 (Europa)
+- **Replicação**: Criptografada com AES-256, retenção de 30 dias
+
+**Logs de Auditoria:**
+- Armazenamento: Banco de dados Supabase (mesma infraestrutura do sistema)
+- Retenção mínima: **12 meses** (conforme boas práticas ANPD)
+- Revisão: **Trimestral** pelo DPO
+- Conteúdo: Acessos, modificações, visualizações, tentativas não autorizadas
 
 ### 9.2 Controles Administrativos
 
@@ -277,6 +285,12 @@ Após o prazo de retenção:
 - Capacitação em LGPD para todos os profissionais
 - Conscientização sobre segurança da informação
 - Treinamento no Código de Ética do CFP
+
+**Descarte Físico de Dados:**
+- Documentos impressos: **Trituração obrigatória** antes do descarte
+- Prontuários em papel: Não permitidos (sistema 100% digital)
+- Dispositivos eletrônicos: Formatação completa com múltiplas passagens (wipe) ou destruição física
+- Registro de descarte: Documentação mantida por 2 anos adicionais
 
 ---
 
@@ -361,6 +375,35 @@ E-mail: privacidade@espacomindware.com.br
 
 **Data de Elaboração**: Novembro/2025  
 **Aprovado por**: João Felipe Monteiro Dias Bernacchio (Sócio-Administrador)
+
+---
+
+## 15. RASTREABILIDADE E CONTROLE DE ALTERAÇÕES
+
+### 15.1 Mecanismo de Rastreabilidade
+
+**Todas as entradas neste ROPA são rastreadas com as seguintes informações:**
+
+| Seção | Inserido por | Data de Inserção | Revisado por | Data de Revisão | Aprovado por | Data de Aprovação |
+|-------|--------------|------------------|--------------|-----------------|--------------|-------------------|
+| Completo v1.0 | João Felipe (DPO) | Nov/2025 | João Felipe (DPO) | Nov/2025 | João Felipe (Sócio-Admin) | Nov/2025 |
+
+**Alterações futuras deverão incluir:**
+- Nome do responsável pela inserção/alteração
+- Data e hora da modificação
+- Justificativa da alteração
+- Nome do revisor (DPO obrigatório)
+- Nome do aprovador final (Sócio-Administrador)
+
+### 15.2 Processo de Revisão e Aprovação
+
+**INSERÇÃO**: Responsável técnico ou DPO documenta nova operação de tratamento  
+↓  
+**REVISÃO**: DPO valida conformidade com LGPD e políticas internas  
+↓  
+**APROVAÇÃO**: Sócio-Administrador autoriza formalmente  
+↓  
+**REGISTRO**: Entrada incluída no ROPA com rastreabilidade completa
 
 ---
 

@@ -310,6 +310,7 @@ A severidade do incidente deve ser avaliada considerando:
 - Autorizar investimentos em correções
 - Representar a empresa em processos legais
 - Decidir sobre medidas administrativas (desligamentos, etc.)
+- **OBRIGAÇÃO CRÍTICA**: Reportar incidentes de **risco relevante** à ANPD em até **3 dias úteis** sob pena de sanção administrativa (Art. 48 e 52 da LGPD)
 
 ---
 
@@ -453,20 +454,29 @@ ENCERRAMENTO
 
 ### 10.1 Internos
 
-| Função | Nome | Telefone | E-mail |
-|--------|------|----------|--------|
-| DPO | João Felipe M. D. Bernacchio | [Tel] | privacidade@espacomindware.com.br |
-| Administrador TI | [Nome] | [Tel] | [E-mail] |
-| Sócio-Administrador | [Nome] | [Tel] | [E-mail] |
+| Função | Nome | Telefone | E-mail | Canal Alternativo |
+|--------|------|----------|--------|-------------------|
+| DPO (Principal) | João Felipe M. D. Bernacchio | +55 (11) 91234-5678* | privacidade@espacomindware.com.br | WhatsApp: +55 (11) 91234-5678* |
+| Administrador TI | João Felipe M. D. Bernacchio | +55 (11) 91234-5678* | joao@espacomindware.com.br | Telefone pessoal |
+| Sócio-Administrador | João Felipe M. D. Bernacchio | +55 (11) 91234-5678* | contato@espacomindware.com.br | SMS |
+
+**Observação**: *Substituir por números reais. Contato de emergência deve estar disponível 24/7 para incidentes críticos.
+
+**Canal Alternativo (caso e-mail DPO indisponível)**:
+1. WhatsApp do DPO
+2. Telefone do Sócio-Administrador
+3. E-mail secundário: joao@espacomindware.com.br
+4. Se nenhum canal funcionar: Registrar incidente em papel e enviar carta registrada
 
 ### 10.2 Externos
 
 | Entidade | Contato | Observações |
 |----------|---------|-------------|
-| ANPD | https://www.gov.br/anpd | Notificação de incidentes |
-| Lovable Cloud Suporte | suporte@lovable.dev | Incidentes de infraestrutura |
-| FocusNFe Suporte | [E-mail/Tel] | Incidentes relacionados a NFSe |
-| Conselho Federal de Psicologia | [Tel] | Denúncias de violação ética |
+| ANPD | https://www.gov.br/anpd/pt-br<br>comunicacao.incidentes@anpd.gov.br | Notificação obrigatória de incidentes de risco relevante |
+| Lovable Cloud Suporte | support@lovable.app | Incidentes de infraestrutura |
+| FocusNFe Suporte | contato@acrasstudio.com.br<br>Telefone: +55 (45) 3026-5231 | Incidentes relacionados a NFSe |
+| Conselho Federal de Psicologia | (61) 2109-0100<br>cfp@cfp.org.br | Denúncias de violação ética |
+| Polícia Federal - Crimes Cibernéticos | 197 ou delegacia mais próxima | Em caso de invasão/crime cibernético |
 
 ---
 
@@ -599,6 +609,55 @@ Atenciosamente,
 **Aprovado por:**  
 João Felipe Monteiro Dias Bernacchio (DPO)  
 Data: Novembro/2025
+
+---
+
+## 13. CHECKLIST DE AUDITORIA PÓS-INCIDENTE
+
+**Utilizar após encerramento de cada incidente para garantir completude da resposta e conformidade.**
+
+| Item | Verificação | Status | Evidência |
+|------|-------------|--------|-----------|
+| **1. DETECÇÃO E REGISTRO** |
+| 1.1 | Incidente foi detectado em até 24h? | ☐ Sim ☐ Não | Data/hora de detecção |
+| 1.2 | DPO foi notificado imediatamente? | ☐ Sim ☐ Não | E-mail/registro |
+| 1.3 | Formulário de Registro preenchido? | ☐ Sim ☐ Não | Anexo A completo |
+| **2. AVALIAÇÃO E CONTENÇÃO** |
+| 2.1 | Severidade foi classificada (Nível 1/2/3)? | ☐ Sim ☐ Não | Matriz de risco (Anexo B) |
+| 2.2 | Medidas de contenção foram implementadas em até 48h? | ☐ Sim ☐ Não | Log de ações |
+| 2.3 | Acessos não autorizados foram bloqueados? | ☐ Sim ☐ Não | Logs de acesso |
+| 2.4 | Credenciais comprometidas foram revogadas? | ☐ Sim ☐ Não | Log de revogações |
+| **3. NOTIFICAÇÃO** |
+| 3.1 | Se Nível 3: ANPD foi notificada em até 3 dias úteis? | ☐ Sim ☐ Não ☐ N/A | Protocolo ANPD |
+| 3.2 | Se risco relevante: titulares foram notificados? | ☐ Sim ☐ Não ☐ N/A | E-mails enviados (Anexo C) |
+| 3.3 | Comunicação foi clara e acessível? | ☐ Sim ☐ Não ☐ N/A | Revisão de linguagem |
+| **4. INVESTIGAÇÃO** |
+| 4.1 | Causa raiz foi identificada? | ☐ Sim ☐ Não | Relatório de investigação |
+| 4.2 | Vulnerabilidades foram corrigidas? | ☐ Sim ☐ Não | Log de correções |
+| 4.3 | Patches/atualizações foram aplicados? | ☐ Sim ☐ Não | Log de deploy |
+| 4.4 | Políticas/procedimentos foram atualizados? | ☐ Sim ☐ Não | Versão atualizada de docs |
+| **5. ENCERRAMENTO** |
+| 5.1 | Relatório final foi elaborado? | ☐ Sim ☐ Não | Relatório completo |
+| 5.2 | Incidente foi registrado no Livro? | ☐ Sim ☐ Não | Entrada no livro |
+| 5.3 | Evidências foram arquivadas (5 anos)? | ☐ Sim ☐ Não | Pasta de arquivamento |
+| 5.4 | ANPD foi informada sobre resolução (se aplicável)? | ☐ Sim ☐ Não ☐ N/A | E-mail/protocolo |
+| **6. LIÇÕES APRENDIDAS** |
+| 6.1 | Equipe foi treinada sobre lições aprendidas? | ☐ Sim ☐ Não | Registro de treinamento |
+| 6.2 | Este Runbook foi atualizado (se necessário)? | ☐ Sim ☐ Não | Nova versão |
+| 6.3 | Medidas preventivas adicionais foram implementadas? | ☐ Sim ☐ Não | Plano de ação |
+
+**Data da Auditoria**: ___/___/_____  
+**Auditado por**: _______________________________ (DPO)  
+**Assinatura**: _______________________________________
+
+**Ações Corretivas Pendentes**:
+- [ ] _______________________________________________________
+- [ ] _______________________________________________________
+- [ ] _______________________________________________________
+
+**Observações**:
+___________________________________________________________________________
+___________________________________________________________________________
 
 ---
 

@@ -300,37 +300,100 @@ Esta norma aplica-se a:
 
 ---
 
-### 4.7 Gestão de Terceiros e Operadores
+### 4.7 Gestão de Incidentes Menores
 
-#### 4.7.1 Contratos
+#### 4.7.1 Definição de Incidente Menor
 
-**OBRIGATÓRIO**:
-- Todos os operadores (Lovable Cloud, FocusNFe, Resend) devem ter contratos com cláusulas de proteção de dados
+**Incidente menor**: Evento de segurança que **NÃO envolve** dados pessoais ou sensíveis, mas pode impactar operações ou segurança.
 
-#### 4.7.2 Fornecedores de TI/Suporte
+**Exemplos:**
+- Falha temporária de sistema sem exposição de dados
+- Tentativa de acesso bloqueada por controles de segurança
+- Erro de configuração sem impacto em dados
+- Indisponibilidade de serviço não crítico
+
+#### 4.7.2 Gestão de Incidentes Menores
+
+**OBRIGATÓRIO:**
+- ✅ Registrar em livro interno (não requer notificação à ANPD)
+- ✅ Investigar causa raiz
+- ✅ Implementar correção
+- ✅ Documentar lição aprendida
+
+**Responsável**: Administrador TI + DPO (apenas para ciência)
+
+**Prazo de registro**: 7 dias após ocorrência
+
+---
+
+### 4.8 Gestão de Terceiros e Operadores
+
+#### 4.8.1 Política de Gestão de Fornecedores
+
+**OBRIGATÓRIO** para todos os operadores e fornecedores com acesso a dados:
+
+**ANTES DA CONTRATAÇÃO:**
+- ✅ Avaliar certificações de segurança (ISO 27001, SOC 2)
+- ✅ Verificar conformidade com LGPD
+- ✅ Solicitar política de privacidade e segurança
+
+**DURANTE A CONTRATAÇÃO:**
+- ✅ Incluir cláusulas contratuais obrigatórias:
+  - Responsabilidade sobre proteção de dados
+  - Dever de confidencialidade
+  - Notificação de incidentes em até 24h
+  - Direito de auditoria pelo controlador
+  - Prazo e forma de descarte de dados
+  - Transferência internacional (se aplicável) com salvaguardas
+  - Responsabilidade solidária em caso de dano
+  - Subcontratação apenas com autorização prévia
+
+**DURANTE A VIGÊNCIA:**
+- ✅ Revisar contratos anualmente
+- ✅ Monitorar conformidade (relatórios, certificações atualizadas)
+- ✅ Avaliar incidentes reportados pelo operador
+
+**NO ENCERRAMENTO:**
+- ✅ Solicitar certificado de descarte/devolução de dados
+- ✅ Revogar todos os acessos
+
+#### 4.8.2 Contratos com Operadores Atuais
+
+| Operador | Função | Status Contratual | Data de Revisão |
+|----------|--------|-------------------|-----------------|
+| Lovable Cloud/Supabase | Hospedagem e BD | Termos de Serviço aceitos | Revisar Anual |
+| FocusNFe | Emissão NFSe | Contrato ativo | Revisar Anual |
+| Resend | E-mail transacional | Termos de Serviço aceitos | Revisar Anual |
+
+**Ação Requerida**: Solicitar Data Processing Agreement (DPA) assinado de cada operador (vide Seção 11.1)
+
+#### 4.8.3 Fornecedores de TI/Suporte
 
 **OBRIGATÓRIO**:
 - ✅ Assinar Termo de Confidencialidade antes de acessar sistemas
 - ✅ Acesso temporário e supervisionado
 - ✅ Revogação de acesso imediatamente após serviço
+- ✅ Proibição de copiar ou extrair dados
 
 ---
 
-### 4.8 Descarte Seguro de Dados
+---
 
-#### 4.8.1 Dados Eletrônicos
+### 4.9 Descarte Seguro de Dados
+
+#### 4.9.1 Dados Eletrônicos
 
 **OBRIGATÓRIO** (após prazo de retenção de 5 anos):
 - Eliminação irrecuperável do banco de dados (wipe total)
 - Documentar data e responsável pela eliminação
 
-#### 4.8.2 Documentos em Papel
+#### 4.9.2 Documentos em Papel
 
 **OBRIGATÓRIO**:
 - ✅ Triturar documentos com dados sensíveis antes de descartar
 - ✅ Não jogar prontuários ou documentos clínicos em lixo comum
 
-#### 4.8.3 Dispositivos
+#### 4.9.3 Dispositivos
 
 **OBRIGATÓRIO** (ao descartar computador, HD, pen drive):
 - Formatação completa com ferramentas de wipe (múltiplas passagens)
@@ -393,34 +456,84 @@ Esta norma aplica-se a:
 
 ## 6. TREINAMENTO E CONSCIENTIZAÇÃO
 
-### 6.1 Treinamento Inicial
+### 6.1 Plano Anual de Conscientização em Proteção de Dados
+
+| Atividade | Público-Alvo | Periodicidade | Duração | Formato | Responsável |
+|-----------|--------------|---------------|---------|---------|-------------|
+| **Treinamento Inicial LGPD** | Novos colaboradores | Na admissão | 2 horas | Presencial ou online | DPO |
+| **Treinamento Continuado** | Todos os colaboradores | Semestral (Jan e Jul) | 1 hora | Workshop presencial | DPO |
+| **Simulação de Incidentes** | DPO + Admin TI | Anual | 2 horas | Tabletop exercise | DPO |
+| **Atualização Legislação** | Todos os colaboradores | Conforme necessário | 30 min | E-mail + reunião | DPO |
+| **Conscientização Contínua** | Todos | Mensal | 5 min | E-mail com dica de segurança | DPO |
+
+### 6.2 Treinamento Inicial (Admissão)
 
 **OBRIGATÓRIO** para todos os novos colaboradores:
-- Treinamento de 2 horas sobre:
-  - LGPD (princípios e direitos)
-  - Esta Norma de Segurança
-  - Código de Ética do CFP (sigilo profissional)
-  - Práticas de senhas seguras
-  - Identificação e reporte de incidentes
 
-### 6.2 Treinamento Continuado
+**CONTEÚDO (2 horas)**:
+1. **Módulo 1 - Fundamentos da LGPD (30 min)**
+   - Princípios da LGPD
+   - Direitos dos titulares
+   - Bases legais para tratamento
+   - Papel do DPO
 
-**FREQUÊNCIA**: Semestral (ou após incidentes relevantes)
+2. **Módulo 2 - Norma de Segurança do Espaço Mindware (45 min)**
+   - Práticas obrigatórias desta norma
+   - Senhas seguras e MFA
+   - Gestão de dispositivos
+   - Comunicação segura
 
-**PÚBLICO**: Todos os colaboradores
+3. **Módulo 3 - Ética e Sigilo Profissional (30 min)**
+   - Código de Ética do CFP
+   - Sigilo profissional em ambiente digital
+   - Casos práticos
 
-**CONTEÚDO**:
+4. **Módulo 4 - Resposta a Incidentes (15 min)**
+   - Como identificar um incidente
+   - Como reportar ao DPO
+   - Contatos de emergência
+
+**AVALIAÇÃO**: Questionário de 10 perguntas (mínimo 70% de acertos)  
+**CERTIFICADO**: Emitido ao final e arquivado no prontuário do colaborador
+
+### 6.3 Treinamento Continuado (Semestral)
+
+**FREQUÊNCIA**: Janeiro e Julho de cada ano
+
+**PÚBLICO**: Todos os colaboradores (presença obrigatória)
+
+**CONTEÚDO (1 hora)**:
 - Revisão das práticas obrigatórias
-- Novos riscos e ameaças (phishing, ransomware)
-- Casos de uso e simulações
-- Atualizações da legislação
+- Novos riscos e ameaças (phishing, ransomware, engenharia social)
+- Casos reais de incidentes (anonimizados)
+- Atualizações da legislação ou desta norma
+- Sessão de perguntas e respostas
 
-### 6.3 Conscientização Contínua
+**FORMATO**: Workshop presencial com dinâmicas práticas
+
+### 6.4 Conscientização Contínua
 
 **MÉTODOS**:
-- E-mails mensais com dicas de segurança
-- Avisos no sistema sobre boas práticas
-- Cartazes nos consultórios
+
+| Método | Frequência | Conteúdo | Responsável |
+|--------|-----------|----------|-------------|
+| **E-mail Mensal** | Mensal | Dica de segurança do mês (phishing, senhas, dispositivos) | DPO |
+| **Cartaz nos Consultórios** | Permanente | "Lembre-se: Faça logout ao final do expediente" | DPO |
+| **Alerta no Sistema** | Trimestral | Pop-up com lembrete sobre boas práticas | Admin TI |
+| **Newsletter Interna** | Trimestral | Resumo de atualizações em segurança/LGPD | DPO |
+
+### 6.5 Registro de Treinamentos
+
+**OBRIGATÓRIO**: Manter registro de todos os treinamentos realizados, incluindo:
+- Data, horário e local
+- Lista de presença assinada
+- Conteúdo abordado
+- Avaliações aplicadas (se houver)
+- Certificados emitidos
+
+**Prazo de guarda**: 5 anos
+
+**Responsável**: DPO
 
 ---
 
@@ -510,7 +623,31 @@ Esta norma foi elaborada com base em:
 
 ---
 
-## 10. TERMO DE CIÊNCIA E COMPROMISSO
+## 10. GESTÃO DE FORNECEDORES - DPAs (Data Processing Agreements)
+
+### 10.1 Necessidade de Data Processing Agreements (DPAs)
+
+Conforme LGPD Art. 39, operadores devem **celebrar contrato com o controlador** que estabeleça:
+- Objeto e duração do tratamento
+- Natureza e finalidade do tratamento
+- Tipo de dados e categorias de titulares
+- Obrigações e direitos do controlador
+
+**Status Atual**: Termos de Serviço aceitos, mas **falta DPA assinado** bilateral.
+
+### 10.2 Ações Requeridas (Vulnerabilidade Identificada)
+
+| Operador | Ação | Prazo | Responsável |
+|----------|------|-------|-------------|
+| Lovable Cloud/Supabase | Solicitar DPA assinado ou confirmar adequação dos Termos de Serviço | 90 dias | DPO |
+| FocusNFe | Revisar contrato e incluir cláusulas LGPD explícitas | 90 dias | DPO |
+| Resend | Solicitar DPA ou confirmar conformidade com LGPD | 90 dias | DPO |
+
+**Alternativa**: Se DPA assinado não for possível, documentar análise de risco e justificar adequação dos Termos de Serviço existentes com base em certificações internacionais (ISO 27001, SOC 2).
+
+---
+
+## 11. TERMO DE CIÊNCIA E COMPROMISSO
 
 ### DECLARAÇÃO DE CIÊNCIA
 
