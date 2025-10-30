@@ -14,6 +14,9 @@ const Navbar = () => {
   const { signOut, profile, isAdmin } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // Debug log
+  console.log('Navbar - isAdmin:', isAdmin, 'profile:', profile?.full_name);
+
   const isActive = (path: string) => location.pathname === path;
 
   const handleLogout = async () => {
@@ -39,7 +42,7 @@ const Navbar = () => {
           </div>
 
           {/* Desktop Navigation */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             <div className="flex gap-1">
               <Link
                 to="/dashboard"
@@ -128,7 +131,7 @@ const Navbar = () => {
               </DropdownMenu>
             </div>
             
-            <div className="flex items-center gap-3 ml-4 pl-4 border-l border-border">
+            <div className="flex items-center gap-2 ml-2 pl-2 border-l border-border">
               {profile && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -158,8 +161,9 @@ const Navbar = () => {
                       variant="ghost"
                       size="icon"
                       title="Segurança & Compliance"
+                      className="border-2 border-primary/20"
                     >
-                      <Shield className="w-4 h-4" />
+                      <Shield className="w-4 h-4 text-primary" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="bg-popover z-50">
