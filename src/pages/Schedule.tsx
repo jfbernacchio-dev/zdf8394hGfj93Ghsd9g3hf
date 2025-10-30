@@ -418,6 +418,10 @@ const Schedule = () => {
     };
 
     if (editingSession) {
+      // Check if date or time changed
+      const dateChanged = sessionData.date !== editingSession.date;
+      const timeChanged = sessionData.time !== editingSession.time;
+      
       const { error } = await supabase
         .from('sessions')
         .update(sessionData)
@@ -427,6 +431,23 @@ const Schedule = () => {
         toast({ title: 'Erro ao atualizar sessão', variant: 'destructive' });
         return;
       }
+      
+      // Insert into session_history if date or time changed
+      if (dateChanged || timeChanged) {
+        const oldDay = format(parseISO(editingSession.date), 'EEEE', { locale: ptBR });
+        const newDay = format(parseISO(sessionData.date), 'EEEE', { locale: ptBR });
+        
+        await supabase
+          .from('session_history')
+          .insert({
+            patient_id: sessionData.patient_id,
+            old_day: oldDay,
+            old_time: editingSession.time || editingSession.patients?.session_time || '',
+            new_day: newDay,
+            new_time: sessionData.time || ''
+          });
+      }
+      
       toast({ title: 'Sessão atualizada com sucesso!' });
     } else {
       const { error } = await supabase
@@ -478,6 +499,25 @@ const Schedule = () => {
       if (error) {
         toast({ title: 'Erro ao mover sessão', variant: 'destructive' });
       } else {
+        // Insert into session_history to trigger notification
+        const oldDate = sessions.find(s => s.id === conflictDetails.newSession.id)?.date;
+        const oldTime = sessions.find(s => s.id === conflictDetails.newSession.id)?.time;
+        
+        if (oldDate && oldTime) {
+          const oldDay = format(parseISO(oldDate), 'EEEE', { locale: ptBR });
+          const newDay = format(parseISO(conflictDetails.newSession.date), 'EEEE', { locale: ptBR });
+          
+          await supabase
+            .from('session_history')
+            .insert({
+              patient_id: conflictDetails.newSession.patient_id,
+              old_day: oldDay,
+              old_time: oldTime,
+              new_day: newDay,
+              new_time: conflictDetails.newSession.time
+            });
+        }
+        
         toast({ title: 'Sessão movida com sucesso!' });
         loadData();
       }
@@ -546,6 +586,25 @@ const Schedule = () => {
       if (error) {
         toast({ title: 'Erro ao mover sessão', variant: 'destructive' });
       } else {
+        // Insert into session_history to trigger notification
+        const oldDate = sessions.find(s => s.id === conflictDetails.newSession.id)?.date;
+        const oldTime = sessions.find(s => s.id === conflictDetails.newSession.id)?.time;
+        
+        if (oldDate && oldTime) {
+          const oldDay = format(parseISO(oldDate), 'EEEE', { locale: ptBR });
+          const newDay = format(parseISO(conflictDetails.newSession.date), 'EEEE', { locale: ptBR });
+          
+          await supabase
+            .from('session_history')
+            .insert({
+              patient_id: conflictDetails.newSession.patient_id,
+              old_day: oldDay,
+              old_time: oldTime,
+              new_day: newDay,
+              new_time: conflictDetails.newSession.time
+            });
+        }
+        
         toast({ title: 'Sessão movida com sucesso!' });
         loadData();
       }
@@ -567,6 +626,10 @@ const Schedule = () => {
     };
 
     if (editingSession) {
+      // Check if date or time changed
+      const dateChanged = sessionData.date !== editingSession.date;
+      const timeChanged = sessionData.time !== editingSession.time;
+      
       const { error } = await supabase
         .from('sessions')
         .update(sessionData)
@@ -576,6 +639,23 @@ const Schedule = () => {
         toast({ title: 'Erro ao atualizar sessão', variant: 'destructive' });
         return;
       }
+      
+      // Insert into session_history if date or time changed
+      if (dateChanged || timeChanged) {
+        const oldDay = format(parseISO(editingSession.date), 'EEEE', { locale: ptBR });
+        const newDay = format(parseISO(sessionData.date), 'EEEE', { locale: ptBR });
+        
+        await supabase
+          .from('session_history')
+          .insert({
+            patient_id: sessionData.patient_id,
+            old_day: oldDay,
+            old_time: editingSession.time || editingSession.patients?.session_time || '',
+            new_day: newDay,
+            new_time: sessionData.time || ''
+          });
+      }
+      
       toast({ title: 'Sessão atualizada com sucesso!' });
     } else {
       const { error } = await supabase
@@ -856,6 +936,20 @@ const Schedule = () => {
       console.error('[DRAG] Error:', error);
       toast({ title: 'Erro ao mover sessão', variant: 'destructive' });
     } else {
+      // Insert into session_history to trigger notification
+      const oldDay = format(parseISO(draggedSession.date), 'EEEE', { locale: ptBR });
+      const newDay = format(parseISO(newDate), 'EEEE', { locale: ptBR });
+      
+      await supabase
+        .from('session_history')
+        .insert({
+          patient_id: draggedSession.patient_id,
+          old_day: oldDay,
+          old_time: originalTime,
+          new_day: newDay,
+          new_time: newTime
+        });
+      
       toast({ title: 'Sessão movida com sucesso!' });
       loadData();
     }
