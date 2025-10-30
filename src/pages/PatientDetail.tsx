@@ -20,6 +20,7 @@ import { format, parseISO, startOfMonth, endOfMonth, isFuture } from 'date-fns';
 import { PatientFiles } from '@/components/PatientFiles';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import IssueNFSeDialog from '@/components/IssueNFSeDialog';
+import { ConsentReminder } from '@/components/ConsentReminder';
 
 const PatientDetail = () => {
   const { id } = useParams();
@@ -633,6 +634,11 @@ Assinatura do Profissional`;
             </div>
           </div>
         </Card>
+
+        {/* Card de alerta de termo de consentimento pendente (individual) */}
+        <div className="mb-6">
+          <ConsentReminder patientId={id} />
+        </div>
 
         <Tabs defaultValue="sessions" className="w-full">
           <TabsList className="grid w-full grid-cols-3">

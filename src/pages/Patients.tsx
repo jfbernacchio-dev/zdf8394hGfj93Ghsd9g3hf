@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
+import { ConsentReminder } from '@/components/ConsentReminder';
 
 const Patients = () => {
   const [patients, setPatients] = useState<any[]>([]);
@@ -327,6 +328,11 @@ const Patients = () => {
               Novo Paciente
             </Button>
           </div>
+        </div>
+
+        {/* Card de alerta de termos de consentimento pendentes */}
+        <div className="mb-6">
+          <ConsentReminder />
         </div>
 
         <Card className="p-4 mb-6 shadow-[var(--shadow-card)] border-border">
