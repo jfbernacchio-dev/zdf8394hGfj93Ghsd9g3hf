@@ -51,6 +51,9 @@ const NewPatient = () => {
     lgpdConsent: false,
     noNfse: false,
     monthlyPrice: false,
+    isMinor: false,
+    guardianName: '',
+    guardianCpf: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -87,6 +90,9 @@ const NewPatient = () => {
           lgpd_consent_date: formData.lgpdConsent ? new Date().toISOString() : null,
           no_nfse: formData.noNfse,
           monthly_price: formData.monthlyPrice,
+          is_minor: formData.isMinor,
+          guardian_name: formData.isMinor ? (formData.guardianName || null) : null,
+          guardian_cpf: formData.isMinor ? (formData.guardianCpf || null) : null,
           status: 'active',
         })
         .select()
@@ -370,6 +376,64 @@ const NewPatient = () => {
                   </PopoverContent>
                 </Popover>
               </div>
+            </div>
+
+            {/* Campos para Paciente Menor de Idade */}
+            <div className="border-t pt-6 space-y-4">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="isMinor"
+                  checked={formData.isMinor}
+                  onChange={(e) => setFormData({ ...formData, isMinor: e.target.checked })}
+                  className="cursor-pointer"
+                />
+                <Label htmlFor="isMinor" className="cursor-pointer font-semibold">
+                  Paciente Menor de Idade
+                </Label>
+              </div>
+
+              {formData.isMinor && (
+                <div className="bg-muted/50 p-4 rounded-lg space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Para pacientes menores de idade, o email e dados abaixo devem ser do responsável legal.
+                  </p>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="guardianName">Nome do Responsável Legal *</Label>
+                    <Input
+                      id="guardianName"
+                      required={formData.isMinor}
+                      value={formData.guardianName}
+                      onChange={(e) => setFormData({ ...formData, guardianName: e.target.value })}
+                      placeholder="Nome completo do responsável"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="guardianCpf">CPF do Responsável Legal *</Label>
+                    <Input
+                      id="guardianCpf"
+                      required={formData.isMinor}
+                      value={formData.guardianCpf}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '');
+                        let formatted = value;
+                        if (value.length > 3) formatted = value.slice(0, 3) + '.' + value.slice(3);
+                        if (value.length > 6) formatted = formatted.slice(0, 7) + '.' + value.slice(6);
+                        if (value.length > 9) formatted = formatted.slice(0, 11) + '-' + value.slice(9);
+                        setFormData({ ...formData, guardianCpf: formatted });
+                      }}
+                      maxLength={14}
+                      placeholder="000.000.000-00"
+                    />
+                  </div>
+
+                  <p className="text-xs text-muted-foreground">
+                    ⚠️ O email cadastrado será usado para enviar os termos de consentimento ao responsável.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
