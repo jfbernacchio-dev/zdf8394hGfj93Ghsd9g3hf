@@ -73,10 +73,25 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Paciente não encontrado");
     }
 
+    console.log("Patient data:", { 
+      id: patient.id, 
+      name: patient.name, 
+      is_minor: patient.is_minor 
+    });
+    console.log("Guardian document received:", guardianDocumentFile ? "YES" : "NO");
+    if (guardianDocumentFile) {
+      console.log("Guardian document details:", {
+        name: guardianDocumentFile.name,
+        type: guardianDocumentFile.type,
+        hasData: !!guardianDocumentFile.data
+      });
+    }
+
     let guardianDocPath = null;
 
     // Handle guardian document upload for minors
     if (patient.is_minor && guardianDocumentFile) {
+      console.log("Starting guardian document upload...");
       const fileExt = guardianDocumentFile.name.split('.').pop();
       const fileName = `documento_responsavel_${Date.now()}.${fileExt}`;
       const filePath = `${patient.id}/${fileName}`;
@@ -98,10 +113,11 @@ const handler = async (req: Request): Promise<Response> => {
         throw new Error("Erro ao fazer upload do documento do responsável");
       }
 
+      console.log("Guardian document uploaded successfully to:", filePath);
       guardianDocPath = filePath;
 
       // Add to patient_files table
-      await supabase.from("patient_files").insert({
+      const { error: insertError } = await supabase.from("patient_files").insert({
         patient_id: patient.id,
         file_name: fileName,
         file_path: filePath,
@@ -109,6 +125,14 @@ const handler = async (req: Request): Promise<Response> => {
         category: "documentos",
         uploaded_by: patient.user_id
       });
+
+      if (insertError) {
+        console.error("Error inserting guardian document record:", insertError);
+      } else {
+        console.log("Guardian document record inserted successfully");
+      }
+    } else {
+      console.log("Skipping guardian document upload - is_minor:", patient.is_minor, "has file:", !!guardianDocumentFile);
     }
 
     // Update consent submission
