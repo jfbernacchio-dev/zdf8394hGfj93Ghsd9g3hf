@@ -210,86 +210,84 @@ export default function ConsentForm() {
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Termo de Consentimento */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Termo de Consentimento para Atendimento Psicológico</h3>
+                <h3 className="text-lg font-semibold">
+                  {patient.is_minor 
+                    ? "Termo de Consentimento - Responsável Legal por Menor"
+                    : "Termo de Consentimento - Adultos"}
+                </h3>
                 <div className="max-h-96 overflow-y-auto p-4 border rounded-lg bg-muted/50 text-sm space-y-3">
-                  <p><strong>ESPAÇO MINDWARE</strong></p>
-                  <p>CNPJ: 00.000.000/0000-00</p>
-                  <p className="mt-4">
-                    <strong>TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO PARA ATENDIMENTO PSICOLÓGICO
-                    {patient.is_minor ? " - MENOR DE IDADE" : ""}</strong>
-                  </p>
+                  <p><strong>Espaço Mindware Psicologia Ltda.</strong></p>
+                  <p>CNPJ: 41.709.325/0001-25</p>
+                  <p>Endereço: Rua Ribeiro de Barros, 310 – São Paulo/SP</p>
+                  <p>E-mail: contato@espacomindware.com.br | Telefone: (11) 3871-2894 | WhatsApp: (11) 9.8880-2007</p>
+                  <p>Encarregado(a) de Dados (DPO): João Felipe Monteiro Dias Bernacchio</p>
+                  <p>Contato: privacidade@espacomindware.com.br | Tel.: (11) 9.8456-4364</p>
                   
-                  {patient.is_minor && (
-                    <>
-                      <p><strong>Dados do Paciente (Menor):</strong></p>
-                      <p>Nome: {patient.name}</p>
-                      <p>Data de Nascimento: {patient.birth_date ? new Date(patient.birth_date).toLocaleDateString('pt-BR') : "Não informado"}</p>
-                      
-                      <p className="mt-3"><strong>Dados do Responsável Legal:</strong></p>
-                      <p>Nome: {patient.guardian_name || "Não informado"}</p>
-                      <p>CPF: {patient.guardian_cpf || "Não informado"}</p>
-                    </>
-                  )}
-
                   <p className="mt-4">
-                    <strong>1. OBJETIVO DO ATENDIMENTO</strong>
-                  </p>
-                  <p>
-                    O atendimento psicológico tem como objetivo promover o bem-estar emocional e psicológico 
-                    {patient.is_minor ? " do menor acima identificado" : ""}, através de intervenções baseadas 
-                    em técnicas cientificamente validadas.
-                  </p>
-
-                  <p className="mt-3">
-                    <strong>2. SIGILO PROFISSIONAL</strong>
-                  </p>
-                  <p>
-                    Todas as informações compartilhadas durante as sessões são confidenciais e protegidas 
-                    pelo Código de Ética Profissional do Psicólogo, exceto em situações de risco iminente 
-                    à vida ou integridade física.
+                    <strong>
+                      {patient.is_minor 
+                        ? "TERMO DE CONSENTIMENTO – RESPONSÁVEL LEGAL POR MENOR"
+                        : "TERMO DE CONSENTIMENTO – ADULTOS"}
+                    </strong>
                   </p>
 
-                  <p className="mt-3">
-                    <strong>3. REGISTRO E PRONTUÁRIO</strong>
-                  </p>
-                  <p>
-                    Serão mantidos registros das sessões em prontuário psicológico, seguindo as normas do 
-                    Conselho Federal de Psicologia e da LGPD (Lei Geral de Proteção de Dados).
-                  </p>
-
-                  {patient.is_minor && (
+                  {patient.is_minor ? (
                     <>
                       <p className="mt-3">
-                        <strong>4. AUTORIZAÇÃO DO RESPONSÁVEL</strong>
+                        Na qualidade de responsável legal, autorizo o tratamento dos dados pessoais e sensíveis 
+                        do(a) menor abaixo identificado(a) por Espaço Mindware Psicologia Ltda., conforme a 
+                        Política de Privacidade.
                       </p>
-                      <p>
-                        Como responsável legal, autorizo o atendimento psicológico do menor acima identificado, 
-                        estando ciente de que posso solicitar informações sobre o processo terapêutico, respeitando 
-                        o sigilo profissional.
+                      
+                      <p className="mt-3">
+                        O tratamento destina-se à prestação de serviços psicológicos, registros clínicos, 
+                        obrigações legais e tutela da saúde e do melhor interesse do menor.
+                      </p>
+                      
+                      <p className="mt-3">
+                        Posso solicitar informações, retificação ou exclusão de dados a qualquer momento: 
+                        privacidade@espacomindware.com.br.
+                      </p>
+
+                      <div className="mt-4 p-3 bg-background rounded border">
+                        <p><strong>Nome do(a) menor:</strong> {patient.name}</p>
+                        <p><strong>Data de nascimento:</strong> {patient.birth_date ? new Date(patient.birth_date).toLocaleDateString('pt-BR') : "Não informado"}</p>
+                        <p><strong>Nome do Responsável Legal:</strong> {patient.guardian_name || "Não informado"}</p>
+                        <p><strong>CPF do Responsável:</strong> {patient.guardian_cpf || "Não informado"}</p>
+                      </div>
+
+                      <p className="mt-3 text-xs text-muted-foreground">
+                        Versão 1.1 – Última atualização: 30/10/2025
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="mt-3">
+                        Declaro ter sido informado(a) sobre as práticas de tratamento de dados pessoais 
+                        realizadas por Espaço Mindware Psicologia Ltda., conforme a Política de Privacidade.
+                      </p>
+                      
+                      <p className="mt-3">
+                        Autorizo o tratamento de meus dados pessoais e sensíveis para: execução do atendimento 
+                        psicológico; registro clínico; comunicação e faturamento (NFS-e); cumprimento de obrigações 
+                        legais e éticas; tutela da saúde e segurança.
+                      </p>
+                      
+                      <p className="mt-3">
+                        Posso revogar o consentimento a qualquer momento pelo e-mail privacidade@espacomindware.com.br. 
+                        Mesmo após revogação, poderão ser mantidos dados necessários ao cumprimento de obrigações 
+                        legais/éticas, tutela da saúde ou exercício regular de direitos.
+                      </p>
+                      
+                      <p className="mt-3">
+                        Os dados são armazenados com segurança e acessados apenas por profissionais autorizados.
+                      </p>
+
+                      <p className="mt-3 text-xs text-muted-foreground">
+                        Versão 1.1 – Última atualização: 30/10/2025
                       </p>
                     </>
                   )}
-
-                  <p className="mt-3">
-                    <strong>{patient.is_minor ? "5" : "4"}. CANCELAMENTOS E FALTAS</strong>
-                  </p>
-                  <p>
-                    Cancelamentos devem ser comunicados com antecedência mínima de 24 horas. 
-                    Faltas não justificadas poderão ser cobradas normalmente.
-                  </p>
-
-                  <p className="mt-3">
-                    <strong>{patient.is_minor ? "6" : "5"}. DIREITOS DO PACIENTE</strong>
-                  </p>
-                  <p>
-                    {patient.is_minor ? "O responsável e o " : "O "}paciente tem direito a:
-                  </p>
-                  <ul className="list-disc pl-6">
-                    <li>Receber informações sobre o processo terapêutico</li>
-                    <li>Interromper o atendimento a qualquer momento</li>
-                    <li>Solicitar encaminhamento para outro profissional</li>
-                    <li>Acessar, retificar ou excluir seus dados pessoais</li>
-                  </ul>
                 </div>
 
                 <div className="flex items-center space-x-2">
@@ -307,67 +305,126 @@ export default function ConsentForm() {
               {/* Política de Privacidade */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Política de Privacidade e Proteção de Dados (LGPD)</h3>
-                <div className="max-h-64 overflow-y-auto p-4 border rounded-lg bg-muted/50 text-sm space-y-3">
-                  <p><strong>POLÍTICA DE PRIVACIDADE - ESPAÇO MINDWARE</strong></p>
+                <div className="max-h-96 overflow-y-auto p-4 border rounded-lg bg-muted/50 text-sm space-y-3">
+                  <p><strong>POLÍTICA DE PRIVACIDADE – ESPAÇO MINDWARE PSICOLOGIA LTDA.</strong></p>
                   
                   <p className="mt-3">
-                    <strong>1. COLETA DE DADOS</strong>
+                    <strong>Espaço Mindware Psicologia Ltda.</strong>
+                  </p>
+                  <p>CNPJ: 41.709.325/0001-25</p>
+                  <p>Endereço: Rua Ribeiro de Barros, 310 – São Paulo/SP</p>
+                  <p>E-mail: contato@espacomindware.com.br | Telefone: (11) 3871-2894 | WhatsApp: (11) 9.8880-2007</p>
+                  <p>Encarregado(a) de Dados (DPO): João Felipe Monteiro Dias Bernacchio</p>
+                  <p>Contato: privacidade@espacomindware.com.br | Tel.: (11) 9.8456-4364</p>
+                  
+                  <p className="mt-4">
+                    <strong>1. Finalidade e Âmbito</strong>
                   </p>
                   <p>
-                    Coletamos dados pessoais necessários para a prestação dos serviços de psicologia, 
-                    incluindo: nome, CPF, data de nascimento, contato, histórico clínico e informações 
-                    sobre as sessões.
+                    Esta Política informa como tratamos dados pessoais e sensíveis de pacientes e usuários, 
+                    conforme a LGPD e resoluções aplicáveis do CFP.
                   </p>
 
                   <p className="mt-3">
-                    <strong>2. USO DOS DADOS</strong>
+                    <strong>2. Controlador e Canais</strong>
                   </p>
                   <p>
-                    Os dados são utilizados exclusivamente para:
+                    O controlador é Espaço Mindware Psicologia Ltda. (CNPJ 41.709.325/0001-25). 
+                    Canal oficial: privacidade@espacomindware.com.br.
+                  </p>
+
+                  <p className="mt-3">
+                    <strong>3. Bases Legais e Finalidades</strong>
                   </p>
                   <ul className="list-disc pl-6">
-                    <li>Prestação dos serviços de atendimento psicológico</li>
-                    <li>Emissão de notas fiscais e documentos</li>
-                    <li>Comunicação sobre agendamentos e cancelamentos</li>
-                    <li>Cumprimento de obrigações legais</li>
+                    <li>Execução dos serviços psicológicos (art. 7º, V)</li>
+                    <li>Cumprimento de obrigações legais e éticas (art. 7º, II; CFP)</li>
+                    <li>Tutela da saúde e proteção da vida (art. 11, II, f; art. 7º, VII)</li>
+                    <li>Exercício regular de direitos (art. 7º, VI)</li>
+                    <li>Consentimento do titular quando aplicável (art. 7º, I; art. 11, I)</li>
                   </ul>
 
                   <p className="mt-3">
-                    <strong>3. COMPARTILHAMENTO</strong>
+                    <strong>4. Dados Coletados</strong>
                   </p>
                   <p>
-                    Seus dados não são compartilhados com terceiros, exceto quando exigido por lei 
-                    ou com seu consentimento expresso.
+                    Identificação, informações clínicas, histórico terapêutico, registros de sessões e dados 
+                    financeiros para emissão de NFS-e.
                   </p>
 
                   <p className="mt-3">
-                    <strong>4. SEGURANÇA</strong>
+                    <strong>5. Operadores e Suboperadores</strong>
                   </p>
                   <p>
-                    Utilizamos medidas técnicas e organizacionais para proteger seus dados contra 
-                    acesso não autorizado, perda ou alteração.
-                  </p>
-
-                  <p className="mt-3">
-                    <strong>5. DIREITOS DO TITULAR</strong>
-                  </p>
-                  <p>
-                    Você tem direito a:
+                    Utilizamos operadores para viabilizar a operação do serviço:
                   </p>
                   <ul className="list-disc pl-6">
-                    <li>Confirmar a existência de tratamento</li>
-                    <li>Acessar seus dados</li>
-                    <li>Corrigir dados incompletos ou incorretos</li>
-                    <li>Solicitar a exclusão de dados (respeitando prazos legais)</li>
-                    <li>Revogar o consentimento</li>
+                    <li>Lovable Cloud / Supabase – hospedagem da aplicação e banco de dados (possível processamento internacional);</li>
+                    <li>FocusNFe – emissão de Notas Fiscais de Serviço eletrônicas (NFS-e);</li>
+                    <li>Resend – envio de e-mails transacionais.</li>
                   </ul>
+                  <p className="mt-2">
+                    Todos atuam sob contratos/termos compatíveis com a LGPD, com cláusulas de proteção de dados 
+                    (DPAs/termos equivalentes) e controles de segurança.
+                  </p>
 
                   <p className="mt-3">
-                    <strong>6. RETENÇÃO DE DADOS</strong>
+                    <strong>6. Registro de Operações (ROPA) e RIPD</strong>
                   </p>
                   <p>
-                    Os dados são mantidos pelo prazo mínimo exigido pelo Conselho Federal de Psicologia 
-                    (5 anos após o encerramento do atendimento) e pela legislação aplicável.
+                    Mantemos ROPA (art. 37 da LGPD) e Relatório de Impacto (RIPD) para fluxos de alto risco 
+                    (dados sensíveis/menores).
+                  </p>
+
+                  <p className="mt-3">
+                    <strong>7. Armazenamento, Segurança e Transferência Internacional</strong>
+                  </p>
+                  <p>
+                    Autenticação multifator, criptografia e controle de acesso. Hospedagem em Lovable/Supabase. 
+                    O uso de Lovable/Supabase e Resend pode implicar transferência internacional (EUA/Europa). 
+                    Aplicamos salvaguardas contratuais adequadas (art. 33, VIII), criptografia e certificações 
+                    de segurança (ISO 27001/SOC 2).
+                  </p>
+
+                  <p className="mt-3">
+                    <strong>8. Retenção e Descarte</strong>
+                  </p>
+                  <p>
+                    Prontuários e dados clínicos: mínimo de 5 anos após término do atendimento (Resolução CFP 
+                    nº 001/2009). Após o prazo, eliminação segura ou anonimização, com registro de descarte.
+                  </p>
+
+                  <p className="mt-3">
+                    <strong>9. Telepsicologia (TDICs)</strong>
+                  </p>
+                  <p>
+                    Atendimentos online conforme a Resolução CFP nº 09/2024.
+                  </p>
+
+                  <p className="mt-3">
+                    <strong>10. Direitos do Titular</strong>
+                  </p>
+                  <p>
+                    Solicitações para confirmação, acesso, correção, anonimização, portabilidade e eliminação: 
+                    privacidade@espacomindware.com.br.
+                  </p>
+
+                  <p className="mt-3">
+                    <strong>11. Cookies e Rastreamento</strong>
+                  </p>
+                  <p>
+                    Não utilizamos cookies de rastreamento ou anúncios no site institucional.
+                  </p>
+
+                  <p className="mt-3">
+                    <strong>12. Treinamento e Confidencialidade</strong>
+                  </p>
+                  <p>
+                    Profissionais vinculados assinam Termo de Confidencialidade e participam de treinamento periódico.
+                  </p>
+
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    Versão 1.1 – Última atualização: 30/10/2025
                   </p>
                 </div>
 
