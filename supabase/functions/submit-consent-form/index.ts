@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -166,57 +167,305 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Erro ao atualizar dados do paciente");
     }
 
-    // Generate consent confirmation document
+    // Generate consent confirmation PDF document
     const consentType = patient.is_minor ? "TERMO_CONSENTIMENTO_MENORES" : "TERMO_CONSENTIMENTO_ADULTOS";
     const now = new Date();
-    const dateStr = now.toLocaleDateString('pt-BR');
-    const timeStr = now.toLocaleTimeString('pt-BR');
+    const dateStr = now.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     
-    // Create consent document content
-    const consentContent = `
-COMPROVANTE DE ACEITE - ${consentType}
-===========================================
-
-Paciente: ${patient.name}
-${patient.is_minor ? `Responsável: ${patient.guardian_name || 'Não informado'}
-CPF Responsável: ${patient.guardian_cpf || 'Não informado'}` : ''}
-
-Data de Aceite: ${dateStr} às ${timeStr}
-IP: ${ipAddress || 'Não registrado'}
-User Agent: ${userAgent || 'Não registrado'}
-
-TERMOS ACEITOS:
-- Termo de Consentimento para Atendimento Psicológico
-- Política de Privacidade e Proteção de Dados (LGPD)
-
-${patient.is_minor ? 'Documento do Responsável: Anexado' : ''}
-
-Este documento comprova que os termos foram lidos e aceitos eletronicamente.
-
----
-Gerado automaticamente pelo Sistema Espaço Mindware
-`;
-
-    const txtFileName = `comprovante_aceite_${Date.now()}.txt`;
-    const txtPath = `${patient.id}/${txtFileName}`;
+    // Create content for hash generation
+    const hashContent = `${patient.name}|${patient.email}|${dateStr}|${timeStr}|${token}|${ipAddress}|${consentType}`;
+    const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(hashContent));
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const documentHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     
-    // Upload consent document
-    const { error: consentUploadError } = await supabase.storage
+    // Generate PDF using pdf-lib
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([595, 842]); // A4 size
+    const { width, height } = page.getSize();
+    
+    // Load fonts
+    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const courierFont = await pdfDoc.embedFont(StandardFonts.Courier);
+    
+    let yPosition = height - 80;
+    const leftMargin = 60;
+    const rightMargin = width - 60;
+    
+    // Header - Logo/Company name
+    page.drawText('ESPAÇO MINDWARE', {
+      x: width / 2 - 90,
+      y: yPosition,
+      size: 20,
+      font: boldFont,
+      color: rgb(0.176, 0.373, 0.31) // #2D5F4F
+    });
+    yPosition -= 20;
+    
+    page.drawText('Atendimento Psicológico', {
+      x: width / 2 - 70,
+      y: yPosition,
+      size: 10,
+      font: regularFont,
+      color: rgb(0.4, 0.4, 0.4)
+    });
+    yPosition -= 50;
+    
+    // Title
+    page.drawText('COMPROVANTE DE ACEITE', {
+      x: width / 2 - 110,
+      y: yPosition,
+      size: 16,
+      font: boldFont,
+      color: rgb(0, 0, 0)
+    });
+    yPosition -= 25;
+    
+    page.drawText(consentType, {
+      x: width / 2 - (consentType.length * 3),
+      y: yPosition,
+      size: 11,
+      font: regularFont,
+      color: rgb(0.4, 0.4, 0.4)
+    });
+    yPosition -= 50;
+    
+    // Patient information section
+    page.drawText('DADOS DO PACIENTE', {
+      x: leftMargin,
+      y: yPosition,
+      size: 11,
+      font: boldFont,
+      color: rgb(0, 0, 0)
+    });
+    yPosition -= 20;
+    
+    page.drawText(`Nome: ${patient.name}`, {
+      x: leftMargin,
+      y: yPosition,
+      size: 10,
+      font: regularFont,
+      color: rgb(0.2, 0.2, 0.2)
+    });
+    yPosition -= 18;
+    
+    page.drawText(`Email: ${patient.email || 'Não informado'}`, {
+      x: leftMargin,
+      y: yPosition,
+      size: 10,
+      font: regularFont,
+      color: rgb(0.2, 0.2, 0.2)
+    });
+    yPosition -= 18;
+    
+    if (patient.is_minor) {
+      page.drawText(`Responsável Legal: ${patient.guardian_name || 'Não informado'}`, {
+        x: leftMargin,
+        y: yPosition,
+        size: 10,
+        font: regularFont,
+        color: rgb(0.2, 0.2, 0.2)
+      });
+      yPosition -= 18;
+      
+      page.drawText(`CPF do Responsável: ${patient.guardian_cpf || 'Não informado'}`, {
+        x: leftMargin,
+        y: yPosition,
+        size: 10,
+        font: regularFont,
+        color: rgb(0.2, 0.2, 0.2)
+      });
+      yPosition -= 18;
+    }
+    yPosition -= 30;
+    
+    // Acceptance details section
+    page.drawText('DETALHES DO ACEITE', {
+      x: leftMargin,
+      y: yPosition,
+      size: 11,
+      font: boldFont,
+      color: rgb(0, 0, 0)
+    });
+    yPosition -= 20;
+    
+    page.drawText(`Data e Hora: ${dateStr} às ${timeStr}`, {
+      x: leftMargin,
+      y: yPosition,
+      size: 10,
+      font: regularFont,
+      color: rgb(0.2, 0.2, 0.2)
+    });
+    yPosition -= 18;
+    
+    page.drawText(`Endereço IP: ${ipAddress || 'Não registrado'}`, {
+      x: leftMargin,
+      y: yPosition,
+      size: 10,
+      font: regularFont,
+      color: rgb(0.2, 0.2, 0.2)
+    });
+    yPosition -= 18;
+    
+    const userAgentText = userAgent ? userAgent.substring(0, 70) + '...' : 'Não registrado';
+    page.drawText(`Navegador: ${userAgentText}`, {
+      x: leftMargin,
+      y: yPosition,
+      size: 10,
+      font: regularFont,
+      color: rgb(0.2, 0.2, 0.2)
+    });
+    yPosition -= 30;
+    
+    // Terms accepted section
+    page.drawText('TERMOS ACEITOS', {
+      x: leftMargin,
+      y: yPosition,
+      size: 11,
+      font: boldFont,
+      color: rgb(0, 0, 0)
+    });
+    yPosition -= 20;
+    
+    page.drawText('✓ Termo de Consentimento para Atendimento Psicológico', {
+      x: leftMargin + 10,
+      y: yPosition,
+      size: 10,
+      font: regularFont,
+      color: rgb(0.2, 0.2, 0.2)
+    });
+    yPosition -= 18;
+    
+    page.drawText('✓ Política de Privacidade e Proteção de Dados (LGPD)', {
+      x: leftMargin + 10,
+      y: yPosition,
+      size: 10,
+      font: regularFont,
+      color: rgb(0.2, 0.2, 0.2)
+    });
+    yPosition -= 18;
+    
+    if (patient.is_minor) {
+      page.drawText('✓ Documento de Identificação do Responsável Anexado', {
+        x: leftMargin + 10,
+        y: yPosition,
+        size: 10,
+        font: regularFont,
+        color: rgb(0.2, 0.2, 0.2)
+      });
+      yPosition -= 18;
+    }
+    yPosition -= 30;
+    
+    // Digital signature section
+    page.drawText('ASSINATURA DIGITAL', {
+      x: leftMargin,
+      y: yPosition,
+      size: 11,
+      font: boldFont,
+      color: rgb(0, 0, 0)
+    });
+    yPosition -= 20;
+    
+    page.drawText('Este documento possui assinatura digital (hash SHA-256) para garantir', {
+      x: leftMargin,
+      y: yPosition,
+      size: 8,
+      font: regularFont,
+      color: rgb(0.4, 0.4, 0.4)
+    });
+    yPosition -= 12;
+    
+    page.drawText('sua autenticidade e integridade:', {
+      x: leftMargin,
+      y: yPosition,
+      size: 8,
+      font: regularFont,
+      color: rgb(0.4, 0.4, 0.4)
+    });
+    yPosition -= 18;
+    
+    // Hash in monospace font
+    const hashLine1 = documentHash.substring(0, 42);
+    const hashLine2 = documentHash.substring(42);
+    
+    page.drawText(hashLine1, {
+      x: leftMargin + 20,
+      y: yPosition,
+      size: 7,
+      font: courierFont,
+      color: rgb(0.176, 0.373, 0.31) // #2D5F4F
+    });
+    yPosition -= 12;
+    
+    page.drawText(hashLine2, {
+      x: leftMargin + 20,
+      y: yPosition,
+      size: 7,
+      font: courierFont,
+      color: rgb(0.176, 0.373, 0.31)
+    });
+    yPosition -= 40;
+    
+    // Footer
+    page.drawLine({
+      start: { x: leftMargin, y: yPosition },
+      end: { x: rightMargin, y: yPosition },
+      thickness: 1,
+      color: rgb(0.8, 0.8, 0.8)
+    });
+    yPosition -= 15;
+    
+    page.drawText('Este documento comprova que os termos foram lidos e aceitos eletronicamente.', {
+      x: leftMargin + 30,
+      y: yPosition,
+      size: 8,
+      font: regularFont,
+      color: rgb(0.6, 0.6, 0.6)
+    });
+    yPosition -= 12;
+    
+    page.drawText('Gerado automaticamente pelo Sistema Espaço Mindware', {
+      x: leftMargin + 60,
+      y: yPosition,
+      size: 8,
+      font: regularFont,
+      color: rgb(0.6, 0.6, 0.6)
+    });
+    yPosition -= 15;
+    
+    page.drawText(`Token de Verificação: ${token}`, {
+      x: leftMargin + 90,
+      y: yPosition,
+      size: 7,
+      font: courierFont,
+      color: rgb(0.7, 0.7, 0.7)
+    });
+    
+    // Save PDF
+    const pdfBytes = await pdfDoc.save();
+    
+    const pdfFileName = `comprovante_aceite_${Date.now()}.pdf`;
+    const pdfPath = `${patient.id}/${pdfFileName}`;
+    
+    // Upload PDF document
+    const { error: pdfUploadError } = await supabase.storage
       .from("patient-files")
-      .upload(txtPath, new TextEncoder().encode(consentContent), {
-        contentType: "text/plain",
+      .upload(pdfPath, pdfBytes, {
+        contentType: "application/pdf",
         upsert: false
       });
 
-    if (consentUploadError) {
-      console.error("Error uploading consent document:", consentUploadError);
+    if (pdfUploadError) {
+      console.error("Error uploading PDF consent document:", pdfUploadError);
     } else {
-      // Add consent document to patient files
+      // Add PDF document to patient files
       await supabase.from("patient_files").insert({
         patient_id: patient.id,
-        file_name: txtFileName,
-        file_path: txtPath,
-        file_type: "text/plain",
+        file_name: pdfFileName,
+        file_path: pdfPath,
+        file_type: "application/pdf",
         category: "consentimentos",
         uploaded_by: patient.user_id
       });

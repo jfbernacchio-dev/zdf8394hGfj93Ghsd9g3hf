@@ -43,7 +43,6 @@ export const PatientFiles = ({ patientId }: PatientFilesProps) => {
   }, [patientId]);
 
   const loadFiles = async () => {
-    console.log('Loading files for patient:', patientId);
     const { data, error } = await supabase
       .from('patient_files')
       .select('*')
@@ -55,7 +54,6 @@ export const PatientFiles = ({ patientId }: PatientFilesProps) => {
       return;
     }
 
-    console.log('Files loaded:', data);
     setFiles(data || []);
   };
 
