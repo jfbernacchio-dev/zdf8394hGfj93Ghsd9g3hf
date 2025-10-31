@@ -78,8 +78,9 @@ const App = () => (
             {/* Landing Page Pública */}
             <Route path="/" element={<Index />} />
             
-            {/* Formulário Público de Consentimento */}
+            {/* Formulário Público de Consentimento - DEVE estar antes das rotas protegidas */}
             <Route path="/consent/:token" element={<ConsentForm />} />
+            <Route path="/consent-form/:token" element={<ConsentForm />} />
             
             {/* Sistema de Gestão */}
             <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
