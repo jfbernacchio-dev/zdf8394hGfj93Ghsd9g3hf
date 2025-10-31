@@ -16,6 +16,8 @@ interface PatientFilesProps {
 }
 
 const FILE_CATEGORIES = [
+  'Consentimentos',
+  'Documentos',
   'Anamnese',
   'Encaminhamento Médico',
   'Laudo Psicológico',
@@ -212,7 +214,7 @@ export const PatientFiles = ({ patientId }: PatientFilesProps) => {
 
   const filesByCategory = FILE_CATEGORIES.map(category => ({
     category,
-    files: files.filter(f => f.category === category)
+    files: files.filter(f => f.category.toLowerCase() === category.toLowerCase())
   })).filter(group => group.files.length > 0);
 
   return (
