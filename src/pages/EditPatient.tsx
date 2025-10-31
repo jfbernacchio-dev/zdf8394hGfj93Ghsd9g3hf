@@ -65,6 +65,7 @@ const EditPatient = () => {
         guardian_name: data.guardian_name || '',
         guardian_cpf: data.guardian_cpf || '',
         nfse_issue_to: data.nfse_issue_to || 'patient',
+        include_minor_text: data.include_minor_text || false,
       };
       setFormData(patientData);
       setOriginalData(patientData);
@@ -226,6 +227,7 @@ const EditPatient = () => {
       guardian_name: formData.is_minor ? (formData.guardian_name || null) : null,
       guardian_cpf: formData.is_minor ? (formData.guardian_cpf || null) : null,
       nfse_issue_to: formData.is_minor ? formData.nfse_issue_to : 'patient',
+      include_minor_text: formData.is_minor && formData.nfse_issue_to === 'guardian' ? formData.include_minor_text : false,
     }).eq('id', id);
 
     if (error) {
@@ -528,6 +530,28 @@ const EditPatient = () => {
                           Emitir Nota em Nome do Responsável
                         </Label>
                       </div>
+
+                      {/* Conditional checkbox for minor text */}
+                      {formData.nfse_issue_to === 'guardian' && (
+                        <div className="ml-6 mt-2 p-3 bg-muted/30 rounded-md">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              id="includeMinorText"
+                              checked={formData.include_minor_text}
+                              onChange={(e) => setFormData({ ...formData, include_minor_text: e.target.checked })}
+                              disabled={formData.no_nfse}
+                              className="cursor-pointer disabled:cursor-not-allowed"
+                            />
+                            <Label htmlFor="includeMinorText" className="cursor-pointer text-sm">
+                              Adicionar texto sobre atendimento de menor de idade
+                            </Label>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1 ml-6">
+                            Se marcado, adiciona na NFSe: "referente ao atendimento do menor de idade [nome do paciente]"
+                          </p>
+                        </div>
+                      )}
                     </div>
                     {formData.no_nfse && (
                       <p className="text-xs text-muted-foreground italic">

@@ -491,6 +491,7 @@ export type Database = {
           guardian_cpf: string | null
           guardian_name: string | null
           id: string
+          include_minor_text: boolean | null
           is_minor: boolean | null
           lgpd_consent_date: string | null
           monthly_price: boolean | null
@@ -519,6 +520,7 @@ export type Database = {
           guardian_cpf?: string | null
           guardian_name?: string | null
           id?: string
+          include_minor_text?: boolean | null
           is_minor?: boolean | null
           lgpd_consent_date?: string | null
           monthly_price?: boolean | null
@@ -547,6 +549,7 @@ export type Database = {
           guardian_cpf?: string | null
           guardian_name?: string | null
           id?: string
+          include_minor_text?: boolean | null
           is_minor?: boolean | null
           lgpd_consent_date?: string | null
           monthly_price?: boolean | null

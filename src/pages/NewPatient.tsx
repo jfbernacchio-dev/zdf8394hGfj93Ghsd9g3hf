@@ -55,6 +55,7 @@ const NewPatient = () => {
     guardianName: '',
     guardianCpf: '',
     nfseIssueTo: 'patient' as 'patient' | 'guardian',
+    includeMinorText: false,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -95,6 +96,7 @@ const NewPatient = () => {
           guardian_name: formData.isMinor ? (formData.guardianName || null) : null,
           guardian_cpf: formData.isMinor ? (formData.guardianCpf || null) : null,
           nfse_issue_to: formData.isMinor ? formData.nfseIssueTo : 'patient',
+          include_minor_text: formData.isMinor && formData.nfseIssueTo === 'guardian' ? formData.includeMinorText : false,
           status: 'active',
         })
         .select()
@@ -465,7 +467,7 @@ const NewPatient = () => {
                           checked={formData.nfseIssueTo === 'guardian'}
                           onChange={(e) => setFormData({ ...formData, nfseIssueTo: 'guardian' })}
                           disabled={formData.noNfse}
-                          className="cursor-pointer disabled:cursor-not-allowed"
+                           className="cursor-pointer disabled:cursor-not-allowed"
                         />
                         <Label 
                           htmlFor="nfseGuardian" 
@@ -477,6 +479,28 @@ const NewPatient = () => {
                           Emitir Nota em Nome do Responsável
                         </Label>
                       </div>
+
+                      {/* Conditional checkbox for minor text */}
+                      {formData.nfseIssueTo === 'guardian' && (
+                        <div className="ml-6 mt-2 p-3 bg-muted/30 rounded-md">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              id="includeMinorText"
+                              checked={formData.includeMinorText}
+                              onChange={(e) => setFormData({ ...formData, includeMinorText: e.target.checked })}
+                              disabled={formData.noNfse}
+                              className="cursor-pointer disabled:cursor-not-allowed"
+                            />
+                            <Label htmlFor="includeMinorText" className="cursor-pointer text-sm">
+                              Adicionar texto sobre atendimento de menor de idade
+                            </Label>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1 ml-6">
+                            Se marcado, adiciona na NFSe: "referente ao atendimento do menor de idade [nome do paciente]"
+                          </p>
+                        </div>
+                      )}
                     </div>
                     {formData.noNfse && (
                       <p className="text-xs text-muted-foreground italic">

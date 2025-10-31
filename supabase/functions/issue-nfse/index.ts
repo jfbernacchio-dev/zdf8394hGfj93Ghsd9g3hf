@@ -176,8 +176,8 @@ CRP: ${profile.crp}
 Tomador: ${invoiceName}
 CPF: ${invoiceCpf || 'Não informado'}`;
 
-    // Add minor patient info if issuing to guardian
-    if (issueTo === 'guardian' && isMinor) {
+    // Add minor patient info only if flag is enabled
+    if (issueTo === 'guardian' && isMinor && patient.include_minor_text) {
       serviceDescription += `
 
 Atendimento referente ao paciente menor de idade ${patient.name}, CPF ${patient.cpf || 'não informado'}`;
