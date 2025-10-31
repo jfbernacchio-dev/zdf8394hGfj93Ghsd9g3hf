@@ -328,7 +328,7 @@ const handler = async (req: Request): Promise<Response> => {
     });
     yPosition -= 20;
     
-    page.drawText('✓ Termo de Consentimento para Atendimento Psicológico', {
+    page.drawText('[X] Termo de Consentimento para Atendimento Psicologico', {
       x: leftMargin + 10,
       y: yPosition,
       size: 10,
@@ -337,7 +337,7 @@ const handler = async (req: Request): Promise<Response> => {
     });
     yPosition -= 18;
     
-    page.drawText('✓ Política de Privacidade e Proteção de Dados (LGPD)', {
+    page.drawText('[X] Politica de Privacidade e Protecao de Dados (LGPD)', {
       x: leftMargin + 10,
       y: yPosition,
       size: 10,
@@ -347,7 +347,7 @@ const handler = async (req: Request): Promise<Response> => {
     yPosition -= 18;
     
     if (patient.is_minor) {
-      page.drawText('✓ Documento de Identificação do Responsável Anexado', {
+      page.drawText('[X] Documento de Identificacao do Responsavel Anexado', {
         x: leftMargin + 10,
         y: yPosition,
         size: 10,
