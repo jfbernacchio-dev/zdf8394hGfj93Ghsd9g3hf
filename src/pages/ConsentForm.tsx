@@ -65,9 +65,18 @@ export default function ConsentForm() {
     const file = e.target.files?.[0];
     if (file) {
       // Validate file type
-      const validTypes = ["image/jpeg", "image/png", "image/jpg", "application/pdf"];
+      const validTypes = [
+        "image/jpeg", 
+        "image/png", 
+        "image/jpg", 
+        "image/webp",
+        "image/heic",
+        "image/heif",
+        "image/gif",
+        "application/pdf"
+      ];
       if (!validTypes.includes(file.type)) {
-        toast.error("Apenas arquivos JPG, PNG ou PDF são permitidos");
+        toast.error("Apenas arquivos de imagem (JPG, PNG, WEBP, HEIC, GIF) ou PDF são permitidos");
         return;
       }
 
@@ -381,14 +390,14 @@ export default function ConsentForm() {
                     Documento do Responsável *
                   </Label>
                   <p className="text-sm text-muted-foreground">
-                    Anexe uma cópia do seu RG ou CNH (formatos aceitos: JPG, PNG ou PDF - máx. 5MB)
+                    Anexe uma cópia do seu RG ou CNH (formatos aceitos: JPG, PNG, WEBP, HEIC, GIF ou PDF - máx. 5MB)
                   </p>
                   
                   <div className="flex items-center gap-4">
                     <Input
                       id="document"
                       type="file"
-                      accept="image/jpeg,image/png,image/jpg,application/pdf"
+                      accept="image/jpeg,image/png,image/jpg,image/webp,image/heic,image/heif,image/gif,application/pdf"
                       onChange={handleFileChange}
                       className="flex-1"
                     />
