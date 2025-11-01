@@ -62,6 +62,27 @@ const PatientDetail = () => {
 
   useEffect(() => {
     loadData();
+    
+    // Set up realtime subscription for sessions updates
+    const channel = supabase
+      .channel('patient-sessions-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'sessions',
+          filter: `patient_id=eq.${id}`
+        },
+        () => {
+          loadData(); // Reload data when sessions change
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [id, user]);
 
   useEffect(() => {
@@ -759,7 +780,14 @@ Assinatura do Profissional`;
                 <Card key={session.id} className="p-4">
                   <div className="flex justify-between items-center">
                     <div className="flex-1">
-                      <p className="font-semibold">{format(parseISO(session.date), 'dd/MM/yyyy')}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold">{format(parseISO(session.date), 'dd/MM/yyyy')}</p>
+                        {!session.show_in_schedule && (
+                          <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded">
+                            Oculta da agenda
+                          </span>
+                        )}
+                      </div>
                       <p className={`text-sm ${
                         session.status === 'attended' ? 'text-green-600 dark:text-green-400' :
                         session.status === 'missed' ? 'text-red-600 dark:text-red-400' :
