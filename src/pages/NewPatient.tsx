@@ -167,7 +167,7 @@ const NewPatient = () => {
           
           if (conflict) {
             hasBreakConflict = true;
-            conflictDetails = `Conflito detectado em ${format(new Date(newSession.date), 'dd/MM/yyyy', { locale: ptBR })} às ${sessionTime}`;
+            conflictDetails = `Conflito detectado em ${format(new Date(newSession.date + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR })} às ${sessionTime}`;
             break;
           }
         }
