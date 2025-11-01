@@ -6,25 +6,26 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 140 10% 42%;
-    --card: 0 0% 100%;
-    --card-foreground: 140 10% 42%;
+    /* Cores do Wix CSS - convertidas para HSL */
+    --background: 0 0% 100%; /* #FFFFFF */
+    --foreground: 145 11% 42%; /* #6A7567 */
+    --card: 0 0% 100%; /* #FFFFFF */
+    --card-foreground: 145 11% 42%;
     --popover: 0 0% 100%;
-    --popover-foreground: 140 10% 42%;
-    --primary: 140 10% 42%;
+    --popover-foreground: 145 11% 42%;
+    --primary: 145 11% 42%; /* #6A7567 - cor principal do design */
     --primary-foreground: 0 0% 100%;
-    --secondary: 40 24% 91%;
-    --secondary-foreground: 140 10% 42%;
-    --muted: 40 24% 91%;
-    --muted-foreground: 140 10% 42%;
-    --accent: 40 24% 91%;
-    --accent-foreground: 140 10% 42%;
+    --secondary: 40 30% 90%; /* #E8E4D9 - bege do design */
+    --secondary-foreground: 145 11% 42%;
+    --muted: 40 30% 90%;
+    --muted-foreground: 145 11% 42%;
+    --accent: 145 11% 52%; /* #7F8D7C - verde escuro */
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 70% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 40 24% 85%;
-    --input: 40 24% 85%;
-    --ring: 140 10% 42%;
+    --border: 40 30% 88%;
+    --input: 40 30% 88%;
+    --ring: 145 11% 42%;
     --radius: 0.75rem;
     --success: 80 30% 45%;
     --warning: 38 92% 50%;
