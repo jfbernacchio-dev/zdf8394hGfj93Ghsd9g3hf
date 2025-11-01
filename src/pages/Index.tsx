@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Instagram, Youtube, Phone, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
 import mindwareLogo from "@/assets/mindware-logo.png";
+import Footer from "@/components/Footer";
 
 const Index = () => {
   return (
@@ -658,53 +659,7 @@ const Index = () => {
         </p>
       </section>
 
-      {/* Footer - Background #E8E4D9, height 1202px as per CSS line 2958 */}
-      <footer id="contato" style={{ backgroundColor: '#E8E4D9', minHeight: '400px', paddingTop: '48px', paddingBottom: '48px' }}>
-        <div className="container mx-auto px-6" style={{ maxWidth: '1920px' }}>
-          {/* Title */}
-          <h4 style={{ 
-            fontFamily: 'Inter',
-            fontSize: '40px',
-            lineHeight: '40px',
-            color: '#6A7567',
-            fontWeight: 400,
-            textAlign: 'center',
-            marginBottom: '48px'
-          }}>
-            REDES SOCIAIS
-          </h4>
-          
-          <div className="flex justify-center gap-6 mb-16">
-            <a href="https://wa.me/5511988802007" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">
-              <Phone style={{ width: '32px', height: '32px', color: '#6A7567' }} />
-            </a>
-            <a href="https://instagram.com/espacomindware" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">
-              <Instagram style={{ width: '32px', height: '32px', color: '#6A7567' }} />
-            </a>
-            <a href="https://youtube.com/@espacomindware" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">
-              <Youtube style={{ width: '32px', height: '32px', color: '#6A7567' }} />
-            </a>
-          </div>
-          
-          {/* Contact info */}
-          <div className="text-center space-y-3">
-            <p style={{ fontFamily: 'Inter', fontSize: '16px', color: '#6A7567' }}>
-              <Phone className="inline w-4 h-4 mr-2" />
-              (11) 98880-2007
-            </p>
-            <p style={{ fontFamily: 'Inter', fontSize: '16px', color: '#6A7567' }}>
-              <MapPin className="inline w-4 h-4 mr-2" />
-              Pompéia, São Paulo - SP
-            </p>
-          </div>
-          
-          <div className="mt-12 pt-8 text-center" style={{ borderTop: '1px solid rgba(106, 117, 103, 0.2)' }}>
-            <p style={{ fontFamily: 'Inter', fontSize: '14px', color: 'rgba(106, 117, 103, 0.6)' }}>
-              © 2025 Espaço Mindware Psicologia. Todos os direitos reservados.
-            </p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };
