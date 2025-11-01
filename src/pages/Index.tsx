@@ -8,25 +8,30 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-white overflow-x-hidden">
       {/* Fixed Header - exactly as CSS specifies */}
-      <header className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-sm z-50 border-b" style={{ borderColor: '#E8E4D9' }}>
-        <div className="flex items-center justify-between px-6" style={{ height: '80px', maxWidth: '1920px', margin: '0 auto' }}>
+      <header className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-sm z-50 border-b" style={{ borderColor: '#E8E4D9', height: '142px' }}>
+        <div className="flex items-center justify-between px-6 h-full" style={{ maxWidth: '1920px', margin: '0 auto' }}>
           {/* Logo */}
-          <div className="flex items-center gap-3">
-            <img src={mindwareLogo} alt="Espaço Mindware" style={{ height: '48px' }} />
-            <div className="flex flex-col">
-              <span style={{ fontSize: '18px', fontWeight: 600, color: '#6A7567', lineHeight: '1.2' }}>ESPAÇO</span>
-              <span style={{ fontSize: '18px', fontWeight: 600, color: '#6A7567', lineHeight: '1.2' }}>MINDWARE</span>
-            </div>
+          <div className="flex items-center">
+            <img src="/images/mindware-logo-color.png" alt="Espaço Mindware" style={{ height: '70px', width: 'auto' }} />
           </div>
           
           {/* Navigation */}
-          <nav className="hidden lg:flex items-center gap-8">
-            <a href="#inicio" style={{ fontSize: '14px', fontWeight: 500, color: '#6A7567' }} className="hover:opacity-80 transition-opacity">INÍCIO</a>
-            <div className="relative group">
-              <button style={{ fontSize: '14px', fontWeight: 500, color: '#6A7567' }} className="hover:opacity-80 transition-opacity">
+          <nav className="hidden lg:flex items-center h-full">
+            <a 
+              href="#inicio" 
+              className="relative flex items-center h-full px-4 hover:opacity-80 transition-opacity border-t-[3px] border-[#6A7567]"
+              style={{ fontSize: '14px', fontWeight: 700, color: '#6A7567' }}
+            >
+              INÍCIO
+            </a>
+            <div className="relative group h-full flex items-center">
+              <button 
+                className="h-full px-4 hover:opacity-80 transition-opacity border-t-[3px] border-transparent"
+                style={{ fontSize: '14px', fontWeight: 500, color: '#6A7567' }}
+              >
                 SERVIÇOS
               </button>
-              <div className="absolute left-0 mt-2 w-72 bg-white shadow-lg rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+              <div className="absolute left-0 top-full w-72 bg-white shadow-lg rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                 <a href="/servicos/terapia-cognitiva-comportamental" className="block px-4 py-3 text-sm hover:bg-gray-50 transition-colors" style={{ color: '#6A7567' }}>
                   Terapia Cognitivo-Comportamental
                 </a>
@@ -38,9 +43,34 @@ const Index = () => {
                 </a>
               </div>
             </div>
-            <a href="#sobre" style={{ fontSize: '14px', fontWeight: 500, color: '#6A7567' }} className="hover:opacity-80 transition-opacity">SOBRE NÓS</a>
-            <a href="#curso" style={{ fontSize: '14px', fontWeight: 500, color: '#6A7567' }} className="hover:opacity-80 transition-opacity">CURSO DE MÃES</a>
-            <a href="#contato" style={{ fontSize: '14px', fontWeight: 500, color: '#6A7567' }} className="hover:opacity-80 transition-opacity">CONTATO</a>
+            <a 
+              href="#sobre" 
+              className="relative flex items-center h-full px-4 hover:opacity-80 transition-opacity border-t-[3px] border-transparent"
+              style={{ fontSize: '14px', fontWeight: 500, color: '#6A7567' }}
+            >
+              SOBRE NÓS
+            </a>
+            <a 
+              href="#espaco" 
+              className="relative flex items-center h-full px-4 hover:opacity-80 transition-opacity border-t-[3px] border-transparent"
+              style={{ fontSize: '14px', fontWeight: 500, color: '#6A7567' }}
+            >
+              O ESPAÇO
+            </a>
+            <a 
+              href="#curso" 
+              className="relative flex items-center h-full px-4 hover:opacity-80 transition-opacity border-t-[3px] border-transparent"
+              style={{ fontSize: '14px', fontWeight: 500, color: '#6A7567' }}
+            >
+              CURSO DE MÃES
+            </a>
+            <a 
+              href="#contato" 
+              className="relative flex items-center h-full px-4 hover:opacity-80 transition-opacity border-t-[3px] border-transparent"
+              style={{ fontSize: '14px', fontWeight: 500, color: '#6A7567' }}
+            >
+              CONTATO
+            </a>
           </nav>
           
           {/* Social Icons */}
@@ -62,7 +92,7 @@ const Index = () => {
       </header>
 
       {/* Hero Section - 1920x915px as per CSS */}
-      <section id="inicio" className="relative" style={{ height: '915px', marginTop: '80px' }}>
+      <section id="inicio" className="relative" style={{ height: '915px', marginTop: '142px' }}>
         <div 
           className="absolute inset-0 bg-cover bg-center"
           style={{ 
