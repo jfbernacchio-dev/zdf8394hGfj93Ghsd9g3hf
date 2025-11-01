@@ -499,6 +499,8 @@ export type Database = {
           monthly_price: boolean | null
           name: string
           nfse_issue_to: string | null
+          nfse_max_sessions_per_invoice: number | null
+          nfse_number_of_invoices: number | null
           no_nfse: boolean | null
           observations: string | null
           phone: string | null
@@ -531,6 +533,8 @@ export type Database = {
           monthly_price?: boolean | null
           name: string
           nfse_issue_to?: string | null
+          nfse_max_sessions_per_invoice?: number | null
+          nfse_number_of_invoices?: number | null
           no_nfse?: boolean | null
           observations?: string | null
           phone?: string | null
@@ -563,6 +567,8 @@ export type Database = {
           monthly_price?: boolean | null
           name?: string
           nfse_issue_to?: string | null
+          nfse_max_sessions_per_invoice?: number | null
+          nfse_number_of_invoices?: number | null
           no_nfse?: boolean | null
           observations?: string | null
           phone?: string | null

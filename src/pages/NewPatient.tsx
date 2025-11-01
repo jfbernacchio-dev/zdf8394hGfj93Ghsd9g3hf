@@ -52,6 +52,8 @@ const NewPatient = () => {
     lgpdConsent: false,
     noNfse: false,
     monthlyPrice: false,
+    nfseNumberOfInvoices: 1,
+    nfseMaxSessionsPerInvoice: 20,
     isMinor: false,
     guardianName: '',
     guardianCpf: '',
@@ -96,6 +98,8 @@ const NewPatient = () => {
           lgpd_consent_date: formData.lgpdConsent ? new Date().toISOString() : null,
           no_nfse: formData.noNfse,
           monthly_price: formData.monthlyPrice,
+          nfse_number_of_invoices: formData.nfseNumberOfInvoices,
+          nfse_max_sessions_per_invoice: formData.nfseMaxSessionsPerInvoice,
           is_minor: formData.isMinor,
           guardian_name: formData.isMinor ? (formData.guardianName || null) : null,
           guardian_cpf: formData.isMinor ? (formData.guardianCpf || null) : null,
@@ -563,7 +567,7 @@ const NewPatient = () => {
                     />
                     <Label htmlFor="monthlyPrice" className="cursor-pointer text-sm">Preço Mensal</Label>
                   </div>
-                  <div className="flex items-center gap-2">
+                   <div className="flex items-center gap-2">
                     <input
                       type="checkbox"
                       id="noNfse"
@@ -576,6 +580,40 @@ const NewPatient = () => {
                 </div>
               </div>
             </div>
+
+            {/* NFSe Configuration */}
+            {!formData.noNfse && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="nfseNumberOfInvoices">Número de Notas</Label>
+                  <select
+                    id="nfseNumberOfInvoices"
+                    value={formData.nfseNumberOfInvoices}
+                    onChange={(e) => setFormData({ ...formData, nfseNumberOfInvoices: parseInt(e.target.value) })}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="nfseMaxSessionsPerInvoice">Máximo de Sessões/Nota</Label>
+                  <select
+                    id="nfseMaxSessionsPerInvoice"
+                    value={formData.nfseMaxSessionsPerInvoice}
+                    onChange={(e) => setFormData({ ...formData, nfseMaxSessionsPerInvoice: parseInt(e.target.value) })}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="15">15</option>
+                    <option value="20">20</option>
+                  </select>
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
