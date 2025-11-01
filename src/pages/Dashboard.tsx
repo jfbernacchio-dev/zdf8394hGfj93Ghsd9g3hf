@@ -100,15 +100,19 @@ const Dashboard = () => {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
   
+  // All sessions in period (for financial metrics)
   const periodSessions = sessions.filter(session => {
     const date = parseISO(session.date);
     return date >= start && date <= end;
   });
 
+  // Only visible sessions (for operational metrics - excludes hidden sessions)
+  const visiblePeriodSessions = periodSessions.filter(session => session.show_in_schedule !== false);
+
   const attendedSessions = periodSessions.filter(s => s.status === 'attended');
-  const expectedSessions = periodSessions.length; // Total sessions scheduled in period
-  const missedSessions = periodSessions.filter(s => s.status === 'missed');
-  const pendingSessions = periodSessions.filter(s => {
+  const expectedSessions = visiblePeriodSessions.length; // Total visible sessions scheduled in period
+  const missedSessions = visiblePeriodSessions.filter(s => s.status === 'missed');
+  const pendingSessions = visiblePeriodSessions.filter(s => {
     const sessionDate = parseISO(s.date);
     return sessionDate > now && s.status !== 'attended' && s.status !== 'missed';
   });
@@ -411,7 +415,7 @@ const Dashboard = () => {
               </div>
             </div>
             <h3 className="text-2xl font-bold text-foreground mb-1">
-              {attendedSessions.length}
+              {visiblePeriodSessions.filter(s => s.status === 'attended').length}
             </h3>
             <p className="text-sm text-muted-foreground">Sessões Realizadas</p>
           </Card>
