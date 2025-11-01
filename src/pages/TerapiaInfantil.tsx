@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Phone } from "lucide-react";
+import Footer from "@/components/Footer";
 
 const TerapiaInfantil = () => {
   return (
@@ -61,6 +62,8 @@ const TerapiaInfantil = () => {
           />
         </div>
       </div>
+      
+      <Footer />
     </div>
   );
 };
