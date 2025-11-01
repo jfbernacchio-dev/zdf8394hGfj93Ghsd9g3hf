@@ -241,10 +241,57 @@ const EditPatient = () => {
       return;
     }
     
-    toast({
-      title: "Paciente atualizado!",
-      description: "As informações foram salvas com sucesso.",
-    });
+    // If frequency is twice_weekly, update all existing scheduled sessions for the second session day
+    if (formData.frequency === 'twice_weekly' && formData.session_time_2) {
+      // Map day names to day of week for matching
+      const dayOfWeekMap: { [key: string]: number } = {
+        sunday: 0, monday: 1, tuesday: 2, wednesday: 3,
+        thursday: 4, friday: 5, saturday: 6,
+      };
+      
+      const secondDayOfWeek = dayOfWeekMap[formData.session_day_2?.toLowerCase() || ''];
+      
+      // Get all scheduled sessions for this patient
+      const { data: allSessions } = await supabase
+        .from('sessions')
+        .select('id, date, time')
+        .eq('patient_id', id)
+        .in('status', ['scheduled', 'attended']);
+      
+      if (allSessions) {
+        // Filter sessions that match the second session day and time
+        const secondSessionIds = allSessions
+          .filter(session => {
+            const sessionDate = new Date(session.date + 'T00:00:00');
+            const sessionDayOfWeek = sessionDate.getDay();
+            return sessionDayOfWeek === secondDayOfWeek && session.time === formData.session_time_2;
+          })
+          .map(s => s.id);
+        
+        // Update show_in_schedule for these sessions
+        if (secondSessionIds.length > 0) {
+          await supabase
+            .from('sessions')
+            .update({ show_in_schedule: !formData.hide_second_session_from_schedule })
+            .in('id', secondSessionIds);
+          
+          toast({
+            title: "Paciente atualizado!",
+            description: `As informações foram salvas e ${secondSessionIds.length} sessões foram ${formData.hide_second_session_from_schedule ? 'ocultadas da' : 'reexibidas na'} agenda.`,
+          });
+        } else {
+          toast({
+            title: "Paciente atualizado!",
+            description: "As informações foram salvas com sucesso.",
+          });
+        }
+      }
+    } else {
+      toast({
+        title: "Paciente atualizado!",
+        description: "As informações foram salvas com sucesso.",
+      });
+    }
     
     navigate('/patients');
   };
