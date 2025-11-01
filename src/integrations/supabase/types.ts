@@ -490,6 +490,7 @@ export type Database = {
           frequency: string
           guardian_cpf: string | null
           guardian_name: string | null
+          hide_from_schedule: boolean | null
           hide_second_session_from_schedule: boolean | null
           id: string
           include_minor_text: boolean | null
@@ -520,6 +521,7 @@ export type Database = {
           frequency: string
           guardian_cpf?: string | null
           guardian_name?: string | null
+          hide_from_schedule?: boolean | null
           hide_second_session_from_schedule?: boolean | null
           id?: string
           include_minor_text?: boolean | null
@@ -550,6 +552,7 @@ export type Database = {
           frequency?: string
           guardian_cpf?: string | null
           guardian_name?: string | null
+          hide_from_schedule?: boolean | null
           hide_second_session_from_schedule?: boolean | null
           id?: string
           include_minor_text?: boolean | null

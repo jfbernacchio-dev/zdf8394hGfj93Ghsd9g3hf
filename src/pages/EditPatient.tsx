@@ -67,6 +67,7 @@ const EditPatient = () => {
         nfse_issue_to: data.nfse_issue_to || 'patient',
         include_minor_text: data.include_minor_text || false,
         hide_second_session_from_schedule: data.hide_second_session_from_schedule || false,
+        hide_from_schedule: data.hide_from_schedule || false,
       };
       setFormData(patientData);
       setOriginalData(patientData);
@@ -208,6 +209,8 @@ const EditPatient = () => {
   };
 
   const updatePatient = async () => {
+    const hideFromScheduleChanged = formData.hide_from_schedule !== originalData.hide_from_schedule;
+    
     const { error } = await supabase.from('patients').update({
       name: formData.name,
       email: formData.email,
@@ -230,6 +233,7 @@ const EditPatient = () => {
       nfse_issue_to: formData.is_minor ? formData.nfse_issue_to : 'patient',
       include_minor_text: formData.is_minor && formData.nfse_issue_to === 'guardian' ? formData.include_minor_text : false,
       hide_second_session_from_schedule: formData.frequency === 'twice_weekly' ? formData.hide_second_session_from_schedule : false,
+      hide_from_schedule: formData.hide_from_schedule,
     }).eq('id', id);
 
     if (error) {
@@ -239,6 +243,24 @@ const EditPatient = () => {
         variant: "destructive",
       });
       return;
+    }
+    
+    // Update all future scheduled sessions if hide_from_schedule changed
+    if (hideFromScheduleChanged) {
+      const today = getBrazilDate();
+      
+      const { data: futureSessions } = await supabase
+        .from('sessions')
+        .select('id')
+        .eq('patient_id', id)
+        .gte('date', today);
+      
+      if (futureSessions && futureSessions.length > 0) {
+        await supabase
+          .from('sessions')
+          .update({ show_in_schedule: !formData.hide_from_schedule })
+          .in('id', futureSessions.map(s => s.id));
+      }
     }
     
     // If frequency is twice_weekly, update all existing scheduled sessions for the second session day
@@ -647,6 +669,22 @@ const EditPatient = () => {
                 onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
               />
             </div>
+
+            <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-md">
+              <input
+                type="checkbox"
+                id="hideFromSchedule"
+                checked={formData.hide_from_schedule}
+                onChange={(e) => setFormData({ ...formData, hide_from_schedule: e.target.checked })}
+                className="cursor-pointer"
+              />
+              <Label htmlFor="hideFromSchedule" className="cursor-pointer text-sm">
+                Nunca Registrar na Agenda
+              </Label>
+            </div>
+            <p className="text-xs text-muted-foreground -mt-3 ml-6">
+              Quando marcado, todas as sessões futuras deste paciente não aparecerão na agenda, mas serão registradas no histórico e para emissão de NFS-e.
+            </p>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

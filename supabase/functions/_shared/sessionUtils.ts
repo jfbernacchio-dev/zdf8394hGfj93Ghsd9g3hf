@@ -23,7 +23,7 @@ export const ensureFutureSessions = async (
   // Always get the most up-to-date patient information from the database
   const { data: currentPatient } = await supabase
     .from('patients')
-    .select('session_day, frequency, session_time, session_value, start_date, hide_second_session_from_schedule, session_day_2, session_time_2')
+    .select('session_day, frequency, session_time, session_value, start_date, hide_second_session_from_schedule, session_day_2, session_time_2, hide_from_schedule')
     .eq('id', patientId)
     .single();
 
@@ -90,7 +90,7 @@ export const ensureFutureSessions = async (
           value: patientInfo.session_value,
           paid: false,
           time: patientInfo.session_time,
-          show_in_schedule: true,
+          show_in_schedule: !patientInfo.hide_from_schedule,
         });
       }
       
@@ -114,7 +114,7 @@ export const ensureFutureSessions = async (
           value: patientInfo.session_value,
           paid: false,
           time: patientInfo.session_time_2,
-          show_in_schedule: !patientInfo.hide_second_session_from_schedule,
+          show_in_schedule: !patientInfo.hide_from_schedule && !patientInfo.hide_second_session_from_schedule,
         });
       }
       
@@ -142,7 +142,7 @@ export const ensureFutureSessions = async (
           value: patientInfo.session_value,
           paid: false,
           time: patientInfo.session_time,
-          show_in_schedule: true,
+          show_in_schedule: !patientInfo.hide_from_schedule,
         });
       }
       
