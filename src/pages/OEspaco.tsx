@@ -108,6 +108,30 @@ const OEspaco = () => {
             <CarouselNext className="right-4" />
           </Carousel>
         </div>
+
+        {/* Thumbnails Section */}
+        <div className="w-full py-4 px-4" style={{ backgroundColor: '#7F8D7C' }}>
+          <div className="flex gap-4 overflow-x-auto justify-center items-center" style={{ scrollbarWidth: 'thin' }}>
+            {carouselImages.map((image, index) => (
+              <div
+                key={index}
+                className="flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                style={{
+                  width: '120px',
+                  height: '120px',
+                  border: '5px solid white',
+                  backgroundColor: 'white'
+                }}
+              >
+                <img
+                  src={image}
+                  alt={`Miniatura ${index + 1}`}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* CTA Section with WhatsApp - background image */}
