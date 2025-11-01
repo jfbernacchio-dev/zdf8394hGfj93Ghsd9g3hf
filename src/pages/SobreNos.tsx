@@ -139,7 +139,7 @@ const SobreNos = () => {
               letterSpacing: '-0.8px',
               marginBottom: '32px'
             }}>
-              CRP 06/100930
+              CRP 06/124232
             </h2>
             
             <div style={{ 
@@ -151,8 +151,8 @@ const SobreNos = () => {
               color: '#6A7567',
               letterSpacing: '-1px'
             }}>
-              <p>Co-criador do Espaço Mindware, e responsável pela atuação com adultos no Espaço. Com quase 10 anos de experiência clínica, atua nas abordagens Cognitiva Comportamental e Junguiana, com um projeto que propõe um desenvolvimento individual dos processos internos do paciente.</p>
-              <p style={{ marginTop: '26px' }}>Em seu projeto terapêutico, propõe a construção de processos internos que levem ao bem-estar nas diversas áreas da vida. A psicoterapia é um importante instrumento que viabiliza a construção dos processos de autorrealização e individuação.</p>
+              <p>Co-criador do Espaço Mindware, e responsável pelo atendimento adulto e adolescente. Com quase 10 anos de experiência clínica, atua como psicólogo na abordagem da psicologia analítica junguiana, individualmente ou em atendimento familiar.</p>
+              <p style={{ marginTop: '26px' }}>Em seu projeto terapêutico, propõe uma psicoterapia voltada para o aprofundamento e autoconhecimento. Essa abordagem trabalha com a saúde mental voltando-se para o inconsciente e suas manifestações na vida de um indivíduo, procurando entender seu mundo e o seu significado.</p>
             </div>
           </div>
         </div>
@@ -190,12 +190,15 @@ const SobreNos = () => {
             lineHeight: '26px',
             color: '#6A7567'
           }}>
-            <p style={{ marginBottom: '16px' }}>• Formado em Psicologia pelo Centro Universitário São Camilo.</p>
-            <p style={{ marginBottom: '16px' }}>• Especialista em Psicologia Clínica pela Universidade Paulista (Unip).</p>
-            <p style={{ marginBottom: '16px' }}>• Formação em Psicologia Junguiana pelo Instituto Junguiano de São Paulo (IJUSP).</p>
-            <p style={{ marginBottom: '16px' }}>• Formação em Terapia Cognitiva Comportamental pelo Instituto de Terapia Cognitiva (ITC).</p>
-            <p style={{ marginBottom: '16px' }}>• Ampla experiência em atendimento psicológico de jovens e adultos na abordagem cognitiva comportamental e junguiana.</p>
-            <p style={{ marginBottom: '16px' }}>• Psicólogo responsável pela Orientação Vocacional e Profissional do COGEAE da PUC-SP</p>
+            <p style={{ marginBottom: '16px' }}>• Graduado em Psicologia pela Pontifícia Universidade Católica - SP (PUC-SP).</p>
+            <p style={{ marginBottom: '16px' }}>• Formação em Neurofeedback pela SBNF</p>
+            <p style={{ marginBottom: '16px' }}>• Ampla experiência em atuação em psicoterapia particular para jovens e adultos na abordagem junguiana</p>
+            <p style={{ marginBottom: '16px' }}>• Formado em terapia vinculares pelo IPqHCFMUSP.</p>
+            <p style={{ marginBottom: '16px' }}>• Atendimento em Terapia vincular pelo Ipq-HC</p>
+            <p style={{ marginBottom: '16px' }}>• Auxiliar de planejamento psicopedagógico da disciplina de Psicopatologia na PUC-SP</p>
+            <p style={{ marginBottom: '16px' }}>• Coordenador e criador de programas de crescimento pessoal na empresa Vidax e SPCOM</p>
+            <p style={{ marginBottom: '16px' }}>• Atendimentos de grupos de apoio e motivacionais nas empresas Vidax e SPCOM</p>
+            <p style={{ marginBottom: '16px' }}>• Recrutamento e seleção na empresa Vertude</p>
           </div>
         </div>
       </section>
