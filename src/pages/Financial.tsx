@@ -355,6 +355,8 @@ const Financial = () => {
   const forecastRevenue = getForecastRevenue();
 
   // Taxa de ocupação da agenda baseada nos horários de trabalho configurados
+  // NOTA: Sessões fora do horário de trabalho são contabilizadas mas não aumentam o total de slots disponíveis,
+  // permitindo que a taxa de ocupação ultrapasse 100%
   const calculateOccupationRate = () => {
     if (!profile) return 0;
     
@@ -364,7 +366,7 @@ const Financial = () => {
     const slotDuration = profile.slot_duration || 60;
     const breakTime = profile.break_time || 15;
     
-    // Calculate total available slots per week
+    // Calculate total available slots per week (baseado apenas no horário de trabalho declarado)
     const [startHour, startMin] = startTime.split(':').map(Number);
     const [endHour, endMin] = endTime.split(':').map(Number);
     const totalMinutesPerDay = (endHour * 60 + endMin) - (startHour * 60 + startMin);
@@ -402,12 +404,13 @@ const Financial = () => {
       }
     });
     
-    // Calculate actually used slots (attended sessions)
+    // Calculate actually used slots (TODAS as sessões attended, incluindo as fora do horário de trabalho)
     const usedSlots = periodSessions.filter(s => s.status === 'attended').length;
     
-    // Available slots minus blocked slots
+    // Available slots minus blocked slots (denominador fixo baseado no horário de trabalho)
     const effectiveAvailableSlots = Math.max(totalAvailableSlots - blockedSlots, 0);
     
+    // Pode ultrapassar 100% se houver sessões fora do horário de trabalho
     return effectiveAvailableSlots > 0 ? (usedSlots / effectiveAvailableSlots) * 100 : 0;
   };
 
