@@ -53,13 +53,15 @@ const PublicHeader = () => {
               </Link>
             </div>
           </div>
-          <a 
-            href="/#sobre" 
-            className="relative flex items-center h-full px-4 hover:opacity-80 transition-opacity border-t-[3px] border-transparent"
-            style={{ fontSize: '14px', fontWeight: 500, color: '#6A7567' }}
+          <Link 
+            to="/sobre-nos" 
+            className={`relative flex items-center h-full px-4 hover:opacity-80 transition-opacity border-t-[3px] ${
+              isActive('/sobre-nos') ? 'border-[#6A7567]' : 'border-transparent'
+            }`}
+            style={{ fontSize: '14px', fontWeight: isActive('/sobre-nos') ? 700 : 500, color: '#6A7567' }}
           >
             SOBRE NÓS
-          </a>
+          </Link>
           <a 
             href="/#espaco" 
             className="relative flex items-center h-full px-4 hover:opacity-80 transition-opacity border-t-[3px] border-transparent"
