@@ -1,11 +1,13 @@
 import { Button } from "@/components/ui/button";
 import Footer from "@/components/Footer";
+import PublicHeader from "@/components/PublicHeader";
 
 const TerapiaInfantil = () => {
   return (
     <div className="min-h-screen bg-white">
+      <PublicHeader />
       {/* Header Spacing */}
-      <div className="h-[50px]" />
+      <div className="h-[142px]" />
       
       {/* Two Column Layout - Main Section */}
       <div className="grid md:grid-cols-2" style={{ minHeight: '838px' }}>
