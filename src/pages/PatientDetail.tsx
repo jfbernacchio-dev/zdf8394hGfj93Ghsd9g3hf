@@ -57,7 +57,8 @@ const PatientDetail = () => {
     notes: '',
     value: '',
     paid: false,
-    time: ''
+    time: '',
+    showInSchedule: true
   });
 
   useEffect(() => {
@@ -177,7 +178,8 @@ const PatientDetail = () => {
       notes: '',
       value: patient?.session_value?.toString() || '',
       paid: false,
-      time: patient?.session_time || ''
+      time: patient?.session_time || '',
+      showInSchedule: true
     });
     setIsDialogOpen(true);
   };
@@ -190,7 +192,8 @@ const PatientDetail = () => {
       notes: session.notes || '',
       value: session.value.toString(),
       paid: session.paid,
-      time: session.time || patient?.session_time || ''
+      time: session.time || patient?.session_time || '',
+      showInSchedule: session.show_in_schedule ?? true
     });
     setIsDialogOpen(true);
   };
@@ -205,7 +208,8 @@ const PatientDetail = () => {
       notes: formData.notes,
       value: parseFloat(formData.value),
       paid: formData.paid,
-      time: formData.time || null
+      time: formData.time || null,
+      show_in_schedule: formData.showInSchedule
     };
 
     if (editingSession) {
@@ -946,6 +950,17 @@ Assinatura do Profissional`;
                   className="h-4 w-4"
                 />
                 <Label htmlFor="paid">Pago</Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="showInSchedule"
+                  checked={formData.showInSchedule}
+                  onChange={(e) => setFormData({ ...formData, showInSchedule: e.target.checked })}
+                  className="h-4 w-4"
+                />
+                <Label htmlFor="showInSchedule">Mostrar na Agenda</Label>
               </div>
 
               {editingSession && (
