@@ -50,23 +50,42 @@ export const ensureFutureSessions = async (
   
   // For twice_weekly, we need special handling
   if (patientInfo.frequency === 'twice_weekly' && patientInfo.session_day_2) {
-    // Generate both sessions per week
-    for (let i = 0; i < Math.ceil(sessionsToCreate / 2); i++) {
-      const nextDate1 = getNextSessionDate(lastDate, patientInfo.session_day, 'weekly');
-      const nextDate2 = getNextSessionDate(lastDate, patientInfo.session_day_2, 'weekly');
+    const dayOfWeekMap: { [key: string]: number } = {
+      sunday: 0, monday: 1, tuesday: 2, wednesday: 3,
+      thursday: 4, friday: 5, saturday: 6,
+    };
+    
+    const day1 = dayOfWeekMap[patientInfo.session_day.toLowerCase()];
+    const day2 = dayOfWeekMap[patientInfo.session_day_2.toLowerCase()];
+    
+    // Start from the week after lastDate
+    let currentWeekStart = new Date(lastDate + 'T00:00:00');
+    currentWeekStart.setDate(currentWeekStart.getDate() + 7); // Move to next week
+    
+    // Generate enough weeks to get targetCount sessions (2 per week)
+    const weeksNeeded = Math.ceil(sessionsToCreate / 2);
+    
+    for (let week = 0; week < weeksNeeded; week++) {
+      // Calculate the start of this week (Sunday = 0)
+      const weekStart = new Date(currentWeekStart);
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Go to Sunday of this week
       
-      // Check and add first session
+      // Generate first session of the week
+      const sessionDate1 = new Date(weekStart);
+      sessionDate1.setDate(sessionDate1.getDate() + day1);
+      const dateStr1 = sessionDate1.toISOString().split('T')[0];
+      
       const { data: existing1 } = await supabase
         .from('sessions')
         .select('id')
         .eq('patient_id', patientId)
-        .eq('date', nextDate1)
+        .eq('date', dateStr1)
         .maybeSingle();
 
-      if (!existing1) {
+      if (!existing1 && dateStr1 >= today) {
         newSessions.push({
           patient_id: patientId,
-          date: nextDate1,
+          date: dateStr1,
           status: 'scheduled',
           value: patientInfo.session_value,
           paid: false,
@@ -75,18 +94,22 @@ export const ensureFutureSessions = async (
         });
       }
       
-      // Check and add second session
+      // Generate second session of the week
+      const sessionDate2 = new Date(weekStart);
+      sessionDate2.setDate(sessionDate2.getDate() + day2);
+      const dateStr2 = sessionDate2.toISOString().split('T')[0];
+      
       const { data: existing2 } = await supabase
         .from('sessions')
         .select('id')
         .eq('patient_id', patientId)
-        .eq('date', nextDate2)
+        .eq('date', dateStr2)
         .maybeSingle();
 
-      if (!existing2) {
+      if (!existing2 && dateStr2 >= today) {
         newSessions.push({
           patient_id: patientId,
-          date: nextDate2,
+          date: dateStr2,
           status: 'scheduled',
           value: patientInfo.session_value,
           paid: false,
@@ -95,7 +118,8 @@ export const ensureFutureSessions = async (
         });
       }
       
-      lastDate = nextDate2 > nextDate1 ? nextDate2 : nextDate1;
+      // Move to next week
+      currentWeekStart.setDate(currentWeekStart.getDate() + 7);
     }
   } else {
     // Original logic for weekly/biweekly
