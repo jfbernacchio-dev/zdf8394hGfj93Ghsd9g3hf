@@ -639,22 +639,6 @@ const NewPatient = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-md">
-              <input
-                type="checkbox"
-                id="hideFromSchedule"
-                checked={formData.hideFromSchedule}
-                onChange={(e) => setFormData({ ...formData, hideFromSchedule: e.target.checked })}
-                className="cursor-pointer"
-              />
-              <Label htmlFor="hideFromSchedule" className="cursor-pointer text-sm">
-                Nunca Registrar na Agenda
-              </Label>
-            </div>
-            <p className="text-xs text-muted-foreground -mt-3 ml-6">
-              Quando marcado, todas as sessões deste paciente não aparecerão na agenda, mas serão registradas no histórico e para emissão de NFS-e.
-            </p>
-
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="sessionDay">Dia da semana da sessão {formData.frequency === 'twice_weekly' ? '(1ª)' : ''}</Label>
@@ -688,6 +672,22 @@ const NewPatient = () => {
                 />
               </div>
             </div>
+
+            <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-md">
+              <input
+                type="checkbox"
+                id="hideFromSchedule"
+                checked={formData.hideFromSchedule}
+                onChange={(e) => setFormData({ ...formData, hideFromSchedule: e.target.checked })}
+                className="cursor-pointer"
+              />
+              <Label htmlFor="hideFromSchedule" className="cursor-pointer text-sm">
+                Nunca Registrar na Agenda
+              </Label>
+            </div>
+            <p className="text-xs text-muted-foreground -mt-3 ml-6">
+              Quando marcado, todas as sessões deste paciente não aparecerão na agenda, mas serão registradas no histórico e para emissão de NFS-e.
+            </p>
 
             {formData.frequency === 'twice_weekly' && (
               <>
