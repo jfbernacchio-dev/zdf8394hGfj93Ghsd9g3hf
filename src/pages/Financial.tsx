@@ -91,10 +91,14 @@ const Financial = () => {
 
   const { start, end } = getDateRange();
 
+  // All sessions in period (for financial metrics)
   const periodSessions = sessions.filter(session => {
     const date = parseISO(session.date);
     return date >= start && date <= end;
   });
+
+  // Only visible sessions (for operational metrics - excludes hidden sessions)
+  const visiblePeriodSessions = periodSessions.filter(session => session.show_in_schedule !== false);
 
   // Receita por mês
   const getMonthlyRevenue = () => {
@@ -126,7 +130,7 @@ const Financial = () => {
 
       const expected = sessions.filter(s => {
         const date = parseISO(s.date);
-        return date >= monthStart && date <= monthEnd;
+        return date >= monthStart && date <= monthEnd && s.show_in_schedule !== false;
       }).length;
 
       // Count inactive patients in this month
@@ -179,7 +183,7 @@ const Financial = () => {
       .sort((a, b) => b.value - a.value);
   };
 
-  // Taxa de faltas por mês
+  // Taxa de faltas por mês (only visible sessions)
   const getMissedRate = () => {
     const months = eachMonthOfInterval({ start, end });
     
@@ -187,7 +191,7 @@ const Financial = () => {
       const monthStart = startOfMonth(month);
       const monthEnd = endOfMonth(month);
       
-      const monthSessions = periodSessions.filter(s => {
+      const monthSessions = visiblePeriodSessions.filter(s => {
         const date = parseISO(s.date);
         return date >= monthStart && date <= monthEnd;
       });
@@ -279,19 +283,19 @@ const Financial = () => {
     }, 0);
 
   const totalSessions = periodSessions.filter(s => s.status === 'attended').length;
-  const missedSessions = periodSessions.filter(s => s.status === 'missed').length;
-  const missedRate = periodSessions.length > 0 
-    ? ((missedSessions / periodSessions.length) * 100).toFixed(1) 
+  const missedSessions = visiblePeriodSessions.filter(s => s.status === 'missed').length;
+  const missedRate = visiblePeriodSessions.length > 0 
+    ? ((missedSessions / visiblePeriodSessions.length) * 100).toFixed(1) 
     : 0;
 
   const avgPerSession = totalSessions > 0 ? totalRevenue / totalSessions : 0;
   const activePatients = patients.filter(p => p.status === 'active').length;
 
-  // Faltas por paciente
+  // Faltas por paciente (only visible sessions)
   const getMissedByPatient = () => {
     const patientMissed = new Map<string, number>();
     
-    periodSessions.forEach(session => {
+    visiblePeriodSessions.forEach(session => {
       if (session.status === 'missed') {
         const patientName = session.patients?.name || 'Desconhecido';
         const current = patientMissed.get(patientName) || 0;
@@ -304,11 +308,11 @@ const Financial = () => {
       .sort((a, b) => b.faltas - a.faltas);
   };
 
-  // Distribuição de faltas por paciente
+  // Distribuição de faltas por paciente (only visible sessions)
   const getMissedDistribution = () => {
     const patientMissed = new Map<string, number>();
     
-    periodSessions.forEach(session => {
+    visiblePeriodSessions.forEach(session => {
       if (session.status === 'missed') {
         const patientName = session.patients?.name || 'Desconhecido';
         const current = patientMissed.get(patientName) || 0;
@@ -329,8 +333,8 @@ const Financial = () => {
   const missedDistribution = getMissedDistribution();
   const totalMissed = missedDistribution.reduce((sum, p) => sum + p.value, 0);
 
-  // Valor perdido por faltas
-  const lostRevenue = periodSessions
+  // Valor perdido por faltas (only visible sessions)
+  const lostRevenue = visiblePeriodSessions
     .filter(s => s.status === 'missed')
     .reduce((sum, s) => sum + Number(s.value), 0);
 
@@ -404,8 +408,8 @@ const Financial = () => {
       }
     });
     
-    // Calculate actually used slots (TODAS as sessões attended, incluindo as fora do horário de trabalho)
-    const usedSlots = periodSessions.filter(s => s.status === 'attended').length;
+    // Calculate actually used slots (only visible attended sessions, excluding hidden sessions)
+    const usedSlots = visiblePeriodSessions.filter(s => s.status === 'attended').length;
     
     // Available slots minus blocked slots (denominador fixo baseado no horário de trabalho)
     const effectiveAvailableSlots = Math.max(totalAvailableSlots - blockedSlots, 0);
@@ -575,7 +579,7 @@ const Financial = () => {
     ];
   };
 
-  // Valor perdido por faltas por mês
+  // Valor perdido por faltas por mês (only visible sessions)
   const getLostRevenueByMonth = () => {
     const months = eachMonthOfInterval({ start, end });
     
@@ -583,7 +587,7 @@ const Financial = () => {
       const monthStart = startOfMonth(month);
       const monthEnd = endOfMonth(month);
       
-      const missedInMonth = periodSessions.filter(s => {
+      const missedInMonth = visiblePeriodSessions.filter(s => {
         const date = parseISO(s.date);
         return date >= monthStart && date <= monthEnd && s.status === 'missed';
       });
