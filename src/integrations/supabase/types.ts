@@ -500,6 +500,7 @@ export type Database = {
           name: string
           nfse_issue_to: string | null
           no_nfse: boolean | null
+          observations: string | null
           phone: string | null
           privacy_policy_accepted: boolean | null
           privacy_policy_accepted_at: string | null
@@ -531,6 +532,7 @@ export type Database = {
           name: string
           nfse_issue_to?: string | null
           no_nfse?: boolean | null
+          observations?: string | null
           phone?: string | null
           privacy_policy_accepted?: boolean | null
           privacy_policy_accepted_at?: string | null
@@ -562,6 +564,7 @@ export type Database = {
           name?: string
           nfse_issue_to?: string | null
           no_nfse?: boolean | null
+          observations?: string | null
           phone?: string | null
           privacy_policy_accepted?: boolean | null
           privacy_policy_accepted_at?: string | null

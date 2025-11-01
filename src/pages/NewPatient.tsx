@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -58,6 +59,7 @@ const NewPatient = () => {
     includeMinorText: false,
     hideSecondSessionFromSchedule: false,
     hideFromSchedule: false,
+    observations: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -101,6 +103,7 @@ const NewPatient = () => {
           include_minor_text: formData.isMinor && formData.nfseIssueTo === 'guardian' ? formData.includeMinorText : false,
           hide_second_session_from_schedule: formData.frequency === 'twice_weekly' ? formData.hideSecondSessionFromSchedule : false,
           hide_from_schedule: formData.hideFromSchedule,
+          observations: formData.observations || null,
           status: 'active',
         })
         .select()
@@ -689,6 +692,17 @@ const NewPatient = () => {
                   (Quando marcado, todas as sessões deste paciente não aparecerão na agenda, mas serão registradas no histórico e para emissão de NFS-e)
                 </p>
               </div>
+            </div>
+
+            <div>
+              <Label htmlFor="observations">Observações</Label>
+              <Textarea
+                id="observations"
+                value={formData.observations || ''}
+                onChange={(e) => setFormData({ ...formData, observations: e.target.value })}
+                placeholder="Observações sobre o paciente..."
+                rows={3}
+              />
             </div>
 
             {formData.frequency === 'twice_weekly' && (

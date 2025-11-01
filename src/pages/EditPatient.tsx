@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ArrowLeft } from 'lucide-react';
@@ -68,6 +69,7 @@ const EditPatient = () => {
         include_minor_text: data.include_minor_text || false,
         hide_second_session_from_schedule: data.hide_second_session_from_schedule || false,
         hide_from_schedule: data.hide_from_schedule || false,
+        observations: data.observations || '',
       };
       setFormData(patientData);
       setOriginalData(patientData);
@@ -234,6 +236,7 @@ const EditPatient = () => {
       include_minor_text: formData.is_minor && formData.nfse_issue_to === 'guardian' ? formData.include_minor_text : false,
       hide_second_session_from_schedule: formData.frequency === 'twice_weekly' ? formData.hide_second_session_from_schedule : false,
       hide_from_schedule: formData.hide_from_schedule,
+      observations: formData.observations || null,
     }).eq('id', id);
 
     if (error) {
@@ -719,6 +722,17 @@ const EditPatient = () => {
                   (Quando marcado, todas as sessões futuras deste paciente não aparecerão na agenda, mas serão registradas no histórico e para emissão de NFS-e)
                 </p>
               </div>
+            </div>
+
+            <div>
+              <Label htmlFor="observations">Observações</Label>
+              <Textarea
+                id="observations"
+                value={formData.observations || ''}
+                onChange={(e) => setFormData({ ...formData, observations: e.target.value })}
+                placeholder="Observações sobre o paciente..."
+                rows={3}
+              />
             </div>
 
             {formData.frequency === 'twice_weekly' && (

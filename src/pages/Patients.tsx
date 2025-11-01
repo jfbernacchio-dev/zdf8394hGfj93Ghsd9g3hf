@@ -374,7 +374,7 @@ const Patients = () => {
                         </div>
                       )}
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <h3 className="font-semibold text-foreground">{patient.name}</h3>
                         {patient.status === 'inactive' && (
@@ -383,7 +383,14 @@ const Patients = () => {
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground">{patient.email}</p>
+                      {patient.email && (
+                        <p className="text-sm text-muted-foreground truncate">{patient.email}</p>
+                      )}
+                      {patient.observations && (
+                        <p className="text-xs text-muted-foreground/80 truncate mt-1" title={patient.observations}>
+                          {patient.observations}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); navigate(`/patients/${patient.id}/edit`); }}>
