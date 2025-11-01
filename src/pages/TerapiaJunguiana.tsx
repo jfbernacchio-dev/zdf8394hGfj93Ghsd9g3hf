@@ -7,8 +7,6 @@ const TerapiaJunguiana = () => {
   return (
     <div className="min-h-screen bg-white">
       <PublicHeader />
-      {/* Header Spacing */}
-      <div className="h-[142px]" />
       
       {/* Two Column Layout - Main Section */}
       <div className="grid md:grid-cols-2" style={{ minHeight: '838px' }}>

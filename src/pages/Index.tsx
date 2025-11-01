@@ -8,7 +8,7 @@ const Index = () => {
       <PublicHeader />
 
       {/* Hero Section - 1920x915px as per CSS */}
-      <section id="inicio" className="relative" style={{ height: '915px', marginTop: '142px' }}>
+      <section id="inicio" className="relative" style={{ height: '915px' }}>
         <div 
           className="absolute inset-0 bg-cover bg-center"
           style={{ 
