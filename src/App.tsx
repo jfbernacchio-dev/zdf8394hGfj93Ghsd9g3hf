@@ -8,6 +8,9 @@ import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import Financial from "./pages/Financial";
 import Index from "./pages/Index";
+import TerapiaCognitivaComportamental from "./pages/TerapiaCognitivaComportamental";
+import TerapiaJunguiana from "./pages/TerapiaJunguiana";
+import TerapiaInfantil from "./pages/TerapiaInfantil";
 import Patients from "./pages/Patients";
 import NewPatient from "./pages/NewPatient";
 import EditPatient from "./pages/EditPatient";
@@ -77,6 +80,11 @@ const App = () => (
           <Routes>
             {/* Landing Page Pública */}
             <Route path="/" element={<Index />} />
+            
+            {/* Páginas de Serviços Públicas */}
+            <Route path="/servicos/terapia-cognitiva-comportamental" element={<TerapiaCognitivaComportamental />} />
+            <Route path="/servicos/terapia-junguiana" element={<TerapiaJunguiana />} />
+            <Route path="/servicos/terapia-infantil" element={<TerapiaInfantil />} />
             
             {/* Formulário Público de Consentimento - DEVE estar antes das rotas protegidas */}
             <Route path="/consent/:token" element={<ConsentForm />} />

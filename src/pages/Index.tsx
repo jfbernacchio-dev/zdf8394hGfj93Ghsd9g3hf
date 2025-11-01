@@ -21,7 +21,22 @@ const Index = () => {
           {/* Navigation */}
           <nav className="hidden lg:flex items-center gap-8">
             <a href="#inicio" style={{ fontSize: '14px', fontWeight: 500, color: '#6A7567' }} className="hover:opacity-80 transition-opacity">INÍCIO</a>
-            <a href="#servicos" style={{ fontSize: '14px', fontWeight: 500, color: '#6A7567' }} className="hover:opacity-80 transition-opacity">SERVIÇOS</a>
+            <div className="relative group">
+              <button style={{ fontSize: '14px', fontWeight: 500, color: '#6A7567' }} className="hover:opacity-80 transition-opacity">
+                SERVIÇOS
+              </button>
+              <div className="absolute left-0 mt-2 w-72 bg-white shadow-lg rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <a href="/servicos/terapia-cognitiva-comportamental" className="block px-4 py-3 text-sm hover:bg-gray-50 transition-colors" style={{ color: '#6A7567' }}>
+                  Terapia Cognitivo-Comportamental
+                </a>
+                <a href="/servicos/terapia-junguiana" className="block px-4 py-3 text-sm hover:bg-gray-50 transition-colors" style={{ color: '#6A7567' }}>
+                  Terapia Junguiana
+                </a>
+                <a href="/servicos/terapia-infantil" className="block px-4 py-3 text-sm hover:bg-gray-50 transition-colors" style={{ color: '#6A7567' }}>
+                  Terapia Infantil
+                </a>
+              </div>
+            </div>
             <a href="#sobre" style={{ fontSize: '14px', fontWeight: 500, color: '#6A7567' }} className="hover:opacity-80 transition-opacity">SOBRE NÓS</a>
             <a href="#curso" style={{ fontSize: '14px', fontWeight: 500, color: '#6A7567' }} className="hover:opacity-80 transition-opacity">CURSO DE MÃES</a>
             <a href="#contato" style={{ fontSize: '14px', fontWeight: 500, color: '#6A7567' }} className="hover:opacity-80 transition-opacity">CONTATO</a>
