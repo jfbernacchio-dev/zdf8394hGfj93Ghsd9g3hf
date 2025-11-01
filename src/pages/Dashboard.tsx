@@ -66,6 +66,10 @@ const Dashboard = () => {
       // Último Mês: dia 01 ao 31 do mês anterior
       start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       end = new Date(now.getFullYear(), now.getMonth(), 0); // Último dia do mês anterior
+    } else if (period === 'last2Months') {
+      // Últimos 2 Meses: 2 meses atrás até hoje
+      start = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+      end = now;
     } else if (period === 'year') {
       // Este Ano: do dia 01/01 do ano até hoje
       start = new Date(now.getFullYear(), 0, 1);
@@ -338,6 +342,7 @@ const Dashboard = () => {
                   <SelectItem value="week">Última Semana</SelectItem>
                   <SelectItem value="month">Este Mês</SelectItem>
                   <SelectItem value="lastMonth">Último Mês</SelectItem>
+                  <SelectItem value="last2Months">Últimos 2 Meses</SelectItem>
                   <SelectItem value="year">Este Ano</SelectItem>
                   <SelectItem value="custom">Personalizado</SelectItem>
                 </SelectContent>
