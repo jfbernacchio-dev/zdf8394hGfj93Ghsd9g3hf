@@ -170,6 +170,7 @@ const Schedule = () => {
       .from('sessions')
       .select('*, patients!inner(*)')
       .eq('patients.user_id', effectiveUserId!)
+      .eq('show_in_schedule', true)
       .gte('date', format(start, 'yyyy-MM-dd'))
       .lte('date', format(end, 'yyyy-MM-dd'))
       .order('date', { ascending: true });

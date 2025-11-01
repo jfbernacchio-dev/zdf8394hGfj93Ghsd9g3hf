@@ -56,6 +56,7 @@ const NewPatient = () => {
     guardianCpf: '',
     nfseIssueTo: 'patient' as 'patient' | 'guardian',
     includeMinorText: false,
+    hideSecondSessionFromSchedule: false,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -97,6 +98,7 @@ const NewPatient = () => {
           guardian_cpf: formData.isMinor ? (formData.guardianCpf || null) : null,
           nfse_issue_to: formData.isMinor ? formData.nfseIssueTo : 'patient',
           include_minor_text: formData.isMinor && formData.nfseIssueTo === 'guardian' ? formData.includeMinorText : false,
+          hide_second_session_from_schedule: formData.frequency === 'twice_weekly' ? formData.hideSecondSessionFromSchedule : false,
           status: 'active',
         })
         .select()
@@ -196,13 +198,14 @@ const NewPatient = () => {
     let sessionsCount = 0;
     
     if (sessionData.length > 0) {
-      const sessionsToInsert = sessionData.map(({ date, status, time }) => ({
+      const sessionsToInsert = sessionData.map(({ date, status, time, isSecondSession }) => ({
         patient_id: patient.id,
         date,
         status,
         value: parseFloat(formData.sessionValue),
         paid: false,
         time: time || formData.sessionTime,
+        show_in_schedule: !(isSecondSession && formData.hideSecondSessionFromSchedule),
       }));
 
       const { error: sessionsError } = await supabase
@@ -664,39 +667,57 @@ const NewPatient = () => {
             </div>
 
             {formData.frequency === 'twice_weekly' && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="sessionDay2">Dia da semana da sessão (2ª)</Label>
-                  <Select 
-                    value={formData.sessionDay2} 
-                    onValueChange={(value) => setFormData({ ...formData, sessionDay2: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o dia da semana" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="monday">Segunda-feira</SelectItem>
-                      <SelectItem value="tuesday">Terça-feira</SelectItem>
-                      <SelectItem value="wednesday">Quarta-feira</SelectItem>
-                      <SelectItem value="thursday">Quinta-feira</SelectItem>
-                      <SelectItem value="friday">Sexta-feira</SelectItem>
-                      <SelectItem value="saturday">Sábado</SelectItem>
-                      <SelectItem value="sunday">Domingo</SelectItem>
-                    </SelectContent>
-                  </Select>
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="sessionDay2">Dia da semana da sessão (2ª)</Label>
+                    <Select 
+                      value={formData.sessionDay2} 
+                      onValueChange={(value) => setFormData({ ...formData, sessionDay2: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o dia da semana" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="monday">Segunda-feira</SelectItem>
+                        <SelectItem value="tuesday">Terça-feira</SelectItem>
+                        <SelectItem value="wednesday">Quarta-feira</SelectItem>
+                        <SelectItem value="thursday">Quinta-feira</SelectItem>
+                        <SelectItem value="friday">Sexta-feira</SelectItem>
+                        <SelectItem value="saturday">Sábado</SelectItem>
+                        <SelectItem value="sunday">Domingo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="sessionTime2">Horário da sessão (2ª)</Label>
+                    <Input
+                      id="sessionTime2"
+                      type="time"
+                      step="60"
+                      value={formData.sessionTime2}
+                      onChange={(e) => setFormData({ ...formData, sessionTime2: e.target.value })}
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="sessionTime2">Horário da sessão (2ª)</Label>
-                  <Input
-                    id="sessionTime2"
-                    type="time"
-                    step="60"
-                    value={formData.sessionTime2}
-                    onChange={(e) => setFormData({ ...formData, sessionTime2: e.target.value })}
+                <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-md">
+                  <input
+                    type="checkbox"
+                    id="hideSecondSession"
+                    checked={formData.hideSecondSessionFromSchedule}
+                    onChange={(e) => setFormData({ ...formData, hideSecondSessionFromSchedule: e.target.checked })}
+                    className="cursor-pointer"
                   />
+                  <Label htmlFor="hideSecondSession" className="cursor-pointer text-sm">
+                    Não Registrar na Agenda Segunda Sessão
+                  </Label>
                 </div>
-              </div>
+                <p className="text-xs text-muted-foreground -mt-3 ml-6">
+                  Quando marcado, a segunda sessão semanal será gerada no histórico e contabilizada para cobrança, mas não aparecerá na agenda.
+                </p>
+              </>
             )}
 
             <div className="flex items-start gap-3 p-4 bg-muted/50 rounded-lg">

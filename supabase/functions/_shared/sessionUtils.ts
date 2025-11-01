@@ -6,7 +6,7 @@ export const ensureFutureSessions = async (
 ) => {
   const today = new Date().toISOString().split('T')[0];
   
-  // Get all future scheduled sessions for this patient
+  // Get all future scheduled sessions for this patient (including hidden ones for counting)
   const { data: futureSessions } = await supabase
     .from('sessions')
     .select('date')
@@ -23,7 +23,7 @@ export const ensureFutureSessions = async (
   // Always get the most up-to-date patient information from the database
   const { data: currentPatient } = await supabase
     .from('patients')
-    .select('session_day, frequency, session_time, session_value, start_date')
+    .select('session_day, frequency, session_time, session_value, start_date, hide_second_session_from_schedule, session_day_2, session_time_2')
     .eq('id', patientId)
     .single();
 
@@ -47,29 +47,83 @@ export const ensureFutureSessions = async (
 
   // Create missing sessions using current patient data
   const newSessions = [];
-  for (let i = 0; i < sessionsToCreate; i++) {
-    const nextDate = getNextSessionDate(lastDate, patientInfo.session_day, patientInfo.frequency);
-    
-    // Check if session already exists
-    const { data: existing } = await supabase
-      .from('sessions')
-      .select('id')
-      .eq('patient_id', patientId)
-      .eq('date', nextDate)
-      .maybeSingle();
+  
+  // For twice_weekly, we need special handling
+  if (patientInfo.frequency === 'twice_weekly' && patientInfo.session_day_2) {
+    // Generate both sessions per week
+    for (let i = 0; i < Math.ceil(sessionsToCreate / 2); i++) {
+      const nextDate1 = getNextSessionDate(lastDate, patientInfo.session_day, 'weekly');
+      const nextDate2 = getNextSessionDate(lastDate, patientInfo.session_day_2, 'weekly');
+      
+      // Check and add first session
+      const { data: existing1 } = await supabase
+        .from('sessions')
+        .select('id')
+        .eq('patient_id', patientId)
+        .eq('date', nextDate1)
+        .maybeSingle();
 
-    if (!existing) {
-      newSessions.push({
-        patient_id: patientId,
-        date: nextDate,
-        status: 'scheduled',
-        value: patientInfo.session_value,
-        paid: false,
-        time: patientInfo.session_time,
-      });
+      if (!existing1) {
+        newSessions.push({
+          patient_id: patientId,
+          date: nextDate1,
+          status: 'scheduled',
+          value: patientInfo.session_value,
+          paid: false,
+          time: patientInfo.session_time,
+          show_in_schedule: true,
+        });
+      }
+      
+      // Check and add second session
+      const { data: existing2 } = await supabase
+        .from('sessions')
+        .select('id')
+        .eq('patient_id', patientId)
+        .eq('date', nextDate2)
+        .maybeSingle();
+
+      if (!existing2) {
+        newSessions.push({
+          patient_id: patientId,
+          date: nextDate2,
+          status: 'scheduled',
+          value: patientInfo.session_value,
+          paid: false,
+          time: patientInfo.session_time_2,
+          show_in_schedule: !patientInfo.hide_second_session_from_schedule,
+        });
+      }
+      
+      lastDate = nextDate2 > nextDate1 ? nextDate2 : nextDate1;
     }
-    
-    lastDate = nextDate;
+  } else {
+    // Original logic for weekly/biweekly
+    for (let i = 0; i < sessionsToCreate; i++) {
+      const nextDate = getNextSessionDate(lastDate, patientInfo.session_day, patientInfo.frequency);
+      
+      // Check if session already exists
+      const { data: existing } = await supabase
+        .from('sessions')
+        .select('id')
+        .eq('patient_id', patientId)
+        .eq('date', nextDate)
+        .maybeSingle();
+
+      if (!existing) {
+        newSessions.push({
+          patient_id: patientId,
+          date: nextDate,
+          status: 'scheduled',
+          value: patientInfo.session_value,
+          paid: false,
+          time: patientInfo.session_time,
+          show_in_schedule: true,
+        });
+      }
+      
+      lastDate = nextDate;
+    }
   }
 
   if (newSessions.length > 0) {

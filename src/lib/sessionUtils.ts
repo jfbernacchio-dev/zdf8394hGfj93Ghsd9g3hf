@@ -101,7 +101,7 @@ export const generateTwiceWeeklySessions = (
   sessionTime2: string,
   numberOfWeeks: number = 8
 ) => {
-  const sessions: { date: string; status: string; time: string }[] = [];
+  const sessions: { date: string; status: string; time: string; isSecondSession?: boolean }[] = [];
   
   const startDateObj = new Date(startDate + 'T00:00:00');
   const targetDay1 = dayOfWeekMap[sessionDay1.toLowerCase()];
@@ -122,7 +122,7 @@ export const generateTwiceWeeklySessions = (
     const sessionDateTime = new Date(currentDate1);
     sessionDateTime.setHours(hours, minutes, 0, 0);
     const status = sessionDateTime < now ? 'attended' : 'scheduled';
-    sessions.push({ date: sessionDate, status, time: sessionTime1 });
+    sessions.push({ date: sessionDate, status, time: sessionTime1, isSecondSession: false });
     currentDate1.setDate(currentDate1.getDate() + 7);
   }
 
@@ -139,7 +139,7 @@ export const generateTwiceWeeklySessions = (
     const sessionDateTime = new Date(currentDate2);
     sessionDateTime.setHours(hours, minutes, 0, 0);
     const status = sessionDateTime < now ? 'attended' : 'scheduled';
-    sessions.push({ date: sessionDate, status, time: sessionTime2 });
+    sessions.push({ date: sessionDate, status, time: sessionTime2, isSecondSession: true });
     currentDate2.setDate(currentDate2.getDate() + 7);
   }
 

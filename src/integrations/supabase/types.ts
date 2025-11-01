@@ -490,6 +490,7 @@ export type Database = {
           frequency: string
           guardian_cpf: string | null
           guardian_name: string | null
+          hide_second_session_from_schedule: boolean | null
           id: string
           include_minor_text: boolean | null
           is_minor: boolean | null
@@ -519,6 +520,7 @@ export type Database = {
           frequency: string
           guardian_cpf?: string | null
           guardian_name?: string | null
+          hide_second_session_from_schedule?: boolean | null
           id?: string
           include_minor_text?: boolean | null
           is_minor?: boolean | null
@@ -548,6 +550,7 @@ export type Database = {
           frequency?: string
           guardian_cpf?: string | null
           guardian_name?: string | null
+          hide_second_session_from_schedule?: boolean | null
           id?: string
           include_minor_text?: boolean | null
           is_minor?: boolean | null
@@ -815,6 +818,7 @@ export type Database = {
           notes: string | null
           paid: boolean | null
           patient_id: string
+          show_in_schedule: boolean | null
           status: string
           time: string | null
           updated_at: string
@@ -827,6 +831,7 @@ export type Database = {
           notes?: string | null
           paid?: boolean | null
           patient_id: string
+          show_in_schedule?: boolean | null
           status?: string
           time?: string | null
           updated_at?: string
@@ -839,6 +844,7 @@ export type Database = {
           notes?: string | null
           paid?: boolean | null
           patient_id?: string
+          show_in_schedule?: boolean | null
           status?: string
           time?: string | null
           updated_at?: string
