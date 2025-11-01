@@ -16,20 +16,28 @@ const TerapiaInfantil = () => {
               className="text-[#6A7567] leading-relaxed"
               style={{ fontSize: '18.9px', lineHeight: '26px' }}
             >
-              A Psicoterapia Infantil é uma abordagem especializada que auxilia crianças 
-              a compreenderem e expressarem suas emoções, pensamentos e comportamentos de 
-              forma saudável. Utilizamos técnicas lúdicas e apropriadas para cada faixa 
-              etária, respeitando o universo infantil.
+              O Espaço Mindware conta com psicólogos que atuam na clínica infantil na abordagem Cognitiva Comportamental.
             </p>
             
             <p 
               className="text-[#6A7567] leading-relaxed"
               style={{ fontSize: '18.9px', lineHeight: '26px' }}
             >
-              O trabalho terapêutico com crianças envolve também orientação aos pais, 
-              criando um ambiente de apoio e compreensão. Através do brincar, da arte e 
-              da conversa, a criança desenvolve recursos emocionais para lidar com seus 
-              desafios e promover seu desenvolvimento saudável.
+              Os objetivos terapêuticos são definidos conjuntamente com a família, cuidadores e o terapeuta após às primeiras sessões de avaliação da criança.
+            </p>
+            
+            <p 
+              className="text-[#6A7567] leading-relaxed"
+              style={{ fontSize: '18.9px', lineHeight: '26px' }}
+            >
+              Para os objetivos terapêuticos serem alcançados, é necessário fazer da psicoterapia infantil um encontro acolhedor entre a criança com o terapeuta. Nosso olhar está sempre voltado para a individualidade da criança e como esta manifesta suas questões emocionais, afetivas e comportamentais em seu meio social.
+            </p>
+            
+            <p 
+              className="text-[#6A7567] leading-relaxed"
+              style={{ fontSize: '18.9px', lineHeight: '26px' }}
+            >
+              O processo terapêutico com as crianças está ligado ao desenvolvimento de habilidades cognitivas e comportamentais que sejam facilitadoras para que se adaptem ao mundo de forma saudável. Para os pais e cuidadores, trata-se de um espaço que busca instrumentalizar os para estarem aprendendo sobre o desenvolvimento da criança.
             </p>
           </div>
         </div>
