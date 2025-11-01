@@ -62,13 +62,15 @@ const PublicHeader = () => {
           >
             SOBRE NÓS
           </Link>
-          <a 
-            href="/#espaco" 
-            className="relative flex items-center h-full px-4 hover:opacity-80 transition-opacity border-t-[3px] border-transparent"
-            style={{ fontSize: '14px', fontWeight: 500, color: '#6A7567' }}
+          <Link 
+            to="/o-espaco" 
+            className={`relative flex items-center h-full px-4 hover:opacity-80 transition-opacity border-t-[3px] ${
+              isActive('/o-espaco') ? 'border-[#6A7567]' : 'border-transparent'
+            }`}
+            style={{ fontSize: '14px', fontWeight: isActive('/o-espaco') ? 700 : 500, color: '#6A7567' }}
           >
             O ESPAÇO
-          </a>
+          </Link>
           <a 
             href="/#curso" 
             className="relative flex items-center h-full px-4 hover:opacity-80 transition-opacity border-t-[3px] border-transparent"
