@@ -1,14 +1,59 @@
 import { MapPin, Phone } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Instagram, Youtube, Facebook } from "lucide-react";
 
 const Footer = () => {
   return (
-    <footer className="bg-[#7F8D7C] text-white py-16 px-8">
+    <footer className="bg-[#7F8D7C] text-white py-12 px-8" style={{ minHeight: '565px' }}>
       <div className="max-w-7xl mx-auto">
-        <div className="grid md:grid-cols-3 gap-12">
+        {/* Top Section - Logo and Social Icons */}
+        <div className="flex justify-between items-start mb-12">
+          <img 
+            src="/images/mindware-logo-white.png" 
+            alt="Espaço Mindware" 
+            className="h-20 w-auto"
+          />
+          <div className="flex gap-4">
+            <a 
+              href="https://api.whatsapp.com/send?phone=5511988802007" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="w-8 h-8 rounded-full bg-white flex items-center justify-center hover:bg-gray-100 transition-colors"
+            >
+              <Phone className="w-4 h-4 text-[#7F8D7C]" />
+            </a>
+            <a 
+              href="https://instagram.com/espacomindware" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="w-8 h-8 rounded-full bg-white flex items-center justify-center hover:bg-gray-100 transition-colors"
+            >
+              <Instagram className="w-4 h-4 text-[#7F8D7C]" />
+            </a>
+            <a 
+              href="https://facebook.com/espacomindware" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="w-8 h-8 rounded-full bg-white flex items-center justify-center hover:bg-gray-100 transition-colors"
+            >
+              <Facebook className="w-4 h-4 text-[#7F8D7C]" />
+            </a>
+            <a 
+              href="https://youtube.com/@espacomindware" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="w-8 h-8 rounded-full bg-white flex items-center justify-center hover:bg-gray-100 transition-colors"
+            >
+              <Youtube className="w-4 h-4 text-[#7F8D7C]" />
+            </a>
+          </div>
+        </div>
+
+        {/* Main Footer Content - 3 Columns */}
+        <div className="grid md:grid-cols-3 gap-12 mb-12">
           {/* Contato */}
           <div>
-            <h3 className="text-xl font-semibold mb-6">CONTATO</h3>
+            <h3 className="text-xl font-semibold mb-6 uppercase">Contato</h3>
             <div className="space-y-4">
               <div className="flex items-start gap-3">
                 <MapPin className="w-5 h-5 mt-1 flex-shrink-0" />
@@ -30,7 +75,7 @@ const Footer = () => {
 
           {/* Navegação */}
           <div>
-            <h3 className="text-xl font-semibold mb-6">NAVEGAÇÃO</h3>
+            <h3 className="text-xl font-semibold mb-6 uppercase">Navegação</h3>
             <nav className="space-y-2">
               <Link to="/" className="block hover:underline">Início</Link>
               <Link to="/servicos/terapia-cognitiva-comportamental" className="block hover:underline">Terapia Cognitiva</Link>
@@ -46,7 +91,7 @@ const Footer = () => {
 
           {/* Local */}
           <div>
-            <h3 className="text-xl font-semibold mb-6">LOCAL</h3>
+            <h3 className="text-xl font-semibold mb-6 uppercase">Local</h3>
             <div className="w-full h-48 bg-gray-300 rounded-lg overflow-hidden">
               <iframe
                 src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3657.0897285863846!2d-46.69168!3d-23.5631!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x94ce57f3b4f4d3f7%3A0x3a3e3e3e3e3e3e3e!2sRua%20Ribeiro%20de%20Barros%2C%20310%20-%20Pompeia%2C%20S%C3%A3o%20Paulo%20-%20SP!5e0!3m2!1spt-BR!2sbr!4v1234567890"
@@ -63,8 +108,9 @@ const Footer = () => {
         </div>
 
         {/* Copyright */}
-        <div className="mt-12 pt-8 border-t border-white/20 text-center text-sm">
-          <p>© Espaço Mindware 2025 Criado com Lovable | Todos os direitos reservados</p>
+        <div className="pt-8 border-t border-white/20 text-center text-sm">
+          <p>© Espaço Mindware 2024. Todos os direitos Reservados</p>
+          <p>PROJETA COMUNICAÇÃO</p>
         </div>
       </div>
     </footer>
