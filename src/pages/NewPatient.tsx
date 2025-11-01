@@ -321,9 +321,12 @@ const NewPatient = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="cpf">CPF</Label>
+                <Label htmlFor="cpf">
+                  CPF {!formData.isMinor || formData.nfseIssueTo === 'patient' ? '*' : ''}
+                </Label>
                 <Input
                   id="cpf"
+                  required={!formData.isMinor || formData.nfseIssueTo === 'patient'}
                   value={formData.cpf}
                   onChange={(e) => {
                     const value = e.target.value.replace(/\D/g, '');
@@ -418,10 +421,12 @@ const NewPatient = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="guardianCpf">CPF do Responsável Legal *</Label>
+                    <Label htmlFor="guardianCpf">
+                      CPF do Responsável Legal {formData.nfseIssueTo === 'guardian' ? '*' : ''}
+                    </Label>
                     <Input
                       id="guardianCpf"
-                      required={formData.isMinor}
+                      required={formData.isMinor && formData.nfseIssueTo === 'guardian'}
                       value={formData.guardianCpf}
                       onChange={(e) => {
                         const value = e.target.value.replace(/\D/g, '');

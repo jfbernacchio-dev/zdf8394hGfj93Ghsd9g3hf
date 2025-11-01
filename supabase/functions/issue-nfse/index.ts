@@ -178,9 +178,10 @@ CPF: ${invoiceCpf || 'Não informado'}`;
 
     // Add minor patient info only if flag is enabled
     if (issueTo === 'guardian' && isMinor && patient.include_minor_text) {
+      const patientCpfText = patient.cpf ? `, CPF ${patient.cpf}` : '';
       serviceDescription += `
 
-Atendimento referente ao paciente menor de idade ${patient.name}, CPF ${patient.cpf || 'não informado'}`;
+Atendimento referente ao paciente menor de idade ${patient.name}${patientCpfText}`;
     }
 
     // Add session details
