@@ -1,14 +1,30 @@
 import Footer from "@/components/Footer";
 import PublicHeader from "@/components/PublicHeader";
+import { useState } from "react";
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
+  type CarouselApi,
 } from "@/components/ui/carousel";
+import { useEffect } from "react";
 
 const OEspaco = () => {
+  const [api, setApi] = useState<CarouselApi>();
+  const [current, setCurrent] = useState(0);
+
+  useEffect(() => {
+    if (!api) return;
+
+    setCurrent(api.selectedScrollSnap());
+
+    api.on("select", () => {
+      setCurrent(api.selectedScrollSnap());
+    });
+  }, [api]);
+
   const carouselImages = [
     "/images/espaco-1.jpg",
     "/images/espaco-2.jpg",
@@ -84,6 +100,7 @@ const OEspaco = () => {
       <section style={{ backgroundColor: '#7F8D7C', padding: '0', minHeight: '519px' }}>
         <div className="w-full" style={{ maxWidth: '100vw', overflow: 'hidden' }}>
           <Carousel
+            setApi={setApi}
             opts={{
               align: "start",
               loop: true,
@@ -115,12 +132,14 @@ const OEspaco = () => {
             {carouselImages.map((image, index) => (
               <div
                 key={index}
+                onClick={() => api?.scrollTo(index)}
                 className="flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
                 style={{
                   width: '120px',
                   height: '120px',
-                  border: '5px solid white',
-                  backgroundColor: 'white'
+                  border: current === index ? '5px solid white' : '5px solid rgba(255, 255, 255, 0.6)',
+                  backgroundColor: 'white',
+                  opacity: current === index ? 1 : 0.6
                 }}
               >
                 <img
