@@ -12,7 +12,7 @@ const PublicHeader = () => {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-sm z-50 border-b" style={{ borderColor: '#E8E4D9', height: '142px' }}>
+    <header className="fixed top-0 left-0 right-0 bg-white backdrop-blur-sm z-50 border-b shadow-sm" style={{ borderColor: '#E8E4D9', height: '142px' }}>
       <div className="flex items-center justify-between px-6 h-full" style={{ maxWidth: '1920px', margin: '0 auto' }}>
         {/* Logo */}
         <div className="flex items-center">
