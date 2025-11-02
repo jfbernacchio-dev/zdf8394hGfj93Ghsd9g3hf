@@ -352,7 +352,9 @@ export default function NFSeHistory() {
                 </div>
                 <Button onClick={handleRefreshAll} variant="outline">
                   <RefreshCcw className="h-4 w-4 mr-2" />
-                  Atualizar Todas
+                  Atualizar {filteredNFSe.filter(n => n.status === 'processing' || n.status === 'error').length > 0 
+                    ? `(${filteredNFSe.filter(n => n.status === 'processing' || n.status === 'error').length})` 
+                    : 'Todas'}
                 </Button>
               </div>
 
@@ -363,6 +365,16 @@ export default function NFSeHistory() {
                   {searchTerm ? 'Nenhuma nota encontrada' : `Nenhuma nota fiscal emitida em ${activeTab === 'producao' ? 'produção' : 'homologação'}`}
                 </div>
               ) : (
+                <>
+                  {filteredNFSe.some(n => n.status === 'processing') && (
+                    <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm text-blue-800">
+                        <strong>ℹ️ Notas em processamento:</strong> A prefeitura está processando as notas. 
+                        Isso pode levar alguns minutos. Clique em "Atualizar Todas" para verificar o status atualizado.
+                      </p>
+                    </div>
+                  )}
+                
                 <Table>
               <TableHeader>
                 <TableRow>
@@ -474,17 +486,18 @@ export default function NFSeHistory() {
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
-                        )}
+                         )}
                       </div>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+                </>
           )}
             </TabsContent>
           </Tabs>
         </Card>
-      </div>
+    </div>
   );
 }
