@@ -43,7 +43,10 @@ const handler = async (req: Request): Promise<Response> => {
         patient:patients (
           name,
           email,
-          cpf
+          cpf,
+          use_alternate_nfse_contact,
+          nfse_alternate_email,
+          nfse_alternate_phone
         )
       `)
       .eq("id", nfseId)
@@ -63,7 +66,12 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("NFSe PDF URL not available");
     }
 
-    if (!nfseData.patient?.email) {
+    // Determine which email to use: alternate if available, otherwise patient email
+    const recipientEmail = nfseData.patient?.use_alternate_nfse_contact && nfseData.patient?.nfse_alternate_email
+      ? nfseData.patient.nfse_alternate_email
+      : nfseData.patient?.email;
+
+    if (!recipientEmail) {
       throw new Error("Patient email not found");
     }
 
@@ -99,7 +107,7 @@ const handler = async (req: Request): Promise<Response> => {
       currency: "BRL",
     });
 
-    console.log("Sending email to:", nfseData.patient.email);
+    console.log("Sending email to:", recipientEmail);
 
     // Send email with PDF attachment
     // Use environment variable for 'from' address, fallback to test address
@@ -107,7 +115,7 @@ const handler = async (req: Request): Promise<Response> => {
     
     const emailResponse = await resend.emails.send({
       from: fromEmail,
-      to: [nfseData.patient.email],
+      to: [recipientEmail],
       subject: `Nota Fiscal Espaço Mindware - ${issueMonth}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">

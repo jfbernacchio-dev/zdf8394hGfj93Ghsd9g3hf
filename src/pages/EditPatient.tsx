@@ -72,6 +72,9 @@ const EditPatient = () => {
         hide_second_session_from_schedule: data.hide_second_session_from_schedule || false,
         hide_from_schedule: data.hide_from_schedule || false,
         observations: data.observations || '',
+        use_alternate_nfse_contact: data.use_alternate_nfse_contact || false,
+        nfse_alternate_email: data.nfse_alternate_email || '',
+        nfse_alternate_phone: data.nfse_alternate_phone || '',
       };
       setFormData(patientData);
       setOriginalData(patientData);
@@ -241,6 +244,9 @@ const EditPatient = () => {
       hide_second_session_from_schedule: formData.frequency === 'twice_weekly' ? formData.hide_second_session_from_schedule : false,
       hide_from_schedule: formData.hide_from_schedule,
       observations: formData.observations || null,
+      use_alternate_nfse_contact: formData.use_alternate_nfse_contact,
+      nfse_alternate_email: formData.use_alternate_nfse_contact ? (formData.nfse_alternate_email || null) : null,
+      nfse_alternate_phone: formData.use_alternate_nfse_contact ? (formData.nfse_alternate_phone || null) : null,
     }).eq('id', id);
 
     if (error) {
@@ -435,6 +441,45 @@ const EditPatient = () => {
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               />
             </div>
+
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="useAlternateNfseContact"
+                checked={formData.use_alternate_nfse_contact}
+                onChange={(e) => setFormData({ ...formData, use_alternate_nfse_contact: e.target.checked })}
+                className="cursor-pointer"
+              />
+              <Label htmlFor="useAlternateNfseContact" className="cursor-pointer">
+                Encaminhar NFSe para Outro Contato
+              </Label>
+            </div>
+
+            {formData.use_alternate_nfse_contact && (
+              <div className="grid grid-cols-2 gap-4 bg-muted/50 p-4 rounded-lg">
+                <div className="space-y-2">
+                  <Label htmlFor="nfseAlternateEmail">Email para NFSe</Label>
+                  <Input
+                    id="nfseAlternateEmail"
+                    type="email"
+                    value={formData.nfse_alternate_email}
+                    onChange={(e) => setFormData({ ...formData, nfse_alternate_email: e.target.value })}
+                    placeholder="Email alternativo para receber NFSe"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="nfseAlternatePhone">Telefone para NFSe</Label>
+                  <Input
+                    id="nfseAlternatePhone"
+                    type="tel"
+                    value={formData.nfse_alternate_phone}
+                    onChange={(e) => setFormData({ ...formData, nfse_alternate_phone: e.target.value })}
+                    placeholder="Telefone alternativo para receber NFSe"
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="birth_date">Data de nascimento</Label>

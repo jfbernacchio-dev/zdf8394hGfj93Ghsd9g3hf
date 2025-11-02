@@ -498,6 +498,8 @@ export type Database = {
           lgpd_consent_date: string | null
           monthly_price: boolean | null
           name: string
+          nfse_alternate_email: string | null
+          nfse_alternate_phone: string | null
           nfse_issue_to: string | null
           nfse_max_sessions_per_invoice: number | null
           nfse_number_of_invoices: number | null
@@ -514,6 +516,7 @@ export type Database = {
           start_date: string | null
           status: string
           updated_at: string
+          use_alternate_nfse_contact: boolean | null
           user_id: string
         }
         Insert: {
@@ -532,6 +535,8 @@ export type Database = {
           lgpd_consent_date?: string | null
           monthly_price?: boolean | null
           name: string
+          nfse_alternate_email?: string | null
+          nfse_alternate_phone?: string | null
           nfse_issue_to?: string | null
           nfse_max_sessions_per_invoice?: number | null
           nfse_number_of_invoices?: number | null
@@ -548,6 +553,7 @@ export type Database = {
           start_date?: string | null
           status?: string
           updated_at?: string
+          use_alternate_nfse_contact?: boolean | null
           user_id: string
         }
         Update: {
@@ -566,6 +572,8 @@ export type Database = {
           lgpd_consent_date?: string | null
           monthly_price?: boolean | null
           name?: string
+          nfse_alternate_email?: string | null
+          nfse_alternate_phone?: string | null
           nfse_issue_to?: string | null
           nfse_max_sessions_per_invoice?: number | null
           nfse_number_of_invoices?: number | null
@@ -582,6 +590,7 @@ export type Database = {
           start_date?: string | null
           status?: string
           updated_at?: string
+          use_alternate_nfse_contact?: boolean | null
           user_id?: string
         }
         Relationships: []

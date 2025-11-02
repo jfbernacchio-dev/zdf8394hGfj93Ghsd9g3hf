@@ -62,6 +62,9 @@ const NewPatient = () => {
     hideSecondSessionFromSchedule: false,
     hideFromSchedule: false,
     observations: '',
+    useAlternateNfseContact: false,
+    nfseAlternateEmail: '',
+    nfseAlternatePhone: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -108,6 +111,9 @@ const NewPatient = () => {
           hide_second_session_from_schedule: formData.frequency === 'twice_weekly' ? formData.hideSecondSessionFromSchedule : false,
           hide_from_schedule: formData.hideFromSchedule,
           observations: formData.observations || null,
+          use_alternate_nfse_contact: formData.useAlternateNfseContact,
+          nfse_alternate_email: formData.useAlternateNfseContact ? (formData.nfseAlternateEmail || null) : null,
+          nfse_alternate_phone: formData.useAlternateNfseContact ? (formData.nfseAlternatePhone || null) : null,
           status: 'active',
         })
         .select()
@@ -327,6 +333,45 @@ const NewPatient = () => {
                 />
               </div>
             </div>
+
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="useAlternateNfseContact"
+                checked={formData.useAlternateNfseContact}
+                onChange={(e) => setFormData({ ...formData, useAlternateNfseContact: e.target.checked })}
+                className="cursor-pointer"
+              />
+              <Label htmlFor="useAlternateNfseContact" className="cursor-pointer">
+                Encaminhar NFSe para Outro Contato
+              </Label>
+            </div>
+
+            {formData.useAlternateNfseContact && (
+              <div className="grid grid-cols-2 gap-4 bg-muted/50 p-4 rounded-lg">
+                <div className="space-y-2">
+                  <Label htmlFor="nfseAlternateEmail">Email para NFSe</Label>
+                  <Input
+                    id="nfseAlternateEmail"
+                    type="email"
+                    value={formData.nfseAlternateEmail}
+                    onChange={(e) => setFormData({ ...formData, nfseAlternateEmail: e.target.value })}
+                    placeholder="Email alternativo para receber NFSe"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="nfseAlternatePhone">Telefone para NFSe</Label>
+                  <Input
+                    id="nfseAlternatePhone"
+                    type="tel"
+                    value={formData.nfseAlternatePhone}
+                    onChange={(e) => setFormData({ ...formData, nfseAlternatePhone: e.target.value })}
+                    placeholder="Telefone alternativo para receber NFSe"
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
