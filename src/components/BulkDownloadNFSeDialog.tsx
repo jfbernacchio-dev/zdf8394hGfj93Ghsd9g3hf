@@ -104,27 +104,43 @@ export default function BulkDownloadNFSeDialog({ nfseList, environment }: BulkDo
             return false;
           }
           
-          // Get the file name from patient_files table (same name as stored in patient files)
-          // Search for files around the issue date
-          const issueDate = new Date(nfse.issue_date);
-          const oneDayBefore = new Date(issueDate);
-          oneDayBefore.setDate(oneDayBefore.getDate() - 1);
-          const oneDayAfter = new Date(issueDate);
-          oneDayAfter.setDate(oneDayAfter.getDate() + 1);
+          // Get the file name from patient_files table by matching the expected filename pattern
+          // First, determine the month that should be in the filename based on last session
+          let referenceMonth = '';
+          const sessionIds = (nfse as any).session_ids || [];
           
-          const { data: patientFile } = await supabase
+          if (sessionIds.length > 0) {
+            const { data: sessions } = await supabase
+              .from('sessions')
+              .select('date')
+              .in('id', sessionIds)
+              .order('date', { ascending: false })
+              .limit(1);
+            
+            if (sessions && sessions.length > 0) {
+              const lastSessionDate = new Date(sessions[0].date);
+              const months = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+              const month = months[lastSessionDate.getMonth()];
+              const year = lastSessionDate.getFullYear().toString().slice(-2);
+              referenceMonth = `${month}-${year}`;
+            }
+          }
+          
+          // Search for the file with matching month pattern
+          const { data: patientFiles } = await supabase
             .from('patient_files')
             .select('file_name')
             .eq('patient_id', nfse.patient_id)
             .eq('category', 'NFSe')
-            .gte('uploaded_at', oneDayBefore.toISOString())
-            .lte('uploaded_at', oneDayAfter.toISOString())
-            .order('uploaded_at', { ascending: false })
-            .limit(1)
-            .single();
+            .order('uploaded_at', { ascending: false });
+          
+          // Find file that matches the expected pattern
+          const matchingFile = patientFiles?.find(f => 
+            referenceMonth && f.file_name.includes(referenceMonth)
+          );
           
           // Use the stored file name, or fallback to a generated name
-          const fileName = patientFile?.file_name || `${nfse.patients.name} NFSe.pdf`;
+          const fileName = matchingFile?.file_name || `${nfse.patients.name} NFSe.pdf`;
           
           // Add PDF to ZIP
           folder?.file(fileName, pdfData);
