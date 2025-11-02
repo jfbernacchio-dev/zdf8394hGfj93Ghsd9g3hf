@@ -168,9 +168,26 @@ serve(async (req) => {
           const pdfBuffer = await pdfBlob.arrayBuffer();
           
           // Generate filename: "Patient Name mon-yy"
-          const issueDate = new Date(nfseRecord.issue_date);
-          const month = MONTHS[issueDate.getMonth()];
-          const year = issueDate.getFullYear().toString().slice(-2);
+          // Use the date of the last session included in this NFSe
+          const sessionIds = nfseRecord.session_ids || [];
+          let referenceDate = new Date(nfseRecord.issue_date);
+          
+          if (sessionIds.length > 0) {
+            // Fetch sessions to get the last session date
+            const { data: sessions, error: sessionsError } = await supabase
+              .from('sessions')
+              .select('date')
+              .in('id', sessionIds)
+              .order('date', { ascending: false })
+              .limit(1);
+            
+            if (!sessionsError && sessions && sessions.length > 0) {
+              referenceDate = new Date(sessions[0].date);
+            }
+          }
+          
+          const month = MONTHS[referenceDate.getMonth()];
+          const year = referenceDate.getFullYear().toString().slice(-2);
           const patientName = (nfseRecord.patients as any)?.name || 'NFSe';
           const fileName = `${patientName} ${month}-${year}.pdf`;
           const filePath = `${nfseRecord.patient_id}/${Date.now()}_${fileName}`;

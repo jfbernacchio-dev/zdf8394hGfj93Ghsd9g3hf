@@ -17,6 +17,7 @@ interface BulkDownloadNFSeDialogProps {
     pdf_url: string | null;
     nfse_number: string | null;
     status: string;
+    patient_id: string;
     patients: {
       name: string;
     };
@@ -103,11 +104,27 @@ export default function BulkDownloadNFSeDialog({ nfseList, environment }: BulkDo
             return false;
           }
           
-          // Create filename
+          // Get the file name from patient_files table (same name as stored in patient files)
+          // Search for files around the issue date
           const issueDate = new Date(nfse.issue_date);
-          const dateStr = format(issueDate, 'dd-MM-yyyy');
-          const patientName = nfse.patients.name.replace(/[^a-zA-Z0-9\s]/g, '').substring(0, 30);
-          const fileName = `NFSe_${nfse.nfse_number || 'SN'}_${patientName}_${dateStr}.pdf`;
+          const oneDayBefore = new Date(issueDate);
+          oneDayBefore.setDate(oneDayBefore.getDate() - 1);
+          const oneDayAfter = new Date(issueDate);
+          oneDayAfter.setDate(oneDayAfter.getDate() + 1);
+          
+          const { data: patientFile } = await supabase
+            .from('patient_files')
+            .select('file_name')
+            .eq('patient_id', nfse.patient_id)
+            .eq('category', 'NFSe')
+            .gte('uploaded_at', oneDayBefore.toISOString())
+            .lte('uploaded_at', oneDayAfter.toISOString())
+            .order('uploaded_at', { ascending: false })
+            .limit(1)
+            .single();
+          
+          // Use the stored file name, or fallback to a generated name
+          const fileName = patientFile?.file_name || `${nfse.patients.name} NFSe.pdf`;
           
           // Add PDF to ZIP
           folder?.file(fileName, pdfData);
