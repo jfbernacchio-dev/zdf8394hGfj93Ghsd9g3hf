@@ -1,7 +1,6 @@
 import Navbar from './Navbar';
 import BottomNav from './BottomNav';
 import MobileHeader from './MobileHeader';
-import Footer from './Footer';
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -11,7 +10,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       <main className="animate-fade-in pb-safe lg:pb-0">
         {children}
       </main>
-      <Footer />
       <BottomNav />
     </div>
   );
