@@ -759,14 +759,20 @@ Assinatura do Profissional`;
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold text-foreground">Histórico de Sessões</h2>
               <div className="flex gap-2">
-                {patient.monthly_price ? (
-                  // Pacientes mensais: apenas recibo texto
+                {patient.no_nfse ? (
+                  // Pacientes sem NFSe: recibo de fechamento
+                  <Button onClick={generateInvoice} variant="outline">
+                    <FileText className="w-4 h-4 mr-2" />
+                    Fazer Fechamento
+                  </Button>
+                ) : patient.monthly_price ? (
+                  // Pacientes mensais com NFSe: recibo mensal
                   <Button onClick={generateInvoice} variant="outline">
                     <FileText className="w-4 h-4 mr-2" />
                     Gerar Recibo Mensal
                   </Button>
                 ) : (
-                  // Pacientes por sessão: usar NFSe
+                  // Pacientes por sessão com NFSe: usar NFSe
                   <IssueNFSeDialog 
                     patientId={id!} 
                     patientName={patient.name}
