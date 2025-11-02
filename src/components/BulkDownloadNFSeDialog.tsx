@@ -88,21 +88,20 @@ export default function BulkDownloadNFSeDialog({ nfseList, environment }: BulkDo
       const zip = new JSZip();
       const folder = zip.folder('NFSes');
 
-      // Download all PDFs and add to ZIP with proxy through edge function
+      // Download all PDFs and add to ZIP using edge function as proxy
+      const { supabase } = await import('@/integrations/supabase/client');
+      
       const downloadPromises = filteredNFSes.map(async (nfse) => {
         try {
           // Use edge function as proxy to avoid CORS issues
-          const { supabase } = await import('@/integrations/supabase/client');
-          const response = await fetch(nfse.pdf_url!, {
-            mode: 'cors',
+          const { data: pdfData, error } = await supabase.functions.invoke('download-nfse-pdf', {
+            body: { pdfUrl: nfse.pdf_url },
           });
           
-          if (!response.ok) {
-            console.error(`Erro ao baixar PDF ${nfse.id}: ${response.statusText}`);
+          if (error) {
+            console.error(`Erro ao baixar PDF ${nfse.id}:`, error);
             return false;
           }
-          
-          const blob = await response.blob();
           
           // Create filename
           const issueDate = new Date(nfse.issue_date);
@@ -110,7 +109,8 @@ export default function BulkDownloadNFSeDialog({ nfseList, environment }: BulkDo
           const patientName = nfse.patients.name.replace(/[^a-zA-Z0-9\s]/g, '').substring(0, 30);
           const fileName = `NFSe_${nfse.nfse_number || 'SN'}_${patientName}_${dateStr}.pdf`;
           
-          folder?.file(fileName, blob);
+          // Add PDF to ZIP
+          folder?.file(fileName, pdfData);
           
           return true;
         } catch (error) {
