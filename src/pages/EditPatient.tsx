@@ -448,11 +448,11 @@ const EditPatient = () => {
 
             <div className="space-y-2">
               <Label htmlFor="cpf">
-                CPF {!formData.is_minor || formData.nfse_issue_to === 'patient' ? '*' : ''}
+                CPF {!formData.no_nfse && (!formData.is_minor || formData.nfse_issue_to === 'patient') ? '*' : ''}
               </Label>
               <Input
                 id="cpf"
-                required={!formData.is_minor || formData.nfse_issue_to === 'patient'}
+                required={!formData.no_nfse && (!formData.is_minor || formData.nfse_issue_to === 'patient')}
                 value={formData.cpf || ''}
                 onChange={(e) => {
                   const value = e.target.value.replace(/\D/g, '');
@@ -582,11 +582,11 @@ const EditPatient = () => {
 
                   <div className="space-y-2">
                     <Label htmlFor="guardianCpf">
-                      CPF do Responsável Legal {formData.nfse_issue_to === 'guardian' ? '*' : ''}
+                      CPF do Responsável Legal {!formData.no_nfse && formData.nfse_issue_to === 'guardian' ? '*' : ''}
                     </Label>
                     <Input
                       id="guardianCpf"
-                      required={formData.is_minor && formData.nfse_issue_to === 'guardian'}
+                      required={!formData.no_nfse && formData.is_minor && formData.nfse_issue_to === 'guardian'}
                       value={formData.guardian_cpf}
                       onChange={(e) => {
                         const value = e.target.value.replace(/\D/g, '');
