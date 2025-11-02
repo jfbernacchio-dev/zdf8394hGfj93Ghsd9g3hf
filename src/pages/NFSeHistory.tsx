@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import BulkDownloadNFSeDialog from '@/components/BulkDownloadNFSeDialog';
 
 import { ArrowLeft, FileText, Download, X, Search, Calendar, DollarSign, RefreshCw, Trash2, RefreshCcw, Mail } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -350,6 +351,10 @@ export default function NFSeHistory() {
                     className="pl-10"
                   />
                 </div>
+                <BulkDownloadNFSeDialog 
+                  nfseList={filteredNFSe} 
+                  environment={activeTab}
+                />
                 <Button onClick={handleRefreshAll} variant="outline">
                   <RefreshCcw className="h-4 w-4 mr-2" />
                   Atualizar {filteredNFSe.filter(n => n.status === 'processing' || n.status === 'error').length > 0 
