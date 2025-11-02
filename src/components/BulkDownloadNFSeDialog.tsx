@@ -83,20 +83,51 @@ export default function BulkDownloadNFSeDialog({ nfseList, environment }: BulkDo
         description: `Processando ${filteredNFSes.length} nota(s)...`,
       });
 
-      // Call edge function to download and zip PDFs
-      const { supabase } = await import('@/integrations/supabase/client');
-      
-      const { data, error } = await supabase.functions.invoke('download-nfse-bulk', {
-        body: { nfseIds: filteredNFSes.map(n => n.id) },
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      // Import JSZip dynamically
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+      const folder = zip.folder('NFSes');
+
+      // Download all PDFs and add to ZIP with proxy through edge function
+      const downloadPromises = filteredNFSes.map(async (nfse) => {
+        try {
+          // Use edge function as proxy to avoid CORS issues
+          const { supabase } = await import('@/integrations/supabase/client');
+          const response = await fetch(nfse.pdf_url!, {
+            mode: 'cors',
+          });
+          
+          if (!response.ok) {
+            console.error(`Erro ao baixar PDF ${nfse.id}: ${response.statusText}`);
+            return false;
+          }
+          
+          const blob = await response.blob();
+          
+          // Create filename
+          const issueDate = new Date(nfse.issue_date);
+          const dateStr = format(issueDate, 'dd-MM-yyyy');
+          const patientName = nfse.patients.name.replace(/[^a-zA-Z0-9\s]/g, '').substring(0, 30);
+          const fileName = `NFSe_${nfse.nfse_number || 'SN'}_${patientName}_${dateStr}.pdf`;
+          
+          folder?.file(fileName, blob);
+          
+          return true;
+        } catch (error) {
+          console.error(`Error downloading NFSe ${nfse.id}:`, error);
+          return false;
+        }
       });
 
-      if (error) throw error;
+      const results = await Promise.all(downloadPromises);
+      const successCount = results.filter(r => r).length;
 
-      // Convert response to blob
-      const zipBlob = new Blob([data], { type: 'application/zip' });
+      if (successCount === 0) {
+        throw new Error('Não foi possível baixar nenhuma nota fiscal');
+      }
+
+      // Generate ZIP file
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
 
       // Create download link
       const url = window.URL.createObjectURL(zipBlob);
@@ -114,7 +145,7 @@ export default function BulkDownloadNFSeDialog({ nfseList, environment }: BulkDo
 
       toast({
         title: 'Download concluído',
-        description: `${filteredNFSes.length} nota(s) fiscal(is) baixada(s) com sucesso.`,
+        description: `${successCount} nota(s) fiscal(is) baixada(s) com sucesso.`,
       });
 
       setOpen(false);
