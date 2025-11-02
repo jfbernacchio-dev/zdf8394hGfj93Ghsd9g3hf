@@ -216,25 +216,30 @@ export default function NFSeHistory() {
     }
 
     try {
-      // Aqui chamaríamos a edge function para cancelar via FocusNFe
-      const { error } = await supabase
-        .from('nfse_issued')
-        .update({
-          status: 'cancelled',
-          cancelled_at: new Date().toISOString(),
-          cancellation_reason: cancelReason,
-        })
-        .eq('id', nfseId);
+      toast({
+        title: 'Cancelando NFSe',
+        description: 'Aguarde enquanto cancelamos a nota fiscal...',
+      });
+
+      const { data, error } = await supabase.functions.invoke('cancel-nfse', {
+        body: { 
+          nfseId,
+          cancelReason: cancelReason.trim(),
+        },
+      });
 
       if (error) throw error;
 
-      toast({
-        title: 'NFSe cancelada',
-        description: 'A nota fiscal foi cancelada com sucesso.',
-      });
-
-      setCancelReason('');
-      loadNFSe();
+      if (data.success) {
+        toast({
+          title: 'NFSe cancelada',
+          description: 'A nota fiscal foi cancelada com sucesso. O PDF agora contém a marca de cancelamento.',
+        });
+        setCancelReason('');
+        loadNFSe();
+      } else {
+        throw new Error(data.error);
+      }
     } catch (error: any) {
       console.error('Error cancelling NFSe:', error);
       toast({
@@ -404,7 +409,7 @@ export default function NFSeHistory() {
                             variant="ghost"
                             size="sm"
                             onClick={() => window.open(nfse.pdf_url!, '_blank')}
-                            title="Baixar PDF"
+                            title={nfse.status === 'cancelled' ? 'Baixar PDF (Cancelada)' : 'Baixar PDF'}
                           >
                             <Download className="h-4 w-4" />
                           </Button>
