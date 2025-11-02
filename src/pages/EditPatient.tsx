@@ -421,8 +421,8 @@ const EditPatient = () => {
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
-                type="email"
-                value={formData.email}
+                type="text"
+                value={formData.email || ''}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               />
             </div>
