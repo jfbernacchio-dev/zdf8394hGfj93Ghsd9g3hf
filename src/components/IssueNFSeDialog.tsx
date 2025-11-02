@@ -21,6 +21,7 @@ export default function IssueNFSeDialog({
   const [loading, setLoading] = useState(false);
   const [loadingSessions, setLoadingSessions] = useState(false);
   const [unpaidSessions, setUnpaidSessions] = useState<any[]>([]);
+  const [maxSessionsPerInvoice, setMaxSessionsPerInvoice] = useState(20);
 
   useEffect(() => {
     if (open) {
@@ -34,11 +35,14 @@ export default function IssueNFSeDialog({
       // Buscar sessões não pagas e verificar se o paciente não é mensal
       const { data: patient, error: patientError } = await supabase
         .from('patients')
-        .select('monthly_price')
+        .select('monthly_price, nfse_max_sessions_per_invoice')
         .eq('id', patientId)
         .single();
 
       if (patientError) throw patientError;
+
+      // Store max sessions per invoice
+      setMaxSessionsPerInvoice(patient?.nfse_max_sessions_per_invoice || 20);
 
       // Se o paciente é mensal, não deve usar NFSe
       if (patient?.monthly_price) {
@@ -135,10 +139,12 @@ export default function IssueNFSeDialog({
       if (data.success) {
         const description = consentEmailSent 
           ? 'A nota fiscal está sendo emitida e o termo de consentimento foi enviado ao paciente.'
-          : 'A nota fiscal está sendo emitida. Consulte o histórico em alguns instantes.';
+          : data.multiple
+            ? `${data.message}. As notas fiscais estão sendo processadas. Consulte o histórico em alguns instantes.`
+            : 'A nota fiscal está sendo emitida. Consulte o histórico em alguns instantes.';
         
         toast({
-          title: 'NFSe em processamento',
+          title: data.multiple ? 'NFSes em processamento' : 'NFSe em processamento',
           description,
         });
         setOpen(false);
@@ -158,6 +164,8 @@ export default function IssueNFSeDialog({
   };
 
   const totalValue = unpaidSessions.reduce((sum, s) => sum + Number(s.value), 0);
+  const numberOfInvoices = Math.ceil(unpaidSessions.length / maxSessionsPerInvoice);
+  const willSplitInvoices = numberOfInvoices > 1;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -218,6 +226,11 @@ export default function IssueNFSeDialog({
                   <div className="rounded-lg border p-3 bg-muted/50">
                     <p className="text-sm font-medium mb-1">Informações importantes:</p>
                     <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                      {willSplitInvoices && (
+                        <li className="font-semibold text-blue-600">
+                          Serão emitidas {numberOfInvoices} notas fiscais (máx. {maxSessionsPerInvoice} sessões por nota)
+                        </li>
+                      )}
                       <li>Verifique se sua configuração fiscal está atualizada</li>
                       <li>A NFSe será enviada para o e-mail do paciente</li>
                       <li>Você pode consultar o histórico em NFSe &gt; Histórico</li>

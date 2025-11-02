@@ -130,6 +130,61 @@ serve(async (req) => {
       throw new Error('Algumas sessões não foram encontradas');
     }
 
+    // Check if we need to split into multiple NFSes
+    const maxSessionsPerInvoice = patient.nfse_max_sessions_per_invoice || 20;
+    const needsMultipleInvoices = sessions.length > maxSessionsPerInvoice;
+    
+    if (needsMultipleInvoices) {
+      console.log(`Splitting ${sessions.length} sessions into multiple invoices (max ${maxSessionsPerInvoice} per invoice)`);
+      
+      // Split sessions into batches
+      const sessionBatches: typeof sessions[] = [];
+      for (let i = 0; i < sessions.length; i += maxSessionsPerInvoice) {
+        sessionBatches.push(sessions.slice(i, i + maxSessionsPerInvoice));
+      }
+      
+      console.log(`Created ${sessionBatches.length} batches`);
+      
+      // Issue NFSe for each batch recursively
+      const results = [];
+      for (let i = 0; i < sessionBatches.length; i++) {
+        const batch = sessionBatches[i];
+        const batchSessionIds = batch.map(s => s.id);
+        
+        console.log(`Processing batch ${i + 1}/${sessionBatches.length} with ${batch.length} sessions`);
+        
+        // Call this function recursively for each batch
+        const batchResult = await supabase.functions.invoke('issue-nfse', {
+          body: { 
+            patientId, 
+            sessionIds: batchSessionIds 
+          },
+          headers: {
+            Authorization: authHeader,
+          },
+        });
+        
+        if (batchResult.error) {
+          console.error(`Error in batch ${i + 1}:`, batchResult.error);
+          results.push({ success: false, error: batchResult.error, batch: i + 1 });
+        } else {
+          results.push({ success: true, data: batchResult.data, batch: i + 1 });
+        }
+      }
+      
+      const successCount = results.filter(r => r.success).length;
+      
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          message: `${successCount} de ${sessionBatches.length} nota(s) fiscal(is) emitida(s) com sucesso`,
+          multiple: true,
+          batches: results,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Load user profile for invoice description
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
