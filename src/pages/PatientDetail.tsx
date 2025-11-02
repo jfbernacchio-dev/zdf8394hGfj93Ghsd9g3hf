@@ -36,7 +36,7 @@ const PatientDetail = () => {
   const [invoiceText, setInvoiceText] = useState('');
   const [invoiceSessions, setInvoiceSessions] = useState<any[]>([]);
   const [userProfile, setUserProfile] = useState<any>(null);
-  const [period, setPeriod] = useState('month');
+  const [period, setPeriod] = useState('last2Months');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [showScheduled, setShowScheduled] = useState(false);
