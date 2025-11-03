@@ -22,7 +22,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Calendar as CalendarIcon, Plus, CheckCircle, XCircle, DollarSign, ArrowLeft, Lock, Briefcase } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, CheckCircle, XCircle, DollarSign, ArrowLeft, Lock, Briefcase, X } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, startOfWeek, addDays, isBefore, parseISO, getDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { DndContext, DragEndEvent, useSensor, useSensors, PointerSensor, DragOverlay, closestCenter } from '@dnd-kit/core';
@@ -62,6 +62,8 @@ const Schedule = () => {
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [blockToDelete, setBlockToDelete] = useState<any>(null);
+  const [showDeleteBlockDialog, setShowDeleteBlockDialog] = useState(false);
   const { toast } = useToast();
 
   // Setup drag sensors
@@ -318,6 +320,19 @@ const Schedule = () => {
     if (!error) {
       toast({ title: 'Bloqueio removido' });
       loadScheduleBlocks();
+    }
+  };
+
+  const handleDeleteBlockClick = (block: any) => {
+    setBlockToDelete(block);
+    setShowDeleteBlockDialog(true);
+  };
+
+  const confirmDeleteBlock = async () => {
+    if (blockToDelete) {
+      await deleteBlock(blockToDelete.id);
+      setShowDeleteBlockDialog(false);
+      setBlockToDelete(null);
     }
   };
 
@@ -1361,13 +1376,23 @@ const Schedule = () => {
                         {dayBlocks.map(block => (
                           <div
                             key={block.id}
-                            className="absolute inset-x-0 bg-destructive/15 border-2 border-destructive/30 rounded flex items-center justify-center text-xs text-destructive z-10 pointer-events-none"
+                            className="absolute inset-x-0 bg-destructive/15 border-2 border-destructive/30 rounded flex items-center justify-center text-xs text-destructive z-10 group cursor-pointer hover:bg-destructive/25 transition-colors"
                             style={{
                               top: `${(block.startMinutes / 60) * 60}px`,
                               height: `${((block.endMinutes - block.startMinutes) / 60) * 60}px`,
                             }}
                           >
                             <span className="font-medium">🚫 Bloqueado</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteBlockClick(block);
+                              }}
+                              className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-destructive text-destructive-foreground rounded-full p-0.5 hover:bg-destructive/90"
+                              title="Remover bloqueio"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
                           </div>
                         ))}
                         
@@ -1810,13 +1835,23 @@ const Schedule = () => {
                       {dayBlocks.map(block => (
                         <div
                           key={block.id}
-                          className="absolute inset-x-0 mx-2 bg-destructive/15 border-2 border-destructive/30 rounded flex items-center justify-center text-xs text-destructive z-10 pointer-events-none"
+                          className="absolute inset-x-0 mx-2 bg-destructive/15 border-2 border-destructive/30 rounded flex items-center justify-center text-xs text-destructive z-10 group cursor-pointer hover:bg-destructive/25 transition-colors"
                           style={{
                             top: `${(block.startMinutes / 60) * 60}px`,
                             height: `${((block.endMinutes - block.startMinutes) / 60) * 60}px`,
                           }}
                         >
                           <span className="font-medium">🚫 Bloqueado</span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteBlockClick(block);
+                            }}
+                            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-destructive text-destructive-foreground rounded-full p-0.5 hover:bg-destructive/90"
+                            title="Remover bloqueio"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
                         </div>
                       ))}
                       
@@ -2394,6 +2429,24 @@ const Schedule = () => {
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
               <AlertDialogAction onClick={confirmWithTimeConflict}>
                 Sim, Agendar Mesmo Assim
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Alert Dialog for Delete Block Confirmation */}
+        <AlertDialog open={showDeleteBlockDialog} onOpenChange={setShowDeleteBlockDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remover Bloqueio</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja remover este bloqueio da agenda? Os horários voltarão a ficar disponíveis.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setBlockToDelete(null)}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDeleteBlock}>
+                Sim, remover
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
