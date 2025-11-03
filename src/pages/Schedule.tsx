@@ -270,12 +270,30 @@ const Schedule = () => {
       // Create multiple blocks for X weeks starting from start_date
       const blocks = [];
       const startDate = parseISO(blockForm.start_date);
+      const selectedDayOfWeek = parseInt(blockForm.day_of_week);
+      
+      // Get the day of week of start_date (1 = Monday, 7 = Sunday in date-fns)
+      const startDayOfWeek = getDay(startDate);
+      const adjustedStartDay = startDayOfWeek === 0 ? 7 : startDayOfWeek;
+      
+      // Calculate the first occurrence of the selected day
+      let firstOccurrence = startDate;
+      const dayDiff = selectedDayOfWeek - adjustedStartDay;
+      
+      if (dayDiff > 0) {
+        // Selected day is later in the same week
+        firstOccurrence = addDays(startDate, dayDiff);
+      } else if (dayDiff < 0) {
+        // Selected day is in the next week
+        firstOccurrence = addDays(startDate, 7 + dayDiff);
+      }
+      // If dayDiff === 0, it's the same day, so keep firstOccurrence as startDate
       
       for (let week = 0; week < blockForm.replicate_weeks; week++) {
-        const weekDate = addDays(startDate, week * 7);
+        const weekDate = addDays(firstOccurrence, week * 7);
         blocks.push({
           user_id: effectiveUserId!,
-          day_of_week: parseInt(blockForm.day_of_week),
+          day_of_week: selectedDayOfWeek,
           start_time: blockForm.start_time,
           end_time: blockForm.end_time,
           reason: blockForm.reason,
