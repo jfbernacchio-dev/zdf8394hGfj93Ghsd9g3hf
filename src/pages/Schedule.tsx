@@ -1093,9 +1093,24 @@ const Schedule = () => {
 
     // Get blocks for a specific day with positions
     const getBlocksForDay = (dayOfWeek: number, date: Date) => {
+      const dateStr = format(date, 'yyyy-MM-dd');
+      console.log('[BLOCK FILTER] Checking blocks for:', { dayOfWeek, dateStr, totalBlocks: scheduleBlocks.length });
+      
       return scheduleBlocks
         .filter(block => {
-          if (block.day_of_week !== dayOfWeek) return false;
+          console.log('[BLOCK FILTER] Checking block:', { 
+            blockId: block.id, 
+            blockDayOfWeek: block.day_of_week,
+            blockStartDate: block.start_date,
+            blockEndDate: block.end_date,
+            currentDayOfWeek: dayOfWeek,
+            currentDate: dateStr
+          });
+          
+          if (block.day_of_week !== dayOfWeek) {
+            console.log('[BLOCK FILTER] ❌ Wrong day of week');
+            return false;
+          }
           
           // Check date range - add null checks
           if (block.start_date && block.start_date !== null) {
@@ -1105,12 +1120,30 @@ const Schedule = () => {
               checkDate.setHours(0, 0, 0, 0);
               blockStart.setHours(0, 0, 0, 0);
               
-              if (checkDate < blockStart) return false;
+              console.log('[BLOCK FILTER] Date comparison:', {
+                checkDate: checkDate.toISOString(),
+                blockStart: blockStart.toISOString(),
+                checkDateBeforeBlockStart: checkDate < blockStart
+              });
+              
+              if (checkDate < blockStart) {
+                console.log('[BLOCK FILTER] ❌ Date is before block start');
+                return false;
+              }
               
               if (block.end_date && block.end_date !== null) {
                 const blockEnd = parseISO(block.end_date);
                 blockEnd.setHours(0, 0, 0, 0);
-                if (checkDate > blockEnd) return false;
+                
+                console.log('[BLOCK FILTER] End date comparison:', {
+                  blockEnd: blockEnd.toISOString(),
+                  checkDateAfterBlockEnd: checkDate > blockEnd
+                });
+                
+                if (checkDate > blockEnd) {
+                  console.log('[BLOCK FILTER] ❌ Date is after block end');
+                  return false;
+                }
               }
             } catch (error) {
               console.error('[BLOCK] Error parsing date:', error);
@@ -1118,6 +1151,7 @@ const Schedule = () => {
             }
           }
           
+          console.log('[BLOCK FILTER] ✅ Block passed all filters');
           return true;
         })
         .map(block => {
