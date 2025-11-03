@@ -1112,21 +1112,10 @@ const Schedule = () => {
     // Get blocks for a specific day with positions
     const getBlocksForDay = (dayOfWeek: number, date: Date) => {
       const dateStr = format(date, 'yyyy-MM-dd');
-      console.log('[BLOCK FILTER] Checking blocks for:', { dayOfWeek, dateStr, totalBlocks: scheduleBlocks.length });
       
       return scheduleBlocks
         .filter(block => {
-          console.log('[BLOCK FILTER] Checking block:', { 
-            blockId: block.id, 
-            blockDayOfWeek: block.day_of_week,
-            blockStartDate: block.start_date,
-            blockEndDate: block.end_date,
-            currentDayOfWeek: dayOfWeek,
-            currentDate: dateStr
-          });
-          
           if (block.day_of_week !== dayOfWeek) {
-            console.log('[BLOCK FILTER] ❌ Wrong day of week');
             return false;
           }
           
@@ -1138,14 +1127,7 @@ const Schedule = () => {
               checkDate.setHours(0, 0, 0, 0);
               blockStart.setHours(0, 0, 0, 0);
               
-              console.log('[BLOCK FILTER] Date comparison:', {
-                checkDate: checkDate.toISOString(),
-                blockStart: blockStart.toISOString(),
-                checkDateBeforeBlockStart: checkDate < blockStart
-              });
-              
               if (checkDate < blockStart) {
-                console.log('[BLOCK FILTER] ❌ Date is before block start');
                 return false;
               }
               
@@ -1153,13 +1135,7 @@ const Schedule = () => {
                 const blockEnd = parseISO(block.end_date);
                 blockEnd.setHours(0, 0, 0, 0);
                 
-                console.log('[BLOCK FILTER] End date comparison:', {
-                  blockEnd: blockEnd.toISOString(),
-                  checkDateAfterBlockEnd: checkDate > blockEnd
-                });
-                
                 if (checkDate > blockEnd) {
-                  console.log('[BLOCK FILTER] ❌ Date is after block end');
                   return false;
                 }
               }
@@ -1169,7 +1145,6 @@ const Schedule = () => {
             }
           }
           
-          console.log('[BLOCK FILTER] ✅ Block passed all filters');
           return true;
         })
         .map(block => {
@@ -2103,11 +2078,11 @@ const Schedule = () => {
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <Label>Início</Label>
-                          <Input type="time" value={blockForm.start_time} onChange={(e) => setBlockForm({...blockForm, start_time: e.target.value})} />
+                          <Input type="time" step="900" value={blockForm.start_time} onChange={(e) => setBlockForm({...blockForm, start_time: e.target.value})} />
                         </div>
                         <div>
                           <Label>Fim</Label>
-                          <Input type="time" value={blockForm.end_time} onChange={(e) => setBlockForm({...blockForm, end_time: e.target.value})} />
+                          <Input type="time" step="900" value={blockForm.end_time} onChange={(e) => setBlockForm({...blockForm, end_time: e.target.value})} />
                         </div>
                       </div>
                       <div>
@@ -2292,13 +2267,18 @@ const Schedule = () => {
                 <div>
                   <Label>Paciente</Label>
                   <Select value={formData.patient_id} onValueChange={(value) => {
-                    setFormData({ ...formData, patient_id: value });
+                    const selectedPatient = patients.find(p => p.id === value);
+                    setFormData({ 
+                      ...formData, 
+                      patient_id: value,
+                      value: selectedPatient?.session_value?.toString() || ''
+                    });
                   }}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione um paciente" />
                     </SelectTrigger>
                     <SelectContent>
-                      {patients.map(patient => (
+                      {[...patients].sort((a, b) => a.name.localeCompare(b.name)).map(patient => (
                         <SelectItem key={patient.id} value={patient.id}>
                           {patient.name}
                         </SelectItem>
@@ -2321,6 +2301,7 @@ const Schedule = () => {
                   <Label>Horário</Label>
                   <Input
                     type="time"
+                    step="900"
                     value={formData.time || ''}
                     onChange={(e) => setFormData({ ...formData, time: e.target.value })}
                   />
@@ -2338,17 +2319,6 @@ const Schedule = () => {
                       <SelectItem value="missed">Não Compareceu</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-
-                <div>
-                  <Label>Valor (R$)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={formData.value}
-                    onChange={(e) => setFormData({ ...formData, value: e.target.value })}
-                    required
-                  />
                 </div>
 
                 <div className="flex items-center space-x-2">
@@ -2410,13 +2380,18 @@ const Schedule = () => {
                 <div>
                   <Label>Paciente</Label>
                   <Select value={formData.patient_id} onValueChange={(value) => {
-                    setFormData({ ...formData, patient_id: value });
+                    const selectedPatient = patients.find(p => p.id === value);
+                    setFormData({ 
+                      ...formData, 
+                      patient_id: value,
+                      value: selectedPatient?.session_value?.toString() || ''
+                    });
                   }}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione um paciente" />
                     </SelectTrigger>
                     <SelectContent>
-                      {patients.map(patient => (
+                      {[...patients].sort((a, b) => a.name.localeCompare(b.name)).map(patient => (
                         <SelectItem key={patient.id} value={patient.id}>
                           {patient.name}
                         </SelectItem>
@@ -2439,6 +2414,7 @@ const Schedule = () => {
                   <Label>Horário</Label>
                   <Input
                     type="time"
+                    step="900"
                     value={formData.time || ''}
                     onChange={(e) => setFormData({ ...formData, time: e.target.value })}
                   />
@@ -2456,17 +2432,6 @@ const Schedule = () => {
                       <SelectItem value="missed">Não Compareceu</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-
-                <div>
-                  <Label>Valor (R$)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={formData.value}
-                    onChange={(e) => setFormData({ ...formData, value: e.target.value })}
-                    required
-                  />
                 </div>
 
                 <div className="flex items-center space-x-2">

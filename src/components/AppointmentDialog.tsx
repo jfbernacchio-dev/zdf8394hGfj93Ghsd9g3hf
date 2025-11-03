@@ -127,6 +127,7 @@ export const AppointmentDialog = ({
           <Label>Horário Início</Label>
           <Input
             type="time"
+            step="900"
             value={formData.start_time}
             onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
             required
@@ -136,6 +137,7 @@ export const AppointmentDialog = ({
           <Label>Horário Fim</Label>
           <Input
             type="time"
+            step="900"
             value={formData.end_time}
             onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
             required
