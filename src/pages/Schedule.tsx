@@ -22,7 +22,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Calendar as CalendarIcon, Plus, CheckCircle, XCircle, DollarSign, ArrowLeft, Lock, Briefcase, X } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, CheckCircle, XCircle, DollarSign, ArrowLeft, Lock, Briefcase, X, ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, startOfWeek, addDays, isBefore, parseISO, getDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { DndContext, DragEndEvent, useSensor, useSensors, PointerSensor, DragOverlay, closestCenter } from '@dnd-kit/core';
@@ -1213,33 +1213,26 @@ const Schedule = () => {
     return (
       <Card className="p-6">
         <div className="space-y-4 mb-6">
-          <div className="flex items-center justify-between">
-            <Button variant="ghost" onClick={() => setViewMode('month')}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Voltar ao mês
-            </Button>
+          <div className="flex items-center justify-center relative">
+            <div className="absolute left-0 flex gap-1">
+              <Button variant="ghost" size="icon" onClick={() => setViewMode('month')} title="Voltar ao mês">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => setSelectedDate(addDays(selectedDate, -7))} title="Semana anterior">
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+            </div>
             <h2 className="text-xl font-semibold">
               {format(weekStart, "d 'de' MMMM", { locale: ptBR })} - {format(addDays(weekStart, 4), "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
             </h2>
-            <div className="w-[120px]" /> {/* Spacer for alignment */}
-          </div>
-          
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => setSelectedDate(addDays(selectedDate, -7))}>
-                ← Anterior
+            <div className="absolute right-0 flex gap-1">
+              <Button variant="ghost" size="icon" onClick={() => setSelectedDate(addDays(selectedDate, 7))} title="Próxima semana">
+                <ChevronRight className="h-4 w-4" />
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setSelectedDate(addDays(selectedDate, 7))}>
-                Próxima →
-              </Button>
-            </div>
-            
-            <div className="flex gap-2">
               <Dialog open={isBlockDialogOpen} onOpenChange={setIsBlockDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <Lock className="mr-2 h-4 w-4" />
-                    Bloqueios
+                  <Button variant="ghost" size="icon" title="Gerenciar bloqueios">
+                    <Lock className="h-4 w-4" />
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
@@ -1367,15 +1360,15 @@ const Schedule = () => {
                 </DialogContent>
               </Dialog>
               
-              <Button size="sm" onClick={() => openNewDialog(selectedDate)}>
-                <Plus className="mr-2 h-4 w-4" /> Nova Sessão
+              <Button variant="ghost" size="icon" onClick={() => openNewDialog(selectedDate)} title="Nova sessão">
+                <Plus className="h-4 w-4" />
               </Button>
               
-              <Button size="sm" variant="outline" onClick={() => {
+              <Button variant="ghost" size="icon" onClick={() => {
                 setEditingAppointment(null);
                 setIsAppointmentDialogOpen(true);
-              }}>
-                <Briefcase className="mr-2 h-4 w-4" /> Compromisso
+              }} title="Novo compromisso">
+                <Briefcase className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -1675,18 +1668,18 @@ const Schedule = () => {
         onTouchMove={isMobile ? handleTouchMove : undefined}
         onTouchEnd={isMobile ? handleTouchEnd : undefined}
       >
-        <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
+        <div className="flex items-center justify-center mb-6 flex-wrap gap-2 relative">
           {isMobile ? (
             <>
               <h2 className="text-xl font-semibold w-full text-center">
                 {format(selectedDate, "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
               </h2>
               <div className="flex items-center gap-2 w-full justify-between">
-                <div className="flex gap-2">
+                <div className="flex gap-1">
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="ghost" size="icon" title="Selecionar data">
-                        <CalendarIcon className="h-5 w-5 text-primary" />
+                        <CalendarIcon className="h-5 w-5" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -1704,14 +1697,15 @@ const Schedule = () => {
                     variant="ghost"
                     size="icon"
                     onClick={() => setSelectedDate(new Date())}
-                    title="Voltar para hoje"
+                    title="Hoje"
                   >
-                    <CalendarIcon className="h-5 w-5 fill-current text-primary" />
+                    <CalendarIcon className="h-5 w-5 fill-current" />
                   </Button>
                 </div>
                 
-                <div className="flex gap-2">
+                <div className="flex gap-1">
                   <Button 
+                    variant="ghost"
                     size="icon" 
                     onClick={() => openNewDialog(selectedDate)}
                     title="Nova Sessão"
@@ -1723,17 +1717,15 @@ const Schedule = () => {
             </>
           ) : (
             <>
-              <div className="flex gap-2">
-                <Button variant="ghost" onClick={() => setViewMode('month')}>
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Voltar ao mês
+              <div className="absolute left-0 flex gap-1">
+                <Button variant="ghost" size="icon" onClick={() => setViewMode('month')} title="Voltar ao mês">
+                  <ArrowLeft className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" onClick={() => {
+                <Button variant="ghost" size="icon" onClick={() => {
                   setViewMode('week');
                   setSelectedDate(selectedDate);
-                }}>
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  Ver Semana
+                }} title="Ver semana">
+                  <CalendarDays className="h-4 w-4" />
                 </Button>
               </div>
               <h2 className="text-xl font-semibold">
@@ -1742,12 +1734,11 @@ const Schedule = () => {
             </>
           )}
           {!isMobile && (
-            <div className="flex gap-2">
+            <div className="absolute right-0 flex gap-1">
               <Dialog open={isBlockDialogOpen} onOpenChange={setIsBlockDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Lock className="mr-2 h-4 w-4" />
-                  Bloqueios
+                <Button variant="ghost" size="icon" title="Gerenciar bloqueios">
+                  <Lock className="h-4 w-4" />
                 </Button>
               </DialogTrigger>
               <DialogContent>
@@ -2022,13 +2013,8 @@ const Schedule = () => {
       collisionDetection={closestCenter}
     >
       <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-center items-center mb-8">
           <h1 className="text-3xl font-bold text-foreground">Agenda</h1>
-          {!isMobile && viewMode === 'month' && (
-            <Button onClick={() => openNewDialog(selectedDate)}>
-              <Plus className="mr-2 h-4 w-4" /> Nova Sessão
-            </Button>
-          )}
         </div>
 
         {isMobile ? (
@@ -2037,22 +2023,21 @@ const Schedule = () => {
           <>
             {viewMode === 'month' ? (
           <Card className="p-6 mb-6">
-            <div className="flex justify-between items-center mb-4">
-            <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
-                  ← Anterior
+            <div className="flex justify-center items-center mb-6 relative">
+              <div className="absolute left-0 flex gap-1">
+                <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} title="Mês anterior">
+                  <ChevronLeft className="h-5 w-5" />
                 </Button>
-                <Button variant="outline" onClick={() => {
+                <Button variant="ghost" size="icon" onClick={() => {
                   setViewMode('week');
                   setSelectedDate(new Date());
-                }}>
-                  Visualização Semanal
+                }} title="Visualização semanal">
+                  <CalendarDays className="h-5 w-5" />
                 </Button>
                 <Dialog open={isBlockDialogOpen} onOpenChange={setIsBlockDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <Lock className="mr-2 h-4 w-4" />
-                      Bloqueios
+                    <Button variant="ghost" size="icon" title="Gerenciar bloqueios">
+                      <Lock className="h-5 w-5" />
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
@@ -2179,13 +2164,18 @@ const Schedule = () => {
                     </div>
                   </DialogContent>
                 </Dialog>
+                <Button variant="ghost" size="icon" onClick={() => openNewDialog(selectedDate)} title="Nova sessão">
+                  <Plus className="h-5 w-5" />
+                </Button>
               </div>
-              <h2 className="text-xl font-semibold">
+              <h2 className="text-2xl font-semibold capitalize">
                 {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
               </h2>
-              <Button variant="outline" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
-                Próximo →
-              </Button>
+              <div className="absolute right-0">
+                <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} title="Próximo mês">
+                  <ChevronRight className="h-5 w-5" />
+                </Button>
+              </div>
             </div>
 
           <div className="grid grid-cols-7 gap-2">
@@ -2199,26 +2189,45 @@ const Schedule = () => {
             ))}
             
             {getDaysInMonth().map((day, index) => {
-              const daySessions = getSessionsForDay(day).sort((a, b) => {
-                const timeA = a.time || a.patients?.session_time || '00:00';
-                const timeB = b.time || b.patients?.session_time || '00:00';
-                return timeA.localeCompare(timeB);
-              });
+              const daySessions = getSessionsForDay(day);
+              const sessionCount = daySessions.length;
               const isToday = isSameDay(day, new Date());
               const dayOfWeek = getDay(day);
               const adjustedDay = dayOfWeek === 0 ? 7 : dayOfWeek;
               const dateStr = format(day, 'yyyy-MM-dd');
               
               // Check if any part of the day has blocks
-              const hasBlocks = scheduleBlocks.some(block => block.day_of_week === adjustedDay);
+              const hasBlocks = scheduleBlocks.some(block => {
+                if (block.day_of_week !== adjustedDay) return false;
+                
+                if (block.start_date && block.start_date !== null) {
+                  try {
+                    const blockStart = parseISO(block.start_date);
+                    const checkDate = new Date(day);
+                    checkDate.setHours(0, 0, 0, 0);
+                    blockStart.setHours(0, 0, 0, 0);
+                    
+                    if (checkDate < blockStart) return false;
+                    
+                    if (block.end_date && block.end_date !== null) {
+                      const blockEnd = parseISO(block.end_date);
+                      blockEnd.setHours(0, 0, 0, 0);
+                      if (checkDate > blockEnd) return false;
+                    }
+                  } catch (error) {
+                    return false;
+                  }
+                }
+                return true;
+              });
               
               return (
                 <DroppableSlot
                   key={index}
                   id={`day-${dateStr}`}
                   date={dateStr}
-                  className={`min-h-[100px] p-2 border rounded-lg cursor-pointer hover:bg-accent/50 transition-colors ${
-                    isToday ? 'border-primary bg-primary/5' : ''
+                  className={`min-h-[70px] p-2 border rounded-lg cursor-pointer hover:bg-accent/50 transition-all hover:shadow-sm ${
+                    isToday ? 'border-primary bg-primary/5 shadow-sm' : 'border-border/40'
                   }`}
                 >
                   <div
@@ -2226,26 +2235,25 @@ const Schedule = () => {
                       setSelectedDate(day);
                       setViewMode('day');
                     }}
+                    className="h-full flex flex-col"
                   >
-                    <div className="font-semibold text-sm mb-1 flex justify-between items-center">
-                      <span>{format(day, 'd')}</span>
-                      {hasBlocks && <Lock className="h-3 w-3 text-destructive" />}
+                    <div className="flex justify-between items-start mb-1">
+                      <span className={`text-sm font-medium ${isToday ? 'text-primary font-semibold' : ''}`}>
+                        {format(day, 'd')}
+                      </span>
+                      {hasBlocks && <Lock className="h-3 w-3 text-destructive/70" />}
                     </div>
-                    <div className="space-y-1">
-                      {daySessions.map(session => (
-                        <DraggableSession key={session.id} id={session.id}>
-                          <div
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openEditDialog(session);
-                            }}
-                            className={`text-xs p-1 rounded ${getStatusColor(session.status)}`}
-                          >
-                            {session.patients.name}
-                            {session.paid && ' 💰'}
+                    <div className="flex-1 flex items-center justify-center">
+                      {sessionCount > 0 && (
+                        <div className="text-center">
+                          <div className="text-2xl font-semibold text-primary/80">
+                            {sessionCount}
                           </div>
-                        </DraggableSession>
-                      ))}
+                          <div className="text-[10px] text-muted-foreground">
+                            {sessionCount === 1 ? 'sessão' : 'sessões'}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </DroppableSlot>
