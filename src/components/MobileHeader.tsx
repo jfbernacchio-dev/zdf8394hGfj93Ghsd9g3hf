@@ -1,5 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import mindwareLogo from '@/assets/mindware-logo-new.png';
+import { ThemeToggle } from './ThemeToggle';
 
 const MobileHeader = () => {
   const { profile } = useAuth();
@@ -11,11 +12,14 @@ const MobileHeader = () => {
           <div className="flex items-center">
             <img src={mindwareLogo} alt="Mindware" className="h-8 w-auto" />
           </div>
-          {profile && (
-            <span className="text-sm text-muted-foreground">
-              Olá, {profile.full_name.split(' ')[0]}
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {profile && (
+              <span className="text-sm text-muted-foreground">
+                Olá, {profile.full_name.split(' ')[0]}
+              </span>
+            )}
+            <ThemeToggle />
+          </div>
         </div>
       </div>
     </header>

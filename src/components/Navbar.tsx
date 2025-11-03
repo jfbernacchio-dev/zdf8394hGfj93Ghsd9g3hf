@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui
 import { useState } from 'react';
 import mindwareLogo from '@/assets/mindware-logo-new.png';
 import { NotificationCenter } from './NotificationCenter';
+import { ThemeToggle } from './ThemeToggle';
 
 const Navbar = () => {
   const location = useLocation();
@@ -147,6 +148,7 @@ const Navbar = () => {
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
+              <ThemeToggle />
               {isAdmin && <NotificationCenter />}
               {isAdmin && (
                 <DropdownMenu>
