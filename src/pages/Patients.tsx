@@ -52,16 +52,6 @@ const Patients = () => {
     setSessions(sessionsData || []);
   };
 
-  const filteredPatients = patients.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
-    
-    if (!showOnlyUnpaid) return matchesSearch;
-    
-    // Se showOnlyUnpaid estiver ativo, filtrar apenas pacientes com sessões não pagas
-    const stats = getPatientStats(p.id);
-    return matchesSearch && stats.unpaidCount > 0;
-  }).sort((a, b) => a.name.localeCompare(b.name));
-
   const getPatientStats = (patientId: string) => {
     const patient = patients.find(p => p.id === patientId);
     const patientSessions = sessions.filter(s => s.patient_id === patientId && s.status === 'attended');
@@ -120,6 +110,16 @@ const Patients = () => {
     const unpaid = unpaidSessions.reduce((sum, s) => sum + Number(s.value), 0);
     return { totalSessions: patientSessions.length, totalValue: total, unpaidCount: unpaidSessions.length, unpaidValue: unpaid };
   };
+
+  const filteredPatients = patients.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
+    
+    if (!showOnlyUnpaid) return matchesSearch;
+    
+    // Se showOnlyUnpaid estiver ativo, filtrar apenas pacientes com sessões não pagas
+    const stats = getPatientStats(p.id);
+    return matchesSearch && stats.unpaidCount > 0;
+  }).sort((a, b) => a.name.localeCompare(b.name));
 
   const generateGeneralInvoice = async () => {
     const allUnpaidSessions = sessions.filter(s => s.status === 'attended' && !s.paid);
