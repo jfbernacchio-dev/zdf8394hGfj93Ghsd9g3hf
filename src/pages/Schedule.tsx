@@ -329,23 +329,33 @@ const Schedule = () => {
   };
 
   const deleteBlock = async (blockId: string) => {
+    console.log('[DELETE BLOCK] Deleting block with ID:', blockId);
+    console.log('[DELETE BLOCK] Current blocks before delete:', scheduleBlocks.map(b => ({ id: b.id, day: b.day_of_week, time: `${b.start_time}-${b.end_time}` })));
+    
     const { error } = await supabase
       .from('schedule_blocks')
       .delete()
       .eq('id', blockId);
 
     if (!error) {
+      console.log('[DELETE BLOCK] Delete successful');
       toast({ title: 'Bloqueio removido' });
       loadScheduleBlocks();
+    } else {
+      console.error('[DELETE BLOCK] Delete error:', error);
     }
   };
 
   const handleDeleteBlockClick = (block: any) => {
+    console.log('[DELETE BLOCK] Block clicked:', block);
+    console.log('[DELETE BLOCK] Block ID:', block.id);
     setBlockToDelete(block);
     setShowDeleteBlockDialog(true);
   };
 
   const confirmDeleteBlock = async () => {
+    console.log('[DELETE BLOCK] Confirming delete for:', blockToDelete);
+    console.log('[DELETE BLOCK] Block ID to delete:', blockToDelete?.id);
     if (blockToDelete) {
       await deleteBlock(blockToDelete.id);
       setShowDeleteBlockDialog(false);
