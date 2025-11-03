@@ -21,10 +21,17 @@ Deno.serve(async (req) => {
       }
     );
 
-    // Get current date at midnight
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString().split('T')[0];
+    // Get current date in São Paulo timezone (UTC-3)
+    const now = new Date();
+    const saoPauloOffset = -3 * 60; // UTC-3 in minutes
+    const saoPauloTime = new Date(now.getTime() + (saoPauloOffset + now.getTimezoneOffset()) * 60000);
+    
+    // Format as YYYY-MM-DD for São Paulo date
+    const todayStr = saoPauloTime.toISOString().split('T')[0];
+    
+    console.log('Current UTC time:', now.toISOString());
+    console.log('São Paulo time:', saoPauloTime.toISOString());
+    console.log('Processing sessions for date:', todayStr);
 
     console.log('Auto-marking sessions for date:', todayStr);
 
