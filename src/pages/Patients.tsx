@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, Search, Edit, FileText, AlertCircle } from 'lucide-react';
+import { Plus, Search, Edit, FileText, AlertCircle, CheckCheck } from 'lucide-react';
 
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,6 +23,8 @@ const Patients = () => {
   const [generalInvoiceText, setGeneralInvoiceText] = useState('');
   const [affectedSessions, setAffectedSessions] = useState<any[]>([]);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [isDuplicatesDialogOpen, setIsDuplicatesDialogOpen] = useState(false);
+  const [duplicatesReport, setDuplicatesReport] = useState<any[]>([]);
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -308,6 +310,73 @@ const Patients = () => {
     loadData();
   };
 
+  const checkDuplicates = async () => {
+    toast({
+      title: 'Verificando duplicidades',
+      description: 'Analisando todas as sessões...',
+    });
+
+    // Fetch all sessions from all patients
+    const { data: allSessions } = await supabase
+      .from('sessions')
+      .select('*, patients!inner(name, user_id)')
+      .eq('patients.user_id', user!.id);
+
+    if (!allSessions || allSessions.length === 0) {
+      toast({
+        title: 'Nenhuma sessão encontrada',
+        description: 'Não há sessões para verificar.',
+      });
+      return;
+    }
+
+    // Group sessions by patient_id + date + time
+    const sessionsMap = new Map<string, any[]>();
+
+    allSessions.forEach(session => {
+      const key = `${session.patient_id}_${session.date}_${session.time}`;
+      if (!sessionsMap.has(key)) {
+        sessionsMap.set(key, []);
+      }
+      sessionsMap.get(key)!.push(session);
+    });
+
+    // Find duplicates (groups with more than 1 session)
+    const duplicates: any[] = [];
+
+    sessionsMap.forEach((sessionGroup, key) => {
+      if (sessionGroup.length > 1) {
+        const [patientId, date, time] = key.split('_');
+        const patient = patients.find(p => p.id === patientId);
+        
+        duplicates.push({
+          patientName: patient?.name || 'Desconhecido',
+          patientId,
+          date,
+          time,
+          sessions: sessionGroup,
+          count: sessionGroup.length,
+        });
+      }
+    });
+
+    setDuplicatesReport(duplicates);
+    setIsDuplicatesDialogOpen(true);
+
+    if (duplicates.length === 0) {
+      toast({
+        title: 'Nenhuma duplicidade encontrada',
+        description: 'Todas as sessões estão únicas!',
+      });
+    } else {
+      toast({
+        title: 'Duplicidades encontradas',
+        description: `${duplicates.length} caso(s) de sessões duplicadas detectado(s).`,
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
         <div className="mb-6 md:mb-8">
@@ -322,6 +391,11 @@ const Patients = () => {
               <FileText className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Fazer Fechamento Geral</span>
               <span className="sm:hidden">Fechamento</span>
+            </Button>
+            <Button onClick={checkDuplicates} variant="outline" className="w-full sm:w-auto">
+              <CheckCheck className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Checar Duplicidades</span>
+              <span className="sm:hidden">Duplicidades</span>
             </Button>
             <Button onClick={() => navigate('/patients/new')} className="bg-primary hover:bg-primary/90 w-full sm:w-auto">
               <Plus className="w-4 h-4 mr-2" />
@@ -460,6 +534,82 @@ const Patients = () => {
                   Copiar Texto
                 </Button>
               </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog de Relatório de Duplicidades */}
+        <Dialog open={isDuplicatesDialogOpen} onOpenChange={setIsDuplicatesDialogOpen}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Relatório de Sessões Duplicadas</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              {duplicatesReport.length === 0 ? (
+                <div className="text-center py-8">
+                  <CheckCheck className="w-12 h-12 mx-auto text-success mb-2" />
+                  <p className="text-muted-foreground">Nenhuma duplicidade encontrada!</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="bg-warning/10 border border-warning/20 rounded-lg p-4">
+                    <p className="text-sm font-medium text-warning-foreground">
+                      {duplicatesReport.length} caso(s) de duplicidade encontrado(s)
+                    </p>
+                  </div>
+                  
+                  {duplicatesReport.map((duplicate, index) => (
+                    <Card key={index} className="p-4">
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h3 className="font-semibold text-foreground">{duplicate.patientName}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              Data: {format(parseISO(duplicate.date), 'dd/MM/yyyy')} às {duplicate.time}
+                            </p>
+                          </div>
+                          <span className="px-2 py-1 bg-warning/20 text-warning-foreground text-xs font-medium rounded">
+                            {duplicate.count}x duplicada
+                          </span>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-muted-foreground">Sessões duplicadas:</p>
+                          {duplicate.sessions.map((session: any) => (
+                            <div key={session.id} className="text-xs bg-muted/50 p-2 rounded space-y-1">
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">ID da Sessão:</span>
+                                <span className="font-mono">{session.id}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Status:</span>
+                                <span className={session.status === 'attended' ? 'text-success' : ''}>
+                                  {session.status === 'attended' ? 'Compareceu' : 
+                                   session.status === 'missed' ? 'Faltou' : 'Agendado'}
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Pago:</span>
+                                <span>{session.paid ? 'Sim' : 'Não'}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">Valor:</span>
+                                <span>{formatBrazilianCurrency(session.value)}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                  
+                  <div className="bg-muted/50 rounded-lg p-4 mt-4">
+                    <p className="text-sm text-muted-foreground">
+                      <strong>Ação necessária:</strong> Revise manualmente cada caso e exclua as sessões duplicadas usando o botão de lixeira no detalhe de cada paciente.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </DialogContent>
         </Dialog>
