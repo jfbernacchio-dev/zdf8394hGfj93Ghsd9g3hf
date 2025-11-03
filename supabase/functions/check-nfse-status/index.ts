@@ -189,7 +189,17 @@ serve(async (req) => {
           const month = MONTHS[referenceDate.getMonth()];
           const year = referenceDate.getFullYear().toString().slice(-2);
           const patientName = (nfseRecord.patients as any)?.name || 'NFSe';
-          const fileName = `${patientName} ${month}-${year}.pdf`;
+          
+          // Sanitize patient name for file path: remove accents, replace spaces with underscores, remove special chars
+          const sanitizedName = patientName
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '') // Remove accents
+            .replace(/[^\w\s-]/g, '') // Remove special characters except spaces and hyphens
+            .replace(/\s+/g, '_') // Replace spaces with underscores
+            .replace(/_+/g, '_') // Replace multiple underscores with single
+            .trim();
+          
+          const fileName = `${sanitizedName}_${month}-${year}.pdf`;
           const filePath = `${nfseRecord.patient_id}/${Date.now()}_${fileName}`;
           
           console.log('Uploading PDF as:', fileName);
