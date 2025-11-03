@@ -146,8 +146,24 @@ export default function BulkDownloadNFSeDialog({ nfseList, environment }: BulkDo
             referenceMonth && f.file_name.includes(referenceMonth)
           );
           
-          // Use the stored file name, or fallback to a generated name
-          const fileName = matchingFile?.file_name || `${nfse.patients.name} NFSe ${nfse.nfse_number}.pdf`;
+          // Always use stored file name if available, but ensure uniqueness
+          let fileName: string;
+          if (matchingFile?.file_name) {
+            // If file exists, use it but ensure it has NFSe number for uniqueness
+            const hasNfseNumber = matchingFile.file_name.includes(nfse.nfse_number || '');
+            if (hasNfseNumber) {
+              fileName = matchingFile.file_name;
+            } else {
+              // Add NFSe number to ensure uniqueness
+              const nameParts = matchingFile.file_name.split('.');
+              const extension = nameParts.pop();
+              fileName = `${nameParts.join('.')}_${nfse.nfse_number}.${extension}`;
+            }
+          } else {
+            // Fallback: generate unique name with NFSe number
+            const cleanName = nfse.patients.name.replace(/\s+/g, '_');
+            fileName = `${cleanName}_NFSe_${nfse.nfse_number}.pdf`;
+          }
           
           console.log(`✅ Adicionando ao ZIP: ${fileName}`);
           
