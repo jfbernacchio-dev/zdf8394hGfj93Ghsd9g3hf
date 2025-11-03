@@ -17,6 +17,11 @@ import { ArrowLeft, Plus, Calendar, DollarSign, Edit, FileText, Download, Trash2
 
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, startOfMonth, endOfMonth, isFuture } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { CalendarIcon } from 'lucide-react';
 import { PatientFiles } from '@/components/PatientFiles';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import IssueNFSeDialog from '@/components/IssueNFSeDialog';

@@ -8,7 +8,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface AppointmentDialogProps {
   isOpen: boolean;
@@ -114,12 +119,33 @@ export const AppointmentDialog = ({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <Label>Data</Label>
-        <Input
-          type="date"
-          value={formData.date}
-          onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-          required
-        />
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={cn(
+                "w-full justify-start text-left font-normal",
+                !formData.date && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {formData.date ? format(new Date(formData.date + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : <span>Selecione a data</span>}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={formData.date ? new Date(formData.date + 'T00:00:00') : undefined}
+              onSelect={(date) => {
+                if (date) {
+                  setFormData({ ...formData, date: format(date, 'yyyy-MM-dd') });
+                }
+              }}
+              initialFocus
+              className="pointer-events-auto"
+            />
+          </PopoverContent>
+        </Popover>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
