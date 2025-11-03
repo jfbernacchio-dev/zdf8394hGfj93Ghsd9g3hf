@@ -92,16 +92,23 @@ export default function BulkDownloadNFSeDialog({ nfseList, environment }: BulkDo
       // Download all PDFs and add to ZIP using edge function as proxy
       const { supabase } = await import('@/integrations/supabase/client');
       
-      const downloadPromises = filteredNFSes.map(async (nfse) => {
+      const downloadPromises = filteredNFSes.map(async (nfse, index) => {
         try {
+          console.log(`[${index + 1}/${filteredNFSes.length}] Processando NFSe ${nfse.nfse_number} - ${nfse.patients.name}`);
+          
           // Use edge function as proxy to avoid CORS issues
           const { data: pdfData, error } = await supabase.functions.invoke('download-nfse-pdf', {
             body: { pdfUrl: nfse.pdf_url },
           });
           
           if (error) {
-            console.error(`Erro ao baixar PDF ${nfse.id}:`, error);
-            return false;
+            console.error(`❌ Erro ao baixar PDF da NFSe ${nfse.nfse_number} (${nfse.patients.name}):`, error);
+            return { success: false, nfse: nfse.nfse_number, patient: nfse.patients.name };
+          }
+          
+          if (!pdfData) {
+            console.error(`❌ PDF vazio para NFSe ${nfse.nfse_number} (${nfse.patients.name})`);
+            return { success: false, nfse: nfse.nfse_number, patient: nfse.patients.name };
           }
           
           // Get the file name from patient_files table by matching the expected filename pattern
@@ -140,20 +147,29 @@ export default function BulkDownloadNFSeDialog({ nfseList, environment }: BulkDo
           );
           
           // Use the stored file name, or fallback to a generated name
-          const fileName = matchingFile?.file_name || `${nfse.patients.name} NFSe.pdf`;
+          const fileName = matchingFile?.file_name || `${nfse.patients.name} NFSe ${nfse.nfse_number}.pdf`;
+          
+          console.log(`✅ Adicionando ao ZIP: ${fileName}`);
           
           // Add PDF to ZIP
           folder?.file(fileName, pdfData);
           
-          return true;
+          return { success: true, nfse: nfse.nfse_number, patient: nfse.patients.name };
         } catch (error) {
-          console.error(`Error downloading NFSe ${nfse.id}:`, error);
-          return false;
+          console.error(`❌ Erro inesperado ao processar NFSe ${nfse.nfse_number} (${nfse.patients.name}):`, error);
+          return { success: false, nfse: nfse.nfse_number, patient: nfse.patients.name };
         }
       });
 
       const results = await Promise.all(downloadPromises);
-      const successCount = results.filter(r => r).length;
+      const successCount = results.filter(r => r.success).length;
+      const failedNotes = results.filter(r => !r.success);
+
+      console.log(`📊 Resultado final: ${successCount}/${filteredNFSes.length} notas processadas`);
+      
+      if (failedNotes.length > 0) {
+        console.error('❌ Notas que falharam:', failedNotes);
+      }
 
       if (successCount === 0) {
         throw new Error('Não foi possível baixar nenhuma nota fiscal');
@@ -176,9 +192,14 @@ export default function BulkDownloadNFSeDialog({ nfseList, environment }: BulkDo
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
+      const message = failedNotes.length > 0 
+        ? `${successCount} de ${filteredNFSes.length} nota(s) baixada(s). ${failedNotes.length} falharam.`
+        : `${successCount} nota(s) fiscal(is) baixada(s) com sucesso.`;
+
       toast({
         title: 'Download concluído',
-        description: `${successCount} nota(s) fiscal(is) baixada(s) com sucesso.`,
+        description: message,
+        variant: failedNotes.length > 0 ? 'default' : 'default',
       });
 
       setOpen(false);
