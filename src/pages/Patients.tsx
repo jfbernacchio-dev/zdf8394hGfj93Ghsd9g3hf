@@ -69,26 +69,38 @@ const Patients = () => {
     
     // For monthly pricing, calculate by months instead of sessions
     if (patient?.monthly_price) {
-      // Group unpaid sessions by month
+      // Group unpaid sessions by month - with date validation
       const unpaidByMonth = unpaidSessions.reduce((acc, session) => {
-        const monthYear = format(parseISO(session.date), 'MM/yyyy');
-        if (!acc[monthYear]) {
-          acc[monthYear] = [];
+        try {
+          if (session.date) {
+            const monthYear = format(parseISO(session.date), 'MM/yyyy');
+            if (!acc[monthYear]) {
+              acc[monthYear] = [];
+            }
+            acc[monthYear].push(session);
+          }
+        } catch (error) {
+          console.error('Error parsing session date:', session.date, error);
         }
-        acc[monthYear].push(session);
         return acc;
       }, {} as Record<string, any[]>);
       
       const unpaidMonthsCount = Object.keys(unpaidByMonth).length;
       const unpaidValue = unpaidMonthsCount * Number(patient.session_value);
       
-      // Group all sessions by month
+      // Group all sessions by month - with date validation
       const totalByMonth = patientSessions.reduce((acc, session) => {
-        const monthYear = format(parseISO(session.date), 'MM/yyyy');
-        if (!acc[monthYear]) {
-          acc[monthYear] = [];
+        try {
+          if (session.date) {
+            const monthYear = format(parseISO(session.date), 'MM/yyyy');
+            if (!acc[monthYear]) {
+              acc[monthYear] = [];
+            }
+            acc[monthYear].push(session);
+          }
+        } catch (error) {
+          console.error('Error parsing session date:', session.date, error);
         }
-        acc[monthYear].push(session);
         return acc;
       }, {} as Record<string, any[]>);
       
@@ -481,13 +493,19 @@ const Patients = () => {
                     <span className="text-muted-foreground">Em Aberto:</span>
                     <span className="font-medium text-warning">
                       {patient.monthly_price ? (() => {
-                        // For monthly pricing, show number of months
+                        // For monthly pricing, show number of months - with date validation
                         const sessionsByMonth = sessions.filter(s => s.patient_id === patient.id && s.status === 'attended' && !s.paid).reduce((acc, session) => {
-                          const monthYear = format(parseISO(session.date), 'MM/yyyy');
-                          if (!acc[monthYear]) {
-                            acc[monthYear] = [];
+                          try {
+                            if (session.date) {
+                              const monthYear = format(parseISO(session.date), 'MM/yyyy');
+                              if (!acc[monthYear]) {
+                                acc[monthYear] = [];
+                              }
+                              acc[monthYear].push(session);
+                            }
+                          } catch (error) {
+                            console.error('Error parsing session date:', session.date, error);
                           }
-                          acc[monthYear].push(session);
                           return acc;
                         }, {} as Record<string, any[]>);
                         const monthsCount = Object.keys(sessionsByMonth).length;
