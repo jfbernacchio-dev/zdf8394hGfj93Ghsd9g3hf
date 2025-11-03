@@ -10,11 +10,15 @@ import BulkDownloadNFSeDialog from '@/components/BulkDownloadNFSeDialog';
 import { ArrowLeft, FileText, Download, X, Search, Calendar, DollarSign, RefreshCw, Trash2, RefreshCcw, Mail, Upload } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, startOfMonth, endOfMonth, startOfYear, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
+import { formatBrazilianCurrency, formatBrazilianDate, parseFromBrazilianDate } from '@/lib/brazilianFormat';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
 
 interface NFSeIssued {
   id: string;
@@ -43,7 +47,10 @@ export default function NFSeHistory() {
   const [nfseList, setNfseList] = useState<NFSeIssued[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [cancelReason, setCancelReason] = useState('');
-  const [activeTab, setActiveTab] = useState('homologacao');
+  const [activeTab, setActiveTab] = useState('producao');
+  const [periodFilter, setPeriodFilter] = useState('all');
+  const [customStartDate, setCustomStartDate] = useState<Date>();
+  const [customEndDate, setCustomEndDate] = useState<Date>();
 
   useEffect(() => {
     loadNFSe();
@@ -296,17 +303,66 @@ export default function NFSeHistory() {
     return <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>;
   };
 
-  const filteredNFSe = nfseList
-    .filter(nfse => nfse.environment === activeTab)
-    .filter(nfse =>
-      nfse.patients.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      nfse.nfse_number?.includes(searchTerm)
-    );
+  const getFilteredByPeriod = (list: NFSeIssued[]) => {
+    return list.filter(nfse => {
+      const issueDate = parseISO(nfse.issue_date);
+      const now = new Date();
 
-  const totalIssued = nfseList.filter(n => n.status === 'issued' && n.environment === activeTab).length;
-  const totalValue = nfseList
-    .filter(n => n.status === 'issued' && n.environment === activeTab)
+      switch (periodFilter) {
+        case 'thisMonth': {
+          const start = startOfMonth(now);
+          const end = endOfMonth(now);
+          return issueDate >= start && issueDate <= end;
+        }
+        case 'lastMonth': {
+          const lastMonth = subMonths(now, 1);
+          const start = startOfMonth(lastMonth);
+          const end = endOfMonth(lastMonth);
+          return issueDate >= start && issueDate <= end;
+        }
+        case 'last3Months': {
+          const threeMonthsAgo = subMonths(now, 3);
+          return issueDate >= threeMonthsAgo;
+        }
+        case 'thisYear': {
+          const start = startOfYear(now);
+          return issueDate >= start;
+        }
+        case 'custom': {
+          if (!customStartDate || !customEndDate) return true;
+          return issueDate >= customStartDate && issueDate <= customEndDate;
+        }
+        default:
+          return true;
+      }
+    });
+  };
+
+  const filteredNFSe = getFilteredByPeriod(
+    nfseList
+      .filter(nfse => nfse.environment === activeTab)
+      .filter(nfse =>
+        nfse.patients.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        nfse.nfse_number?.includes(searchTerm)
+      )
+  );
+
+  const tabFiltered = getFilteredByPeriod(
+    nfseList.filter(n => n.environment === activeTab)
+  );
+
+  const totalIssued = tabFiltered.filter(n => n.status === 'issued').length;
+  const totalValue = tabFiltered
+    .filter(n => n.status === 'issued')
     .reduce((sum, n) => sum + Number(n.service_value), 0);
+  
+  const thisMonthCount = tabFiltered.filter(n => {
+    const issueDate = parseISO(n.issue_date);
+    const now = new Date();
+    return issueDate.getMonth() === now.getMonth() && 
+           issueDate.getFullYear() === now.getFullYear() &&
+           n.status === 'issued';
+  }).length;
 
   return (
     <div className="container mx-auto p-6">
@@ -351,15 +407,7 @@ export default function NFSeHistory() {
               <Calendar className="h-8 w-8 text-primary" />
               <div>
                 <p className="text-sm text-muted-foreground">Este Mês</p>
-                <p className="text-2xl font-bold">
-                  {nfseList.filter(n => {
-                    const issueDate = new Date(n.issue_date);
-                    const now = new Date();
-                    return issueDate.getMonth() === now.getMonth() && 
-                           issueDate.getFullYear() === now.getFullYear() &&
-                           n.status === 'issued';
-                  }).length}
-                </p>
+                <p className="text-2xl font-bold">{thisMonthCount}</p>
               </div>
             </div>
           </Card>
@@ -373,8 +421,8 @@ export default function NFSeHistory() {
             </TabsList>
 
             <TabsContent value={activeTab} className="space-y-4">
-              <div className="flex gap-2">
-                <div className="relative flex-1">
+              <div className="flex gap-2 flex-wrap">
+                <div className="relative flex-1 min-w-[200px]">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Buscar por paciente ou número da nota..."
@@ -383,6 +431,61 @@ export default function NFSeHistory() {
                     className="pl-10"
                   />
                 </div>
+                
+                <Select value={periodFilter} onValueChange={setPeriodFilter}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Período" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os períodos</SelectItem>
+                    <SelectItem value="thisMonth">Este mês</SelectItem>
+                    <SelectItem value="lastMonth">Mês passado</SelectItem>
+                    <SelectItem value="last3Months">Últimos 3 meses</SelectItem>
+                    <SelectItem value="thisYear">Este ano</SelectItem>
+                    <SelectItem value="custom">Personalizado</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {periodFilter === 'custom' && (
+                  <>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className={cn("justify-start text-left font-normal", !customStartDate && "text-muted-foreground")}>
+                          <Calendar className="mr-2 h-4 w-4" />
+                          {customStartDate ? formatBrazilianDate(format(customStartDate, 'yyyy-MM-dd')) : "Data inicial"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarComponent
+                          mode="single"
+                          selected={customStartDate}
+                          onSelect={setCustomStartDate}
+                          initialFocus
+                          className="pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className={cn("justify-start text-left font-normal", !customEndDate && "text-muted-foreground")}>
+                          <Calendar className="mr-2 h-4 w-4" />
+                          {customEndDate ? formatBrazilianDate(format(customEndDate, 'yyyy-MM-dd')) : "Data final"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarComponent
+                          mode="single"
+                          selected={customEndDate}
+                          onSelect={setCustomEndDate}
+                          initialFocus
+                          className="pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </>
+                )}
+                
                 <BulkDownloadNFSeDialog 
                   nfseList={filteredNFSe} 
                   environment={activeTab}
