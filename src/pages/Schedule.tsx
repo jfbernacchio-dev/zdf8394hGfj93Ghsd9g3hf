@@ -118,6 +118,19 @@ const Schedule = () => {
     }
   }, [effectiveUserId, currentMonth]);
 
+  // Sync currentMonth with selectedDate when in day/week view
+  useEffect(() => {
+    if (viewMode !== 'month') {
+      const selectedMonth = startOfMonth(selectedDate);
+      const currentMonthStart = startOfMonth(currentMonth);
+      
+      // Only update if months are different
+      if (selectedMonth.getTime() !== currentMonthStart.getTime()) {
+        setCurrentMonth(selectedMonth);
+      }
+    }
+  }, [selectedDate, viewMode]);
+
   const loadProfile = async () => {
     const { data: profileData } = await supabase
       .from('profiles')
