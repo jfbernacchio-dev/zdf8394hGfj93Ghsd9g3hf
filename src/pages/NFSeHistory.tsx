@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import BulkDownloadNFSeDialog from '@/components/BulkDownloadNFSeDialog';
 
-import { ArrowLeft, FileText, Download, X, Search, Calendar, DollarSign, RefreshCw, Trash2, RefreshCcw, Mail } from 'lucide-react';
+import { ArrowLeft, FileText, Download, X, Search, Calendar, DollarSign, RefreshCw, Trash2, RefreshCcw, Mail, Upload } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { format, parseISO } from 'date-fns';
@@ -200,6 +200,38 @@ export default function NFSeHistory() {
       console.error('Error sending email:', error);
       toast({
         title: 'Erro ao enviar email',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleRetryPdfUpload = async (nfseId: string) => {
+    try {
+      toast({
+        title: 'Reenviando PDF',
+        description: 'Aguarde enquanto reprocessamos o upload do arquivo...',
+      });
+
+      const { data, error } = await supabase.functions.invoke('retry-nfse-pdf-upload', {
+        body: { nfseId },
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast({
+          title: 'PDF enviado com sucesso',
+          description: `Arquivo ${data.fileName} foi adicionado aos arquivos do paciente.`,
+        });
+        loadNFSe();
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error: any) {
+      console.error('Error retrying PDF upload:', error);
+      toast({
+        title: 'Erro ao enviar PDF',
         description: error.message,
         variant: 'destructive',
       });
@@ -432,14 +464,24 @@ export default function NFSeHistory() {
                           </Button>
                         )}
                         {nfse.status === 'issued' && nfse.pdf_url && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleSendEmail(nfse.id)}
-                            title="Enviar email com NFSe"
-                          >
-                            <Mail className="h-4 w-4" />
-                          </Button>
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleSendEmail(nfse.id)}
+                              title="Enviar email com NFSe"
+                            >
+                              <Mail className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRetryPdfUpload(nfse.id)}
+                              title="Reenviar PDF para arquivos do paciente"
+                            >
+                              <Upload className="h-4 w-4" />
+                            </Button>
+                          </>
                         )}
                         {nfse.status === 'issued' && (
                           <AlertDialog>
