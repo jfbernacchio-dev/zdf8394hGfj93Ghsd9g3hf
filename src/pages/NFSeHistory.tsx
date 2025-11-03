@@ -7,12 +7,13 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import BulkDownloadNFSeDialog from '@/components/BulkDownloadNFSeDialog';
 
-import { ArrowLeft, FileText, Download, X, Search, Calendar, DollarSign, RefreshCw, Trash2, RefreshCcw, Mail, Upload } from 'lucide-react';
+import { ArrowLeft, FileText, Download, X, Search, Calendar, DollarSign, RefreshCw, Trash2, RefreshCcw, Mail, Upload, MoreVertical } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { format, parseISO, startOfMonth, endOfMonth, startOfYear, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { formatBrazilianCurrency, formatBrazilianDate, parseFromBrazilianDate } from '@/lib/brazilianFormat';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -545,99 +546,95 @@ export default function NFSeHistory() {
                     </TableCell>
                     <TableCell>{getStatusBadge(nfse.status)}</TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        {(nfse.status === 'processing' || nfse.status === 'error') && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleCheckStatus(nfse.id)}
-                            title="Atualizar dados da nota"
-                          >
-                            <RefreshCw className="h-4 w-4" />
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreVertical className="h-4 w-4" />
                           </Button>
-                        )}
-                        {nfse.pdf_url && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => window.open(nfse.pdf_url!, '_blank')}
-                            title={nfse.status === 'cancelled' ? 'Baixar PDF (Cancelada)' : 'Baixar PDF'}
-                          >
-                            <Download className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {nfse.status === 'issued' && nfse.pdf_url && (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleSendEmail(nfse.id)}
-                              title="Enviar email com NFSe"
-                            >
-                              <Mail className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRetryPdfUpload(nfse.id)}
-                              title="Reenviar PDF para arquivos do paciente"
-                            >
-                              <Upload className="h-4 w-4" />
-                            </Button>
-                          </>
-                        )}
-                        {nfse.status === 'issued' && (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="sm" title="Cancelar nota">
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Cancelar Nota Fiscal?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Esta ação não pode ser desfeita. Informe o motivo do cancelamento:
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <Input
-                                placeholder="Motivo do cancelamento"
-                                value={cancelReason}
-                                onChange={(e) => setCancelReason(e.target.value)}
-                              />
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Voltar</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleCancelNFSe(nfse.id)}>
-                                  Cancelar NFSe
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        )}
-                        {(nfse.status === 'error' || nfse.status === 'cancelled' || nfse.status === 'processing') && (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="sm" title="Excluir entrada">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Excluir do histórico?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Esta ação removerá permanentemente esta entrada do histórico.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Voltar</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDeleteNFSe(nfse.id)}>
-                                  Excluir
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                         )}
-                      </div>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-56">
+                          {(nfse.status === 'processing' || nfse.status === 'error') && (
+                            <DropdownMenuItem onClick={() => handleCheckStatus(nfse.id)}>
+                              <RefreshCw className="h-4 w-4 mr-2" />
+                              Atualizar status
+                            </DropdownMenuItem>
+                          )}
+                          
+                          {nfse.pdf_url && (
+                            <DropdownMenuItem onClick={() => window.open(nfse.pdf_url!, '_blank')}>
+                              <Download className="h-4 w-4 mr-2" />
+                              {nfse.status === 'cancelled' ? 'Baixar PDF (Cancelada)' : 'Baixar PDF'}
+                            </DropdownMenuItem>
+                          )}
+                          
+                          {nfse.status === 'issued' && nfse.pdf_url && (
+                            <>
+                              <DropdownMenuItem onClick={() => handleSendEmail(nfse.id)}>
+                                <Mail className="h-4 w-4 mr-2" />
+                                Enviar email
+                              </DropdownMenuItem>
+                              
+                              <DropdownMenuItem onClick={() => handleRetryPdfUpload(nfse.id)}>
+                                <Upload className="h-4 w-4 mr-2" />
+                                Reenviar PDF aos arquivos
+                              </DropdownMenuItem>
+                              
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                    <X className="h-4 w-4 mr-2" />
+                                    Cancelar nota
+                                  </DropdownMenuItem>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Cancelar Nota Fiscal?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Esta ação não pode ser desfeita. Informe o motivo do cancelamento:
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <Input
+                                    placeholder="Motivo do cancelamento"
+                                    value={cancelReason}
+                                    onChange={(e) => setCancelReason(e.target.value)}
+                                  />
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Voltar</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleCancelNFSe(nfse.id)}>
+                                      Cancelar NFSe
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </>
+                          )}
+                          
+                          {(nfse.status === 'error' || nfse.status === 'cancelled' || nfse.status === 'processing') && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Excluir do histórico
+                                </DropdownMenuItem>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Excluir do histórico?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Esta ação removerá permanentemente esta entrada do histórico.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Voltar</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteNFSe(nfse.id)}>
+                                    Excluir
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
