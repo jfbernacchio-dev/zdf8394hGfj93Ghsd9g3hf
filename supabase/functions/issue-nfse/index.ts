@@ -127,20 +127,27 @@ serve(async (req) => {
     }
 
     // Load sessions
-    const { data: sessions, error: sessionsError } = await supabase
+    const { data: sessionsData, error: sessionsError } = await supabase
       .from('sessions')
       .select('*')
       .in('id', sessionIds)
       .eq('patient_id', patientId);
 
-    if (sessionsError || !sessions || sessions.length === 0) {
+    if (sessionsError || !sessionsData || sessionsData.length === 0) {
       throw new Error('Sessões não encontradas');
     }
 
     // Verify all sessions belong to the user
-    if (sessions.length !== sessionIds.length) {
+    if (sessionsData.length !== sessionIds.length) {
       throw new Error('Algumas sessões não foram encontradas');
     }
+
+    // Sort sessions by date in ascending order (oldest to newest)
+    const sessions = sessionsData.sort((a, b) => {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      return dateA - dateB;
+    });
 
     // Check if we need to split into multiple NFSes
     const maxSessionsPerInvoice = patient.nfse_max_sessions_per_invoice || 20;
