@@ -82,7 +82,7 @@ const Schedule = () => {
     start_time: '12:00',
     end_time: '13:00',
     reason: '',
-    blockType: 'indefinite', // 'indefinite', 'date-range', 'from-date'
+    blockType: 'indefinite', // 'indefinite', 'date-range', 'from-date', 'single-day', 'replicate'
     start_date: format(new Date(), 'yyyy-MM-dd'),
     end_date: format(new Date(), 'yyyy-MM-dd'),
     replicate_weeks: 1
@@ -243,7 +243,11 @@ const Schedule = () => {
       reason: blockForm.reason
     };
 
-    if (blockForm.blockType === 'date-range') {
+    if (blockForm.blockType === 'single-day') {
+      // Create a block for a single specific day only
+      blockData.start_date = blockForm.start_date;
+      blockData.end_date = blockForm.start_date; // Same date for start and end
+    } else if (blockForm.blockType === 'date-range') {
       blockData.start_date = blockForm.start_date;
       blockData.end_date = blockForm.end_date;
     } else if (blockForm.blockType === 'from-date') {
@@ -304,7 +308,7 @@ const Schedule = () => {
       start_time: '12:00',
       end_time: '13:00',
       reason: '',
-      blockType: 'indefinite',
+      blockType: 'single-day',
       start_date: format(new Date(), 'yyyy-MM-dd'),
       end_date: format(new Date(), 'yyyy-MM-dd'),
       replicate_weeks: 1
@@ -1229,6 +1233,7 @@ const Schedule = () => {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="single-day">Apenas um dia específico</SelectItem>
                           <SelectItem value="indefinite">Indefinido (todas as semanas)</SelectItem>
                           <SelectItem value="date-range">Período específico</SelectItem>
                           <SelectItem value="from-date">A partir de uma data</SelectItem>
@@ -1236,6 +1241,13 @@ const Schedule = () => {
                         </SelectContent>
                       </Select>
                     </div>
+                    
+                    {blockForm.blockType === 'single-day' && (
+                      <div>
+                        <Label>Data</Label>
+                        <Input type="date" value={blockForm.start_date} onChange={(e) => setBlockForm({...blockForm, start_date: e.target.value})} />
+                      </div>
+                    )}
                     
                     {blockForm.blockType === 'date-range' && (
                       <div className="grid grid-cols-2 gap-2">
@@ -1285,9 +1297,11 @@ const Schedule = () => {
                               {block.reason && <p className="text-xs text-muted-foreground">{block.reason}</p>}
                               {block.start_date && (
                                 <p className="text-xs text-muted-foreground">
-                                  {block.end_date ? 
-                                    `${format(parseISO(block.start_date), 'dd/MM/yy')} - ${format(parseISO(block.end_date), 'dd/MM/yy')}` :
-                                    `A partir de ${format(parseISO(block.start_date), 'dd/MM/yy')}`
+                                  {block.end_date && block.start_date === block.end_date ? 
+                                    `Apenas ${format(parseISO(block.start_date), 'dd/MM/yy')}` :
+                                    block.end_date ? 
+                                      `${format(parseISO(block.start_date), 'dd/MM/yy')} - ${format(parseISO(block.end_date), 'dd/MM/yy')}` :
+                                      `A partir de ${format(parseISO(block.start_date), 'dd/MM/yy')}`
                                   }
                                 </p>
                               )}
@@ -1720,22 +1734,30 @@ const Schedule = () => {
                     <Label>Motivo (opcional)</Label>
                     <Input value={blockForm.reason} onChange={(e) => setBlockForm({...blockForm, reason: e.target.value})} placeholder="Ex: Almoço, Reunião..." />
                   </div>
+                    <div>
+                      <Label>Tipo de Bloqueio</Label>
+                      <Select value={blockForm.blockType} onValueChange={(value) => setBlockForm({...blockForm, blockType: value})}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="single-day">Apenas um dia específico</SelectItem>
+                          <SelectItem value="indefinite">Indefinido (todas as semanas)</SelectItem>
+                          <SelectItem value="date-range">Período específico</SelectItem>
+                          <SelectItem value="from-date">A partir de uma data</SelectItem>
+                          <SelectItem value="replicate">Replicar por X semanas</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    {blockForm.blockType === 'single-day' && (
                       <div>
-                        <Label>Tipo de Bloqueio</Label>
-                        <Select value={blockForm.blockType} onValueChange={(value) => setBlockForm({...blockForm, blockType: value})}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="indefinite">Indefinido (todas as semanas)</SelectItem>
-                            <SelectItem value="date-range">Período específico</SelectItem>
-                            <SelectItem value="from-date">A partir de uma data</SelectItem>
-                            <SelectItem value="replicate">Replicar por X semanas</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <Label>Data</Label>
+                        <Input type="date" value={blockForm.start_date} onChange={(e) => setBlockForm({...blockForm, start_date: e.target.value})} />
                       </div>
-                      
-                      {blockForm.blockType === 'date-range' && (
+                    )}
+                    
+                    {blockForm.blockType === 'date-range' && (
                         <div className="grid grid-cols-2 gap-2">
                           <div>
                             <Label>Data Início</Label>
@@ -1781,6 +1803,16 @@ const Schedule = () => {
                               {['', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'][block.day_of_week]} - {block.start_time} às {block.end_time}
                             </p>
                             {block.reason && <p className="text-xs text-muted-foreground">{block.reason}</p>}
+                            {block.start_date && (
+                              <p className="text-xs text-muted-foreground">
+                                {block.end_date && block.start_date === block.end_date ? 
+                                  `Apenas ${format(parseISO(block.start_date), 'dd/MM/yy')}` :
+                                  block.end_date ? 
+                                    `${format(parseISO(block.start_date), 'dd/MM/yy')} - ${format(parseISO(block.end_date), 'dd/MM/yy')}` :
+                                    `A partir de ${format(parseISO(block.start_date), 'dd/MM/yy')}`
+                                }
+                              </p>
+                            )}
                           </div>
                           <Button variant="ghost" size="sm" onClick={() => deleteBlock(block.id)}>
                             <XCircle className="h-4 w-4" />
@@ -2007,22 +2039,30 @@ const Schedule = () => {
                         <Label>Motivo (opcional)</Label>
                         <Input value={blockForm.reason} onChange={(e) => setBlockForm({...blockForm, reason: e.target.value})} placeholder="Ex: Almoço, Reunião..." />
                       </div>
-                      <div>
-                        <Label>Tipo de Bloqueio</Label>
-                        <Select value={blockForm.blockType} onValueChange={(value) => setBlockForm({...blockForm, blockType: value})}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="indefinite">Indefinido (todas as semanas)</SelectItem>
-                            <SelectItem value="date-range">Período específico</SelectItem>
-                            <SelectItem value="from-date">A partir de uma data</SelectItem>
-                            <SelectItem value="replicate">Replicar por X semanas</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      {blockForm.blockType === 'date-range' && (
+                        <div>
+                          <Label>Tipo de Bloqueio</Label>
+                          <Select value={blockForm.blockType} onValueChange={(value) => setBlockForm({...blockForm, blockType: value})}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="single-day">Apenas um dia específico</SelectItem>
+                              <SelectItem value="indefinite">Indefinido (todas as semanas)</SelectItem>
+                              <SelectItem value="date-range">Período específico</SelectItem>
+                              <SelectItem value="from-date">A partir de uma data</SelectItem>
+                              <SelectItem value="replicate">Replicar por X semanas</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        {blockForm.blockType === 'single-day' && (
+                          <div>
+                            <Label>Data</Label>
+                            <Input type="date" value={blockForm.start_date} onChange={(e) => setBlockForm({...blockForm, start_date: e.target.value})} />
+                          </div>
+                        )}
+                        
+                        {blockForm.blockType === 'date-range' && (
                         <div className="grid grid-cols-2 gap-2">
                           <div>
                             <Label>Data Início</Label>
@@ -2068,6 +2108,16 @@ const Schedule = () => {
                                   {['', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'][block.day_of_week]} - {block.start_time} às {block.end_time}
                                 </p>
                                 {block.reason && <p className="text-xs text-muted-foreground">{block.reason}</p>}
+                                {block.start_date && (
+                                  <p className="text-xs text-muted-foreground">
+                                    {block.end_date && block.start_date === block.end_date ? 
+                                      `Apenas ${format(parseISO(block.start_date), 'dd/MM/yy')}` :
+                                      block.end_date ? 
+                                        `${format(parseISO(block.start_date), 'dd/MM/yy')} - ${format(parseISO(block.end_date), 'dd/MM/yy')}` :
+                                        `A partir de ${format(parseISO(block.start_date), 'dd/MM/yy')}`
+                                    }
+                                  </p>
+                                )}
                               </div>
                               <Button variant="ghost" size="sm" onClick={() => deleteBlock(block.id)}>
                                 <XCircle className="h-4 w-4" />
