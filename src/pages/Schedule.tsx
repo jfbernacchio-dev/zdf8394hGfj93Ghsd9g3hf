@@ -1727,6 +1727,9 @@ const Schedule = () => {
                 }} title="Ver semana">
                   <CalendarDays className="h-4 w-4" />
                 </Button>
+                <Button variant="ghost" size="icon" onClick={() => setSelectedDate(addDays(selectedDate, -1))} title="Dia anterior">
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
               </div>
               <h2 className="text-xl font-semibold">
                 {format(selectedDate, "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
@@ -1735,6 +1738,9 @@ const Schedule = () => {
           )}
           {!isMobile && (
             <div className="absolute right-0 flex gap-1">
+              <Button variant="ghost" size="icon" onClick={() => setSelectedDate(addDays(selectedDate, 1))} title="Próximo dia">
+                <ChevronRight className="h-4 w-4" />
+              </Button>
               <Dialog open={isBlockDialogOpen} onOpenChange={setIsBlockDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="ghost" size="icon" title="Gerenciar bloqueios">
@@ -1865,8 +1871,14 @@ const Schedule = () => {
                 </div>
               </DialogContent>
               </Dialog>
-              <Button onClick={() => openNewDialog(selectedDate)}>
-                <Plus className="mr-2 h-4 w-4" /> Nova Sessão
+              <Button variant="ghost" size="icon" onClick={() => openNewDialog(selectedDate)} title="Nova sessão">
+                <Plus className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => {
+                setEditingAppointment(null);
+                setIsAppointmentDialogOpen(true);
+              }} title="Novo compromisso">
+                <Briefcase className="h-4 w-4" />
               </Button>
             </div>
           )}
