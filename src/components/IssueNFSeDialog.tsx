@@ -88,20 +88,40 @@ export default function IssueNFSeDialog({
       // Validate patient has CPF and consent
       const { data: patientData, error: patientError } = await supabase
         .from('patients')
-        .select('cpf, privacy_policy_accepted, email, name')
+        .select('cpf, guardian_cpf, is_minor, nfse_issue_to, include_minor_text, privacy_policy_accepted, email, name')
         .eq('id', patientId)
         .single();
 
       if (patientError) throw patientError;
 
-      if (!patientData?.cpf) {
+      // Validate CPF based on who the invoice will be issued to
+      const isMinor = patientData?.is_minor || false;
+      const issueTo = patientData?.nfse_issue_to || 'patient';
+      const includeMinorText = patientData?.include_minor_text || false;
+
+      // If invoice goes to guardian and patient is minor, guardian CPF is required
+      if (isMinor && issueTo === 'guardian' && !patientData?.guardian_cpf) {
         toast({
-          title: 'CPF obrigatório',
-          description: 'O paciente precisa ter CPF cadastrado para emitir NFSe. Edite o cadastro do paciente primeiro.',
+          title: 'CPF do responsável obrigatório',
+          description: 'O CPF do responsável é obrigatório quando a nota é emitida em seu nome. Edite o cadastro do paciente.',
           variant: 'destructive',
         });
         setLoading(false);
         return;
+      }
+
+      // If invoice goes to patient (or patient is not minor), patient CPF is required
+      // UNLESS it's a minor with include_minor_text (in which case CPF is optional)
+      if (!isMinor || issueTo === 'patient') {
+        if (!patientData?.cpf) {
+          toast({
+            title: 'CPF obrigatório',
+            description: 'O paciente precisa ter CPF cadastrado para emitir NFSe. Edite o cadastro do paciente primeiro.',
+            variant: 'destructive',
+          });
+          setLoading(false);
+          return;
+        }
       }
 
       // Check if patient needs consent - send email in parallel

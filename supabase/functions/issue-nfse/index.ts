@@ -110,8 +110,20 @@ serve(async (req) => {
     }
 
     // Validate patient has required data for NFSe
-    if (!patient.cpf) {
-      throw new Error('Paciente precisa ter CPF cadastrado para emitir NFSe');
+    const isMinor = patient.is_minor || false;
+    const issueTo = patient.nfse_issue_to || 'patient';
+    
+    // If invoice goes to guardian and patient is minor, guardian CPF is required
+    if (isMinor && issueTo === 'guardian') {
+      if (!patient.guardian_cpf) {
+        throw new Error('CPF do responsável é obrigatório quando a nota é emitida em seu nome');
+      }
+    } else {
+      // If invoice goes to patient (or patient is not minor), patient CPF is required
+      // UNLESS it's a minor with include_minor_text enabled (CPF optional in description)
+      if (!patient.cpf && !(isMinor && patient.include_minor_text)) {
+        throw new Error('Paciente precisa ter CPF cadastrado para emitir NFSe');
+      }
     }
 
     // Load sessions
@@ -209,8 +221,7 @@ serve(async (req) => {
     }).join(', ');
 
     // Determine who the invoice should be issued to
-    const issueTo = patient.nfse_issue_to || 'patient';
-    const isMinor = patient.is_minor || false;
+    // (already defined above, use existing variables)
     
     // Choose CPF and name based on issueTo
     const invoiceCpf = (issueTo === 'guardian' && isMinor && patient.guardian_cpf) 
