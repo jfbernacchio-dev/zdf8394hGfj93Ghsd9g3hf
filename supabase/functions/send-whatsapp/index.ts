@@ -17,9 +17,16 @@ interface WhatsAppDocumentMessage {
   caption?: string;
 }
 
+interface WhatsAppTemplateMessage {
+  to: string;
+  templateName: string;
+  parameters: string[];
+  documentUrl?: string;
+}
+
 interface WhatsAppRequest {
-  type: "text" | "document";
-  data: WhatsAppTextMessage | WhatsAppDocumentMessage;
+  type: "text" | "document" | "template";
+  data: WhatsAppTextMessage | WhatsAppDocumentMessage | WhatsAppTemplateMessage;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -72,6 +79,42 @@ const handler = async (req: Request): Promise<Response> => {
       };
       if (docData.caption) {
         messagePayload.document.caption = docData.caption;
+      }
+    } else if (type === "template") {
+      const templateData = data as WhatsAppTemplateMessage;
+      messagePayload.type = "template";
+      messagePayload.template = {
+        name: templateData.templateName,
+        language: {
+          code: "pt_BR",
+        },
+        components: [] as any[],
+      };
+
+      // Add body parameters
+      if (templateData.parameters && templateData.parameters.length > 0) {
+        messagePayload.template.components.push({
+          type: "body",
+          parameters: templateData.parameters.map((param) => ({
+            type: "text",
+            text: param,
+          })),
+        });
+      }
+
+      // Add document header if provided
+      if (templateData.documentUrl) {
+        messagePayload.template.components.unshift({
+          type: "header",
+          parameters: [
+            {
+              type: "document",
+              document: {
+                link: templateData.documentUrl,
+              },
+            },
+          ],
+        });
       }
     } else {
       throw new Error("Invalid message type");

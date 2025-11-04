@@ -169,29 +169,70 @@ const handler = async (req: Request): Promise<Response> => {
       try {
         console.log("Sending WhatsApp message to:", recipientPhone);
         
-        const whatsappResponse = await fetch(
-          `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-whatsapp`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-            },
-            body: JSON.stringify({
-              type: "document",
-              data: {
-                to: recipientPhone,
-                documentUrl: nfseData.pdf_url,
-                filename: `NFSe_${nfseNumber}_${patientName.replace(/\s+/g, "_")}.pdf`,
-                caption: `📄 *Nota Fiscal Espaço Mindware*\n\n` +
-                  `*Número:* ${nfseNumber}\n` +
-                  `*Data:* ${issueDate}\n` +
-                  `*Valor:* ${serviceValue}\n\n` +
-                  `Olá, ${patientName}! Sua nota fiscal de ${issueMonth} está anexada.`,
+        // Try to use template first, fallback to direct document if template fails
+        let whatsappResponse;
+        
+        try {
+          // Use approved template: nfse_envio
+          whatsappResponse = await fetch(
+            `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-whatsapp`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
               },
-            }),
+              body: JSON.stringify({
+                type: "template",
+                data: {
+                  to: recipientPhone,
+                  templateName: "nfse_envio",
+                  parameters: [
+                    patientName,
+                    nfseNumber,
+                    issueDate,
+                    serviceValue,
+                  ],
+                  documentUrl: nfseData.pdf_url,
+                },
+              }),
+            }
+          );
+          
+          const templateResult = await whatsappResponse.json();
+          
+          // If template fails, fallback to direct document
+          if (!whatsappResponse.ok || !templateResult.success) {
+            console.log("Template failed, falling back to direct document:", templateResult);
+            throw new Error("Template not available");
           }
-        );
+        } catch (templateError) {
+          console.log("Using fallback direct document method");
+          
+          whatsappResponse = await fetch(
+            `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-whatsapp`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+              },
+              body: JSON.stringify({
+                type: "document",
+                data: {
+                  to: recipientPhone,
+                  documentUrl: nfseData.pdf_url,
+                  filename: `NFSe_${nfseNumber}_${patientName.replace(/\s+/g, "_")}.pdf`,
+                  caption: `📄 *Nota Fiscal Espaço Mindware*\n\n` +
+                    `*Número:* ${nfseNumber}\n` +
+                    `*Data:* ${issueDate}\n` +
+                    `*Valor:* ${serviceValue}\n\n` +
+                    `Olá, ${patientName}! Sua nota fiscal de ${issueMonth} está anexada.`,
+                },
+              }),
+            }
+          );
+        }
 
         const whatsappResult = await whatsappResponse.json();
         

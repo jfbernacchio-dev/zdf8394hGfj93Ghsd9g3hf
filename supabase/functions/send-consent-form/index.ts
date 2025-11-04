@@ -215,36 +215,74 @@ const handler = async (req: Request): Promise<Response> => {
       try {
         console.log("Sending consent form via WhatsApp to:", patient.phone);
         
-        const whatsappMessage = isMinor 
-          ? `📋 *Termos de Consentimento - Espaço Mindware*\n\n` +
-            `Olá, ${recipientName}!\n\n` +
-            `Precisamos que você aceite os Termos de Consentimento e Política de Privacidade para continuar o atendimento de *${patientName}*.\n\n` +
-            `⚠️ *Importante:* Será necessário anexar uma cópia do seu documento de identidade.\n\n` +
-            `🔗 Acesse o formulário:\n${consentUrl}\n\n` +
-            `📌 Este link é válido por 7 dias.`
-          : `📋 *Termos de Consentimento - Espaço Mindware*\n\n` +
-            `Olá, ${patientName}!\n\n` +
-            `Precisamos que você aceite os Termos de Consentimento e Política de Privacidade para continuar seu atendimento.\n\n` +
-            `🔗 Acesse o formulário:\n${consentUrl}\n\n` +
-            `📌 Este link é válido por 7 dias.`;
+        // Try to use template first, fallback to text if template fails
+        let whatsappResponse;
         
-        const whatsappResponse = await fetch(
-          `${supabaseUrl}/functions/v1/send-whatsapp`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${supabaseKey}`,
-            },
-            body: JSON.stringify({
-              type: "text",
-              data: {
-                to: patient.phone,
-                message: whatsappMessage,
+        try {
+          // Use approved template: termo_consentimento
+          whatsappResponse = await fetch(
+            `${supabaseUrl}/functions/v1/send-whatsapp`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${supabaseKey}`,
               },
-            }),
+              body: JSON.stringify({
+                type: "template",
+                data: {
+                  to: patient.phone,
+                  templateName: "termo_consentimento",
+                  parameters: [
+                    recipientName,
+                    consentUrl,
+                  ],
+                },
+              }),
+            }
+          );
+          
+          const templateResult = await whatsappResponse.json();
+          
+          // If template fails, fallback to text message
+          if (!whatsappResponse.ok || !templateResult.success) {
+            console.log("Template failed, falling back to text message:", templateResult);
+            throw new Error("Template not available");
           }
-        );
+        } catch (templateError) {
+          console.log("Using fallback text message method");
+          
+          const whatsappMessage = isMinor 
+            ? `📋 *Termos de Consentimento - Espaço Mindware*\n\n` +
+              `Olá, ${recipientName}!\n\n` +
+              `Precisamos que você aceite os Termos de Consentimento e Política de Privacidade para continuar o atendimento de *${patientName}*.\n\n` +
+              `⚠️ *Importante:* Será necessário anexar uma cópia do seu documento de identidade.\n\n` +
+              `🔗 Acesse o formulário:\n${consentUrl}\n\n` +
+              `📌 Este link é válido por 7 dias.`
+            : `📋 *Termos de Consentimento - Espaço Mindware*\n\n` +
+              `Olá, ${patientName}!\n\n` +
+              `Precisamos que você aceite os Termos de Consentimento e Política de Privacidade para continuar seu atendimento.\n\n` +
+              `🔗 Acesse o formulário:\n${consentUrl}\n\n` +
+              `📌 Este link é válido por 7 dias.`;
+          
+          whatsappResponse = await fetch(
+            `${supabaseUrl}/functions/v1/send-whatsapp`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${supabaseKey}`,
+              },
+              body: JSON.stringify({
+                type: "text",
+                data: {
+                  to: patient.phone,
+                  message: whatsappMessage,
+                },
+              }),
+            }
+          );
+        }
 
         const whatsappResult = await whatsappResponse.json();
         
