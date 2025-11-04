@@ -186,8 +186,8 @@ export default function NFSeHistory() {
   const handleSendEmail = async (nfseId: string) => {
     try {
       toast({
-        title: 'Enviando email',
-        description: 'Aguarde enquanto enviamos o email com a NFSe...',
+        title: 'Enviando NFSe',
+        description: 'Aguarde enquanto enviamos por email e WhatsApp...',
       });
 
       const { data, error } = await supabase.functions.invoke('send-nfse-email', {
@@ -197,17 +197,22 @@ export default function NFSeHistory() {
       if (error) throw error;
 
       if (data.success) {
+        const messages = ['Email enviado com sucesso'];
+        if (data.whatsappSent) {
+          messages.push('WhatsApp enviado com sucesso');
+        }
+        
         toast({
-          title: 'Email enviado',
-          description: 'O email com a NFSe foi enviado com sucesso para o paciente.',
+          title: 'NFSe enviada',
+          description: messages.join(' • '),
         });
       } else {
         throw new Error(data.error);
       }
     } catch (error: any) {
-      console.error('Error sending email:', error);
+      console.error('Error sending NFSe:', error);
       toast({
-        title: 'Erro ao enviar email',
+        title: 'Erro ao enviar',
         description: error.message,
         variant: 'destructive',
       });
@@ -571,7 +576,7 @@ export default function NFSeHistory() {
                             <>
                               <DropdownMenuItem onClick={() => handleSendEmail(nfse.id)}>
                                 <Mail className="h-4 w-4 mr-2" />
-                                Enviar email
+                                Enviar por email e WhatsApp
                               </DropdownMenuItem>
                               
                               <DropdownMenuItem onClick={() => handleRetryPdfUpload(nfse.id)}>
