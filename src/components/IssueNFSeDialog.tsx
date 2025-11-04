@@ -68,6 +68,9 @@ export default function IssueNFSeDialog({
   };
 
   const handleIssueNFSe = async () => {
+    console.log('🚀 Iniciando emissão de NFSe...');
+    console.log('Sessões não pagas:', unpaidSessions);
+    
     if (unpaidSessions.length === 0) {
       toast({
         title: 'Nenhuma sessão em aberto',
@@ -140,6 +143,9 @@ export default function IssueNFSeDialog({
       }
 
       const sessionIds = unpaidSessions.map(s => s.id);
+      console.log('📋 Session IDs:', sessionIds);
+      console.log('🏥 Patient ID:', patientId);
+      console.log('📞 Chamando edge function issue-nfse...');
       
       const { data, error } = await supabase.functions.invoke('issue-nfse', {
         body: {
@@ -148,7 +154,11 @@ export default function IssueNFSeDialog({
         },
       });
 
-      if (error) throw error;
+      console.log('📦 Resposta da edge function:', data);
+      if (error) {
+        console.error('❌ Erro da edge function:', error);
+        throw error;
+      }
 
       if (data.success) {
         const description = consentEmailSent 
