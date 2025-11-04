@@ -44,6 +44,7 @@ const handler = async (req: Request): Promise<Response> => {
           name,
           email,
           cpf,
+          phone_number,
           use_alternate_nfse_contact,
           nfse_alternate_email,
           nfse_alternate_phone
@@ -155,7 +156,14 @@ const handler = async (req: Request): Promise<Response> => {
     let whatsappSent = false;
     const recipientPhone = nfseData.patient?.use_alternate_nfse_contact && nfseData.patient?.nfse_alternate_phone
       ? nfseData.patient.nfse_alternate_phone
-      : nfseData.patient?.phone;
+      : nfseData.patient?.phone_number;
+
+    console.log("Patient phone data:", {
+      phone_number: nfseData.patient?.phone_number,
+      alternate: nfseData.patient?.nfse_alternate_phone,
+      useAlternate: nfseData.patient?.use_alternate_nfse_contact,
+      recipientPhone
+    });
 
     if (recipientPhone && nfseData.pdf_url) {
       try {
