@@ -151,11 +151,60 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Email sent successfully:", emailResponse);
 
+    // Send WhatsApp message if phone is available
+    let whatsappSent = false;
+    const recipientPhone = nfseData.patient?.use_alternate_nfse_contact && nfseData.patient?.nfse_alternate_phone
+      ? nfseData.patient.nfse_alternate_phone
+      : nfseData.patient?.phone;
+
+    if (recipientPhone && nfseData.pdf_url) {
+      try {
+        console.log("Sending WhatsApp message to:", recipientPhone);
+        
+        const whatsappResponse = await fetch(
+          `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-whatsapp`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            },
+            body: JSON.stringify({
+              type: "document",
+              data: {
+                to: recipientPhone,
+                documentUrl: nfseData.pdf_url,
+                filename: `NFSe_${nfseNumber}_${patientName.replace(/\s+/g, "_")}.pdf`,
+                caption: `📄 *Nota Fiscal Espaço Mindware*\n\n` +
+                  `*Número:* ${nfseNumber}\n` +
+                  `*Data:* ${issueDate}\n` +
+                  `*Valor:* ${serviceValue}\n\n` +
+                  `Olá, ${patientName}! Sua nota fiscal de ${issueMonth} está anexada.`,
+              },
+            }),
+          }
+        );
+
+        const whatsappResult = await whatsappResponse.json();
+        
+        if (whatsappResponse.ok && whatsappResult.success) {
+          console.log("WhatsApp sent successfully");
+          whatsappSent = true;
+        } else {
+          console.error("Failed to send WhatsApp:", whatsappResult);
+        }
+      } catch (whatsappError) {
+        console.error("Error sending WhatsApp:", whatsappError);
+        // Don't fail the entire function if WhatsApp fails
+      }
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: "Email sent successfully",
-        emailId: emailResponse.data?.id 
+        message: whatsappSent ? "Email and WhatsApp sent successfully" : "Email sent successfully (WhatsApp not available)",
+        emailId: emailResponse.data?.id,
+        whatsappSent 
       }),
       {
         status: 200,

@@ -209,11 +209,65 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Consent form email sent:", emailResponse);
 
+    // Send WhatsApp message if phone is available
+    let whatsappSent = false;
+    if (patient.phone) {
+      try {
+        console.log("Sending consent form via WhatsApp to:", patient.phone);
+        
+        const whatsappMessage = isMinor 
+          ? `📋 *Termos de Consentimento - Espaço Mindware*\n\n` +
+            `Olá, ${recipientName}!\n\n` +
+            `Precisamos que você aceite os Termos de Consentimento e Política de Privacidade para continuar o atendimento de *${patientName}*.\n\n` +
+            `⚠️ *Importante:* Será necessário anexar uma cópia do seu documento de identidade.\n\n` +
+            `🔗 Acesse o formulário:\n${consentUrl}\n\n` +
+            `📌 Este link é válido por 7 dias.`
+          : `📋 *Termos de Consentimento - Espaço Mindware*\n\n` +
+            `Olá, ${patientName}!\n\n` +
+            `Precisamos que você aceite os Termos de Consentimento e Política de Privacidade para continuar seu atendimento.\n\n` +
+            `🔗 Acesse o formulário:\n${consentUrl}\n\n` +
+            `📌 Este link é válido por 7 dias.`;
+        
+        const whatsappResponse = await fetch(
+          `${supabaseUrl}/functions/v1/send-whatsapp`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${supabaseKey}`,
+            },
+            body: JSON.stringify({
+              type: "text",
+              data: {
+                to: patient.phone,
+                message: whatsappMessage,
+              },
+            }),
+          }
+        );
+
+        const whatsappResult = await whatsappResponse.json();
+        
+        if (whatsappResponse.ok && whatsappResult.success) {
+          console.log("WhatsApp sent successfully");
+          whatsappSent = true;
+        } else {
+          console.error("Failed to send WhatsApp:", whatsappResult);
+        }
+      } catch (whatsappError) {
+        console.error("Error sending WhatsApp:", whatsappError);
+        // Don't fail the entire function if WhatsApp fails
+      }
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: "Email de consentimento enviado com sucesso",
-        token: token_hash
+        message: whatsappSent 
+          ? "Email e WhatsApp de consentimento enviados com sucesso" 
+          : "Email de consentimento enviado com sucesso",
+        token: token_hash,
+        whatsappSent
       }),
       {
         status: 200,

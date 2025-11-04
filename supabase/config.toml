@@ -12,5 +12,8 @@ verify_jwt = true
 [functions.send-nfse-email]
 verify_jwt = false
 
+[functions.send-whatsapp]
+verify_jwt = false
+
 [functions.export-patient-data]
 verify_jwt = true

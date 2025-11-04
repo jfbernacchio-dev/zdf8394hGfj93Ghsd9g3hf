@@ -1,0 +1,132 @@
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+interface WhatsAppTextMessage {
+  to: string;
+  message: string;
+}
+
+interface WhatsAppDocumentMessage {
+  to: string;
+  documentUrl: string;
+  filename: string;
+  caption?: string;
+}
+
+interface WhatsAppRequest {
+  type: "text" | "document";
+  data: WhatsAppTextMessage | WhatsAppDocumentMessage;
+}
+
+const handler = async (req: Request): Promise<Response> => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    console.log("Starting send-whatsapp function");
+
+    const whatsappToken = Deno.env.get("WHATSAPP_API_TOKEN");
+    const phoneNumberId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
+
+    if (!whatsappToken || !phoneNumberId) {
+      throw new Error("WhatsApp credentials not configured");
+    }
+
+    const request: WhatsAppRequest = await req.json();
+    const { type, data } = request;
+
+    // Clean phone number - remove all non-digits and add country code if needed
+    let cleanPhone = data.to.replace(/\D/g, "");
+    
+    // If doesn't start with country code, add Brazil code (55)
+    if (!cleanPhone.startsWith("55")) {
+      cleanPhone = "55" + cleanPhone;
+    }
+
+    console.log("Sending WhatsApp message to:", cleanPhone);
+
+    const whatsappApiUrl = `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`;
+
+    let messagePayload: any = {
+      messaging_product: "whatsapp",
+      to: cleanPhone,
+    };
+
+    if (type === "text") {
+      const textData = data as WhatsAppTextMessage;
+      messagePayload.type = "text";
+      messagePayload.text = {
+        body: textData.message,
+      };
+    } else if (type === "document") {
+      const docData = data as WhatsAppDocumentMessage;
+      messagePayload.type = "document";
+      messagePayload.document = {
+        link: docData.documentUrl,
+        filename: docData.filename,
+      };
+      if (docData.caption) {
+        messagePayload.document.caption = docData.caption;
+      }
+    } else {
+      throw new Error("Invalid message type");
+    }
+
+    console.log("WhatsApp payload:", JSON.stringify(messagePayload, null, 2));
+
+    const whatsappResponse = await fetch(whatsappApiUrl, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${whatsappToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(messagePayload),
+    });
+
+    const responseData = await whatsappResponse.json();
+
+    if (!whatsappResponse.ok) {
+      console.error("WhatsApp API error:", responseData);
+      throw new Error(`WhatsApp API error: ${JSON.stringify(responseData)}`);
+    }
+
+    console.log("WhatsApp message sent successfully:", responseData);
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: "WhatsApp message sent successfully",
+        whatsappResponse: responseData,
+      }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
+      }
+    );
+  } catch (error: any) {
+    console.error("Error in send-whatsapp function:", error);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error.message,
+      }),
+      {
+        status: 500,
+        headers: {
+          "Content-Type": "application/json",
+          ...corsHeaders,
+        },
+      }
+    );
+  }
+};
+
+serve(handler);
