@@ -149,7 +149,7 @@ const Patients = () => {
     Object.keys(sessionsByPatient).forEach(patientId => {
       const patient = patients.find(p => p.id === patientId);
       if (patient) {
-        if (patient.monthly_price || patient.no_nfse) {
+        if (patient.no_nfse) {
           textOnlyPatients.push({ patient, sessions: sessionsByPatient[patientId] });
         } else {
           eligiblePatients.push({ patient, sessions: sessionsByPatient[patientId] });

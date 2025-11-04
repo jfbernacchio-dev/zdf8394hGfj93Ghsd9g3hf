@@ -770,14 +770,8 @@ Assinatura do Profissional`;
                     <FileText className="w-4 h-4 mr-2" />
                     Fazer Fechamento
                   </Button>
-                ) : patient.monthly_price ? (
-                  // Pacientes mensais com NFSe: recibo mensal
-                  <Button onClick={generateInvoice} variant="outline">
-                    <FileText className="w-4 h-4 mr-2" />
-                    Gerar Recibo Mensal
-                  </Button>
                 ) : (
-                  // Pacientes por sessão com NFSe: usar NFSe
+                  // Pacientes com NFSe (mensais ou por sessão): usar NFSe
                   <IssueNFSeDialog 
                     patientId={id!} 
                     patientName={patient.name}
