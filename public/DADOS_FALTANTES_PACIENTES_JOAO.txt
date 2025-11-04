@@ -1,6 +1,6 @@
 ====================================================================
 RELATÓRIO DE DADOS FALTANTES - PACIENTES DO JOÃO FELIPE
-Data: 03/11/2025
+Data: 04/11/2025
 Total de Pacientes: 42
 ====================================================================
 
@@ -224,15 +224,7 @@ Agradeço muito pela atenção, um abraço e ótima semana!
 -------------------------------------------------------------------
 18. JOÃO PEDRO LEFEVRE
 -------------------------------------------------------------------
-DADOS FALTANTES:
-- Email
-- Data de Nascimento
-
-MENSAGEM WHATSAPP (11 99815-1818):
-Olá bom dia João Pedro, tudo bem com vc? Estamos migrando o nosso banco de dados para um sistema, e faltam alguns dados para completar o seu cadastro. Também já lembrando que junto com as próximas Notas Fiscais, você também receberá o nosso termo de consentimento e política do privacidade no email fornecido. Peço para que por favor aceite o termo. Você poderia por favor me caminhar os seguintes dados para o cadastro:
-- Email
-- Data de Nascimento
-Agradeço muito pela atenção, um abraço e ótima semana!
+✓ CADASTRO COMPLETO - Todos os dados necessários estão preenchidos!
 
 -------------------------------------------------------------------
 19. JOÃO PEDRO LOPES MORAES (MENOR DE IDADE)
@@ -560,12 +552,12 @@ Agradeço muito pela atenção, um abraço e ótima semana!
 RESUMO ESTATÍSTICO
 ====================================================================
 Total de Pacientes: 42
-Pacientes com Cadastro Completo: 1 (Daniela Grecco Alvarez)
-Pacientes com Dados Faltantes: 41
+Pacientes com Cadastro Completo: 2 (Daniela Grecco Alvarez, João Pedro Lefevre)
+Pacientes com Dados Faltantes: 40
 
 DADOS MAIS COMUNS FALTANDO:
-- Email: 39 pacientes
-- Data de Nascimento: 40 pacientes
+- Email: 38 pacientes
+- Data de Nascimento: 38 pacientes
 - CPF: 7 pacientes
 - CPF do Responsável (menores): 3 pacientes
 
