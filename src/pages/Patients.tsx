@@ -137,17 +137,9 @@ const Patients = () => {
       // Se empate, ordenar alfabeticamente
       return a.name.localeCompare(b.name);
     } else if (sortBy === 'schedule') {
-      // Buscar próxima sessão agendada para cada paciente
-      const getNextSession = (patientId: string) => {
-        const today = new Date().toISOString().split('T')[0];
-        const patientSessions = sessions
-          .filter(s => s.patient_id === patientId && s.date >= today)
-          .sort((s1, s2) => s1.date.localeCompare(s2.date));
-        return patientSessions[0]?.date || '9999-12-31'; // Se não tem sessão, coloca no final
-      };
-      
-      const dateA = getNextSession(a.id);
-      const dateB = getNextSession(b.id);
+      // Ordenar por data de cadastro (start_date ou created_at)
+      const dateA = a.start_date || a.created_at || '9999-12-31';
+      const dateB = b.start_date || b.created_at || '9999-12-31';
       
       return dateA.localeCompare(dateB);
     }
@@ -477,19 +469,16 @@ const Patients = () => {
                   Mostrar apenas em aberto
                 </label>
               </div>
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium whitespace-nowrap">Ordenar por:</label>
-                <Select value={sortBy} onValueChange={(value: 'alphabetic' | 'unpaid' | 'schedule') => setSortBy(value)}>
-                  <SelectTrigger className="w-full sm:w-[180px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="alphabetic">Alfabético</SelectItem>
-                    <SelectItem value="unpaid">Em aberto</SelectItem>
-                    <SelectItem value="schedule">Agendamento</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <Select value={sortBy} onValueChange={(value: 'alphabetic' | 'unpaid' | 'schedule') => setSortBy(value)}>
+                <SelectTrigger className="w-full sm:w-[200px]">
+                  <SelectValue placeholder="Ordenar por" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="alphabetic">Ordenar por: Alfabético</SelectItem>
+                  <SelectItem value="unpaid">Ordenar por: Em aberto</SelectItem>
+                  <SelectItem value="schedule">Ordenar por: Agendamento</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </Card>
