@@ -215,17 +215,51 @@ serve(async (req) => {
       throw new Error('Perfil do usuário não encontrado');
     }
 
-    // Calculate values
-    const serviceValue = sessions.reduce((sum, s) => sum + Number(s.value), 0);
+    // Calculate values based on patient type
+    const isMonthlyPatient = patient.monthly_price || false;
+    let serviceValue = 0;
+    let sessionDetails = '';
+
+    if (isMonthlyPatient) {
+      // For monthly patients: group sessions by month and calculate based on months
+      const sessionsByMonth = sessions.reduce((acc, session) => {
+        const date = new Date(session.date);
+        const monthYear = `${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
+        if (!acc[monthYear]) {
+          acc[monthYear] = [];
+        }
+        acc[monthYear].push(session);
+        return acc;
+      }, {} as Record<string, any[]>);
+
+      const months = Object.keys(sessionsByMonth).sort();
+      serviceValue = months.length * Number(patient.session_value);
+      
+      // Build months description
+      const monthsDescription = months.map(monthYear => {
+        const sessionCount = sessionsByMonth[monthYear].length;
+        return `${monthYear} (${sessionCount} sessão${sessionCount > 1 ? 'ões' : ''})`;
+      }).join(', ');
+
+      sessionDetails = `Modalidade: Preço Mensal
+Meses: ${monthsDescription}
+Quantidade de meses: ${months.length}`;
+    } else {
+      // For per-session patients: sum all session values
+      serviceValue = sessions.reduce((sum, s) => sum + Number(s.value), 0);
+      
+      const sessionDates = sessions.map(s => {
+        const date = new Date(s.date);
+        return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
+      }).join(', ');
+
+      sessionDetails = `Sessões realizadas nas datas: ${sessionDates}
+Quantidade de sessões: ${sessions.length}`;
+    }
+
     const issRate = Number(config.iss_rate) / 100;
     const issValue = serviceValue * issRate;
     const netValue = serviceValue - issValue;
-
-    // Generate service description
-    const sessionDates = sessions.map(s => {
-      const date = new Date(s.date);
-      return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
-    }).join(', ');
 
     // Determine who the invoice should be issued to
     // (already defined above, use existing variables)
@@ -258,16 +292,16 @@ Atendimento referente ao paciente menor de idade ${patient.name}${patientCpfText
     }
 
     // Add session details
-    const isMonthlyPatient = patient.monthly_price || false;
-    
     serviceDescription += `
 
-Sessões realizadas nas datas: ${sessionDates}
-Quantidade de sessões: ${sessions.length}
+${sessionDetails}
 `;
 
-    // Only add session value if patient is NOT monthly
-    if (!isMonthlyPatient) {
+    // Add session value information
+    if (isMonthlyPatient) {
+      serviceDescription += `
+Valor mensal: R$ ${Number(patient.session_value).toFixed(2).replace('.', ',')}`;
+    } else {
       serviceDescription += `
 Valor unitário por sessão: R$ ${Number(patient.session_value).toFixed(2).replace('.', ',')}`;
     }
