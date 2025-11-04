@@ -222,6 +222,12 @@ const PatientDetail = () => {
       const dateChanged = editingSession.date !== formData.date;
       const timeChanged = editingSession.time !== formData.time;
 
+      // If moved to a future date, automatically set status to scheduled
+      const today = getBrazilDate();
+      if (formData.date > today) {
+        sessionData.status = 'scheduled';
+      }
+
       const { error } = await supabase
         .from('sessions')
         .update(sessionData)

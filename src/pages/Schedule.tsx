@@ -483,6 +483,12 @@ const Schedule = () => {
       const dateChanged = sessionData.date !== editingSession.date;
       const timeChanged = sessionData.time !== editingSession.time;
       
+      // If moved to a future date, automatically set status to scheduled
+      const today = getBrazilDate();
+      if (sessionData.date > today) {
+        sessionData.status = 'scheduled';
+      }
+      
       const { error } = await supabase
         .from('sessions')
         .update(sessionData)
@@ -630,13 +636,19 @@ const Schedule = () => {
     const isDragMove = conflictDetails?.newSession?.isDragMove;
     
     if (isDragMove) {
-      // Handle drag move - use conflictDetails because draggedSession was reset
+    // Handle drag move - use conflictDetails because draggedSession was reset
       const updateData: any = {
         date: conflictDetails?.newSession?.date
       };
       
       if (conflictDetails?.newSession?.time) {
         updateData.time = conflictDetails?.newSession?.time;
+      }
+      
+      // If moved to a future date, automatically set status to scheduled
+      const today = getBrazilDate();
+      if (conflictDetails?.newSession?.date && conflictDetails.newSession.date > today) {
+        updateData.status = 'scheduled';
       }
       
       const { error } = await supabase
@@ -690,6 +702,12 @@ const Schedule = () => {
       // Check if date or time changed
       const dateChanged = sessionData.date !== editingSession.date;
       const timeChanged = sessionData.time !== editingSession.time;
+      
+      // If moved to a future date, automatically set status to scheduled
+      const today = getBrazilDate();
+      if (sessionData.date > today) {
+        sessionData.status = 'scheduled';
+      }
       
       const { error } = await supabase
         .from('sessions')
@@ -984,6 +1002,12 @@ const Schedule = () => {
     
     if (newTime) {
       updateData.time = newTime;
+    }
+    
+    // If moved to a future date, automatically set status to scheduled
+    const today = getBrazilDate();
+    if (newDate > today) {
+      updateData.status = 'scheduled';
     }
     
     console.log('[DRAG] Updating session:', updateData);
