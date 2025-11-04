@@ -19,7 +19,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    console.log("Starting send-nfse-email function");
+    console.log("Starting send-nfse-email function v2");
     
     // Use service role key for internal calls
     const supabase = createClient(
