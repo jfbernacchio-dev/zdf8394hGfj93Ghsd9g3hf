@@ -44,7 +44,7 @@ const handler = async (req: Request): Promise<Response> => {
           name,
           email,
           cpf,
-          phone_number,
+          phone,
           use_alternate_nfse_contact,
           nfse_alternate_email,
           nfse_alternate_phone
@@ -156,10 +156,10 @@ const handler = async (req: Request): Promise<Response> => {
     let whatsappSent = false;
     const recipientPhone = nfseData.patient?.use_alternate_nfse_contact && nfseData.patient?.nfse_alternate_phone
       ? nfseData.patient.nfse_alternate_phone
-      : nfseData.patient?.phone_number;
+      : nfseData.patient?.phone;
 
     console.log("Patient phone data:", {
-      phone_number: nfseData.patient?.phone_number,
+      phone: nfseData.patient?.phone,
       alternate: nfseData.patient?.nfse_alternate_phone,
       useAlternate: nfseData.patient?.use_alternate_nfse_contact,
       recipientPhone
