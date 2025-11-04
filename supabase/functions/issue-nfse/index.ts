@@ -220,9 +220,6 @@ serve(async (req) => {
     let serviceValue = 0;
     let sessionDetails = '';
 
-    console.log('Patient monthly_price:', patient.monthly_price);
-    console.log('Is monthly patient:', isMonthlyPatient);
-
     if (isMonthlyPatient) {
       // For monthly patients: group sessions by month and calculate based on months
       const sessionsByMonth = sessions.reduce((acc, session) => {
@@ -236,12 +233,7 @@ serve(async (req) => {
       }, {} as Record<string, any[]>);
 
       const months = Object.keys(sessionsByMonth).sort();
-      console.log('Sessions by month:', sessionsByMonth);
-      console.log('Months found:', months);
-      console.log('Patient session_value:', patient.session_value);
-      
       serviceValue = months.length * Number(patient.session_value);
-      console.log('Calculated service value for monthly:', serviceValue);
       
       // Build months description
       const monthsDescription = months.map(monthYear => {
