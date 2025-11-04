@@ -600,14 +600,7 @@ const NewPatient = () => {
                       type="checkbox"
                       id="monthlyPrice"
                       checked={formData.monthlyPrice}
-                      onChange={(e) => {
-                        const checked = e.target.checked;
-                        setFormData({ 
-                          ...formData, 
-                          monthlyPrice: checked,
-                          noNfse: checked ? true : formData.noNfse
-                        });
-                      }}
+                      onChange={(e) => setFormData({ ...formData, monthlyPrice: e.target.checked })}
                       className="cursor-pointer"
                     />
                     <Label htmlFor="monthlyPrice" className="cursor-pointer text-sm">Preço Mensal</Label>
