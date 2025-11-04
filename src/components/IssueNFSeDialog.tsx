@@ -44,12 +44,6 @@ export default function IssueNFSeDialog({
       // Store max sessions per invoice
       setMaxSessionsPerInvoice(patient?.nfse_max_sessions_per_invoice || 20);
 
-      // Se o paciente é mensal, não deve usar NFSe
-      if (patient?.monthly_price) {
-        setUnpaidSessions([]);
-        return;
-      }
-
       const { data: sessions, error } = await supabase
         .from('sessions')
         .select('*')

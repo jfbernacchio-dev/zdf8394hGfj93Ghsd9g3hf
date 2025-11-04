@@ -258,12 +258,21 @@ Atendimento referente ao paciente menor de idade ${patient.name}${patientCpfText
     }
 
     // Add session details
+    const isMonthlyPatient = patient.monthly_price || false;
+    
     serviceDescription += `
 
 Sessões realizadas nas datas: ${sessionDates}
 Quantidade de sessões: ${sessions.length}
+`;
 
-Valor unitário por sessão: R$ ${Number(patient.session_value).toFixed(2).replace('.', ',')}
+    // Only add session value if patient is NOT monthly
+    if (!isMonthlyPatient) {
+      serviceDescription += `
+Valor unitário por sessão: R$ ${Number(patient.session_value).toFixed(2).replace('.', ',')}`;
+    }
+
+    serviceDescription += `
 Valor total: R$ ${serviceValue.toFixed(2).replace('.', ',')}
 
 Data de emissão: ${new Date().toLocaleDateString('pt-BR')}`;
