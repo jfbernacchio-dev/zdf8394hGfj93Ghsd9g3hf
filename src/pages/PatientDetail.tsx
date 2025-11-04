@@ -277,8 +277,63 @@ const PatientDetail = () => {
   };
 
   const toggleStatus = async (session: any, checked: boolean) => {
-    // Prevent marking future sessions as attended
     const { isBefore } = await import('date-fns');
+    
+    // If session is scheduled (future), toggle between scheduled/unscheduled
+    if (session.status === 'scheduled') {
+      const newStatus = checked ? 'scheduled' : 'unscheduled';
+      
+      const { error } = await supabase
+        .from('sessions')
+        .update({ 
+          status: newStatus,
+          show_in_schedule: checked // Hide from schedule when unscheduled
+        })
+        .eq('id', session.id);
+
+      if (error) {
+        console.error('Error updating session status:', error);
+        toast({ 
+          title: 'Erro ao atualizar status', 
+          description: error.message,
+          variant: 'destructive' 
+        });
+        return;
+      }
+      
+      toast({ title: checked ? 'Sessão reagendada' : 'Sessão desmarcada' });
+      await loadData();
+      return;
+    }
+
+    // If session is unscheduled, can only re-schedule it
+    if (session.status === 'unscheduled') {
+      if (checked) {
+        const { error } = await supabase
+          .from('sessions')
+          .update({ 
+            status: 'scheduled',
+            show_in_schedule: true
+          })
+          .eq('id', session.id);
+
+        if (error) {
+          console.error('Error updating session status:', error);
+          toast({ 
+            title: 'Erro ao atualizar status', 
+            description: error.message,
+            variant: 'destructive' 
+          });
+          return;
+        }
+        
+        toast({ title: 'Sessão reagendada' });
+        await loadData();
+      }
+      return;
+    }
+
+    // For past sessions (attended/missed), prevent marking future sessions as attended
     if (checked && isBefore(new Date(), parseISO(session.date))) {
       toast({ 
         title: 'Não é possível marcar como compareceu', 
@@ -806,10 +861,12 @@ Assinatura do Profissional`;
                       <p className={`text-sm ${
                         session.status === 'attended' ? 'text-green-600 dark:text-green-400' :
                         session.status === 'missed' ? 'text-red-600 dark:text-red-400' :
+                        session.status === 'unscheduled' ? 'text-gray-600 dark:text-gray-400' :
                         'text-blue-600 dark:text-blue-400'
                       }`}>
                         {session.status === 'attended' ? 'Compareceu' : 
-                         session.status === 'missed' ? 'Não Compareceu' : 'Agendada'}
+                         session.status === 'missed' ? 'Não Compareceu' :
+                         session.status === 'unscheduled' ? 'Desmarcada' : 'Agendada'}
                       </p>
                       {session.notes && <p className="text-sm mt-1 text-muted-foreground">{session.notes}</p>}
                     </div>
@@ -830,11 +887,13 @@ Assinatura do Profissional`;
                        </div>
                       <div className="flex items-center gap-2">
                         <Label htmlFor={`status-${session.id}`} className="text-sm cursor-pointer">
-                          {session.status === 'attended' ? 'Compareceu' : 'Faltou'}
+                          {session.status === 'scheduled' || session.status === 'unscheduled' 
+                            ? (session.status === 'scheduled' ? 'Agendada' : 'Desmarcada')
+                            : (session.status === 'attended' ? 'Compareceu' : 'Faltou')}
                         </Label>
                         <Switch
                           id={`status-${session.id}`}
-                          checked={session.status === 'attended'}
+                          checked={session.status === 'attended' || session.status === 'scheduled'}
                           onCheckedChange={(checked) => toggleStatus(session, checked)}
                         />
                       </div>

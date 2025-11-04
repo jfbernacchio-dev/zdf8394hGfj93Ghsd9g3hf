@@ -43,35 +43,72 @@ Deno.serve(async (req) => {
       .eq('date', todayStr);
 
     if (fetchError) {
-      console.error('Error fetching sessions:', fetchError);
+      console.error('Error fetching scheduled sessions:', fetchError);
       throw fetchError;
     }
 
     console.log('Found scheduled sessions:', scheduledSessions?.length || 0);
 
-    if (!scheduledSessions || scheduledSessions.length === 0) {
+    // Get all unscheduled sessions for today
+    const { data: unscheduledSessions, error: unscheduledFetchError } = await supabaseClient
+      .from('sessions')
+      .select('*, patients!inner(*)')
+      .eq('status', 'unscheduled')
+      .eq('date', todayStr);
+
+    if (unscheduledFetchError) {
+      console.error('Error fetching unscheduled sessions:', unscheduledFetchError);
+      throw unscheduledFetchError;
+    }
+
+    console.log('Found unscheduled sessions:', unscheduledSessions?.length || 0);
+
+    let updatedCount = 0;
+
+    // Update scheduled sessions to attended
+    if (scheduledSessions && scheduledSessions.length > 0) {
+      const scheduledIds = scheduledSessions.map(s => s.id);
+      const { error: updateError } = await supabaseClient
+        .from('sessions')
+        .update({ status: 'attended' })
+        .in('id', scheduledIds);
+
+      if (updateError) {
+        console.error('Error updating scheduled sessions:', updateError);
+        throw updateError;
+      }
+
+      updatedCount += scheduledIds.length;
+      console.log('Updated scheduled sessions to attended:', scheduledIds.length);
+    }
+
+    // Update unscheduled sessions to missed
+    if (unscheduledSessions && unscheduledSessions.length > 0) {
+      const unscheduledIds = unscheduledSessions.map(s => s.id);
+      const { error: updateError } = await supabaseClient
+        .from('sessions')
+        .update({ status: 'missed' })
+        .in('id', unscheduledIds);
+
+      if (updateError) {
+        console.error('Error updating unscheduled sessions:', updateError);
+        throw updateError;
+      }
+
+      updatedCount += unscheduledIds.length;
+      console.log('Updated unscheduled sessions to missed:', unscheduledIds.length);
+    }
+
+    if (updatedCount === 0) {
       return new Response(
         JSON.stringify({ message: 'No sessions to update', count: 0 }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       );
     }
 
-    // Update all sessions to attended
-    const sessionIds = scheduledSessions.map(s => s.id);
-    const { error: updateError } = await supabaseClient
-      .from('sessions')
-      .update({ status: 'attended' })
-      .in('id', sessionIds);
-
-    if (updateError) {
-      console.error('Error updating sessions:', updateError);
-      throw updateError;
-    }
-
-    console.log('Updated sessions:', sessionIds.length);
-
     // For each patient, ensure 4 future sessions exist
-    const uniquePatients = [...new Map(scheduledSessions.map(s => [s.patient_id, s.patients])).values()];
+    const allSessions = [...(scheduledSessions || []), ...(unscheduledSessions || [])];
+    const uniquePatients = [...new Map(allSessions.map(s => [s.patient_id, s.patients])).values()];
     
     for (const patient of uniquePatients) {
       console.log('Processing patient:', patient.name);
@@ -84,7 +121,9 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         message: 'Sessions updated successfully', 
-        count: sessionIds.length,
+        count: updatedCount,
+        scheduled: scheduledSessions?.length || 0,
+        unscheduled: unscheduledSessions?.length || 0,
         patients: uniquePatients.length
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
