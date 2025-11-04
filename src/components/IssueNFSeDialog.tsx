@@ -22,6 +22,8 @@ export default function IssueNFSeDialog({
   const [loadingSessions, setLoadingSessions] = useState(false);
   const [unpaidSessions, setUnpaidSessions] = useState<any[]>([]);
   const [maxSessionsPerInvoice, setMaxSessionsPerInvoice] = useState(20);
+  const [isMonthlyPatient, setIsMonthlyPatient] = useState(false);
+  const [patientSessionValue, setPatientSessionValue] = useState(0);
 
   useEffect(() => {
     if (open) {
@@ -32,17 +34,19 @@ export default function IssueNFSeDialog({
   const loadUnpaidSessions = async () => {
     setLoadingSessions(true);
     try {
-      // Buscar sessões não pagas e verificar se o paciente não é mensal
+      // Buscar sessões não pagas e verificar se o paciente é mensal
       const { data: patient, error: patientError } = await supabase
         .from('patients')
-        .select('monthly_price, nfse_max_sessions_per_invoice')
+        .select('monthly_price, nfse_max_sessions_per_invoice, session_value')
         .eq('id', patientId)
         .single();
 
       if (patientError) throw patientError;
 
-      // Store max sessions per invoice
+      // Store patient configuration
       setMaxSessionsPerInvoice(patient?.nfse_max_sessions_per_invoice || 20);
+      setIsMonthlyPatient(patient?.monthly_price || false);
+      setPatientSessionValue(Number(patient?.session_value || 0));
 
       const { data: sessions, error } = await supabase
         .from('sessions')
@@ -177,7 +181,23 @@ export default function IssueNFSeDialog({
     }
   };
 
-  const totalValue = unpaidSessions.reduce((sum, s) => sum + Number(s.value), 0);
+  // Calculate total value based on patient type
+  const totalValue = isMonthlyPatient ? (() => {
+    // For monthly patients: group sessions by month
+    const sessionsByMonth = unpaidSessions.reduce((acc, session) => {
+      const date = parseISO(session.date);
+      const monthYear = format(date, 'MM/yyyy');
+      if (!acc[monthYear]) {
+        acc[monthYear] = [];
+      }
+      acc[monthYear].push(session);
+      return acc;
+    }, {} as Record<string, any[]>);
+    
+    const monthCount = Object.keys(sessionsByMonth).length;
+    return monthCount * patientSessionValue;
+  })() : unpaidSessions.reduce((sum, s) => sum + Number(s.value), 0);
+
   const numberOfInvoices = Math.ceil(unpaidSessions.length / maxSessionsPerInvoice);
   const willSplitInvoices = numberOfInvoices > 1;
 
@@ -213,10 +233,36 @@ export default function IssueNFSeDialog({
               ) : (
                 <>
                   <div className="rounded-lg border p-4 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Sessões não pagas:</span>
-                      <span className="text-sm font-bold">{unpaidSessions.length}</span>
-                    </div>
+                    {isMonthlyPatient ? (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Meses de referência:</span>
+                          <span className="text-sm font-bold">
+                            {(() => {
+                              const sessionsByMonth = unpaidSessions.reduce((acc, session) => {
+                                const date = parseISO(session.date);
+                                const monthYear = format(date, 'MM/yyyy');
+                                if (!acc[monthYear]) {
+                                  acc[monthYear] = [];
+                                }
+                                acc[monthYear].push(session);
+                                return acc;
+                              }, {} as Record<string, any[]>);
+                              return Object.keys(sessionsByMonth).length;
+                            })()}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-muted-foreground">
+                          <span className="text-xs">Total de sessões:</span>
+                          <span className="text-xs">{unpaidSessions.length}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">Sessões não pagas:</span>
+                        <span className="text-sm font-bold">{unpaidSessions.length}</span>
+                      </div>
+                    )}
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Valor total:</span>
                       <span className="text-sm font-bold">{formatBrazilianCurrency(totalValue)}</span>
