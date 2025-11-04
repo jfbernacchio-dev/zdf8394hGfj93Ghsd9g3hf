@@ -186,7 +186,7 @@ const handler = async (req: Request): Promise<Response> => {
                 type: "template",
                 data: {
                   to: recipientPhone,
-                  templateName: "nfse_envio",
+                  templateName: "nfse_envio_v2",
                   parameters: [
                     patientName,
                     nfseNumber,
