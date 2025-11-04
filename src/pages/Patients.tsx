@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Search, Edit, FileText, AlertCircle, CheckCheck } from 'lucide-react';
 
 import { useNavigate } from 'react-router-dom';
@@ -19,6 +20,7 @@ const Patients = () => {
   const [sessions, setSessions] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [showOnlyUnpaid, setShowOnlyUnpaid] = useState(false);
+  const [sortBy, setSortBy] = useState<'alphabetic' | 'unpaid' | 'schedule'>('alphabetic');
   const [isGeneralInvoiceOpen, setIsGeneralInvoiceOpen] = useState(false);
   const [generalInvoiceText, setGeneralInvoiceText] = useState('');
   const [affectedSessions, setAffectedSessions] = useState<any[]>([]);
@@ -119,7 +121,39 @@ const Patients = () => {
     // Se showOnlyUnpaid estiver ativo, filtrar apenas pacientes com sessões não pagas
     const stats = getPatientStats(p.id);
     return matchesSearch && stats.unpaidCount > 0;
-  }).sort((a, b) => a.name.localeCompare(b.name));
+  }).sort((a, b) => {
+    // Ordenação
+    if (sortBy === 'alphabetic') {
+      return a.name.localeCompare(b.name);
+    } else if (sortBy === 'unpaid') {
+      const statsA = getPatientStats(a.id);
+      const statsB = getPatientStats(b.id);
+      
+      // Primeiro por número de sessões não pagas (descendente)
+      if (statsB.unpaidCount !== statsA.unpaidCount) {
+        return statsB.unpaidCount - statsA.unpaidCount;
+      }
+      
+      // Se empate, ordenar alfabeticamente
+      return a.name.localeCompare(b.name);
+    } else if (sortBy === 'schedule') {
+      // Buscar próxima sessão agendada para cada paciente
+      const getNextSession = (patientId: string) => {
+        const today = new Date().toISOString().split('T')[0];
+        const patientSessions = sessions
+          .filter(s => s.patient_id === patientId && s.date >= today)
+          .sort((s1, s2) => s1.date.localeCompare(s2.date));
+        return patientSessions[0]?.date || '9999-12-31'; // Se não tem sessão, coloca no final
+      };
+      
+      const dateA = getNextSession(a.id);
+      const dateB = getNextSession(b.id);
+      
+      return dateA.localeCompare(dateB);
+    }
+    
+    return 0;
+  });
 
   const generateGeneralInvoice = async () => {
     const allUnpaidSessions = sessions.filter(s => s.status === 'attended' && !s.paid);
@@ -427,20 +461,35 @@ const Patients = () => {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input placeholder="Buscar paciente..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
             </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="showOnlyUnpaid"
-                checked={showOnlyUnpaid}
-                onChange={(e) => setShowOnlyUnpaid(e.target.checked)}
-                className="h-4 w-4 cursor-pointer"
-              />
-              <label
-                htmlFor="showOnlyUnpaid"
-                className="text-sm font-medium leading-none cursor-pointer"
-              >
-                Mostrar apenas em aberto
-              </label>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="showOnlyUnpaid"
+                  checked={showOnlyUnpaid}
+                  onChange={(e) => setShowOnlyUnpaid(e.target.checked)}
+                  className="h-4 w-4 cursor-pointer"
+                />
+                <label
+                  htmlFor="showOnlyUnpaid"
+                  className="text-sm font-medium leading-none cursor-pointer"
+                >
+                  Mostrar apenas em aberto
+                </label>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium whitespace-nowrap">Ordenar por:</label>
+                <Select value={sortBy} onValueChange={(value: 'alphabetic' | 'unpaid' | 'schedule') => setSortBy(value)}>
+                  <SelectTrigger className="w-full sm:w-[180px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="alphabetic">Alfabético</SelectItem>
+                    <SelectItem value="unpaid">Em aberto</SelectItem>
+                    <SelectItem value="schedule">Agendamento</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         </Card>
