@@ -270,13 +270,13 @@ export default function WhatsAppChat() {
                     className={`flex ${msg.direction === "outbound" ? "justify-end" : "justify-start"}`}
                   >
                     <div
-                      className={`max-w-[70%] rounded-lg p-3 break-words ${
+                      className={`max-w-[70%] rounded-lg p-3 ${
                         msg.direction === "outbound"
                           ? "bg-primary text-primary-foreground"
                           : "bg-muted"
                       }`}
                     >
-                      <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
+                      <p className="text-sm whitespace-pre-wrap break-all overflow-wrap-anywhere">{msg.content}</p>
                       <p
                         className={`text-xs mt-1 ${
                           msg.direction === "outbound"
