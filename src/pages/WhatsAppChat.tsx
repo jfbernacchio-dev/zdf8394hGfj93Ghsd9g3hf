@@ -212,16 +212,16 @@ export default function WhatsAppChat() {
                 </Avatar>
                 <div className="flex-1 text-left overflow-hidden">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="font-medium truncate">
+                    <p className="font-medium break-words">
                       {conv.contact_name || conv.phone_number}
                     </p>
                     {conv.unread_count > 0 && (
-                      <Badge variant="default" className="text-xs">
+                      <Badge variant="default" className="text-xs shrink-0">
                         {conv.unread_count}
                       </Badge>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground truncate">
+                  <p className="text-xs text-muted-foreground break-words">
                     {conv.phone_number}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
