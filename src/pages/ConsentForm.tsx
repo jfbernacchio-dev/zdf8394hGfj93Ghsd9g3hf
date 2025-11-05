@@ -30,25 +30,26 @@ export default function ConsentForm() {
       console.log("Loading consent form data...");
       console.log("Token:", token);
       
-      // Use supabase client directly which has the correct configuration
-      const { data, error } = await supabase.functions.invoke('get-consent-data', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: { token }
-      });
+      // Call edge function with token in query params
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/get-consent-data?token=${token}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': supabaseKey,
+          }
+        }
+      );
 
-      console.log("Response:", { data, error });
+      const data = await response.json();
 
-      if (error) {
-        console.error("Function error:", error);
-        toast.error(error.message || "Link inválido ou expirado");
-        setLoading(false);
-        return;
-      }
+      console.log("Response:", { data, response });
 
-      if (data.error) {
+      if (!response.ok || data.error) {
         if (data.alreadyAccepted) {
           setSubmitted(true);
         }
