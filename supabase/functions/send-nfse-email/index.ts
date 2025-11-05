@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@4.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { registerWhatsAppMessage } from "../_shared/whatsappHistory.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -242,24 +241,63 @@ const handler = async (req: Request): Promise<Response> => {
           whatsappSent = true;
           
           // Register message in WhatsApp history
-          const messageContent = `📄 NFS-e #${nfseNumber} enviada - ${issueMonth} (${serviceValue})`;
-          
-          await registerWhatsAppMessage(supabase, {
-            userId: nfseData.user_id,
-            patientId: nfseData.patient_id,
-            phoneNumber: recipientPhone,
-            messageType: "template",
-            content: messageContent,
-            metadata: {
-              type: "nfse",
-              nfseNumber: nfseNumber,
-              nfseId: nfseId,
-              issueDate: issueDate,
-              serviceValue: serviceValue,
-              documentUrl: nfseData.pdf_url,
-            },
-            whatsappMessageId: whatsappResult.whatsappResponse?.messages?.[0]?.id,
-          });
+          try {
+            const messageContent = `📄 NFS-e #${nfseNumber} enviada - ${issueMonth} (${serviceValue})`;
+            
+            // Check if conversation exists
+            let conversationId: string;
+            const { data: existingConv } = await supabase
+              .from("whatsapp_conversations")
+              .select("id")
+              .eq("user_id", nfseData.user_id)
+              .eq("patient_id", nfseData.patient_id)
+              .single();
+
+            if (existingConv) {
+              conversationId = existingConv.id;
+              await supabase
+                .from("whatsapp_conversations")
+                .update({
+                  last_message_at: new Date().toISOString(),
+                  last_message_from: "therapist",
+                })
+                .eq("id", conversationId);
+            } else {
+              const { data: newConv } = await supabase
+                .from("whatsapp_conversations")
+                .insert({
+                  user_id: nfseData.user_id,
+                  patient_id: nfseData.patient_id,
+                  phone_number: recipientPhone,
+                  contact_name: patientName,
+                  last_message_at: new Date().toISOString(),
+                  last_message_from: "therapist",
+                  status: "active",
+                  unread_count: 0,
+                })
+                .select("id")
+                .single();
+              conversationId = newConv!.id;
+            }
+
+            // Insert message
+            await supabase
+              .from("whatsapp_messages")
+              .insert({
+                conversation_id: conversationId,
+                direction: "outbound",
+                message_type: "document",
+                content: messageContent,
+                status: "sent",
+                metadata: {
+                  type: "nfse",
+                  nfseNumber: nfseNumber,
+                  automatic: true,
+                },
+              });
+          } catch (historyError) {
+            console.error("Error registering in history:", historyError);
+          }
         } else {
           console.error("Failed to send WhatsApp:", whatsappResult);
         }

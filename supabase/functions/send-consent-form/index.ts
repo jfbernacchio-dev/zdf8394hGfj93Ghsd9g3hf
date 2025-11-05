@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { Resend } from "https://esm.sh/resend@4.0.0";
-import { registerWhatsAppMessage } from "../_shared/whatsappHistory.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -292,24 +291,65 @@ const handler = async (req: Request): Promise<Response> => {
           whatsappSent = true;
           
           // Register message in WhatsApp history
-          const messageContent = isMinor 
-            ? `📋 Termos de Consentimento enviados para ${recipientName} (responsável por ${patientName})`
-            : `📋 Termos de Consentimento enviados para ${patientName}`;
-          
-          await registerWhatsAppMessage(supabase, {
-            userId: user.id,
-            patientId: patientId,
-            phoneNumber: patient.phone,
-            messageType: "template",
-            content: messageContent,
-            metadata: {
-              type: "consent",
-              consentUrl: consentUrl,
-              isMinor: patient.is_minor,
-              recipientName: recipientName,
-            },
-            whatsappMessageId: whatsappResult.whatsappResponse?.messages?.[0]?.id,
-          });
+          try {
+            const messageContent = isMinor 
+              ? `📋 Termos de Consentimento enviados para ${recipientName} (responsável por ${patientName})`
+              : `📋 Termos de Consentimento enviados para ${patientName}`;
+            
+            // Check if conversation exists
+            let conversationId: string;
+            const { data: existingConv } = await supabase
+              .from("whatsapp_conversations")
+              .select("id")
+              .eq("user_id", user.id)
+              .eq("patient_id", patientId)
+              .single();
+
+            if (existingConv) {
+              conversationId = existingConv.id;
+              await supabase
+                .from("whatsapp_conversations")
+                .update({
+                  last_message_at: new Date().toISOString(),
+                  last_message_from: "therapist",
+                })
+                .eq("id", conversationId);
+            } else {
+              const { data: newConv } = await supabase
+                .from("whatsapp_conversations")
+                .insert({
+                  user_id: user.id,
+                  patient_id: patientId,
+                  phone_number: patient.phone,
+                  contact_name: patient.name,
+                  last_message_at: new Date().toISOString(),
+                  last_message_from: "therapist",
+                  status: "active",
+                  unread_count: 0,
+                })
+                .select("id")
+                .single();
+              conversationId = newConv!.id;
+            }
+
+            // Insert message
+            await supabase
+              .from("whatsapp_messages")
+              .insert({
+                conversation_id: conversationId,
+                direction: "outbound",
+                message_type: "template",
+                content: messageContent,
+                status: "sent",
+                metadata: {
+                  type: "consent",
+                  consentUrl: consentUrl,
+                  automatic: true,
+                },
+              });
+          } catch (historyError) {
+            console.error("Error registering in history:", historyError);
+          }
         } else {
           console.error("Failed to send WhatsApp:", whatsappResult);
         }
