@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Upload, FileText, Download, Trash2, FileAudio } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
@@ -36,6 +37,7 @@ export const PatientFiles = ({ patientId }: PatientFilesProps) => {
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [isClinical, setIsClinical] = useState(false);
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
@@ -123,7 +125,8 @@ export const PatientFiles = ({ patientId }: PatientFilesProps) => {
           file_name: selectedFile.name,
           file_type: selectedFile.type,
           category: selectedCategory,
-          uploaded_by: user.id
+          uploaded_by: user.id,
+          is_clinical: isClinical
         }]);
 
       if (dbError) throw dbError;
@@ -132,6 +135,7 @@ export const PatientFiles = ({ patientId }: PatientFilesProps) => {
       setIsUploadDialogOpen(false);
       setSelectedFile(null);
       setSelectedCategory('');
+      setIsClinical(false);
       loadFiles();
     } catch (error: any) {
       console.error('Upload error:', error);
@@ -240,7 +244,14 @@ export const PatientFiles = ({ patientId }: PatientFilesProps) => {
                     <div className="flex items-center gap-3 flex-1">
                       {getFileIcon(file.file_type)}
                       <div>
-                        <p className="font-medium text-sm text-foreground">{file.file_name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-sm text-foreground">{file.file_name}</p>
+                          {file.is_clinical && (
+                            <span className="text-xs px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 rounded-full">
+                              Clínico
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground">
                           {format(new Date(file.uploaded_at), 'dd/MM/yyyy HH:mm')}
                         </p>
@@ -305,6 +316,22 @@ export const PatientFiles = ({ patientId }: PatientFilesProps) => {
                 </p>
               )}
             </div>
+
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="is_clinical"
+                checked={isClinical}
+                onChange={(e) => setIsClinical(e.target.checked)}
+                className="rounded border-input"
+              />
+              <Label htmlFor="is_clinical" className="font-normal cursor-pointer">
+                Arquivo Clínico (notas de sessão, avaliações, informações sensíveis)
+              </Label>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Arquivos clínicos são mais sensíveis e requerem controles de acesso adicionais. Marque esta opção para documentos com informações clínicas do paciente.
+            </p>
 
             <Button
               onClick={handleUpload}

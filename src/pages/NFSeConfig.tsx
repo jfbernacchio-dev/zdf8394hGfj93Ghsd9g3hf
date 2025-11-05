@@ -73,7 +73,11 @@ export default function NFSeConfig() {
         if (data.focusnfe_token_homologacao) {
           try {
             const { data: decrypted } = await supabase.functions.invoke('decrypt-credentials', {
-              body: { encryptedData: data.focusnfe_token_homologacao }
+              body: { 
+                encryptedData: data.focusnfe_token_homologacao,
+                credentialType: 'focusnfe_token',
+                credentialId: data.id
+              }
             });
             tokenHomologacao = decrypted?.decrypted || '';
           } catch (e) {
@@ -84,7 +88,11 @@ export default function NFSeConfig() {
         if (data.focusnfe_token_production) {
           try {
             const { data: decrypted } = await supabase.functions.invoke('decrypt-credentials', {
-              body: { encryptedData: data.focusnfe_token_production }
+              body: { 
+                encryptedData: data.focusnfe_token_production,
+                credentialType: 'focusnfe_token',
+                credentialId: data.id
+              }
             });
             tokenProduction = decrypted?.decrypted || '';
           } catch (e) {

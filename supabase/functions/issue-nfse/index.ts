@@ -84,7 +84,11 @@ serve(async (req) => {
 
     // Decrypt the FocusNFe token
     const decryptResponse = await supabase.functions.invoke('decrypt-credentials', {
-      body: { encryptedData: tokenField },
+      body: { 
+        encryptedData: tokenField,
+        credentialType: 'focusnfe_token',
+        credentialId: config.id
+      },
       headers: {
         Authorization: authHeader,
       },

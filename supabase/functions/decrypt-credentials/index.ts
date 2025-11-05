@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { encryptedData } = await req.json();
+    const { encryptedData, credentialType, credentialId } = await req.json();
 
     if (!encryptedData) {
       return new Response(
@@ -115,6 +115,16 @@ Deno.serve(async (req) => {
     const decrypted = await decryptData(encryptedData, masterKey);
 
     console.log('Credential decrypted successfully for user:', user.id);
+
+    // Log credential access for audit trail
+    await supabase.from('credential_access_log').insert({
+      user_id: user.id,
+      credential_type: credentialType || 'unknown',
+      credential_id: credentialId || null,
+      action: 'decrypt',
+      ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip'),
+      user_agent: req.headers.get('user-agent')
+    });
 
     return new Response(
       JSON.stringify({ decrypted }),
