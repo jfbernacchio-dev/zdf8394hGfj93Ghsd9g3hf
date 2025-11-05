@@ -17,3 +17,9 @@ verify_jwt = false
 
 [functions.export-patient-data]
 verify_jwt = true
+
+[functions.whatsapp-webhook]
+verify_jwt = false
+
+[functions.send-whatsapp-reply]
+verify_jwt = true

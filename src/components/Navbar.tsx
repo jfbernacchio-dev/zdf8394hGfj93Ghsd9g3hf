@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Users, Calendar, LogOut, FileText, ChevronDown, Shield, Menu, TrendingUp, User, AlertTriangle, Database, ClipboardCheck } from 'lucide-react';
+import { Users, Calendar, LogOut, FileText, ChevronDown, Shield, Menu, TrendingUp, User, AlertTriangle, Database, ClipboardCheck, MessageCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from './ui/dropdown-menu';
@@ -71,6 +71,17 @@ const Navbar = () => {
               >
                 <Users className="w-4 h-4" />
                 <span className="font-medium">Pacientes</span>
+              </Link>
+              <Link
+                to="/whatsapp"
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                  isActive('/whatsapp')
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                }`}
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span className="font-medium">WhatsApp</span>
               </Link>
               {isAdmin && (
                 <Link

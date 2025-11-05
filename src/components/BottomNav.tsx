@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Calendar, Users, Menu, TrendingUp } from 'lucide-react';
+import { Home, Calendar, Users, Menu, TrendingUp, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
 import { Button } from './ui/button';
@@ -30,6 +30,7 @@ const BottomNav = () => {
     { path: '/dashboard', icon: Home, label: 'Início' },
     { path: '/schedule', icon: Calendar, label: 'Agenda' },
     { path: '/patients', icon: Users, label: 'Pacientes' },
+    { path: '/whatsapp', icon: MessageCircle, label: 'WhatsApp' },
   ];
 
   if (isAdmin) {
@@ -40,8 +41,8 @@ const BottomNav = () => {
     <>
       {/* Bottom Navigation Bar */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border z-50 pb-safe shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
-        <div className="grid grid-cols-4 h-16">
-          {navItems.slice(0, 3).map((item) => {
+        <div className="grid grid-cols-5 h-16">
+          {navItems.slice(0, 4).map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
             return (
