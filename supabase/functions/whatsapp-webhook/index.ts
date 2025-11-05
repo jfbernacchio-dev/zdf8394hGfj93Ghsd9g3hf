@@ -6,6 +6,25 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Normalize phone number to always have country code (5511XXXXXXXXX)
+function normalizePhone(phone: string): string {
+  // Remove all non-digits
+  const digits = phone.replace(/\D/g, '');
+  
+  // If starts with 55, it's already normalized
+  if (digits.startsWith('55')) {
+    return digits;
+  }
+  
+  // If starts with 11, add country code
+  if (digits.startsWith('11')) {
+    return '55' + digits;
+  }
+  
+  // Otherwise assume it's missing both country and area code
+  return '5511' + digits;
+}
+
 serve(async (req: Request): Promise<Response> => {
   // Handle CORS
   if (req.method === "OPTIONS") {
@@ -52,26 +71,20 @@ serve(async (req: Request): Promise<Response> => {
 
               if (!message) continue;
 
-              const fromPhone = message.from;
+              const fromPhone = normalizePhone(message.from);
               const contactName = contact?.profile?.name || fromPhone;
               const messageId = message.id;
               const timestamp = new Date(parseInt(message.timestamp) * 1000);
 
-              console.log("Processing message from:", fromPhone);
+              console.log("Processing message from (normalized):", fromPhone);
 
-              // Find patient by phone (try different formats)
-              const phoneFormats = [
-                fromPhone,
-                fromPhone.replace(/^55/, ''), // Remove country code
-                fromPhone.replace(/\D/g, ''), // Remove all non-digits
-              ];
-
+              // Find patient by phone (normalized)
               const { data: patient } = await supabase
                 .from("patients")
                 .select("id, user_id, phone")
-                .or(phoneFormats.map(p => `phone.eq.${p}`).join(','))
+                .or(`phone.eq.${fromPhone},phone.eq.${fromPhone.replace(/^55/, '')}`)
                 .limit(1)
-                .single();
+                .maybeSingle();
 
               if (!patient) {
                 console.log("Patient not found for phone:", fromPhone);
@@ -83,14 +96,14 @@ serve(async (req: Request): Promise<Response> => {
 
               console.log("Found patient:", patient.id, "for user:", patient.user_id);
 
-              // Find or create conversation
+              // Find or create conversation (using normalized phone)
               let conversation;
               const { data: existingConv } = await supabase
                 .from("whatsapp_conversations")
                 .select("*")
                 .eq("phone_number", fromPhone)
                 .eq("user_id", patient.user_id)
-                .single();
+                .maybeSingle();
 
               if (existingConv) {
                 conversation = existingConv;

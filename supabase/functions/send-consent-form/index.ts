@@ -10,6 +10,25 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+// Normalize phone number to always have country code (5511XXXXXXXXX)
+function normalizePhone(phone: string): string {
+  // Remove all non-digits
+  const digits = phone.replace(/\D/g, '');
+  
+  // If starts with 55, it's already normalized
+  if (digits.startsWith('55')) {
+    return digits;
+  }
+  
+  // If starts with 11, add country code
+  if (digits.startsWith('11')) {
+    return '55' + digits;
+  }
+  
+  // Otherwise assume it's missing both country and area code
+  return '5511' + digits;
+}
+
 interface SendConsentRequest {
   patientId: string;
 }
@@ -211,15 +230,17 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send WhatsApp message if phone is available
     let whatsappSent = false;
+    const normalizedPhone = patient.phone ? normalizePhone(patient.phone) : null;
     console.log("Patient phone data:", {
       phone: patient.phone,
+      normalizedPhone: normalizedPhone,
       hasPhone: !!patient.phone,
       phoneType: typeof patient.phone
     });
     
-    if (patient.phone) {
+    if (normalizedPhone) {
       try {
-        console.log("Sending consent form via WhatsApp to:", patient.phone);
+        console.log("Sending consent form via WhatsApp to:", normalizedPhone);
         
         // Try to use template first, fallback to text if template fails
         let whatsappResponse;
@@ -237,7 +258,7 @@ const handler = async (req: Request): Promise<Response> => {
               body: JSON.stringify({
                 type: "template",
                 data: {
-                  to: patient.phone,
+                  to: normalizedPhone,
                   templateName: "termo_consentimento",
                   parameters: [
                     recipientName,
@@ -282,7 +303,7 @@ const handler = async (req: Request): Promise<Response> => {
               body: JSON.stringify({
                 type: "text",
                 data: {
-                  to: patient.phone,
+                  to: normalizedPhone,
                   message: whatsappMessage,
                 },
               }),
@@ -309,7 +330,8 @@ const handler = async (req: Request): Promise<Response> => {
               .select("id")
               .eq("user_id", user.id)
               .eq("patient_id", patientId)
-              .single();
+              .eq("phone_number", normalizedPhone)
+              .maybeSingle();
 
             if (existingConv) {
               conversationId = existingConv.id;
@@ -326,7 +348,7 @@ const handler = async (req: Request): Promise<Response> => {
                 .insert({
                   user_id: user.id,
                   patient_id: patientId,
-                  phone_number: patient.phone,
+                  phone_number: normalizedPhone,
                   contact_name: patient.name,
                   last_message_at: new Date().toISOString(),
                   last_message_from: "therapist",
