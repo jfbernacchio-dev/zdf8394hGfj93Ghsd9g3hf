@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Send, MessageCircle, Clock, User, Trash2 } from "lucide-react";
+import { Send, MessageCircle, Clock, User, Trash2, Download, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -30,6 +30,7 @@ interface Message {
   content: string;
   created_at: string;
   status: string;
+  media_url: string | null;
 }
 
 export default function WhatsAppChat() {
@@ -40,6 +41,7 @@ export default function WhatsAppChat() {
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [downloadingMedia, setDownloadingMedia] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -206,6 +208,100 @@ export default function WhatsAppChat() {
     });
   };
 
+  const downloadMedia = async (messageId: string) => {
+    if (downloadingMedia.has(messageId)) return;
+
+    setDownloadingMedia(prev => new Set(prev).add(messageId));
+
+    try {
+      const { data, error } = await supabase.functions.invoke("download-whatsapp-media", {
+        body: { messageId },
+      });
+
+      if (error) throw error;
+
+      if (data.url) {
+        // Update local state
+        setMessages(prev => 
+          prev.map(msg => 
+            msg.id === messageId ? { ...msg, media_url: data.url } : msg
+          )
+        );
+        toast.success("Mídia carregada!");
+      }
+    } catch (error: any) {
+      console.error("Error downloading media:", error);
+      toast.error("Erro ao carregar mídia");
+    } finally {
+      setDownloadingMedia(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(messageId);
+        return newSet;
+      });
+    }
+  };
+
+  const renderMessageContent = (msg: Message) => {
+    const isDownloading = downloadingMedia.has(msg.id);
+    const hasValidUrl = msg.media_url && msg.media_url.startsWith("http");
+
+    if (msg.message_type === "image") {
+      if (hasValidUrl) {
+        return (
+          <div className="space-y-2">
+            <img 
+              src={msg.media_url} 
+              alt={msg.content} 
+              className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+              onClick={() => window.open(msg.media_url!, "_blank")}
+            />
+            {msg.content !== "📷 Imagem" && (
+              <p className="text-sm">{msg.content}</p>
+            )}
+          </div>
+        );
+      } else {
+        return (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <ImageIcon className="h-5 w-5" />
+              <span className="text-sm">{msg.content}</span>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => downloadMedia(msg.id)}
+              disabled={isDownloading}
+              className="w-full"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              {isDownloading ? "Carregando..." : "Ver Imagem"}
+            </Button>
+          </div>
+        );
+      }
+    }
+
+    if (msg.message_type === "document" && hasValidUrl) {
+      return (
+        <div className="space-y-2">
+          <p className="text-sm">{msg.content}</p>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => window.open(msg.media_url!, "_blank")}
+            className="w-full"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Baixar Documento
+          </Button>
+        </div>
+      );
+    }
+
+    return <p className="text-sm whitespace-pre-wrap break-all overflow-wrap-anywhere">{msg.content}</p>;
+  };
+
   return (
     <div className="flex h-[calc(100vh-8rem)] gap-4">
       {/* Conversations List */}
@@ -313,7 +409,7 @@ export default function WhatsAppChat() {
                           : "bg-muted"
                       }`}
                     >
-                      <p className="text-sm whitespace-pre-wrap break-all overflow-wrap-anywhere">{msg.content}</p>
+                      {renderMessageContent(msg)}
                       <p
                         className={`text-xs mt-1 ${
                           msg.direction === "outbound"

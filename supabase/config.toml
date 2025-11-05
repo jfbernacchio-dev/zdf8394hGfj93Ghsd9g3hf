@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.send-whatsapp-reply]
 verify_jwt = true
+
+[functions.download-whatsapp-media]
+verify_jwt = true
