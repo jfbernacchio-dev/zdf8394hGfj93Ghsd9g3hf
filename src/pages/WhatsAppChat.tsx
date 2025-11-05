@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Send, MessageCircle, Clock, User } from "lucide-react";
+import { Send, MessageCircle, Clock, User, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -137,6 +137,35 @@ export default function WhatsAppChat() {
     }
   };
 
+  const deleteConversation = async (conversationId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!confirm("Tem certeza que deseja excluir esta conversa? Todas as mensagens serão perdidas.")) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("whatsapp_conversations")
+        .delete()
+        .eq("id", conversationId);
+
+      if (error) throw error;
+
+      setConversations((prev) => prev.filter((conv) => conv.id !== conversationId));
+      
+      if (selectedConversation?.id === conversationId) {
+        setSelectedConversation(null);
+        setMessages([]);
+      }
+
+      toast.success("Conversa excluída com sucesso");
+    } catch (error: any) {
+      console.error("Error deleting conversation:", error);
+      toast.error("Erro ao excluir conversa");
+    }
+  };
+
   const sendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation) return;
 
@@ -228,6 +257,14 @@ export default function WhatsAppChat() {
                     {formatTime(conv.last_message_at)}
                   </p>
                 </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0 h-8 w-8 text-muted-foreground hover:text-destructive"
+                  onClick={(e) => deleteConversation(conv.id, e)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </button>
             ))
           )}
