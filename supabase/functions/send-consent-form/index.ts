@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { Resend } from "https://esm.sh/resend@4.0.0";
+import { registerWhatsAppMessage } from "../_shared/whatsappHistory.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -289,6 +290,26 @@ const handler = async (req: Request): Promise<Response> => {
         if (whatsappResponse.ok && whatsappResult.success) {
           console.log("WhatsApp sent successfully");
           whatsappSent = true;
+          
+          // Register message in WhatsApp history
+          const messageContent = isMinor 
+            ? `📋 Termos de Consentimento enviados para ${recipientName} (responsável por ${patientName})`
+            : `📋 Termos de Consentimento enviados para ${patientName}`;
+          
+          await registerWhatsAppMessage(supabase, {
+            userId: user.id,
+            patientId: patientId,
+            phoneNumber: patient.phone,
+            messageType: "template",
+            content: messageContent,
+            metadata: {
+              type: "consent",
+              consentUrl: consentUrl,
+              isMinor: patient.is_minor,
+              recipientName: recipientName,
+            },
+            whatsappMessageId: whatsappResult.whatsappResponse?.messages?.[0]?.id,
+          });
         } else {
           console.error("Failed to send WhatsApp:", whatsappResult);
         }

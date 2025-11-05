@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@4.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { registerWhatsAppMessage } from "../_shared/whatsappHistory.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -239,6 +240,26 @@ const handler = async (req: Request): Promise<Response> => {
         if (whatsappResponse.ok && whatsappResult.success) {
           console.log("WhatsApp sent successfully");
           whatsappSent = true;
+          
+          // Register message in WhatsApp history
+          const messageContent = `📄 NFS-e #${nfseNumber} enviada - ${issueMonth} (${serviceValue})`;
+          
+          await registerWhatsAppMessage(supabase, {
+            userId: nfseData.user_id,
+            patientId: nfseData.patient_id,
+            phoneNumber: recipientPhone,
+            messageType: "template",
+            content: messageContent,
+            metadata: {
+              type: "nfse",
+              nfseNumber: nfseNumber,
+              nfseId: nfseId,
+              issueDate: issueDate,
+              serviceValue: serviceValue,
+              documentUrl: nfseData.pdf_url,
+            },
+            whatsappMessageId: whatsappResult.whatsappResponse?.messages?.[0]?.id,
+          });
         } else {
           console.error("Failed to send WhatsApp:", whatsappResult);
         }
