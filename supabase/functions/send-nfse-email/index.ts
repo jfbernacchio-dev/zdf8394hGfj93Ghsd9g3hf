@@ -111,11 +111,8 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Sending email to:", recipientEmail);
 
     // Send email with PDF attachment
-    // Use environment variable for 'from' address, fallback to test address
-    const fromEmail = Deno.env.get("NFSE_FROM_EMAIL") || "Espaço Mindware <onboarding@resend.dev>";
-    
     const emailResponse = await resend.emails.send({
-      from: fromEmail,
+      from: "Espaço Mindware <contato@espacomindware.com.br>",
       to: [recipientEmail],
       subject: `Nota Fiscal Espaço Mindware - ${issueMonth}`,
       html: `
