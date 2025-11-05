@@ -36,6 +36,7 @@ export default function ConsentForm() {
         {
           method: 'GET',
           headers: {
+            'Content-Type': 'application/json',
             'apikey': supabaseKey,
           }
         }
