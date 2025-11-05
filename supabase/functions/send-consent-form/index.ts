@@ -211,6 +211,12 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send WhatsApp message if phone is available
     let whatsappSent = false;
+    console.log("Patient phone data:", {
+      phone: patient.phone,
+      hasPhone: !!patient.phone,
+      phoneType: typeof patient.phone
+    });
+    
     if (patient.phone) {
       try {
         console.log("Sending consent form via WhatsApp to:", patient.phone);
