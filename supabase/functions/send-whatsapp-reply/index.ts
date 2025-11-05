@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { checkRateLimit, getRateLimitHeaders } from "../_shared/rateLimit.ts";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 // CORS restrito - apenas domínios autorizados
 function getCorsHeaders(origin: string | null): Record<string, string> {
@@ -64,9 +65,40 @@ serve(async (req: Request): Promise<Response> => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { conversationId, message } = await req.json();
+    const requestBody = await req.json();
 
-    console.log("Sending reply to conversation:", conversationId);
+    // Validação de entrada com Zod para segurança
+    const messageSchema = z.object({
+      conversationId: z.string().uuid("ID de conversa inválido"),
+      message: z.string()
+        .trim()
+        .min(1, "Mensagem não pode estar vazia")
+        .max(4096, "Mensagem excede limite de 4096 caracteres do WhatsApp")
+        .refine(
+          (msg) => msg.length > 0 && !msg.match(/^\s+$/),
+          "Mensagem não pode conter apenas espaços"
+        )
+    });
+
+    const validation = messageSchema.safeParse(requestBody);
+    if (!validation.success) {
+      const errorMessage = validation.error.issues[0].message;
+      console.error("❌ Validation error:", errorMessage);
+      return new Response(
+        JSON.stringify({ success: false, error: errorMessage }),
+        {
+          status: 400,
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          },
+        }
+      );
+    }
+
+    const { conversationId, message } = validation.data;
+
+    console.log("Sending reply to conversation:", conversationId, "| Message length:", message.length);
 
     // Get conversation details
     const { data: conversation, error: convError } = await supabase

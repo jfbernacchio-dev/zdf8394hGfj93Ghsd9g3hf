@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { checkRateLimit, getRateLimitHeaders } from "../_shared/rateLimit.ts";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 // CORS restrito - apenas domínios autorizados + WhatsApp
 function getCorsHeaders(origin: string | null): Record<string, string> {
@@ -98,8 +99,94 @@ serve(async (req: Request): Promise<Response> => {
 
     // Handle incoming messages (POST request)
     if (req.method === "POST") {
-      const body = await req.json();
-      console.log("Received webhook:", JSON.stringify(body, null, 2));
+      let body: any;
+      
+      // Verificação de assinatura WhatsApp para segurança
+      const signature = req.headers.get("x-hub-signature-256");
+      
+      if (signature) {
+        const bodyText = await req.text();
+        
+        // Criar chave HMAC para verificar assinatura
+        const encoder = new TextEncoder();
+        const key = await crypto.subtle.importKey(
+          "raw",
+          encoder.encode(verifyToken),
+          { name: "HMAC", hash: "SHA-256" },
+          false,
+          ["sign"]
+        );
+        
+        // Calcular assinatura esperada
+        const signatureBuffer = await crypto.subtle.sign(
+          "HMAC",
+          key,
+          encoder.encode(bodyText)
+        );
+        
+        const expectedSignature = "sha256=" + Array.from(new Uint8Array(signatureBuffer))
+          .map(b => b.toString(16).padStart(2, "0"))
+          .join("");
+        
+        // Comparar assinaturas (timing-safe comparison)
+        if (signature !== expectedSignature) {
+          console.error("❌ Invalid webhook signature - possible attack attempt");
+          return new Response(
+            JSON.stringify({ error: "Invalid signature" }),
+            { 
+              status: 403, 
+              headers: { ...corsHeaders, "Content-Type": "application/json" } 
+            }
+          );
+        }
+        
+        console.log("✅ Webhook signature verified successfully");
+        
+        // Parse body após validação de assinatura
+        body = JSON.parse(bodyText);
+        console.log("Received webhook:", JSON.stringify(body, null, 2));
+      } else {
+        console.warn("⚠️ No signature provided - webhook security is reduced");
+        body = await req.json();
+        console.log("Received webhook:", JSON.stringify(body, null, 2));
+      }
+
+      // Schema de validação para mensagens WhatsApp
+      const whatsappMessageSchema = z.object({
+        from: z.string().min(10).max(15).regex(/^\d+$/, "Phone must contain only digits"),
+        id: z.string().min(1),
+        timestamp: z.string().regex(/^\d{10}$/, "Invalid timestamp format"),
+        type: z.enum(["text", "image", "document", "audio", "video", "sticker", "location", "contacts"]),
+        text: z.object({ body: z.string().max(4096) }).optional(),
+        image: z.object({ 
+          id: z.string(), 
+          mime_type: z.string(), 
+          caption: z.string().max(1024).optional() 
+        }).optional(),
+        document: z.object({ 
+          id: z.string(), 
+          mime_type: z.string(), 
+          caption: z.string().max(1024).optional(),
+          filename: z.string().optional()
+        }).optional(),
+        audio: z.object({ id: z.string(), mime_type: z.string() }).optional(),
+        video: z.object({ 
+          id: z.string(), 
+          mime_type: z.string(), 
+          caption: z.string().max(1024).optional() 
+        }).optional(),
+        sticker: z.object({ id: z.string(), mime_type: z.string() }).optional(),
+        location: z.object({ 
+          latitude: z.number(), 
+          longitude: z.number(),
+          name: z.string().optional(),
+          address: z.string().optional()
+        }).optional(),
+        contacts: z.array(z.object({
+          name: z.object({ formatted_name: z.string() }),
+          phones: z.array(z.object({ phone: z.string() })).optional()
+        })).optional()
+      });
 
       // WhatsApp webhook structure
       if (body.object === "whatsapp_business_account") {
@@ -110,6 +197,14 @@ serve(async (req: Request): Promise<Response> => {
               const contact = change.value.contacts?.[0];
 
               if (!message) continue;
+
+              // Validar estrutura da mensagem
+              const validation = whatsappMessageSchema.safeParse(message);
+              if (!validation.success) {
+                console.error("❌ Invalid message structure - skipping:", validation.error.issues);
+                console.error("Message data:", JSON.stringify(message));
+                continue; // Pular mensagem inválida
+              }
 
               const fromPhone = normalizePhone(message.from);
               const contactName = contact?.profile?.name || fromPhone;
