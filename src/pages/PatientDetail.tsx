@@ -554,11 +554,28 @@ Assinatura do Profissional`;
       // Log admin access before deletion
       await logAdminAccess('delete_patient', undefined, id, `Admin permanently deleted patient: ${patient.name}`);
 
-      // Delete all related data first (sessions, files, etc.)
+      // Get all WhatsApp conversations for this patient
+      const { data: conversations } = await supabase
+        .from('whatsapp_conversations')
+        .select('id')
+        .eq('patient_id', id);
+
+      // Delete all WhatsApp messages from those conversations
+      if (conversations && conversations.length > 0) {
+        const conversationIds = conversations.map(c => c.id);
+        await supabase
+          .from('whatsapp_messages')
+          .delete()
+          .in('conversation_id', conversationIds);
+      }
+
+      // Delete all related data (sessions, files, WhatsApp, etc.)
       await supabase.from('sessions').delete().eq('patient_id', id);
       await supabase.from('session_history').delete().eq('patient_id', id);
       await supabase.from('patient_files').delete().eq('patient_id', id);
       await supabase.from('nfse_issued').delete().eq('patient_id', id);
+      await supabase.from('consent_submissions').delete().eq('patient_id', id);
+      await supabase.from('whatsapp_conversations').delete().eq('patient_id', id);
 
       // Finally delete the patient
       const { error } = await supabase
