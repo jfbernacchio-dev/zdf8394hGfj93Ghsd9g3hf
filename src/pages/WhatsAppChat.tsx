@@ -214,13 +214,26 @@ export default function WhatsAppChat() {
     setDownloadingMedia(prev => new Set(prev).add(messageId));
 
     try {
+      console.log("Calling download-whatsapp-media for message:", messageId);
+      
       const { data, error } = await supabase.functions.invoke("download-whatsapp-media", {
         body: { messageId },
       });
 
-      if (error) throw error;
+      console.log("Function response:", { data, error });
 
-      if (data.url) {
+      if (error) {
+        console.error("Function error details:", error);
+        throw error;
+      }
+
+      if (data?.error) {
+        console.error("Function returned error:", data.error);
+        throw new Error(data.error);
+      }
+
+      if (data?.url) {
+        console.log("Media URL received:", data.url);
         // Update local state
         setMessages(prev => 
           prev.map(msg => 
@@ -228,10 +241,18 @@ export default function WhatsAppChat() {
           )
         );
         toast.success("Mídia carregada!");
+      } else {
+        throw new Error("URL da mídia não recebida");
       }
     } catch (error: any) {
       console.error("Error downloading media:", error);
-      toast.error("Erro ao carregar mídia");
+      console.error("Error details:", {
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint,
+        code: error?.code
+      });
+      toast.error(error?.message || "Erro ao carregar mídia");
     } finally {
       setDownloadingMedia(prev => {
         const newSet = new Set(prev);
