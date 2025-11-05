@@ -27,30 +27,21 @@ export default function ConsentForm() {
 
   const loadPatientData = async () => {
     try {
-      console.log("=== LOADING CONSENT FORM DATA ===");
-      console.log("Token from URL:", token);
-      console.log("Supabase URL:", import.meta.env.VITE_SUPABASE_URL);
-      
-      // Call edge function with token in query params
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
       
-      const fullUrl = `${supabaseUrl}/functions/v1/get-consent-data?token=${token}`;
-      console.log("Calling URL:", fullUrl);
-      
-      const response = await fetch(fullUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': supabaseKey,
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/get-consent-data?token=${token}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': supabaseKey,
+          }
         }
-      });
+      );
 
-      console.log("Response status:", response.status);
-      console.log("Response ok:", response.ok);
-      
       const data = await response.json();
-      console.log("Response data:", data);
 
       if (!response.ok || data.error) {
         if (data.alreadyAccepted) {
