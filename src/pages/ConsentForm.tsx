@@ -27,35 +27,40 @@ export default function ConsentForm() {
 
   const loadPatientData = async () => {
     try {
-      // Call edge function to validate token and get patient data
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      console.log("Loading consent form data...");
+      console.log("Token:", token);
       
-      const response = await fetch(
-        `${supabaseUrl}/functions/v1/get-consent-data?token=${token}`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': supabaseKey,
-          }
-        }
-      );
+      // Use supabase client directly which has the correct configuration
+      const { data, error } = await supabase.functions.invoke('get-consent-data', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: { token }
+      });
 
-      const data = await response.json();
+      console.log("Response:", { data, error });
 
-      if (!response.ok || data.error) {
-        if (data.alreadyAccepted) {
-          setSubmitted(true);
-        }
-        toast.error(data.error || "Link inválido ou expirado");
+      if (error) {
+        console.error("Function error:", error);
+        toast.error(error.message || "Link inválido ou expirado");
         setLoading(false);
         return;
       }
 
+      if (data.error) {
+        if (data.alreadyAccepted) {
+          setSubmitted(true);
+        }
+        toast.error(data.error);
+        setLoading(false);
+        return;
+      }
+
+      console.log("Patient data loaded:", data.patient);
       setPatient(data.patient);
     } catch (error: any) {
-      console.error("Error loading patient:", error);
+      console.error("Catch error loading patient:", error);
       toast.error("Link inválido ou expirado");
     } finally {
       setLoading(false);

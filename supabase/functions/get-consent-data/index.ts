@@ -12,10 +12,22 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    console.log("get-consent-data called");
+    
+    // Get token from query params or body
     const url = new URL(req.url);
-    const token = url.searchParams.get("token");
+    let token = url.searchParams.get("token");
+    
+    // If not in query params, try body (for supabase.functions.invoke)
+    if (!token && req.method === 'POST') {
+      const body = await req.json();
+      token = body.token;
+    }
+
+    console.log("Token received:", token);
 
     if (!token) {
+      console.error("No token provided");
       return new Response(
         JSON.stringify({ error: "Token é obrigatório" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
