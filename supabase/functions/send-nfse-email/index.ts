@@ -189,11 +189,11 @@ const handler = async (req: Request): Promise<Response> => {
         console.log("Sending WhatsApp message to:", normalizedPhone);
         
         // Try to use template first, fallback to direct document if template fails
-        let whatsappResponse;
+        let whatsappResult;
         
         try {
           // Use approved template: nfse_envio_v2 (created in English due to Meta's 4-week lock bug)
-          whatsappResponse = await fetch(
+          const whatsappResponse = await fetch(
             `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-whatsapp`,
             {
               method: "POST",
@@ -219,17 +219,17 @@ const handler = async (req: Request): Promise<Response> => {
             }
           );
           
-          const templateResult = await whatsappResponse.json();
+          whatsappResult = await whatsappResponse.json();
           
           // If template fails, fallback to direct document
-          if (!whatsappResponse.ok || !templateResult.success) {
-            console.log("Template failed, falling back to direct document:", templateResult);
+          if (!whatsappResponse.ok || !whatsappResult.success) {
+            console.log("Template failed, falling back to direct document:", whatsappResult);
             throw new Error("Template not available");
           }
         } catch (templateError) {
           console.log("Using fallback direct document method");
           
-          whatsappResponse = await fetch(
+          const fallbackResponse = await fetch(
             `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-whatsapp`,
             {
               method: "POST",
@@ -252,11 +252,11 @@ const handler = async (req: Request): Promise<Response> => {
               }),
             }
           );
+          
+          whatsappResult = await fallbackResponse.json();
         }
-
-        const whatsappResult = await whatsappResponse.json();
         
-        if (whatsappResponse.ok && whatsappResult.success) {
+        if (whatsappResult && whatsappResult.success) {
           console.log("WhatsApp sent successfully");
           whatsappSent = true;
           
