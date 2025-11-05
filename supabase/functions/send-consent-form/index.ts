@@ -246,7 +246,7 @@ const handler = async (req: Request): Promise<Response> => {
         let whatsappResponse;
         
         try {
-          // Use approved template: termo_consentimento
+          // Use approved template: termo_consentimento (created in English due to Meta's 4-week lock bug)
           whatsappResponse = await fetch(
             `${supabaseUrl}/functions/v1/send-whatsapp`,
             {
@@ -260,6 +260,7 @@ const handler = async (req: Request): Promise<Response> => {
                 data: {
                   to: normalizedPhone,
                   templateName: "termo_consentimento",
+                  templateLanguage: "en", // Using English to avoid Meta's 4-week lock bug
                   parameters: [
                     recipientName,
                     consentUrl,

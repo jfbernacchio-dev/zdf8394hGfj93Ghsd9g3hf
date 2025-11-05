@@ -192,7 +192,7 @@ const handler = async (req: Request): Promise<Response> => {
         let whatsappResponse;
         
         try {
-          // Use approved template: nfse_envio
+          // Use approved template: nfse_envio_v2 (created in English due to Meta's 4-week lock bug)
           whatsappResponse = await fetch(
             `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-whatsapp`,
             {
@@ -206,6 +206,7 @@ const handler = async (req: Request): Promise<Response> => {
                 data: {
                   to: normalizedPhone,
                   templateName: "nfse_envio_v2",
+                  templateLanguage: "en", // Using English to avoid Meta's 4-week lock bug
                   parameters: [
                     patientName,
                     nfseNumber,

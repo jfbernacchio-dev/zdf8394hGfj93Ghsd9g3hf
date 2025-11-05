@@ -20,6 +20,7 @@ interface WhatsAppDocumentMessage {
 interface WhatsAppTemplateMessage {
   to: string;
   templateName: string;
+  templateLanguage?: string; // Default: pt_BR, can be overridden (e.g., "en" to avoid Meta's 4-week lock bug)
   parameters: string[];
   documentUrl?: string;
 }
@@ -86,7 +87,7 @@ const handler = async (req: Request): Promise<Response> => {
       messagePayload.template = {
         name: templateData.templateName,
         language: {
-          code: "pt_BR",
+          code: templateData.templateLanguage || "pt_BR", // Use provided language or default to pt_BR
         },
         components: [] as any[],
       };
