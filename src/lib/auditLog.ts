@@ -6,7 +6,8 @@ export type AccessType =
   | 'view_sessions'
   | 'delete_patient'
   | 'export_patient_data'
-  | 'create_therapist';
+  | 'create_therapist'
+  | 'view_whatsapp_media';
 
 export async function logAdminAccess(
   accessType: AccessType,

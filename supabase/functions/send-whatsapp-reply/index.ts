@@ -1,14 +1,59 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { checkRateLimit, getRateLimitHeaders } from "../rate-limit/index.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+// CORS restrito - apenas domínios autorizados
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const allowedOrigins = [
+    "https://espacomindware.com.br",
+    "https://www.espacomindware.com.br",
+    "http://localhost:5173",
+    "http://localhost:4173",
+  ];
+  
+  const corsOrigin = origin && allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+  
+  return {
+    "Access-Control-Allow-Origin": corsOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Credentials": "true",
+  };
+}
 
 serve(async (req: Request): Promise<Response> => {
+  const origin = req.headers.get("Origin");
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Rate limiting por IP para requisições autenticadas
+  const authHeader = req.headers.get("Authorization");
+  if (authHeader) {
+    const token = authHeader.replace("Bearer ", "");
+    const userId = token.substring(0, 36); // Extrai user ID aproximado do token
+    
+    const rateLimitResult = checkRateLimit(userId, {
+      maxRequests: 50,
+      windowMs: 60 * 60 * 1000, // 50 mensagens por hora
+    });
+
+    if (!rateLimitResult.allowed) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Limite de mensagens atingido. Aguarde antes de enviar mais." 
+        }),
+        {
+          status: 429,
+          headers: { 
+            ...corsHeaders, 
+            ...getRateLimitHeaders(rateLimitResult),
+            "Content-Type": "application/json" 
+          },
+        }
+      );
+    }
   }
 
   try {

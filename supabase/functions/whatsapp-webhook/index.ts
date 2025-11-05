@@ -1,10 +1,24 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { checkRateLimit, getRateLimitHeaders } from "../rate-limit/index.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+// CORS restrito - apenas domínios autorizados + WhatsApp
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const allowedOrigins = [
+    "https://espacomindware.com.br",
+    "https://www.espacomindware.com.br",
+    "http://localhost:5173",
+    "http://localhost:4173",
+  ];
+  
+  const corsOrigin = origin && allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+  
+  return {
+    "Access-Control-Allow-Origin": corsOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Credentials": "true",
+  };
+}
 
 // Normalize phone number to always have country code (5511XXXXXXXXX)
 function normalizePhone(phone: string): string {
@@ -26,12 +40,38 @@ function normalizePhone(phone: string): string {
 }
 
 serve(async (req: Request): Promise<Response> => {
+  const origin = req.headers.get("Origin");
+  const corsHeaders = getCorsHeaders(origin);
+
   // Handle CORS
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Rate limiting por IP para webhooks (proteção contra spam)
+    const clientIp = req.headers.get("x-forwarded-for") || "unknown";
+    const rateLimitResult = checkRateLimit(`webhook:${clientIp}`, {
+      maxRequests: 200,
+      windowMs: 60 * 1000, // 200 mensagens por minuto (alta para suportar volume do WhatsApp)
+    });
+
+    if (!rateLimitResult.allowed) {
+      console.warn("Rate limit exceeded for IP:", clientIp);
+      return new Response(
+        JSON.stringify({ 
+          error: "Too many requests" 
+        }),
+        {
+          status: 429,
+          headers: { 
+            ...corsHeaders, 
+            ...getRateLimitHeaders(rateLimitResult),
+            "Content-Type": "application/json" 
+          },
+        }
+      );
+    }
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const verifyToken = Deno.env.get("WHATSAPP_VERIFY_TOKEN")!;

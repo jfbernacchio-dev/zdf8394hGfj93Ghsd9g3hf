@@ -1,16 +1,33 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { checkRateLimit, getRateLimitHeaders } from "../rate-limit/index.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+// CORS restrito - apenas domínios autorizados
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const allowedOrigins = [
+    "https://espacomindware.com.br",
+    "https://www.espacomindware.com.br",
+    "http://localhost:5173",
+    "http://localhost:4173",
+  ];
+  
+  const corsOrigin = origin && allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+  
+  return {
+    "Access-Control-Allow-Origin": corsOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Credentials": "true",
+  };
+}
 
 interface DownloadMediaRequest {
   messageId: string;
 }
 
 serve(async (req: Request): Promise<Response> => {
+  const origin = req.headers.get("Origin");
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -34,6 +51,28 @@ serve(async (req: Request): Promise<Response> => {
     
     if (userError || !user) {
       throw new Error("Usuário não autenticado");
+    }
+
+    // Rate limiting - 100 requisições por hora por usuário
+    const rateLimitResult = checkRateLimit(user.id, {
+      maxRequests: 100,
+      windowMs: 60 * 60 * 1000, // 1 hora
+    });
+
+    if (!rateLimitResult.allowed) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Muitas requisições. Tente novamente mais tarde." 
+        }),
+        {
+          status: 429,
+          headers: { 
+            ...corsHeaders, 
+            ...getRateLimitHeaders(rateLimitResult),
+            "Content-Type": "application/json" 
+          },
+        }
+      );
     }
 
     const { messageId }: DownloadMediaRequest = await req.json();
@@ -132,10 +171,10 @@ serve(async (req: Request): Promise<Response> => {
       throw new Error("Erro ao fazer upload da mídia");
     }
 
-    // Step 4: Get signed URL (valid for 1 year)
+    // Step 4: Get signed URL (valid for 30 days for security)
     const { data: urlData, error: urlError } = await supabase.storage
       .from("patient-files")
-      .createSignedUrl(`whatsapp-media/${fileName}`, 31536000); // 1 year
+      .createSignedUrl(`whatsapp-media/${fileName}`, 2592000); // 30 days
 
     if (urlError) {
       console.error("Error creating signed URL:", urlError);
@@ -154,6 +193,24 @@ serve(async (req: Request): Promise<Response> => {
 
     if (updateError) {
       console.error("Error updating message:", updateError);
+    }
+
+    // Audit log - registrar acesso à mídia (silencioso)
+    try {
+      await supabase.from("admin_access_log").insert({
+        admin_id: user.id,
+        access_type: "view_whatsapp_media",
+        accessed_patient_id: message.conversation.patient_id || null,
+        access_reason: `Download de mídia do WhatsApp - mensagem ${messageId}`,
+        metadata: {
+          message_id: messageId,
+          conversation_id: message.conversation_id,
+          media_type: mimeType,
+        },
+      });
+    } catch (auditError) {
+      // Log silencioso - não quebrar se auditoria falhar
+      console.warn("Audit log failed:", auditError);
     }
 
     return new Response(
