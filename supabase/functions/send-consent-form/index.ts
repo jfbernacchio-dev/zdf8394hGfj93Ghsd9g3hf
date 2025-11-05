@@ -201,7 +201,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email
     const emailResponse = await resend.emails.send({
-      from: "Espaço Mindware <contato@espacomindware.com.br>",
+      from: "Espaço Mindware <no-reply@espacomindware.com.br>",
       to: [patient.email],
       subject: emailSubject,
       html: emailHtml,

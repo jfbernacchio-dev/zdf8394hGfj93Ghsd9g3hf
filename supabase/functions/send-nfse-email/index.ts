@@ -112,7 +112,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email with PDF attachment
     const emailResponse = await resend.emails.send({
-      from: "Espaço Mindware <contato@espacomindware.com.br>",
+      from: "Espaço Mindware <no-reply@espacomindware.com.br>",
       to: [recipientEmail],
       subject: `Nota Fiscal Espaço Mindware - ${issueMonth}`,
       html: `
