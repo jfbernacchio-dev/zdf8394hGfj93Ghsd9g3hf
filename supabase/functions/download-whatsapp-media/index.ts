@@ -132,19 +132,24 @@ serve(async (req: Request): Promise<Response> => {
       throw new Error("Erro ao fazer upload da mídia");
     }
 
-    // Step 4: Get public URL
-    const { data: urlData } = supabase.storage
+    // Step 4: Get signed URL (valid for 1 year)
+    const { data: urlData, error: urlError } = await supabase.storage
       .from("patient-files")
-      .getPublicUrl(`whatsapp-media/${fileName}`);
+      .createSignedUrl(`whatsapp-media/${fileName}`, 31536000); // 1 year
 
-    const publicUrl = urlData.publicUrl;
+    if (urlError) {
+      console.error("Error creating signed URL:", urlError);
+      throw new Error("Erro ao gerar URL da mídia");
+    }
 
-    console.log("Public URL:", publicUrl);
+    const signedUrl = urlData.signedUrl;
 
-    // Step 5: Update message with public URL
+    console.log("Signed URL:", signedUrl);
+
+    // Step 5: Update message with signed URL
     const { error: updateError } = await supabase
       .from("whatsapp_messages")
-      .update({ media_url: publicUrl })
+      .update({ media_url: signedUrl })
       .eq("id", messageId);
 
     if (updateError) {
@@ -154,7 +159,7 @@ serve(async (req: Request): Promise<Response> => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        url: publicUrl 
+        url: signedUrl
       }),
       {
         status: 200,
