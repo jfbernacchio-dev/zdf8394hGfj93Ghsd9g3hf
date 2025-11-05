@@ -59,16 +59,43 @@ serve(async (req: Request): Promise<Response> => {
 
               console.log("Processing message from:", fromPhone);
 
+              // Find patient by phone (try different formats)
+              const phoneFormats = [
+                fromPhone,
+                fromPhone.replace(/^55/, ''), // Remove country code
+                fromPhone.replace(/\D/g, ''), // Remove all non-digits
+              ];
+
+              const { data: patient } = await supabase
+                .from("patients")
+                .select("id, user_id, phone")
+                .or(phoneFormats.map(p => `phone.eq.${p}`).join(','))
+                .limit(1)
+                .single();
+
+              if (!patient) {
+                console.log("Patient not found for phone:", fromPhone);
+                return new Response(JSON.stringify({ success: true, message: "Patient not found" }), {
+                  status: 200,
+                  headers: { ...corsHeaders, "Content-Type": "application/json" },
+                });
+              }
+
+              console.log("Found patient:", patient.id, "for user:", patient.user_id);
+
               // Find or create conversation
               let conversation;
               const { data: existingConv } = await supabase
                 .from("whatsapp_conversations")
                 .select("*")
                 .eq("phone_number", fromPhone)
+                .eq("user_id", patient.user_id)
                 .single();
 
               if (existingConv) {
                 conversation = existingConv;
+                console.log("Updating existing conversation:", existingConv.id);
+                
                 // Update conversation
                 await supabase
                   .from("whatsapp_conversations")
@@ -81,19 +108,14 @@ serve(async (req: Request): Promise<Response> => {
                   })
                   .eq("id", existingConv.id);
               } else {
-                // Find patient by phone
-                const { data: patient } = await supabase
-                  .from("patients")
-                  .select("id, user_id")
-                  .eq("phone", fromPhone)
-                  .single();
-
+                console.log("Creating new conversation for patient:", patient.id);
+                
                 // Create new conversation
-                const { data: newConv } = await supabase
+                const { data: newConv, error: insertError } = await supabase
                   .from("whatsapp_conversations")
                   .insert({
-                    user_id: patient?.user_id || null,
-                    patient_id: patient?.id || null,
+                    user_id: patient.user_id,
+                    patient_id: patient.id,
                     phone_number: fromPhone,
                     contact_name: contactName,
                     last_message_at: timestamp.toISOString(),
@@ -104,7 +126,13 @@ serve(async (req: Request): Promise<Response> => {
                   .select()
                   .single();
 
+                if (insertError) {
+                  console.error("Error creating conversation:", insertError);
+                  throw insertError;
+                }
+
                 conversation = newConv;
+                console.log("Created conversation:", newConv?.id);
               }
 
               if (!conversation) {
