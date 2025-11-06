@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -11,7 +11,6 @@ import { Loader2, Upload, CheckCircle2 } from "lucide-react";
 
 export default function ConsentForm() {
   const { token } = useParams();
-  const navigate = useNavigate();
   
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -22,36 +21,37 @@ export default function ConsentForm() {
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    console.log("=== ConsentForm mounted - BUILD:", new Date().toISOString(), "===");
+    console.log("=== ConsentForm mounted - BUILD: 2025-11-06-23:03 ===");
     console.log("Token from URL:", token);
-    if (token) {
-      loadPatientData();
-    } else {
-      console.error("No token in URL");
+    
+    if (!token) {
       toast.error("Link inválido - token não encontrado");
       setLoading(false);
+      return;
     }
+    
+    loadPatientData();
   }, [token]);
 
   const loadPatientData = async () => {
     try {
-      console.log("Calling get-consent-data with token:", token);
+      console.log("Invoking get-consent-data with token:", token);
       
       const { data, error } = await supabase.functions.invoke("get-consent-data", {
         body: { token }
       });
 
-      console.log("Response from get-consent-data:", { data, error });
+      console.log("Response:", { data, error });
 
       if (error) {
-        console.error("Error loading consent data:", error);
+        console.error("Error from invoke:", error);
         toast.error("Link inválido ou expirado");
         setLoading(false);
         return;
       }
 
-      if (data.error) {
-        console.log("Server returned error:", data.error);
+      if (data?.error) {
+        console.log("Server error:", data.error);
         if (data.alreadyAccepted) {
           setSubmitted(true);
         }
@@ -60,15 +60,15 @@ export default function ConsentForm() {
         return;
       }
 
-      if (data.patient) {
-        console.log("Patient loaded successfully:", data.patient.name);
+      if (data?.patient) {
+        console.log("Patient loaded:", data.patient.name);
         setPatient(data.patient);
       } else {
-        console.error("No patient data in response");
+        console.error("No patient in response");
         toast.error("Dados do paciente não encontrados");
       }
     } catch (error: any) {
-      console.error("Catch error loading patient:", error);
+      console.error("Catch error:", error);
       toast.error("Erro ao carregar dados do consentimento");
     } finally {
       setLoading(false);
@@ -78,7 +78,6 @@ export default function ConsentForm() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type
       const validTypes = [
         "image/jpeg", 
         "image/png", 
@@ -89,12 +88,12 @@ export default function ConsentForm() {
         "image/gif",
         "application/pdf"
       ];
+      
       if (!validTypes.includes(file.type)) {
         toast.error("Apenas arquivos de imagem (JPG, PNG, WEBP, HEIC, GIF) ou PDF são permitidos");
         return;
       }
 
-      // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         toast.error("Arquivo muito grande. Tamanho máximo: 5MB");
         return;
@@ -123,7 +122,6 @@ export default function ConsentForm() {
       let guardianDocData = null;
 
       if (guardianDocument) {
-        // Convert file to base64
         const reader = new FileReader();
         guardianDocData = await new Promise((resolve) => {
           reader.onload = () => resolve({
