@@ -469,6 +469,7 @@ const EditPatient = () => {
                 type="text"
                 value={formData.email || ''}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="exemplo@email.com"
               />
             </div>
 

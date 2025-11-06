@@ -356,9 +356,10 @@ const NewPatient = () => {
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
-                  type="email"
+                  type="text"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="exemplo@email.com"
                 />
               </div>
 
@@ -391,10 +392,10 @@ const NewPatient = () => {
                   <Label htmlFor="nfseAlternateEmail">Email para NFSe</Label>
                   <Input
                     id="nfseAlternateEmail"
-                    type="email"
+                    type="text"
                     value={formData.nfseAlternateEmail}
                     onChange={(e) => setFormData({ ...formData, nfseAlternateEmail: e.target.value })}
-                    placeholder="Email alternativo para receber NFSe"
+                    placeholder="exemplo@email.com"
                   />
                 </div>
 
