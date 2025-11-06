@@ -13,6 +13,9 @@ export default function ConsentForm() {
   const { token } = useParams();
   const navigate = useNavigate();
   
+  console.log("=== ConsentForm mounted ===");
+  console.log("Token from URL:", token);
+  
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [patient, setPatient] = useState<any>(null);
