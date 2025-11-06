@@ -13,7 +13,7 @@ export default function ConsentForm() {
   const { token } = useParams();
   const navigate = useNavigate();
   
-  console.log("=== ConsentForm mounted ===");
+  console.log("=== ConsentForm mounted - BUILD: 2025-11-06-20:00 ===");
   console.log("Token from URL:", token);
   
   const [loading, setLoading] = useState(true);
@@ -58,6 +58,13 @@ export default function ConsentForm() {
       console.log("Patient data received from API:", data.patient);
       console.log("Birth date value:", data.patient?.birth_date, "Type:", typeof data.patient?.birth_date);
       console.log("CPF value:", data.patient?.cpf, "Type:", typeof data.patient?.cpf);
+      
+      // Parse and verify date formatting
+      if (data.patient?.birth_date) {
+        const [year, month, day] = data.patient.birth_date.split('-');
+        console.log("Date parsing - Year:", year, "Month:", month, "Day:", day);
+        console.log("Formatted date will be:", `${day}/${month}/${year}`);
+      }
       
       setPatient(data.patient);
     } catch (error: any) {
