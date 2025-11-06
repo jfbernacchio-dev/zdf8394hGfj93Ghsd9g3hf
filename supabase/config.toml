@@ -32,3 +32,6 @@ verify_jwt = true
 
 [functions.download-whatsapp-media]
 verify_jwt = true
+
+[functions.check-consent-expiry]
+verify_jwt = false
