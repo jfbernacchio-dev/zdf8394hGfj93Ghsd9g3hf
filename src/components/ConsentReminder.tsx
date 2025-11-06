@@ -67,14 +67,18 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
     if (!user) return;
 
     try {
+      // Se for individual, buscar apenas esse paciente específico
+      // Se não for, buscar todos os pacientes ativos que não aceitaram
       let query = supabase
         .from('patients')
         .select('id, name, email, phone, privacy_policy_accepted')
         .eq('user_id', user.id)
-        .eq('status', 'active')
-        .or('privacy_policy_accepted.is.null,privacy_policy_accepted.eq.false');
+        .eq('status', 'active');
 
-      if (patientId) {
+      // Para PatientDetail individual, buscar o paciente específico sem filtro de aceitação
+      if (!patientId) {
+        query = query.or('privacy_policy_accepted.is.null,privacy_policy_accepted.eq.false');
+      } else {
         query = query.eq('id', patientId);
       }
 
@@ -82,11 +86,23 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
 
       if (error) throw error;
       
-      // Filtrar pacientes que já têm token válido pendente (enviado nos últimos 7 dias, sem resposta)
+      // Filtrar pacientes verificando aceitação real (consent_submissions com accepted_at)
       const patientsToShow: PatientWithoutConsent[] = [];
       const patientsAwaiting: PatientWithoutConsent[] = [];
       
       for (const patient of data || []) {
+        // Verificar se tem aceitação válida (accepted_at não null)
+        const { data: acceptedSubmission } = await supabase
+          .from('consent_submissions')
+          .select('id, accepted_at')
+          .eq('patient_id', patient.id)
+          .not('accepted_at', 'is', null)
+          .maybeSingle();
+
+        // Se já aceitou, pular este paciente
+        if (acceptedSubmission) continue;
+
+        // Verificar se tem token pendente (sem accepted_at)
         const { data: pendingTokenData } = await supabase
           .from('consent_submissions')
           .select('id, created_at')
@@ -99,7 +115,7 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
         if (pendingTokenData) {
           patientsAwaiting.push(patient);
         } else {
-          // Se não tiver token pendente, adicionar à lista de sem consentimento
+          // Se não tiver token pendente e não aceitou, adicionar à lista de sem consentimento
           patientsToShow.push(patient);
         }
       }
