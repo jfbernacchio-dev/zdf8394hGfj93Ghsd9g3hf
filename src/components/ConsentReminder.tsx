@@ -38,6 +38,7 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
         .from('patients')
         .select('id, name, email, phone, privacy_policy_accepted')
         .eq('user_id', user.id)
+        .eq('status', 'active')
         .or('privacy_policy_accepted.is.null,privacy_policy_accepted.eq.false');
 
       if (patientId) {

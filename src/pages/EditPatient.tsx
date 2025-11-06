@@ -931,23 +931,23 @@ const EditPatient = () => {
             </Button>
 
             <div className="flex gap-4 pt-6 border-t mt-6">
-              {formData.status === 'inactive' ? (
+              {formData.status === 'active' ? (
                 <Button 
                   type="button" 
-                  variant="default" 
-                  className="flex-1"
-                  onClick={handleReactivate}
+                  variant="outline" 
+                  className="flex-1 border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
+                  onClick={handleDeactivate}
                 >
-                  Reativar Paciente
+                  Encerrar Paciente
                 </Button>
               ) : (
                 <Button 
                   type="button" 
-                  variant="destructive" 
-                  className="flex-1"
-                  onClick={handleDeactivate}
+                  variant="outline" 
+                  className="flex-1 border-green-600 text-green-600 hover:bg-green-600 hover:text-white"
+                  onClick={handleReactivate}
                 >
-                  Encerrar Paciente
+                  Reativar Paciente
                 </Button>
               )}
               <Button 

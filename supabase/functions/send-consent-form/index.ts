@@ -75,10 +75,19 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Paciente não encontrado");
     }
 
+    // Verificar se paciente está ativo
+    if (patient.status !== 'active') {
+      throw new Error("Não é possível enviar termos para pacientes encerrados");
+    }
+
     // Verificar se tem pelo menos um canal de comunicação (email ou telefone)
+    // Para menores, email/phone são do responsável (cadastrados no paciente)
     const normalizedPhone = patient.phone ? normalizePhone(patient.phone) : null;
     if (!patient.email && !normalizedPhone) {
-      throw new Error("Paciente não possui email nem telefone cadastrado");
+      const errorMsg = patient.is_minor 
+        ? "Responsável não possui email nem telefone cadastrado" 
+        : "Paciente não possui email nem telefone cadastrado";
+      throw new Error(errorMsg);
     }
 
     // Check if already has consent
@@ -114,8 +123,11 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Prepare email
     const isMinor = patient.is_minor;
+    // Para menores, o responsável é o recipiente (usando email/phone do cadastro do paciente que são do responsável)
     const recipientName = isMinor ? patient.guardian_name || "Responsável" : patient.name;
     const patientName = patient.name;
+    const recipientEmail = patient.email; // Email é sempre do responsável se menor, ou do paciente se adulto
+    const recipientPhone = patient.phone; // Phone é sempre do responsável se menor, ou do paciente se adulto
 
     const emailSubject = isMinor 
       ? `Termos de Consentimento - ${patientName} (Menor de Idade)`
@@ -220,18 +232,19 @@ const handler = async (req: Request): Promise<Response> => {
       </html>
     `;
 
-    // Send email only if patient has email
+    // Send email to recipient (guardian for minors, patient for adults)
     let emailSent = false;
-    if (patient.email) {
+    if (recipientEmail) {
       try {
         const emailResponse = await resend.emails.send({
           from: "Espaço Mindware <no-reply@espacomindware.com.br>",
-          to: [patient.email],
+          to: [recipientEmail],
           subject: emailSubject,
           html: emailHtml,
         });
 
         console.log("Consent form email sent:", emailResponse);
+        console.log(`Email sent to: ${isMinor ? 'guardian' : 'patient'} at ${recipientEmail}`);
         emailSent = true;
       } catch (emailError) {
         console.error("Error sending email:", emailError);
@@ -239,13 +252,14 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Send WhatsApp message if phone is available
+    // Send WhatsApp message to recipient (guardian for minors, patient for adults)
     let whatsappSent = false;
-    console.log("Patient phone data:", {
-      phone: patient.phone,
+    console.log("Recipient phone data:", {
+      phone: recipientPhone,
       normalizedPhone: normalizedPhone,
-      hasPhone: !!patient.phone,
-      phoneType: typeof patient.phone
+      hasPhone: !!recipientPhone,
+      phoneType: typeof recipientPhone,
+      recipientType: isMinor ? 'guardian' : 'patient'
     });
     
     if (normalizedPhone) {
