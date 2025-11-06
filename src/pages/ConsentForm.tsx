@@ -13,7 +13,7 @@ export default function ConsentForm() {
   const { token } = useParams();
   const navigate = useNavigate();
   
-  console.log("=== ConsentForm mounted - BUILD: 2025-11-06-20:00 ===");
+  console.log("=== ConsentForm mounted - BUILD: 2025-11-06-20:10 ===");
   console.log("Token from URL:", token);
   
   const [loading, setLoading] = useState(true);
@@ -24,7 +24,41 @@ export default function ConsentForm() {
   const [guardianDocument, setGuardianDocument] = useState<File | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
+  const clearCacheAndReload = async () => {
+    try {
+      // Unregister all service workers
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+          await registration.unregister();
+        }
+      }
+      
+      // Clear all caches
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
+      }
+      
+      // Force hard reload
+      window.location.reload();
+    } catch (error) {
+      console.error('Error clearing cache:', error);
+      // Fallback to simple reload
+      window.location.reload();
+    }
+  };
+
   useEffect(() => {
+    // Force service worker update
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        registrations.forEach(registration => {
+          registration.update();
+        });
+      });
+    }
+    
     loadPatientData();
   }, [token]);
 
@@ -33,13 +67,18 @@ export default function ConsentForm() {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
       
+      // Add cache busting parameter
+      const cacheBuster = Date.now();
+      
       const response = await fetch(
-        `${supabaseUrl}/functions/v1/get-consent-data?token=${token}`,
+        `${supabaseUrl}/functions/v1/get-consent-data?token=${token}&_cb=${cacheBuster}`,
         {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
             'apikey': supabaseKey,
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
           }
         }
       );
@@ -206,6 +245,33 @@ export default function ConsentForm() {
   return (
     <div className="min-h-screen p-4 bg-gradient-to-br from-background to-secondary">
       <div className="max-w-3xl mx-auto py-8">
+        {/* Cache Clear Button - Shows if old data detected */}
+        {patient && patient.birth_date && (() => {
+          const [year, month, day] = patient.birth_date.split('-');
+          const formattedDate = `${day}/${month}/${year}`;
+          // If date is showing as 12/03/2010 instead of 13/03/2010, we have cache issue
+          const hasOldCache = formattedDate === "12/03/2010";
+          
+          if (hasOldCache) {
+            return (
+              <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-2">
+                  ⚠️ Detectamos que você está vendo uma versão desatualizada desta página.
+                </p>
+                <Button 
+                  onClick={clearCacheAndReload}
+                  variant="outline"
+                  size="sm"
+                  className="bg-yellow-100 hover:bg-yellow-200 dark:bg-yellow-900 dark:hover:bg-yellow-800"
+                >
+                  Atualizar Página
+                </Button>
+              </div>
+            );
+          }
+          return null;
+        })()}
+        
         <Card>
           <CardHeader>
             <CardTitle>
