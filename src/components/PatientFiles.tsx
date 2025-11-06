@@ -11,6 +11,7 @@ import { Upload, FileText, Download, Trash2, FileAudio } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 
 interface PatientFilesProps {
   patientId: string;
@@ -253,7 +254,7 @@ export const PatientFiles = ({ patientId }: PatientFilesProps) => {
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          {format(new Date(file.uploaded_at), 'dd/MM/yyyy HH:mm')}
+                          {formatInTimeZone(new Date(file.uploaded_at), 'America/Sao_Paulo', 'dd/MM/yyyy HH:mm')}
                         </p>
                       </div>
                     </div>

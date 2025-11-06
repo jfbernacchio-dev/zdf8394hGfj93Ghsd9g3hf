@@ -447,6 +447,7 @@ export type Database = {
           file_path: string
           file_type: string
           id: string
+          is_clinical: boolean | null
           patient_id: string
           uploaded_at: string
           uploaded_by: string
@@ -457,6 +458,7 @@ export type Database = {
           file_path: string
           file_type: string
           id?: string
+          is_clinical?: boolean | null
           patient_id: string
           uploaded_at?: string
           uploaded_by: string
@@ -467,6 +469,7 @@ export type Database = {
           file_path?: string
           file_type?: string
           id?: string
+          is_clinical?: boolean | null
           patient_id?: string
           uploaded_at?: string
           uploaded_by?: string
