@@ -13,10 +13,6 @@ export default function ConsentForm() {
   const { token } = useParams();
   const navigate = useNavigate();
   
-  const APP_VERSION = "v2.0.1"; // Force new cache
-  console.log(`=== ConsentForm ${APP_VERSION} mounted ===`);
-  console.log("Token from URL:", token);
-  
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [patient, setPatient] = useState<any>(null);
@@ -25,69 +21,8 @@ export default function ConsentForm() {
   const [guardianDocument, setGuardianDocument] = useState<File | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
-  const clearCacheAndReload = async () => {
-    try {
-      // Unregister all service workers
-      if ('serviceWorker' in navigator) {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        for (const registration of registrations) {
-          await registration.unregister();
-        }
-      }
-      
-      // Clear all caches
-      if ('caches' in window) {
-        const cacheNames = await caches.keys();
-        await Promise.all(cacheNames.map(name => caches.delete(name)));
-      }
-      
-      // Force hard reload
-      window.location.reload();
-    } catch (error) {
-      console.error('Error clearing cache:', error);
-      // Fallback to simple reload
-      window.location.reload();
-    }
-  };
-
   useEffect(() => {
-    const initializeAndLoad = async () => {
-      console.log("🚀 ConsentForm initializing - v2.0.1");
-      
-      // NUCLEAR OPTION: Unregister ALL service workers and force reload if needed
-      try {
-        if ('serviceWorker' in navigator) {
-          const registrations = await navigator.serviceWorker.getRegistrations();
-          
-          if (registrations.length > 0) {
-            console.log(`⚠️ Found ${registrations.length} service workers - unregistering ALL`);
-            await Promise.all(registrations.map(reg => reg.unregister()));
-            
-            // Delete all caches
-            if ('caches' in window) {
-              const cacheNames = await caches.keys();
-              await Promise.all(cacheNames.map(name => caches.delete(name)));
-              console.log(`🗑️ Deleted ${cacheNames.length} caches`);
-            }
-            
-            // Force hard reload to get fresh code
-            console.log("🔄 Forcing hard reload to clear service worker...");
-            window.location.reload();
-            return; // Don't proceed, let reload happen
-          } else {
-            console.log("✅ No service workers found");
-          }
-        }
-      } catch (error) {
-        console.error('❌ Service worker cleanup error:', error);
-      }
-      
-      // Load patient data
-      console.log("📡 Loading patient data...");
-      loadPatientData();
-    };
-    
-    initializeAndLoad();
+    loadPatientData();
   }, [token]);
 
   const loadPatientData = async () => {
@@ -95,52 +30,29 @@ export default function ConsentForm() {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
       
-      console.log("🔍 Loading patient data for token:", token);
-      
-      // Add cache busting parameter + random to ensure uniqueness
-      const cacheBuster = `${Date.now()}_${Math.random()}`;
-      
-      const url = `${supabaseUrl}/functions/v1/get-consent-data?token=${token}&_cb=${cacheBuster}`;
-      console.log("📡 Fetching from:", url);
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': supabaseKey,
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0',
-        },
-        cache: 'no-store', // Force no caching at fetch level
-      });
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/get-consent-data?token=${token}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': supabaseKey,
+          }
+        }
+      );
 
-      console.log("📥 Response status:", response.status, "OK:", response.ok);
-      
       const data = await response.json();
-      console.log("📦 Response data:", data);
 
       if (!response.ok || data.error) {
-        console.error("❌ Error in response:", { ok: response.ok, error: data.error, data });
         if (data.alreadyAccepted) {
           setSubmitted(true);
         }
-        toast.error(data.error || "Erro ao carregar dados");
+        toast.error(data.error);
         setLoading(false);
         return;
       }
 
-      console.log("Patient data received from API:", data.patient);
-      console.log("Birth date value:", data.patient?.birth_date, "Type:", typeof data.patient?.birth_date);
-      console.log("CPF value:", data.patient?.cpf, "Type:", typeof data.patient?.cpf);
-      
-      // Parse and verify date formatting
-      if (data.patient?.birth_date) {
-        const [year, month, day] = data.patient.birth_date.split('-');
-        console.log("Date parsing - Year:", year, "Month:", month, "Day:", day);
-        console.log("Formatted date will be:", `${day}/${month}/${year}`);
-      }
-      
+      console.log("Patient data loaded:", data.patient);
       setPatient(data.patient);
     } catch (error: any) {
       console.error("Catch error loading patient:", error);
@@ -281,33 +193,6 @@ export default function ConsentForm() {
   return (
     <div className="min-h-screen p-4 bg-gradient-to-br from-background to-secondary">
       <div className="max-w-3xl mx-auto py-8">
-        {/* Cache Clear Button - Shows if old data detected */}
-        {patient && patient.birth_date && (() => {
-          const [year, month, day] = patient.birth_date.split('-');
-          const formattedDate = `${day}/${month}/${year}`;
-          // If date is showing as 12/03/2010 instead of 13/03/2010, we have cache issue
-          const hasOldCache = formattedDate === "12/03/2010";
-          
-          if (hasOldCache) {
-            return (
-              <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-2">
-                  ⚠️ Detectamos que você está vendo uma versão desatualizada desta página.
-                </p>
-                <Button 
-                  onClick={clearCacheAndReload}
-                  variant="outline"
-                  size="sm"
-                  className="bg-yellow-100 hover:bg-yellow-200 dark:bg-yellow-900 dark:hover:bg-yellow-800"
-                >
-                  Atualizar Página
-                </Button>
-              </div>
-            );
-          }
-          return null;
-        })()}
-        
         <Card>
           <CardHeader>
             <CardTitle>
@@ -367,11 +252,7 @@ export default function ConsentForm() {
 
                       <div className="mt-4 p-3 bg-background rounded border">
                         <p><strong>Nome do(a) menor:</strong> {patient.name}</p>
-                        <p><strong>Data de nascimento:</strong> {patient.birth_date ? (() => {
-                          const [year, month, day] = patient.birth_date.split('-');
-                          return `${day}/${month}/${year}`;
-                        })() : "Não informado"}</p>
-                        <p><strong>CPF do(a) menor:</strong> {patient.cpf || "Não informado"}</p>
+                        <p><strong>Data de nascimento:</strong> {patient.birth_date ? new Date(patient.birth_date).toLocaleDateString('pt-BR') : "Não informado"}</p>
                         <p><strong>Nome do Responsável Legal:</strong> {patient.guardian_name || "Não informado"}</p>
                         <p><strong>CPF do Responsável:</strong> {patient.guardian_cpf || "Não informado"}</p>
                       </div>

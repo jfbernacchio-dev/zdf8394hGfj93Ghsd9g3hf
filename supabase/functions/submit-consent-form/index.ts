@@ -77,9 +77,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Patient data:", { 
       id: patient.id, 
       name: patient.name, 
-      is_minor: patient.is_minor,
-      birth_date: patient.birth_date,
-      cpf: patient.cpf 
+      is_minor: patient.is_minor 
     });
     console.log("Guardian document received:", guardianDocumentFile ? "YES" : "NO");
     if (guardianDocumentFile) {
@@ -275,36 +273,7 @@ const handler = async (req: Request): Promise<Response> => {
     });
     yPosition -= 18;
     
-    // Format birth date - handle timezone correctly by creating UTC date
-    let birthDateStr = 'Não informado';
-    if (patient.birth_date) {
-      const dateOnly = patient.birth_date.split('T')[0]; // Get only YYYY-MM-DD part
-      const [year, month, day] = dateOnly.split('-');
-      birthDateStr = `${day}/${month}/${year}`;
-      console.log("Birth date processing:", { raw: patient.birth_date, dateOnly, parsed: birthDateStr });
-    }
-    
-    page.drawText(`Data de Nascimento: ${birthDateStr}`, {
-      x: leftMargin,
-      y: yPosition,
-      size: 10,
-      font: regularFont,
-      color: rgb(0.2, 0.2, 0.2)
-    });
-    yPosition -= 18;
-    
     if (patient.is_minor) {
-      console.log("Minor patient - CPF:", patient.cpf);
-      
-      page.drawText(`CPF do(a) menor: ${patient.cpf || 'Não informado'}`, {
-        x: leftMargin,
-        y: yPosition,
-        size: 10,
-        font: regularFont,
-        color: rgb(0.2, 0.2, 0.2)
-      });
-      yPosition -= 18;
-      
       page.drawText(`Responsável Legal: ${patient.guardian_name || 'Não informado'}`, {
         x: leftMargin,
         y: yPosition,

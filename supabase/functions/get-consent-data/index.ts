@@ -80,11 +80,9 @@ const handler = async (req: Request): Promise<Response> => {
     // Get patient data
     const { data: patient, error: patientError } = await supabase
       .from("patients")
-      .select("id, name, birth_date, cpf, is_minor, guardian_name, guardian_cpf")
+      .select("id, name, birth_date, is_minor, guardian_name, guardian_cpf")
       .eq("id", submission.patient_id)
       .single();
-
-    console.log("Patient data retrieved from DB:", JSON.stringify(patient, null, 2));
 
     if (patientError || !patient) {
       console.error("Patient not found:", patientError);
@@ -93,8 +91,6 @@ const handler = async (req: Request): Promise<Response> => {
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    console.log("Returning patient data - birth_date:", patient.birth_date, "cpf:", patient.cpf);
 
     return new Response(
       JSON.stringify({ patient }),
