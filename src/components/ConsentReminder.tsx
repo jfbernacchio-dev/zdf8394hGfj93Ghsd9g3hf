@@ -561,15 +561,45 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
                   <div className="flex-1">
                     <p className="font-medium">{patient.name}</p>
                     {(() => {
+                      // Para menores, priorizar telefone do responsável
+                      const contactPhone = patient.is_minor && patient.guardian_phone_1 
+                        ? patient.guardian_phone_1 
+                        : patient.phone;
+                      
+                      const recipientName = patient.is_minor && patient.guardian_name 
+                        ? patient.guardian_name 
+                        : patient.name;
+                      
                       const hasEmail = patient.email && patient.email.trim() !== '';
-                      const hasPhone = patient.phone && patient.phone.trim() !== '';
+                      const hasPhone = contactPhone && contactPhone.trim() !== '';
                       
                       if (hasEmail && hasPhone) {
-                        return <p className="text-sm text-muted-foreground">📧 {patient.email} | 📱 {patient.phone}</p>;
+                        return (
+                          <div>
+                            <p className="text-sm text-muted-foreground">📧 {patient.email} | 📱 {contactPhone}</p>
+                            {patient.is_minor && patient.guardian_name && (
+                              <p className="text-xs text-muted-foreground">Enviado para: {recipientName}</p>
+                            )}
+                          </div>
+                        );
                       } else if (hasEmail) {
-                        return <p className="text-sm text-muted-foreground">📧 {patient.email}</p>;
+                        return (
+                          <div>
+                            <p className="text-sm text-muted-foreground">📧 {patient.email}</p>
+                            {patient.is_minor && patient.guardian_name && (
+                              <p className="text-xs text-muted-foreground">Enviado para: {recipientName}</p>
+                            )}
+                          </div>
+                        );
                       } else if (hasPhone) {
-                        return <p className="text-sm text-muted-foreground">📱 {patient.phone}</p>;
+                        return (
+                          <div>
+                            <p className="text-sm text-muted-foreground">📱 {contactPhone}</p>
+                            {patient.is_minor && patient.guardian_name && (
+                              <p className="text-xs text-muted-foreground">Enviado para: {recipientName}</p>
+                            )}
+                          </div>
+                        );
                       } else {
                         return <p className="text-sm text-red-600 dark:text-red-400">⚠️ Sem contato</p>;
                       }
@@ -579,8 +609,8 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
                     variant="ghost"
                     size="sm"
                     onClick={() => sendConsentEmail(patient, true)}
-                    disabled={sending || (!patient.email && !patient.phone)}
-                    title={(!patient.email && !patient.phone) ? 'Paciente sem email ou telefone cadastrado' : 'Reenviar termo'}
+                    disabled={sending || (!patient.email && !(patient.is_minor && patient.guardian_phone_1 ? patient.guardian_phone_1 : patient.phone))}
+                    title={(!patient.email && !(patient.is_minor && patient.guardian_phone_1 ? patient.guardian_phone_1 : patient.phone)) ? 'Paciente sem email ou telefone cadastrado' : 'Reenviar termo'}
                   >
                     <Send className="w-4 h-4" />
                   </Button>
@@ -638,15 +668,45 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
               <div className="flex-1">
                   <p className="font-medium">{patient.name}</p>
                   {(() => {
+                    // Para menores, priorizar telefone do responsável
+                    const contactPhone = patient.is_minor && patient.guardian_phone_1 
+                      ? patient.guardian_phone_1 
+                      : patient.phone;
+                    
+                    const recipientName = patient.is_minor && patient.guardian_name 
+                      ? patient.guardian_name 
+                      : patient.name;
+                    
                     const hasEmail = patient.email && patient.email.trim() !== '';
-                    const hasPhone = patient.phone && patient.phone.trim() !== '';
+                    const hasPhone = contactPhone && contactPhone.trim() !== '';
                     
                     if (hasEmail && hasPhone) {
-                      return <p className="text-sm text-muted-foreground">📧 {patient.email} | 📱 {patient.phone}</p>;
+                      return (
+                        <div>
+                          <p className="text-sm text-muted-foreground">📧 {patient.email} | 📱 {contactPhone}</p>
+                          {patient.is_minor && patient.guardian_name && (
+                            <p className="text-xs text-muted-foreground">Será enviado para: {recipientName}</p>
+                          )}
+                        </div>
+                      );
                     } else if (hasEmail) {
-                      return <p className="text-sm text-muted-foreground">📧 {patient.email}</p>;
+                      return (
+                        <div>
+                          <p className="text-sm text-muted-foreground">📧 {patient.email}</p>
+                          {patient.is_minor && patient.guardian_name && (
+                            <p className="text-xs text-muted-foreground">Será enviado para: {recipientName}</p>
+                          )}
+                        </div>
+                      );
                     } else if (hasPhone) {
-                      return <p className="text-sm text-muted-foreground">📱 {patient.phone}</p>;
+                      return (
+                        <div>
+                          <p className="text-sm text-muted-foreground">📱 {contactPhone}</p>
+                          {patient.is_minor && patient.guardian_name && (
+                            <p className="text-xs text-muted-foreground">Será enviado para: {recipientName}</p>
+                          )}
+                        </div>
+                      );
                     } else {
                       return <p className="text-sm text-red-600 dark:text-red-400">⚠️ Sem contato</p>;
                     }
@@ -656,8 +716,8 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
                   variant="ghost"
                   size="sm"
                   onClick={() => sendConsentEmail(patient)}
-                  disabled={sending || (!patient.email && !patient.phone)}
-                  title={(!patient.email && !patient.phone) ? 'Paciente sem email ou telefone cadastrado' : undefined}
+                  disabled={sending || (!patient.email && !(patient.is_minor && patient.guardian_phone_1 ? patient.guardian_phone_1 : patient.phone))}
+                  title={(!patient.email && !(patient.is_minor && patient.guardian_phone_1 ? patient.guardian_phone_1 : patient.phone)) ? 'Paciente sem email ou telefone cadastrado' : undefined}
                 >
                   <Send className="w-4 h-4" />
                 </Button>
