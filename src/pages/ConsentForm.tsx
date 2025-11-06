@@ -52,30 +52,38 @@ export default function ConsentForm() {
 
   useEffect(() => {
     const initializeAndLoad = async () => {
-      // Aggressively clear all service workers and caches on mount
+      console.log("🚀 ConsentForm initializing - v2.0.1");
+      
+      // NUCLEAR OPTION: Unregister ALL service workers and force reload if needed
       try {
-        // 1. Unregister ALL service workers immediately
         if ('serviceWorker' in navigator) {
           const registrations = await navigator.serviceWorker.getRegistrations();
-          await Promise.all(registrations.map(reg => reg.unregister()));
-          console.log(`✅ Unregistered ${registrations.length} service workers`);
+          
+          if (registrations.length > 0) {
+            console.log(`⚠️ Found ${registrations.length} service workers - unregistering ALL`);
+            await Promise.all(registrations.map(reg => reg.unregister()));
+            
+            // Delete all caches
+            if ('caches' in window) {
+              const cacheNames = await caches.keys();
+              await Promise.all(cacheNames.map(name => caches.delete(name)));
+              console.log(`🗑️ Deleted ${cacheNames.length} caches`);
+            }
+            
+            // Force hard reload to get fresh code
+            console.log("🔄 Forcing hard reload to clear service worker...");
+            window.location.reload();
+            return; // Don't proceed, let reload happen
+          } else {
+            console.log("✅ No service workers found");
+          }
         }
-        
-        // 2. Delete ALL caches
-        if ('caches' in window) {
-          const cacheNames = await caches.keys();
-          await Promise.all(cacheNames.map(name => caches.delete(name)));
-          console.log(`✅ Deleted ${cacheNames.length} caches`);
-        }
-        
-        // 3. Wait a bit for cleanup
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
       } catch (error) {
-        console.error('Cache cleanup error:', error);
+        console.error('❌ Service worker cleanup error:', error);
       }
       
-      // 4. Load patient data with fresh request
+      // Load patient data
+      console.log("📡 Loading patient data...");
       loadPatientData();
     };
     
