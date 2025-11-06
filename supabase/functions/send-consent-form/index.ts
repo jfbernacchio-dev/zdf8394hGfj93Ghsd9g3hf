@@ -324,6 +324,13 @@ const handler = async (req: Request): Promise<Response> => {
 
         const whatsappResult = await whatsappResponse.json();
         
+        console.log("WhatsApp response details:", {
+          ok: whatsappResponse.ok,
+          status: whatsappResponse.status,
+          success: whatsappResult.success,
+          result: whatsappResult
+        });
+        
         if (whatsappResponse.ok && whatsappResult.success) {
           console.log("WhatsApp sent successfully");
           whatsappSent = true;
@@ -399,6 +406,8 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Determinar mensagem de sucesso baseado nos canais enviados
+    console.log("Final status:", { emailSent, whatsappSent, hasEmail: !!patient.email, hasPhone: !!normalizedPhone });
+    
     let successMessage = "";
     if (emailSent && whatsappSent) {
       successMessage = "Email e WhatsApp de consentimento enviados com sucesso";
