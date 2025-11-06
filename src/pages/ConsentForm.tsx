@@ -27,46 +27,34 @@ export default function ConsentForm() {
 
   const loadPatientData = async () => {
     try {
-      console.log("=== INICIO loadPatientData ===");
-      console.log("Token recebido:", token);
-      
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-      
-      const response = await fetch(
-        `${supabaseUrl}/functions/v1/get-consent-data?token=${token}`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': supabaseKey,
-          }
-        }
-      );
+      const { data, error } = await supabase.functions.invoke("get-consent-data", {
+        body: { token }
+      });
 
-      console.log("Response status:", response.status);
-      console.log("Response ok:", response.ok);
-      
-      const data = await response.json();
-      console.log("Data recebida:", data);
-
-      if (!response.ok || data.error) {
-        console.log("Erro na resposta - response.ok:", response.ok, "data.error:", data.error);
-        if (data.alreadyAccepted) {
-          setSubmitted(true);
-        }
-        toast.error(data.error || "Erro ao carregar dados");
+      if (error) {
+        console.error("Error loading consent data:", error);
+        toast.error("Link inválido ou expirado");
         setLoading(false);
         return;
       }
 
-      console.log("Patient data loaded:", data.patient);
-      setPatient(data.patient);
+      if (data.error) {
+        if (data.alreadyAccepted) {
+          setSubmitted(true);
+        }
+        toast.error(data.error);
+        setLoading(false);
+        return;
+      }
+
+      if (data.patient) {
+        setPatient(data.patient);
+      } else {
+        toast.error("Dados do paciente não encontrados");
+      }
     } catch (error: any) {
-      console.error("=== ERRO NO CATCH ===");
-      console.error("Erro completo:", error);
-      console.error("Mensagem:", error.message);
-      toast.error("Link inválido ou expirado");
+      console.error("Error in loadPatientData:", error);
+      toast.error("Erro ao carregar dados do consentimento");
     } finally {
       setLoading(false);
     }

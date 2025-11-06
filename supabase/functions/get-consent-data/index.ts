@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, cache-control, expires",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 const handler = async (req: Request): Promise<Response> => {
@@ -12,19 +12,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    console.log("get-consent-data called");
-    
-    // Get token from query params or body
-    const url = new URL(req.url);
-    let token = url.searchParams.get("token");
-    
-    // If not in query params, try body (for supabase.functions.invoke)
-    if (!token && req.method === 'POST') {
-      const body = await req.json();
-      token = body.token;
-    }
-
-    console.log("Token received:", token);
+    const { token } = await req.json();
 
     if (!token) {
       console.error("No token provided");
