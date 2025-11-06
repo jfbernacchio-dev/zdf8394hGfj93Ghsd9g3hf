@@ -188,6 +188,21 @@ const handler = async (req: Request): Promise<Response> => {
       try {
         console.log("Sending WhatsApp message to:", normalizedPhone);
         
+        // Get the file from storage to use the correct filename
+        const { data: uploadedFiles } = await supabase
+          .from("patient_files")
+          .select("file_name, file_path")
+          .eq("patient_id", nfseData.patient_id)
+          .eq("category", "nfse")
+          .order("uploaded_at", { ascending: false })
+          .limit(1);
+
+        const correctFilename = uploadedFiles && uploadedFiles.length > 0 
+          ? uploadedFiles[0].file_name 
+          : `NFSe_${nfseNumber}_${patientName.replace(/\s+/g, "_")}.pdf`;
+
+        console.log("Using filename for WhatsApp:", correctFilename);
+        
         // Try to use template first, fallback to direct document if template fails
         let whatsappResult;
         
@@ -214,6 +229,7 @@ const handler = async (req: Request): Promise<Response> => {
                     serviceValue,
                   ],
                   documentUrl: nfseData.pdf_url,
+                  filename: correctFilename, // Add filename to template
                 },
               }),
             }
@@ -242,7 +258,7 @@ const handler = async (req: Request): Promise<Response> => {
                 data: {
                   to: normalizedPhone,
                   documentUrl: nfseData.pdf_url,
-                  filename: `NFSe_${nfseNumber}_${patientName.replace(/\s+/g, "_")}.pdf`,
+                  filename: correctFilename, // Use the correct filename
                   caption: `📄 *Nota Fiscal Espaço Mindware*\n\n` +
                     `*Número:* ${nfseNumber}\n` +
                     `*Data:* ${issueDate}\n` +

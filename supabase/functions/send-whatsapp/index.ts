@@ -24,6 +24,7 @@ interface WhatsAppTemplateMessage {
   templateLanguage?: string; // Default: pt_BR, can be overridden (e.g., "en" to avoid Meta's 4-week lock bug)
   parameters: string[];
   documentUrl?: string;
+  filename?: string; // Optional filename for documents in templates
 }
 
 interface WhatsAppRequest {
@@ -106,16 +107,21 @@ const handler = async (req: Request): Promise<Response> => {
 
       // Add document header if provided
       if (templateData.documentUrl) {
+        const documentParam: any = {
+          type: "document",
+          document: {
+            link: templateData.documentUrl,
+          },
+        };
+        
+        // Add filename if provided
+        if (templateData.filename) {
+          documentParam.document.filename = templateData.filename;
+        }
+        
         messagePayload.template.components.unshift({
           type: "header",
-          parameters: [
-            {
-              type: "document",
-              document: {
-                link: templateData.documentUrl,
-              },
-            },
-          ],
+          parameters: [documentParam],
         });
       }
     } else {
