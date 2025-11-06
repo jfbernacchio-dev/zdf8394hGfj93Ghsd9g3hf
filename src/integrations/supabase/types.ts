@@ -492,7 +492,11 @@ export type Database = {
           email: string | null
           frequency: string
           guardian_cpf: string | null
+          guardian_cpf_2: string | null
           guardian_name: string | null
+          guardian_name_2: string | null
+          guardian_phone_1: string | null
+          guardian_phone_2: string | null
           hide_from_schedule: boolean | null
           hide_second_session_from_schedule: boolean | null
           id: string
@@ -529,7 +533,11 @@ export type Database = {
           email?: string | null
           frequency: string
           guardian_cpf?: string | null
+          guardian_cpf_2?: string | null
           guardian_name?: string | null
+          guardian_name_2?: string | null
+          guardian_phone_1?: string | null
+          guardian_phone_2?: string | null
           hide_from_schedule?: boolean | null
           hide_second_session_from_schedule?: boolean | null
           id?: string
@@ -566,7 +574,11 @@ export type Database = {
           email?: string | null
           frequency?: string
           guardian_cpf?: string | null
+          guardian_cpf_2?: string | null
           guardian_name?: string | null
+          guardian_name_2?: string | null
+          guardian_phone_1?: string | null
+          guardian_phone_2?: string | null
           hide_from_schedule?: boolean | null
           hide_second_session_from_schedule?: boolean | null
           id?: string

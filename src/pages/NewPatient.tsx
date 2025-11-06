@@ -57,6 +57,10 @@ const NewPatient = () => {
     isMinor: false,
     guardianName: '',
     guardianCpf: '',
+    guardianName2: '',
+    guardianCpf2: '',
+    guardianPhone1: '',
+    guardianPhone2: '',
     nfseIssueTo: 'patient' as 'patient' | 'guardian',
     includeMinorText: false,
     hideSecondSessionFromSchedule: false,
@@ -144,6 +148,10 @@ const NewPatient = () => {
           is_minor: formData.isMinor,
           guardian_name: formData.isMinor ? (formData.guardianName || null) : null,
           guardian_cpf: formData.isMinor ? (formData.guardianCpf || null) : null,
+          guardian_name_2: formData.isMinor ? (formData.guardianName2 || null) : null,
+          guardian_cpf_2: formData.isMinor ? (formData.guardianCpf2 || null) : null,
+          guardian_phone_1: formData.isMinor ? (formData.guardianPhone1 || null) : null,
+          guardian_phone_2: formData.isMinor ? (formData.guardianPhone2 || null) : null,
           nfse_issue_to: formData.isMinor ? formData.nfseIssueTo : 'patient',
           include_minor_text: formData.isMinor && formData.nfseIssueTo === 'guardian' ? formData.includeMinorText : false,
           hide_second_session_from_schedule: formData.frequency === 'twice_weekly' ? formData.hideSecondSessionFromSchedule : false,
@@ -528,6 +536,55 @@ const NewPatient = () => {
                         if (value.length > 6) formatted = formatted.slice(0, 7) + '.' + value.slice(6);
                         if (value.length > 9) formatted = formatted.slice(0, 11) + '-' + value.slice(9);
                         setFormData({ ...formData, guardianCpf: formatted });
+                      }}
+                      maxLength={14}
+                      placeholder="000.000.000-00"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="guardianPhone1">Telefone do Responsável Legal 1</Label>
+                      <Input
+                        id="guardianPhone1"
+                        value={formData.guardianPhone1}
+                        onChange={(e) => setFormData({ ...formData, guardianPhone1: e.target.value })}
+                        placeholder="(11) 99999-9999"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="guardianPhone2">Telefone do Responsável Legal 2</Label>
+                      <Input
+                        id="guardianPhone2"
+                        value={formData.guardianPhone2}
+                        onChange={(e) => setFormData({ ...formData, guardianPhone2: e.target.value })}
+                        placeholder="(11) 99999-9999"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="guardianName2">Nome do Responsável Legal 2</Label>
+                    <Input
+                      id="guardianName2"
+                      value={formData.guardianName2}
+                      onChange={(e) => setFormData({ ...formData, guardianName2: e.target.value })}
+                      placeholder="Nome completo do segundo responsável (opcional)"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="guardianCpf2">CPF do Responsável Legal 2</Label>
+                    <Input
+                      id="guardianCpf2"
+                      value={formData.guardianCpf2}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '');
+                        let formatted = value;
+                        if (value.length > 3) formatted = value.slice(0, 3) + '.' + value.slice(3);
+                        if (value.length > 6) formatted = formatted.slice(0, 7) + '.' + value.slice(6);
+                        if (value.length > 9) formatted = formatted.slice(0, 11) + '-' + value.slice(9);
+                        setFormData({ ...formData, guardianCpf2: formatted });
                       }}
                       maxLength={14}
                       placeholder="000.000.000-00"

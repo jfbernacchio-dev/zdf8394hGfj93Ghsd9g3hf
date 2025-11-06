@@ -67,6 +67,10 @@ const EditPatient = () => {
         is_minor: data.is_minor || false,
         guardian_name: data.guardian_name || '',
         guardian_cpf: data.guardian_cpf || '',
+        guardian_name_2: data.guardian_name_2 || '',
+        guardian_cpf_2: data.guardian_cpf_2 || '',
+        guardian_phone_1: data.guardian_phone_1 || '',
+        guardian_phone_2: data.guardian_phone_2 || '',
         nfse_issue_to: data.nfse_issue_to || 'patient',
         include_minor_text: data.include_minor_text || false,
         hide_second_session_from_schedule: data.hide_second_session_from_schedule || false,
@@ -278,6 +282,10 @@ const EditPatient = () => {
       is_minor: formData.is_minor,
       guardian_name: formData.is_minor ? (formData.guardian_name || null) : null,
       guardian_cpf: formData.is_minor ? (formData.guardian_cpf || null) : null,
+      guardian_name_2: formData.is_minor ? (formData.guardian_name_2 || null) : null,
+      guardian_cpf_2: formData.is_minor ? (formData.guardian_cpf_2 || null) : null,
+      guardian_phone_1: formData.is_minor ? (formData.guardian_phone_1 || null) : null,
+      guardian_phone_2: formData.is_minor ? (formData.guardian_phone_2 || null) : null,
       nfse_issue_to: formData.is_minor ? formData.nfse_issue_to : 'patient',
       include_minor_text: formData.is_minor && formData.nfse_issue_to === 'guardian' ? formData.include_minor_text : false,
       hide_second_session_from_schedule: formData.frequency === 'twice_weekly' ? formData.hide_second_session_from_schedule : false,
@@ -673,6 +681,55 @@ const EditPatient = () => {
                         if (value.length > 6) formatted = formatted.slice(0, 7) + '.' + value.slice(6);
                         if (value.length > 9) formatted = formatted.slice(0, 11) + '-' + value.slice(9);
                         setFormData({ ...formData, guardian_cpf: formatted });
+                      }}
+                      maxLength={14}
+                      placeholder="000.000.000-00"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="guardianPhone1">Telefone do Responsável Legal 1</Label>
+                      <Input
+                        id="guardianPhone1"
+                        value={formData.guardian_phone_1}
+                        onChange={(e) => setFormData({ ...formData, guardian_phone_1: e.target.value })}
+                        placeholder="(11) 99999-9999"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="guardianPhone2">Telefone do Responsável Legal 2</Label>
+                      <Input
+                        id="guardianPhone2"
+                        value={formData.guardian_phone_2}
+                        onChange={(e) => setFormData({ ...formData, guardian_phone_2: e.target.value })}
+                        placeholder="(11) 99999-9999"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="guardianName2">Nome do Responsável Legal 2</Label>
+                    <Input
+                      id="guardianName2"
+                      value={formData.guardian_name_2}
+                      onChange={(e) => setFormData({ ...formData, guardian_name_2: e.target.value })}
+                      placeholder="Nome completo do segundo responsável (opcional)"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="guardianCpf2">CPF do Responsável Legal 2</Label>
+                    <Input
+                      id="guardianCpf2"
+                      value={formData.guardian_cpf_2}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '');
+                        let formatted = value;
+                        if (value.length > 3) formatted = value.slice(0, 3) + '.' + value.slice(3);
+                        if (value.length > 6) formatted = formatted.slice(0, 7) + '.' + value.slice(6);
+                        if (value.length > 9) formatted = formatted.slice(0, 11) + '-' + value.slice(9);
+                        setFormData({ ...formData, guardian_cpf_2: formatted });
                       }}
                       maxLength={14}
                       placeholder="000.000.000-00"

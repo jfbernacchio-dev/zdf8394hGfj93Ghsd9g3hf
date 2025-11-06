@@ -98,8 +98,13 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Verificar se tem pelo menos um canal de comunicação (email ou telefone)
-    // Para menores, email/phone são do responsável (cadastrados no paciente)
-    const normalizedPhone = patient.phone ? normalizePhone(patient.phone) : null;
+    // Para menores, priorizar guardian_phone_1, depois phone do cadastro
+    let contactPhone = patient.phone;
+    if (patient.is_minor && patient.guardian_phone_1) {
+      contactPhone = patient.guardian_phone_1;
+    }
+    
+    const normalizedPhone = contactPhone ? normalizePhone(contactPhone) : null;
     if (!patient.email && !normalizedPhone) {
       const errorMsg = patient.is_minor 
         ? "Responsável não possui email nem telefone cadastrado" 
@@ -140,11 +145,11 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Prepare email
     const isMinor = patient.is_minor;
-    // Para menores, o responsável é o recipiente (usando email/phone do cadastro do paciente que são do responsável)
+    // Para menores, o responsável é o recipiente (usando email do cadastro e phone priorizado)
     const recipientName = isMinor ? patient.guardian_name || "Responsável" : patient.name;
     const patientName = patient.name;
-    const recipientEmail = patient.email; // Email é sempre do responsável se menor, ou do paciente se adulto
-    const recipientPhone = patient.phone; // Phone é sempre do responsável se menor, ou do paciente se adulto
+    const recipientEmail = patient.email; // Email sempre do responsável se menor, ou do paciente
+    const recipientPhone = contactPhone; // Phone com prioridade para guardian_phone_1
 
     const emailSubject = isMinor 
       ? `Termos de Consentimento - ${patientName} (Menor de Idade)`
