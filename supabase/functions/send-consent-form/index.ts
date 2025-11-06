@@ -253,6 +253,7 @@ const handler = async (req: Request): Promise<Response> => {
         console.log("Sending consent form via WhatsApp to:", normalizedPhone);
         
         // Try to use template first, fallback to text if template fails
+        let whatsappResult;
         let whatsappResponse;
         
         try {
@@ -280,11 +281,11 @@ const handler = async (req: Request): Promise<Response> => {
             }
           );
           
-          const templateResult = await whatsappResponse.json();
+          whatsappResult = await whatsappResponse.json();
           
           // If template fails, fallback to text message
-          if (!whatsappResponse.ok || !templateResult.success) {
-            console.log("Template failed, falling back to text message:", templateResult);
+          if (!whatsappResponse.ok || !whatsappResult.success) {
+            console.log("Template failed, falling back to text message:", whatsappResult);
             throw new Error("Template not available");
           }
         } catch (templateError) {
@@ -320,14 +321,14 @@ const handler = async (req: Request): Promise<Response> => {
               }),
             }
           );
+          
+          whatsappResult = await whatsappResponse.json();
         }
 
-        const whatsappResult = await whatsappResponse.json();
-        
         console.log("WhatsApp response details:", {
           ok: whatsappResponse.ok,
           status: whatsappResponse.status,
-          success: whatsappResult.success,
+          success: whatsappResult?.success,
           result: whatsappResult
         });
         
