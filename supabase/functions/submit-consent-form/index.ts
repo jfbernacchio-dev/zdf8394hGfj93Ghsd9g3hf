@@ -273,18 +273,12 @@ const handler = async (req: Request): Promise<Response> => {
     });
     yPosition -= 18;
     
-    // Format birth date to São Paulo timezone
+    // Format birth date correctly for São Paulo timezone
     let birthDateStr = 'Não informado';
     if (patient.birth_date) {
-      const birthDate = new Date(patient.birth_date + 'T00:00:00');
-      const saoPauloOffset = -3; // UTC-3
-      const utcDate = new Date(birthDate.getTime() + (saoPauloOffset * 60 * 60 * 1000));
-      birthDateStr = utcDate.toLocaleDateString('pt-BR', { 
-        timeZone: 'America/Sao_Paulo',
-        day: '2-digit', 
-        month: '2-digit', 
-        year: 'numeric' 
-      });
+      // Parse the date string directly as YYYY-MM-DD and format it
+      const [year, month, day] = patient.birth_date.split('-');
+      birthDateStr = `${day}/${month}/${year}`;
     }
     
     page.drawText(`Data de Nascimento: ${birthDateStr}`, {
@@ -297,7 +291,7 @@ const handler = async (req: Request): Promise<Response> => {
     yPosition -= 18;
     
     if (patient.is_minor) {
-      page.drawText(`CPF: ${patient.cpf || 'Não informado'}`, {
+      page.drawText(`CPF do(a) menor: ${patient.cpf || 'Não informado'}`, {
         x: leftMargin,
         y: yPosition,
         size: 10,
