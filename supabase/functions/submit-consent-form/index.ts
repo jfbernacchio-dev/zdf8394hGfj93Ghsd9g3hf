@@ -167,6 +167,20 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Erro ao atualizar dados do paciente");
     }
 
+    // Create notification for therapist
+    const recipientName = patient.is_minor && patient.guardian_name 
+      ? patient.guardian_name 
+      : patient.name;
+    
+    await supabase.from("system_notifications").insert({
+      user_id: patient.user_id,
+      title: "Termo de Consentimento Aceito",
+      message: `${recipientName} aceitou o termo de consentimento para ${patient.name}`,
+      category: "compliance",
+      severity: "success",
+      action_url: `/patients/${patient.id}`
+    });
+
     // Generate consent confirmation PDF document
     const consentType = patient.is_minor ? "TERMO_CONSENTIMENTO_MENORES" : "TERMO_CONSENTIMENTO_ADULTOS";
     const now = new Date();
