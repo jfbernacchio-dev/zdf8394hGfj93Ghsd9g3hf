@@ -273,7 +273,39 @@ const handler = async (req: Request): Promise<Response> => {
     });
     yPosition -= 18;
     
+    // Format birth date to São Paulo timezone
+    let birthDateStr = 'Não informado';
+    if (patient.birth_date) {
+      const birthDate = new Date(patient.birth_date + 'T00:00:00');
+      const saoPauloOffset = -3; // UTC-3
+      const utcDate = new Date(birthDate.getTime() + (saoPauloOffset * 60 * 60 * 1000));
+      birthDateStr = utcDate.toLocaleDateString('pt-BR', { 
+        timeZone: 'America/Sao_Paulo',
+        day: '2-digit', 
+        month: '2-digit', 
+        year: 'numeric' 
+      });
+    }
+    
+    page.drawText(`Data de Nascimento: ${birthDateStr}`, {
+      x: leftMargin,
+      y: yPosition,
+      size: 10,
+      font: regularFont,
+      color: rgb(0.2, 0.2, 0.2)
+    });
+    yPosition -= 18;
+    
     if (patient.is_minor) {
+      page.drawText(`CPF: ${patient.cpf || 'Não informado'}`, {
+        x: leftMargin,
+        y: yPosition,
+        size: 10,
+        font: regularFont,
+        color: rgb(0.2, 0.2, 0.2)
+      });
+      yPosition -= 18;
+      
       page.drawText(`Responsável Legal: ${patient.guardian_name || 'Não informado'}`, {
         x: leftMargin,
         y: yPosition,
