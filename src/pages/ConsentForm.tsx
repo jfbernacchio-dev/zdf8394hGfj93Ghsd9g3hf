@@ -21,7 +21,7 @@ export default function ConsentForm() {
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    const BUILD_VERSION = "2025-11-06-23:55:FINAL";
+    const BUILD_VERSION = "2025-11-07-00:05:FETCH-DIRECT";
     console.log(`=== ConsentForm mounted - BUILD: ${BUILD_VERSION} ===`);
     console.log("Token from URL:", token);
     
@@ -39,15 +39,24 @@ export default function ConsentForm() {
     try {
       console.log("📞 [CONSENT] Starting loadPatientData");
       console.log("📞 [CONSENT] Token:", token);
-      console.log("📞 [CONSENT] Supabase client exists:", !!supabase);
       
-      console.log("📞 [CONSENT] Calling supabase.functions.invoke...");
-      const result = await supabase.functions.invoke("get-consent-data", {
-        body: { token }
+      const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-consent-data`;
+      console.log("📞 [CONSENT] Calling:", functionUrl);
+      
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`
+        },
+        body: JSON.stringify({ token })
       });
       
-      console.log("📦 [CONSENT] Full result:", JSON.stringify(result, null, 2));
-      const { data, error } = result;
+      console.log("📦 [CONSENT] Response status:", response.status);
+      const data = await response.json();
+      console.log("📦 [CONSENT] Response data:", JSON.stringify(data, null, 2));
+      
+      const error = !response.ok ? new Error(data.error || 'Erro na requisição') : null;
 
       if (error) {
         console.error("❌ Error from invoke:", error);
@@ -139,15 +148,24 @@ export default function ConsentForm() {
         });
       }
 
-      const { data, error } = await supabase.functions.invoke("submit-consent-form", {
-        body: {
+      const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-consent-form`;
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`
+        },
+        body: JSON.stringify({
           token: token,
           accepted: true,
           ipAddress: window.location.hostname,
           userAgent: navigator.userAgent,
           guardianDocumentFile: guardianDocData
-        }
+        })
       });
+
+      const data = await response.json();
+      const error = !response.ok ? new Error(data.error || 'Erro ao enviar') : null;
 
       if (error) throw error;
 
