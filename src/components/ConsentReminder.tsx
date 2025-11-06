@@ -56,6 +56,16 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
   };
 
   const sendConsentEmail = async (patient: PatientWithoutConsent) => {
+    // Verificar se o paciente tem email
+    if (!patient.email || patient.email.trim() === '') {
+      toast({
+        title: 'Email não cadastrado',
+        description: `O paciente ${patient.name} não possui email cadastrado. Adicione um email antes de enviar o termo de consentimento.`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setSending(true);
     try {
       const { error } = await supabase.functions.invoke('send-consent-form', {
@@ -101,6 +111,12 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
     let errorCount = 0;
 
     for (const patient of patientsWithoutConsent) {
+      // Pular pacientes sem email
+      if (!patient.email || patient.email.trim() === '') {
+        errorCount++;
+        continue;
+      }
+
       try {
         const { error } = await supabase.functions.invoke('send-consent-form', {
           body: {
@@ -174,13 +190,18 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
           <div className="flex items-center justify-between bg-white dark:bg-gray-900 p-3 rounded-lg">
             <div>
               <p className="font-medium">{patientsWithoutConsent[0]?.name}</p>
-              <p className="text-sm text-muted-foreground">{patientsWithoutConsent[0]?.email}</p>
+              {patientsWithoutConsent[0]?.email ? (
+                <p className="text-sm text-muted-foreground">{patientsWithoutConsent[0]?.email}</p>
+              ) : (
+                <p className="text-sm text-red-600 dark:text-red-400">⚠️ Email não cadastrado - adicione um email para enviar os documentos</p>
+              )}
             </div>
             <Button
               variant="outline"
               size="sm"
               onClick={() => sendConsentEmail(patientsWithoutConsent[0])}
-              disabled={sending}
+              disabled={sending || !patientsWithoutConsent[0]?.email}
+              title={!patientsWithoutConsent[0]?.email ? 'Paciente sem email cadastrado' : undefined}
             >
               {sending ? (
                 <>
@@ -202,15 +223,20 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
                 key={patient.id}
                 className="flex items-center justify-between bg-white dark:bg-gray-900 p-3 rounded-lg"
               >
-                <div className="flex-1">
+              <div className="flex-1">
                   <p className="font-medium">{patient.name}</p>
-                  <p className="text-sm text-muted-foreground">{patient.email}</p>
+                  {patient.email ? (
+                    <p className="text-sm text-muted-foreground">{patient.email}</p>
+                  ) : (
+                    <p className="text-sm text-red-600 dark:text-red-400">⚠️ Email não cadastrado</p>
+                  )}
                 </div>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => sendConsentEmail(patient)}
-                  disabled={sending}
+                  disabled={sending || !patient.email}
+                  title={!patient.email ? 'Paciente sem email cadastrado' : undefined}
                 >
                   <Send className="w-4 h-4" />
                 </Button>
