@@ -10,8 +10,6 @@ export const ensureFutureSessions = async (
   const brazilTime = new Date(now.getTime() + (brazilOffset + now.getTimezoneOffset()) * 60000);
   const today = brazilTime.toISOString().split('T')[0];
   
-  console.log('ensureFutureSessions - Brazil date:', today);
-  
   // Get all future scheduled sessions for this patient (including hidden ones for counting)
   const { data: futureSessions } = await supabase
     .from('sessions')
@@ -90,7 +88,6 @@ export const ensureFutureSessions = async (
 
       if (!existing1) {
         const status = dateStr1 < today ? 'attended' : 'scheduled';
-        console.log(`Session date: ${dateStr1}, today: ${today}, comparison: ${dateStr1 < today}, status: ${status}`);
         newSessions.push({
           patient_id: patientId,
           date: dateStr1,
@@ -116,7 +113,6 @@ export const ensureFutureSessions = async (
 
       if (!existing2) {
         const status = dateStr2 < today ? 'attended' : 'scheduled';
-        console.log(`Session date: ${dateStr2}, today: ${today}, comparison: ${dateStr2 < today}, status: ${status}`);
         newSessions.push({
           patient_id: patientId,
           date: dateStr2,
@@ -146,7 +142,6 @@ export const ensureFutureSessions = async (
 
       if (!existing) {
         const status = nextDate < today ? 'attended' : 'scheduled';
-        console.log(`Session date: ${nextDate}, today: ${today}, comparison: ${nextDate < today}, status: ${status}`);
         newSessions.push({
           patient_id: patientId,
           date: nextDate,
