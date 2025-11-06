@@ -113,6 +113,42 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
     }
   };
 
+  const cancelConsentLink = async () => {
+    if (!patientId) return;
+
+    const confirmed = confirm('Tem certeza que deseja cancelar o link de consentimento? O paciente não poderá mais usar o link atual.');
+    if (!confirmed) return;
+
+    setSending(true);
+    try {
+      const { error } = await supabase
+        .from('consent_submissions')
+        .delete()
+        .eq('patient_id', patientId)
+        .is('accepted_at', null);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Link cancelado',
+        description: 'O link de consentimento foi cancelado com sucesso.',
+      });
+
+      // Recarregar lista e token pendente
+      await loadPatientsWithoutConsent();
+      await loadPendingToken();
+    } catch (error: any) {
+      console.error('Error canceling consent link:', error);
+      toast({
+        title: 'Erro ao cancelar',
+        description: error.message || 'Não foi possível cancelar o link.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSending(false);
+    }
+  };
+
   const sendConsentEmail = async (patient: PatientWithoutConsent, isResend: boolean = false) => {
     // Verificar se o paciente tem pelo menos um canal de comunicação
     const hasEmail = patient.email && patient.email.trim() !== '';
@@ -301,26 +337,45 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
                   Termo enviado há {daysAgo} {daysAgo === 1 ? 'dia' : 'dias'}. Aguardando aceitação do paciente/responsável.
                 </CardDescription>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => sendConsentEmail(patientsWithoutConsent[0] || { id: patientId, name: '', email: null, phone: null }, true)}
-                disabled={sending}
-                className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
-                title="Cancelar link anterior e reenviar novo termo"
-              >
-                {sending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Reenviando...
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-4 h-4 mr-2" />
-                    Reenviar Termo
-                  </>
-                )}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={cancelConsentLink}
+                  disabled={sending}
+                  className="border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
+                  title="Cancelar link de consentimento"
+                >
+                  {sending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Cancelando...
+                    </>
+                  ) : (
+                    'Cancelar Link'
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => sendConsentEmail(patientsWithoutConsent[0] || { id: patientId, name: '', email: null, phone: null }, true)}
+                  disabled={sending}
+                  className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
+                  title="Cancelar link anterior e reenviar novo termo"
+                >
+                  {sending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Reenviando...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4 mr-2" />
+                      Reenviar Termo
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </CardHeader>
         </Card>
