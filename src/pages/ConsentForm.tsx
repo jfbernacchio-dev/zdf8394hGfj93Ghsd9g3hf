@@ -21,10 +21,12 @@ export default function ConsentForm() {
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    console.log("=== ConsentForm mounted - BUILD: 2025-11-06-23:03 ===");
+    const BUILD_VERSION = "2025-11-06-23:45:00";
+    console.log(`=== ConsentForm mounted - BUILD: ${BUILD_VERSION} ===`);
     console.log("Token from URL:", token);
     
     if (!token) {
+      console.error("❌ No token in URL");
       toast.error("Link inválido - token não encontrado");
       setLoading(false);
       return;
@@ -35,23 +37,23 @@ export default function ConsentForm() {
 
   const loadPatientData = async () => {
     try {
-      console.log("Invoking get-consent-data with token:", token);
+      console.log("📞 Invoking get-consent-data with token:", token);
       
       const { data, error } = await supabase.functions.invoke("get-consent-data", {
         body: { token }
       });
 
-      console.log("Response:", { data, error });
+      console.log("📦 Response:", { data, error });
 
       if (error) {
-        console.error("Error from invoke:", error);
+        console.error("❌ Error from invoke:", error);
         toast.error("Link inválido ou expirado");
         setLoading(false);
         return;
       }
 
       if (data?.error) {
-        console.log("Server error:", data.error);
+        console.log("⚠️ Server error:", data.error);
         if (data.alreadyAccepted) {
           setSubmitted(true);
         }
@@ -61,14 +63,14 @@ export default function ConsentForm() {
       }
 
       if (data?.patient) {
-        console.log("Patient loaded:", data.patient.name);
+        console.log("✅ Patient loaded:", data.patient.name);
         setPatient(data.patient);
       } else {
-        console.error("No patient in response");
+        console.error("❌ No patient in response");
         toast.error("Dados do paciente não encontrados");
       }
     } catch (error: any) {
-      console.error("Catch error:", error);
+      console.error("❌ Catch error:", error);
       toast.error("Erro ao carregar dados do consentimento");
     } finally {
       setLoading(false);

@@ -7,6 +7,7 @@ const corsHeaders = {
 };
 
 const handler = async (req: Request): Promise<Response> => {
+  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
