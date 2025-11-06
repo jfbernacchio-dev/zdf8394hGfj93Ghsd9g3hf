@@ -7,13 +7,18 @@ const corsHeaders = {
 };
 
 const handler = async (req: Request): Promise<Response> => {
+  console.log("🚀 get-consent-data called - Method:", req.method, "URL:", req.url);
+  
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
+    console.log("✅ Returning CORS preflight response");
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { token } = await req.json();
+    const body = await req.json();
+    console.log("📦 Request body:", JSON.stringify(body));
+    const { token } = body;
 
     if (!token) {
       console.error("No token provided");

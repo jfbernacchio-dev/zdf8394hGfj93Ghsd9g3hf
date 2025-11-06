@@ -37,13 +37,17 @@ export default function ConsentForm() {
 
   const loadPatientData = async () => {
     try {
-      console.log("📞 Invoking get-consent-data with token:", token);
+      console.log("📞 [CONSENT] Starting loadPatientData");
+      console.log("📞 [CONSENT] Token:", token);
+      console.log("📞 [CONSENT] Supabase client exists:", !!supabase);
       
-      const { data, error } = await supabase.functions.invoke("get-consent-data", {
+      console.log("📞 [CONSENT] Calling supabase.functions.invoke...");
+      const result = await supabase.functions.invoke("get-consent-data", {
         body: { token }
       });
-
-      console.log("📦 Response:", { data, error });
+      
+      console.log("📦 [CONSENT] Full result:", JSON.stringify(result, null, 2));
+      const { data, error } = result;
 
       if (error) {
         console.error("❌ Error from invoke:", error);
