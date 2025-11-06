@@ -22,14 +22,26 @@ export default function ConsentForm() {
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    loadPatientData();
+    console.log("=== ConsentForm mounted - BUILD:", new Date().toISOString(), "===");
+    console.log("Token from URL:", token);
+    if (token) {
+      loadPatientData();
+    } else {
+      console.error("No token in URL");
+      toast.error("Link inválido - token não encontrado");
+      setLoading(false);
+    }
   }, [token]);
 
   const loadPatientData = async () => {
     try {
+      console.log("Calling get-consent-data with token:", token);
+      
       const { data, error } = await supabase.functions.invoke("get-consent-data", {
         body: { token }
       });
+
+      console.log("Response from get-consent-data:", { data, error });
 
       if (error) {
         console.error("Error loading consent data:", error);
@@ -39,6 +51,7 @@ export default function ConsentForm() {
       }
 
       if (data.error) {
+        console.log("Server returned error:", data.error);
         if (data.alreadyAccepted) {
           setSubmitted(true);
         }
@@ -48,12 +61,14 @@ export default function ConsentForm() {
       }
 
       if (data.patient) {
+        console.log("Patient loaded successfully:", data.patient.name);
         setPatient(data.patient);
       } else {
+        console.error("No patient data in response");
         toast.error("Dados do paciente não encontrados");
       }
     } catch (error: any) {
-      console.error("Error in loadPatientData:", error);
+      console.error("Catch error loading patient:", error);
       toast.error("Erro ao carregar dados do consentimento");
     } finally {
       setLoading(false);
