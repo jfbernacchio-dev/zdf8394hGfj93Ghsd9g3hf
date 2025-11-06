@@ -80,7 +80,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Get patient data
     const { data: patient, error: patientError } = await supabase
       .from("patients")
-      .select("id, name, birth_date, is_minor, guardian_name, guardian_cpf")
+      .select("id, name, birth_date, cpf, is_minor, guardian_name, guardian_cpf")
       .eq("id", submission.patient_id)
       .single();
 
