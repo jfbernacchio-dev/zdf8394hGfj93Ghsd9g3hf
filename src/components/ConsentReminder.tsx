@@ -26,6 +26,7 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [patientsWithoutConsent, setPatientsWithoutConsent] = useState<PatientWithoutConsent[]>([]);
+  const [patientsAwaitingResponse, setPatientsAwaitingResponse] = useState<PatientWithoutConsent[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [pendingToken, setPendingToken] = useState<PendingToken | null>(null);
@@ -83,6 +84,7 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
       
       // Filtrar pacientes que já têm token válido pendente (enviado nos últimos 7 dias, sem resposta)
       const patientsToShow: PatientWithoutConsent[] = [];
+      const patientsAwaiting: PatientWithoutConsent[] = [];
       
       for (const patient of data || []) {
         const { data: pendingTokenData } = await supabase
@@ -93,13 +95,17 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
           .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
           .maybeSingle();
         
-        // Só adicionar se NÃO tiver token pendente (não mostrar na lista geral)
-        if (!pendingTokenData) {
+        // Se tiver token pendente, adicionar à lista de aguardando resposta
+        if (pendingTokenData) {
+          patientsAwaiting.push(patient);
+        } else {
+          // Se não tiver token pendente, adicionar à lista de sem consentimento
           patientsToShow.push(patient);
         }
       }
 
       setPatientsWithoutConsent(patientsToShow);
+      setPatientsAwaitingResponse(patientsAwaiting);
     } catch (error: any) {
       console.error('Error loading patients without consent:', error);
     } finally {
@@ -223,6 +229,56 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
     await loadPatientsWithoutConsent();
   };
 
+  const resendAllConsentEmails = async () => {
+    if (patientsAwaitingResponse.length === 0) return;
+
+    const confirmed = confirm(
+      `Reenviar termo de consentimento para ${patientsAwaitingResponse.length} paciente(s) aguardando resposta? Os links anteriores serão cancelados.`
+    );
+
+    if (!confirmed) return;
+
+    setSending(true);
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const patient of patientsAwaitingResponse) {
+      // Pular pacientes sem nenhum contato
+      const hasEmail = patient.email && patient.email.trim() !== '';
+      const hasPhone = patient.phone && patient.phone.trim() !== '';
+      
+      if (!hasEmail && !hasPhone) {
+        errorCount++;
+        continue;
+      }
+
+      try {
+        const { error } = await supabase.functions.invoke('send-consent-form', {
+          body: {
+            patientId: patient.id,
+            cancelPrevious: true,
+          },
+        });
+
+        if (error) {
+          errorCount++;
+        } else {
+          successCount++;
+        }
+      } catch (error) {
+        errorCount++;
+      }
+    }
+
+    toast({
+      title: 'Reenvio concluído',
+      description: `${successCount} termo(s) reenviado(s) com sucesso. ${errorCount > 0 ? `${errorCount} erro(s).` : ''}`,
+    });
+
+    setSending(false);
+    await loadPatientsWithoutConsent();
+  };
+
   // Se for individual, verificar token pendente primeiro
   if (patientId) {
     if (loading || loadingToken) return null;
@@ -335,10 +391,88 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
 
   // Lista geral de pacientes sem consentimento
   if (loading) return null;
-  if (patientsWithoutConsent.length === 0) return null;
+  if (patientsWithoutConsent.length === 0 && patientsAwaitingResponse.length === 0) return null;
 
   return (
-    <Card className="border-2 border-red-500 bg-red-50 dark:bg-red-950/20">
+    <>
+      {/* Card azul para pacientes aguardando resposta */}
+      {patientsAwaitingResponse.length > 0 && (
+        <Card className="border-2 border-blue-500 bg-blue-50 dark:bg-blue-950/20 mb-4">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-400">
+                  <Shield className="w-5 h-5" />
+                  Aguardando Resposta dos Termos de Consentimento
+                </CardTitle>
+                <CardDescription className="text-blue-600 dark:text-blue-500">
+                  {patientsAwaitingResponse.length} paciente(s) com termo enviado aguardando aceitação
+                </CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={resendAllConsentEmails}
+                disabled={sending}
+                className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
+              >
+                {sending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Reenviando...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4 mr-2" />
+                    Reenviar para Todos
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {patientsAwaitingResponse.map((patient) => (
+                <div
+                  key={patient.id}
+                  className="flex items-center justify-between bg-white dark:bg-gray-900 p-3 rounded-lg"
+                >
+                  <div className="flex-1">
+                    <p className="font-medium">{patient.name}</p>
+                    {(() => {
+                      const hasEmail = patient.email && patient.email.trim() !== '';
+                      const hasPhone = patient.phone && patient.phone.trim() !== '';
+                      
+                      if (hasEmail && hasPhone) {
+                        return <p className="text-sm text-muted-foreground">📧 {patient.email} | 📱 {patient.phone}</p>;
+                      } else if (hasEmail) {
+                        return <p className="text-sm text-muted-foreground">📧 {patient.email}</p>;
+                      } else if (hasPhone) {
+                        return <p className="text-sm text-muted-foreground">📱 {patient.phone}</p>;
+                      } else {
+                        return <p className="text-sm text-red-600 dark:text-red-400">⚠️ Sem contato</p>;
+                      }
+                    })()}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => sendConsentEmail(patient, true)}
+                    disabled={sending || (!patient.email && !patient.phone)}
+                    title={(!patient.email && !patient.phone) ? 'Paciente sem email ou telefone cadastrado' : 'Reenviar termo'}
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Card vermelho para pacientes sem termo enviado */}
+      {patientsWithoutConsent.length > 0 && (
+        <Card className="border-2 border-red-500 bg-red-50 dark:bg-red-950/20">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
@@ -412,5 +546,7 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
         )}
       </CardContent>
     </Card>
+      )}
+    </>
   );
 };
