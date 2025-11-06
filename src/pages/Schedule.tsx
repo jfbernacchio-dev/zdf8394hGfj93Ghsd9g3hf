@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card } from '@/components/ui/card';
@@ -36,6 +36,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 const Schedule = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const therapistId = searchParams.get('therapist'); // ID do terapeuta sendo visualizado pelo admin
   const embedMode = searchParams.get('embed') === 'true'; // Modo embed para não mostrar navbar
@@ -1530,7 +1531,15 @@ const Schedule = () => {
                                 >
                                   <div className="flex items-center justify-between h-full">
                                     <div className="flex-1 min-w-0">
-                                      <p className="font-semibold text-xs truncate">{session.patients.name}</p>
+                                      <p 
+                                        className="font-semibold text-xs truncate cursor-pointer hover:underline"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          navigate(`/patients/${session.patient_id}`);
+                                        }}
+                                      >
+                                        {session.patients.name}
+                                      </p>
                                       <p className="text-[10px] text-muted-foreground">{sessionTime}</p>
                                     </div>
                                     {groupCount === 1 && (
@@ -2014,7 +2023,15 @@ const Schedule = () => {
                               >
                                 <div className="flex justify-between items-center h-full">
                                   <div className="flex-1 min-w-0">
-                                    <p className="font-semibold text-sm truncate">{session.patients.name}</p>
+                                    <p 
+                                      className="font-semibold text-sm truncate cursor-pointer hover:underline"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/patients/${session.patient_id}`);
+                                      }}
+                                    >
+                                      {session.patients.name}
+                                    </p>
                                     <p className="text-xs">{sessionTime}</p>
                                   </div>
                                   {groupCount === 1 && (
