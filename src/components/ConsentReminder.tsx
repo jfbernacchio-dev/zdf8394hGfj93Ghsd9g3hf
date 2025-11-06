@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Button } from './ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { AlertCircle, Send, Loader2 } from 'lucide-react';
+import { AlertCircle, Send, Loader2, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface ConsentReminderProps {
@@ -17,18 +17,50 @@ interface PatientWithoutConsent {
   phone: string | null;
 }
 
+interface PendingToken {
+  created_at: string;
+  patient_id: string;
+}
+
 export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [patientsWithoutConsent, setPatientsWithoutConsent] = useState<PatientWithoutConsent[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [pendingToken, setPendingToken] = useState<PendingToken | null>(null);
+  const [loadingToken, setLoadingToken] = useState(true);
 
   useEffect(() => {
     if (user) {
       loadPatientsWithoutConsent();
+      if (patientId) {
+        loadPendingToken();
+      }
     }
   }, [user, patientId]);
+
+  const loadPendingToken = async () => {
+    if (!patientId) return;
+    
+    setLoadingToken(true);
+    try {
+      const { data } = await supabase
+        .from('consent_submissions')
+        .select('created_at, patient_id')
+        .eq('patient_id', patientId)
+        .is('accepted_at', null)
+        .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+        .single();
+      
+      setPendingToken(data || null);
+    } catch (error) {
+      console.error('Error loading pending token:', error);
+      setPendingToken(null);
+    } finally {
+      setLoadingToken(false);
+    }
+  };
 
   const loadPatientsWithoutConsent = async () => {
     if (!user) return;
@@ -48,8 +80,26 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
       const { data, error } = await query;
 
       if (error) throw error;
+      
+      // Filtrar pacientes que já têm token válido pendente (enviado nos últimos 7 dias, sem resposta)
+      const patientsToShow: PatientWithoutConsent[] = [];
+      
+      for (const patient of data || []) {
+        const { data: pendingTokenData } = await supabase
+          .from('consent_submissions')
+          .select('id, created_at')
+          .eq('patient_id', patient.id)
+          .is('accepted_at', null)
+          .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+          .maybeSingle();
+        
+        // Só adicionar se NÃO tiver token pendente (não mostrar na lista geral)
+        if (!pendingTokenData) {
+          patientsToShow.push(patient);
+        }
+      }
 
-      setPatientsWithoutConsent(data || []);
+      setPatientsWithoutConsent(patientsToShow);
     } catch (error: any) {
       console.error('Error loading patients without consent:', error);
     } finally {
@@ -57,7 +107,7 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
     }
   };
 
-  const sendConsentEmail = async (patient: PatientWithoutConsent) => {
+  const sendConsentEmail = async (patient: PatientWithoutConsent, isResend: boolean = false) => {
     // Verificar se o paciente tem pelo menos um canal de comunicação
     const hasEmail = patient.email && patient.email.trim() !== '';
     const hasPhone = patient.phone && patient.phone.trim() !== '';
@@ -76,8 +126,7 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
       const { data, error } = await supabase.functions.invoke('send-consent-form', {
         body: {
           patientId: patient.id,
-          patientEmail: patient.email,
-          patientName: patient.name,
+          cancelPrevious: isResend,
         },
       });
 
@@ -86,22 +135,33 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
       // Mensagem dinâmica baseada nos canais utilizados
       let description = '';
       if (data?.emailSent && data?.whatsappSent) {
-        description = `Termo enviado por email e WhatsApp para ${patient.name}`;
+        description = isResend 
+          ? `Novo termo enviado por email e WhatsApp para ${patient.name} (link anterior cancelado)`
+          : `Termo enviado por email e WhatsApp para ${patient.name}`;
       } else if (data?.emailSent) {
-        description = `Termo enviado por email para ${patient.name}`;
+        description = isResend 
+          ? `Novo termo enviado por email para ${patient.name} (link anterior cancelado)`
+          : `Termo enviado por email para ${patient.name}`;
       } else if (data?.whatsappSent) {
-        description = `Termo enviado por WhatsApp para ${patient.name}`;
+        description = isResend 
+          ? `Novo termo enviado por WhatsApp para ${patient.name} (link anterior cancelado)`
+          : `Termo enviado por WhatsApp para ${patient.name}`;
       } else {
-        description = `Termo enviado para ${patient.name}`;
+        description = isResend 
+          ? `Novo termo enviado para ${patient.name} (link anterior cancelado)`
+          : `Termo enviado para ${patient.name}`;
       }
 
       toast({
-        title: 'Enviado com sucesso!',
+        title: isResend ? 'Termo reenviado!' : 'Enviado com sucesso!',
         description,
       });
 
-      // Recarregar lista
+      // Recarregar lista e token pendente
       await loadPatientsWithoutConsent();
+      if (patientId) {
+        await loadPendingToken();
+      }
     } catch (error: any) {
       console.error('Error sending consent email:', error);
       toast({
@@ -141,8 +201,6 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
         const { error } = await supabase.functions.invoke('send-consent-form', {
           body: {
             patientId: patient.id,
-            patientEmail: patient.email,
-            patientName: patient.name,
           },
         });
 
@@ -165,48 +223,73 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
     await loadPatientsWithoutConsent();
   };
 
-  if (loading) return null;
-  if (patientsWithoutConsent.length === 0) return null;
-
-  return (
-    <Card className="border-2 border-red-500 bg-red-50 dark:bg-red-950/20">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2 text-red-700 dark:text-red-400">
-              <AlertCircle className="w-5 h-5" />
-              {patientId ? 'Documentos Pendentes' : 'Termos de Consentimento Pendentes'}
-            </CardTitle>
-            <CardDescription className="text-red-600 dark:text-red-500">
-              {patientId
-                ? 'Este paciente ainda não aceitou o termo de consentimento e política de privacidade'
-                : `${patientsWithoutConsent.length} paciente(s) sem termo de consentimento aceito`}
-            </CardDescription>
+  // Se for individual, verificar token pendente primeiro
+  if (patientId) {
+    if (loading || loadingToken) return null;
+    
+    // Se tem token pendente, mostrar card azul de aguardando resposta
+    if (pendingToken) {
+      const sentDate = new Date(pendingToken.created_at);
+      const daysAgo = Math.floor((Date.now() - sentDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      return (
+        <Card className="border-2 border-blue-500 bg-blue-50 dark:bg-blue-950/20">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-400">
+                  <Shield className="w-5 h-5" />
+                  Termo de Consentimento - Aguardando Resposta
+                </CardTitle>
+                <CardDescription className="text-blue-600 dark:text-blue-500">
+                  Termo enviado há {daysAgo} {daysAgo === 1 ? 'dia' : 'dias'}. Aguardando aceitação do paciente/responsável.
+                </CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => sendConsentEmail(patientsWithoutConsent[0] || { id: patientId, name: '', email: null, phone: null }, true)}
+                disabled={sending}
+                className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
+                title="Cancelar link anterior e reenviar novo termo"
+              >
+                {sending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Reenviando...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4 mr-2" />
+                    Reenviar Termo
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardHeader>
+        </Card>
+      );
+    }
+    
+    // Se não tem token pendente, verificar se precisa enviar
+    if (patientsWithoutConsent.length === 0) return null;
+    
+    return (
+      <Card className="border-2 border-red-500 bg-red-50 dark:bg-red-950/20">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-red-700 dark:text-red-400">
+                <AlertCircle className="w-5 h-5" />
+                Documentos Pendentes
+              </CardTitle>
+              <CardDescription className="text-red-600 dark:text-red-500">
+                Este paciente ainda não aceitou o termo de consentimento e política de privacidade
+              </CardDescription>
+            </div>
           </div>
-          {!patientId && patientsWithoutConsent.length > 0 && (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={sendAllConsentEmails}
-              disabled={sending}
-            >
-              {sending ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Enviando...
-                </>
-              ) : (
-                <>
-                  <Send className="w-4 h-4 mr-2" />
-                  Enviar para Todos
-                </>
-              )}
-            </Button>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent>
-        {patientId ? (
+        </CardHeader>
+        <CardContent>
           <div className="flex items-center justify-between bg-white dark:bg-gray-900 p-3 rounded-lg">
             <div>
               <p className="font-medium">{patientsWithoutConsent[0]?.name}</p>
@@ -245,7 +328,52 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
               )}
             </Button>
           </div>
-        ) : (
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Lista geral de pacientes sem consentimento
+  if (loading) return null;
+  if (patientsWithoutConsent.length === 0) return null;
+
+  return (
+    <Card className="border-2 border-red-500 bg-red-50 dark:bg-red-950/20">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-red-700 dark:text-red-400">
+              <AlertCircle className="w-5 h-5" />
+              Termos de Consentimento Pendentes
+            </CardTitle>
+            <CardDescription className="text-red-600 dark:text-red-500">
+              {patientsWithoutConsent.length} paciente(s) sem termo de consentimento aceito
+            </CardDescription>
+          </div>
+          {patientsWithoutConsent.length > 0 && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={sendAllConsentEmails}
+              disabled={sending}
+            >
+              {sending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Enviando...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4 mr-2" />
+                  Enviar para Todos
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        {(
           <div className="space-y-2 max-h-48 overflow-y-auto">
             {patientsWithoutConsent.map((patient) => (
               <div

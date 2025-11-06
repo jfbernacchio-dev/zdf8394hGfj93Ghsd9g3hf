@@ -31,6 +31,7 @@ function normalizePhone(phone: string): string {
 
 interface SendConsentRequest {
   patientId: string;
+  cancelPrevious?: boolean;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -57,10 +58,26 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Usuário não autenticado");
     }
 
-    const { patientId }: SendConsentRequest = await req.json();
+    const { patientId, cancelPrevious }: SendConsentRequest = await req.json();
 
     if (!patientId) {
       throw new Error("ID do paciente é obrigatório");
+    }
+
+    // Se cancelPrevious=true, deletar tokens anteriores não aceitos
+    if (cancelPrevious) {
+      console.log("Cancelando tokens anteriores para patient:", patientId);
+      const { error: deleteError } = await supabase
+        .from('consent_submissions')
+        .delete()
+        .eq('patient_id', patientId)
+        .is('accepted_at', null);
+      
+      if (deleteError) {
+        console.error("Error deleting previous tokens:", deleteError);
+      } else {
+        console.log("Previous tokens deleted successfully");
+      }
     }
 
     // Get patient data
