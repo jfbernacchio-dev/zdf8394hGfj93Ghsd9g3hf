@@ -71,6 +71,18 @@ const handler = async (req: Request): Promise<Response> => {
 
       // Check if link has already expired
       if (daysUntilExpiry < 0) {
+        // Delete the expired submission to reset patient to "pending send" status
+        const { error: deleteError } = await supabase
+          .from("consent_submissions")
+          .delete()
+          .eq("id", submission.id);
+
+        if (deleteError) {
+          console.error(`Error deleting expired submission ${submission.id}:`, deleteError);
+        } else {
+          console.log(`Deleted expired submission ${submission.id} for patient ${patient.name}`);
+        }
+
         // Check if we already sent an expired notification
         const { data: existingNotification } = await supabase
           .from("system_notifications")
