@@ -75,8 +75,10 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Paciente não encontrado");
     }
 
-    if (!patient.email) {
-      throw new Error("Paciente não possui email cadastrado");
+    // Verificar se tem pelo menos um canal de comunicação (email ou telefone)
+    const normalizedPhone = patient.phone ? normalizePhone(patient.phone) : null;
+    if (!patient.email && !normalizedPhone) {
+      throw new Error("Paciente não possui email nem telefone cadastrado");
     }
 
     // Check if already has consent
@@ -218,19 +220,27 @@ const handler = async (req: Request): Promise<Response> => {
       </html>
     `;
 
-    // Send email
-    const emailResponse = await resend.emails.send({
-      from: "Espaço Mindware <no-reply@espacomindware.com.br>",
-      to: [patient.email],
-      subject: emailSubject,
-      html: emailHtml,
-    });
+    // Send email only if patient has email
+    let emailSent = false;
+    if (patient.email) {
+      try {
+        const emailResponse = await resend.emails.send({
+          from: "Espaço Mindware <no-reply@espacomindware.com.br>",
+          to: [patient.email],
+          subject: emailSubject,
+          html: emailHtml,
+        });
 
-    console.log("Consent form email sent:", emailResponse);
+        console.log("Consent form email sent:", emailResponse);
+        emailSent = true;
+      } catch (emailError) {
+        console.error("Error sending email:", emailError);
+        // Continue to try WhatsApp
+      }
+    }
 
     // Send WhatsApp message if phone is available
     let whatsappSent = false;
-    const normalizedPhone = patient.phone ? normalizePhone(patient.phone) : null;
     console.log("Patient phone data:", {
       phone: patient.phone,
       normalizedPhone: normalizedPhone,
@@ -388,13 +398,24 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
+    // Determinar mensagem de sucesso baseado nos canais enviados
+    let successMessage = "";
+    if (emailSent && whatsappSent) {
+      successMessage = "Email e WhatsApp de consentimento enviados com sucesso";
+    } else if (emailSent) {
+      successMessage = "Email de consentimento enviado com sucesso";
+    } else if (whatsappSent) {
+      successMessage = "WhatsApp de consentimento enviado com sucesso";
+    } else {
+      throw new Error("Não foi possível enviar por nenhum canal");
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: whatsappSent 
-          ? "Email e WhatsApp de consentimento enviados com sucesso" 
-          : "Email de consentimento enviado com sucesso",
+        message: successMessage,
         token: token_hash,
+        emailSent,
         whatsappSent
       }),
       {

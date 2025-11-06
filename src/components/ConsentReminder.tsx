@@ -13,7 +13,8 @@ interface ConsentReminderProps {
 interface PatientWithoutConsent {
   id: string;
   name: string;
-  email: string;
+  email: string | null;
+  phone: string | null;
 }
 
 export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
@@ -35,7 +36,7 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
     try {
       let query = supabase
         .from('patients')
-        .select('id, name, email, privacy_policy_accepted')
+        .select('id, name, email, phone, privacy_policy_accepted')
         .eq('user_id', user.id)
         .or('privacy_policy_accepted.is.null,privacy_policy_accepted.eq.false');
 
@@ -56,11 +57,14 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
   };
 
   const sendConsentEmail = async (patient: PatientWithoutConsent) => {
-    // Verificar se o paciente tem email
-    if (!patient.email || patient.email.trim() === '') {
+    // Verificar se o paciente tem pelo menos um canal de comunicação
+    const hasEmail = patient.email && patient.email.trim() !== '';
+    const hasPhone = patient.phone && patient.phone.trim() !== '';
+    
+    if (!hasEmail && !hasPhone) {
       toast({
-        title: 'Email não cadastrado',
-        description: `O paciente ${patient.name} não possui email cadastrado. Adicione um email antes de enviar o termo de consentimento.`,
+        title: 'Contato não cadastrado',
+        description: `O paciente ${patient.name} não possui email nem telefone cadastrado. Adicione pelo menos um contato antes de enviar o termo de consentimento.`,
         variant: 'destructive',
       });
       return;
@@ -68,7 +72,7 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
 
     setSending(true);
     try {
-      const { error } = await supabase.functions.invoke('send-consent-form', {
+      const { data, error } = await supabase.functions.invoke('send-consent-form', {
         body: {
           patientId: patient.id,
           patientEmail: patient.email,
@@ -78,9 +82,21 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
 
       if (error) throw error;
 
+      // Mensagem dinâmica baseada nos canais utilizados
+      let description = '';
+      if (data?.emailSent && data?.whatsappSent) {
+        description = `Termo enviado por email e WhatsApp para ${patient.name}`;
+      } else if (data?.emailSent) {
+        description = `Termo enviado por email para ${patient.name}`;
+      } else if (data?.whatsappSent) {
+        description = `Termo enviado por WhatsApp para ${patient.name}`;
+      } else {
+        description = `Termo enviado para ${patient.name}`;
+      }
+
       toast({
-        title: 'Email enviado!',
-        description: `Termo de consentimento enviado para ${patient.name}`,
+        title: 'Enviado com sucesso!',
+        description,
       });
 
       // Recarregar lista
@@ -88,7 +104,7 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
     } catch (error: any) {
       console.error('Error sending consent email:', error);
       toast({
-        title: 'Erro ao enviar email',
+        title: 'Erro ao enviar',
         description: error.message || 'Não foi possível enviar o termo de consentimento.',
         variant: 'destructive',
       });
@@ -111,8 +127,11 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
     let errorCount = 0;
 
     for (const patient of patientsWithoutConsent) {
-      // Pular pacientes sem email
-      if (!patient.email || patient.email.trim() === '') {
+      // Pular pacientes sem nenhum contato
+      const hasEmail = patient.email && patient.email.trim() !== '';
+      const hasPhone = patient.phone && patient.phone.trim() !== '';
+      
+      if (!hasEmail && !hasPhone) {
         errorCount++;
         continue;
       }
@@ -190,18 +209,27 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
           <div className="flex items-center justify-between bg-white dark:bg-gray-900 p-3 rounded-lg">
             <div>
               <p className="font-medium">{patientsWithoutConsent[0]?.name}</p>
-              {patientsWithoutConsent[0]?.email ? (
-                <p className="text-sm text-muted-foreground">{patientsWithoutConsent[0]?.email}</p>
-              ) : (
-                <p className="text-sm text-red-600 dark:text-red-400">⚠️ Email não cadastrado - adicione um email para enviar os documentos</p>
-              )}
+              {(() => {
+                const hasEmail = patientsWithoutConsent[0]?.email && patientsWithoutConsent[0]?.email.trim() !== '';
+                const hasPhone = patientsWithoutConsent[0]?.phone && patientsWithoutConsent[0]?.phone.trim() !== '';
+                
+                if (hasEmail && hasPhone) {
+                  return <p className="text-sm text-muted-foreground">📧 {patientsWithoutConsent[0]?.email} | 📱 {patientsWithoutConsent[0]?.phone}</p>;
+                } else if (hasEmail) {
+                  return <p className="text-sm text-muted-foreground">📧 {patientsWithoutConsent[0]?.email}</p>;
+                } else if (hasPhone) {
+                  return <p className="text-sm text-muted-foreground">📱 {patientsWithoutConsent[0]?.phone}</p>;
+                } else {
+                  return <p className="text-sm text-red-600 dark:text-red-400">⚠️ Sem email ou telefone cadastrado</p>;
+                }
+              })()}
             </div>
             <Button
               variant="outline"
               size="sm"
               onClick={() => sendConsentEmail(patientsWithoutConsent[0])}
-              disabled={sending || !patientsWithoutConsent[0]?.email}
-              title={!patientsWithoutConsent[0]?.email ? 'Paciente sem email cadastrado' : undefined}
+              disabled={sending || (!patientsWithoutConsent[0]?.email && !patientsWithoutConsent[0]?.phone)}
+              title={(!patientsWithoutConsent[0]?.email && !patientsWithoutConsent[0]?.phone) ? 'Paciente sem email ou telefone cadastrado' : undefined}
             >
               {sending ? (
                 <>
@@ -225,18 +253,27 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
               >
               <div className="flex-1">
                   <p className="font-medium">{patient.name}</p>
-                  {patient.email ? (
-                    <p className="text-sm text-muted-foreground">{patient.email}</p>
-                  ) : (
-                    <p className="text-sm text-red-600 dark:text-red-400">⚠️ Email não cadastrado</p>
-                  )}
+                  {(() => {
+                    const hasEmail = patient.email && patient.email.trim() !== '';
+                    const hasPhone = patient.phone && patient.phone.trim() !== '';
+                    
+                    if (hasEmail && hasPhone) {
+                      return <p className="text-sm text-muted-foreground">📧 {patient.email} | 📱 {patient.phone}</p>;
+                    } else if (hasEmail) {
+                      return <p className="text-sm text-muted-foreground">📧 {patient.email}</p>;
+                    } else if (hasPhone) {
+                      return <p className="text-sm text-muted-foreground">📱 {patient.phone}</p>;
+                    } else {
+                      return <p className="text-sm text-red-600 dark:text-red-400">⚠️ Sem contato</p>;
+                    }
+                  })()}
                 </div>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => sendConsentEmail(patient)}
-                  disabled={sending || !patient.email}
-                  title={!patient.email ? 'Paciente sem email cadastrado' : undefined}
+                  disabled={sending || (!patient.email && !patient.phone)}
+                  title={(!patient.email && !patient.phone) ? 'Paciente sem email ou telefone cadastrado' : undefined}
                 >
                   <Send className="w-4 h-4" />
                 </Button>
