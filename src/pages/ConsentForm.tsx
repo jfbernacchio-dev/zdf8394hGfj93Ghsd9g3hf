@@ -33,9 +33,6 @@ export default function ConsentForm() {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
       
-      console.log("Supabase URL:", supabaseUrl);
-      console.log("URL completa:", `${supabaseUrl}/functions/v1/get-consent-data?token=${token}`);
-      
       const response = await fetch(
         `${supabaseUrl}/functions/v1/get-consent-data?token=${token}`,
         {
@@ -69,7 +66,6 @@ export default function ConsentForm() {
       console.error("=== ERRO NO CATCH ===");
       console.error("Erro completo:", error);
       console.error("Mensagem:", error.message);
-      console.error("Stack:", error.stack);
       toast.error("Link inválido ou expirado");
     } finally {
       setLoading(false);
