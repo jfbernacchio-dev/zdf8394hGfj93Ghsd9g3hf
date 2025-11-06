@@ -84,6 +84,8 @@ const handler = async (req: Request): Promise<Response> => {
       .eq("id", submission.patient_id)
       .single();
 
+    console.log("Patient data retrieved from DB:", JSON.stringify(patient, null, 2));
+
     if (patientError || !patient) {
       console.error("Patient not found:", patientError);
       return new Response(
@@ -91,6 +93,8 @@ const handler = async (req: Request): Promise<Response> => {
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    console.log("Returning patient data - birth_date:", patient.birth_date, "cpf:", patient.cpf);
 
     return new Response(
       JSON.stringify({ patient }),

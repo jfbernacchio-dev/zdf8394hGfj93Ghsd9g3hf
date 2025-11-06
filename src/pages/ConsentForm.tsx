@@ -52,7 +52,10 @@ export default function ConsentForm() {
         return;
       }
 
-      console.log("Patient data loaded:", data.patient);
+      console.log("Patient data received from API:", data.patient);
+      console.log("Birth date value:", data.patient?.birth_date, "Type:", typeof data.patient?.birth_date);
+      console.log("CPF value:", data.patient?.cpf, "Type:", typeof data.patient?.cpf);
+      
       setPatient(data.patient);
     } catch (error: any) {
       console.error("Catch error loading patient:", error);
