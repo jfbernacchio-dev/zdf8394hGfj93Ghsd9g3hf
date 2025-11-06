@@ -82,11 +82,12 @@ export const ensureFutureSessions = async (
         .eq('date', dateStr1)
         .maybeSingle();
 
-      if (!existing1 && dateStr1 >= today) {
+      if (!existing1) {
+        const status = dateStr1 < today ? 'attended' : 'scheduled';
         newSessions.push({
           patient_id: patientId,
           date: dateStr1,
-          status: 'scheduled',
+          status: status,
           value: patientInfo.session_value,
           paid: false,
           time: patientInfo.session_time,
@@ -106,11 +107,12 @@ export const ensureFutureSessions = async (
         .eq('date', dateStr2)
         .maybeSingle();
 
-      if (!existing2 && dateStr2 >= today) {
+      if (!existing2) {
+        const status = dateStr2 < today ? 'attended' : 'scheduled';
         newSessions.push({
           patient_id: patientId,
           date: dateStr2,
-          status: 'scheduled',
+          status: status,
           value: patientInfo.session_value,
           paid: false,
           time: patientInfo.session_time_2,
@@ -135,10 +137,11 @@ export const ensureFutureSessions = async (
         .maybeSingle();
 
       if (!existing) {
+        const status = nextDate < today ? 'attended' : 'scheduled';
         newSessions.push({
           patient_id: patientId,
           date: nextDate,
-          status: 'scheduled',
+          status: status,
           value: patientInfo.session_value,
           paid: false,
           time: patientInfo.session_time,
