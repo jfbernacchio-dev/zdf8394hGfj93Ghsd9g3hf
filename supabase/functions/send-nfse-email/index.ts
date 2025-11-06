@@ -193,7 +193,7 @@ const handler = async (req: Request): Promise<Response> => {
           .from("patient_files")
           .select("file_name, file_path")
           .eq("patient_id", nfseData.patient_id)
-          .eq("category", "nfse")
+          .eq("category", "NFSe")
           .order("uploaded_at", { ascending: false })
           .limit(1);
 
