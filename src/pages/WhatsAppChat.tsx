@@ -169,7 +169,17 @@ export default function WhatsAppChat() {
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedConversation) return;
+    if (!newMessage.trim() || !selectedConversation) {
+      console.log("Send aborted:", { hasMessage: !!newMessage.trim(), hasConversation: !!selectedConversation });
+      return;
+    }
+
+    console.log("Sending WhatsApp message:", {
+      conversationId: selectedConversation.id,
+      message: newMessage.trim(),
+      windowExpires: selectedConversation.window_expires_at,
+      isExpired: isWindowExpired(selectedConversation.window_expires_at)
+    });
 
     setSending(true);
     try {
@@ -179,6 +189,8 @@ export default function WhatsAppChat() {
           message: newMessage.trim(),
         },
       });
+
+      console.log("WhatsApp send response:", { data, error });
 
       if (error) throw error;
 
