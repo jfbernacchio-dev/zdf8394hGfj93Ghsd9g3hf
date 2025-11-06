@@ -15,6 +15,9 @@ interface PatientWithoutConsent {
   name: string;
   email: string | null;
   phone: string | null;
+  is_minor: boolean | null;
+  guardian_name: string | null;
+  guardian_phone_1: string | null;
 }
 
 interface PendingToken {
@@ -71,7 +74,7 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
       // Se não for, buscar todos os pacientes ativos que não aceitaram
       let query = supabase
         .from('patients')
-        .select('id, name, email, phone, privacy_policy_accepted')
+        .select('id, name, email, phone, privacy_policy_accepted, is_minor, guardian_name, guardian_phone_1')
         .eq('user_id', user.id)
         .eq('status', 'active');
 
@@ -167,13 +170,18 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
 
   const sendConsentEmail = async (patient: PatientWithoutConsent, isResend: boolean = false) => {
     // Verificar se o paciente tem pelo menos um canal de comunicação
+    // Para menores, priorizar telefone do responsável
+    const contactPhone = patient.is_minor && patient.guardian_phone_1 ? patient.guardian_phone_1 : patient.phone;
     const hasEmail = patient.email && patient.email.trim() !== '';
-    const hasPhone = patient.phone && patient.phone.trim() !== '';
+    const hasPhone = contactPhone && contactPhone.trim() !== '';
     
     if (!hasEmail && !hasPhone) {
+      const errorMsg = patient.is_minor 
+        ? `O responsável do paciente ${patient.name} não possui email nem telefone cadastrado. Adicione pelo menos um contato antes de enviar o termo de consentimento.`
+        : `O paciente ${patient.name} não possui email nem telefone cadastrado. Adicione pelo menos um contato antes de enviar o termo de consentimento.`;
       toast({
         title: 'Contato não cadastrado',
-        description: `O paciente ${patient.name} não possui email nem telefone cadastrado. Adicione pelo menos um contato antes de enviar o termo de consentimento.`,
+        description: errorMsg,
         variant: 'destructive',
       });
       return;
@@ -247,8 +255,10 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
 
     for (const patient of patientsWithoutConsent) {
       // Pular pacientes sem nenhum contato
+      // Para menores, priorizar telefone do responsável
+      const contactPhone = patient.is_minor && patient.guardian_phone_1 ? patient.guardian_phone_1 : patient.phone;
       const hasEmail = patient.email && patient.email.trim() !== '';
-      const hasPhone = patient.phone && patient.phone.trim() !== '';
+      const hasPhone = contactPhone && contactPhone.trim() !== '';
       
       if (!hasEmail && !hasPhone) {
         errorCount++;
@@ -296,8 +306,10 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
 
     for (const patient of patientsAwaitingResponse) {
       // Pular pacientes sem nenhum contato
+      // Para menores, priorizar telefone do responsável
+      const contactPhone = patient.is_minor && patient.guardian_phone_1 ? patient.guardian_phone_1 : patient.phone;
       const hasEmail = patient.email && patient.email.trim() !== '';
-      const hasPhone = patient.phone && patient.phone.trim() !== '';
+      const hasPhone = contactPhone && contactPhone.trim() !== '';
       
       if (!hasEmail && !hasPhone) {
         errorCount++;
@@ -374,7 +386,12 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => sendConsentEmail(patientsWithoutConsent[0] || { id: patientId, name: '', email: null, phone: null }, true)}
+                  onClick={() => {
+                    const patientData = patientsWithoutConsent[0] || patientsAwaitingResponse[0];
+                    if (patientData) {
+                      sendConsentEmail(patientData, true);
+                    }
+                  }}
                   disabled={sending}
                   className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
                   title="Cancelar link anterior e reenviar novo termo"
@@ -421,15 +438,48 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
             <div>
               <p className="font-medium">{patientsWithoutConsent[0]?.name}</p>
               {(() => {
-                const hasEmail = patientsWithoutConsent[0]?.email && patientsWithoutConsent[0]?.email.trim() !== '';
-                const hasPhone = patientsWithoutConsent[0]?.phone && patientsWithoutConsent[0]?.phone.trim() !== '';
+                const patient = patientsWithoutConsent[0];
+                if (!patient) return null;
+                
+                // Para menores, priorizar telefone do responsável
+                const contactPhone = patient.is_minor && patient.guardian_phone_1 
+                  ? patient.guardian_phone_1 
+                  : patient.phone;
+                
+                const recipientName = patient.is_minor && patient.guardian_name 
+                  ? patient.guardian_name 
+                  : patient.name;
+                
+                const hasEmail = patient.email && patient.email.trim() !== '';
+                const hasPhone = contactPhone && contactPhone.trim() !== '';
                 
                 if (hasEmail && hasPhone) {
-                  return <p className="text-sm text-muted-foreground">📧 {patientsWithoutConsent[0]?.email} | 📱 {patientsWithoutConsent[0]?.phone}</p>;
+                  return (
+                    <div>
+                      <p className="text-sm text-muted-foreground">📧 {patient.email} | 📱 {contactPhone}</p>
+                      {patient.is_minor && patient.guardian_name && (
+                        <p className="text-xs text-muted-foreground">Será enviado para: {recipientName}</p>
+                      )}
+                    </div>
+                  );
                 } else if (hasEmail) {
-                  return <p className="text-sm text-muted-foreground">📧 {patientsWithoutConsent[0]?.email}</p>;
+                  return (
+                    <div>
+                      <p className="text-sm text-muted-foreground">📧 {patient.email}</p>
+                      {patient.is_minor && patient.guardian_name && (
+                        <p className="text-xs text-muted-foreground">Será enviado para: {recipientName}</p>
+                      )}
+                    </div>
+                  );
                 } else if (hasPhone) {
-                  return <p className="text-sm text-muted-foreground">📱 {patientsWithoutConsent[0]?.phone}</p>;
+                  return (
+                    <div>
+                      <p className="text-sm text-muted-foreground">📱 {contactPhone}</p>
+                      {patient.is_minor && patient.guardian_name && (
+                        <p className="text-xs text-muted-foreground">Será enviado para: {recipientName}</p>
+                      )}
+                    </div>
+                  );
                 } else {
                   return <p className="text-sm text-red-600 dark:text-red-400">⚠️ Sem email ou telefone cadastrado</p>;
                 }
@@ -439,8 +489,8 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
               variant="outline"
               size="sm"
               onClick={() => sendConsentEmail(patientsWithoutConsent[0])}
-              disabled={sending || (!patientsWithoutConsent[0]?.email && !patientsWithoutConsent[0]?.phone)}
-              title={(!patientsWithoutConsent[0]?.email && !patientsWithoutConsent[0]?.phone) ? 'Paciente sem email ou telefone cadastrado' : undefined}
+              disabled={sending || (!patientsWithoutConsent[0]?.email && !(patientsWithoutConsent[0]?.is_minor && patientsWithoutConsent[0]?.guardian_phone_1 ? patientsWithoutConsent[0]?.guardian_phone_1 : patientsWithoutConsent[0]?.phone))}
+              title={(!patientsWithoutConsent[0]?.email && !(patientsWithoutConsent[0]?.is_minor && patientsWithoutConsent[0]?.guardian_phone_1 ? patientsWithoutConsent[0]?.guardian_phone_1 : patientsWithoutConsent[0]?.phone)) ? 'Paciente sem email ou telefone cadastrado' : undefined}
             >
               {sending ? (
                 <>
