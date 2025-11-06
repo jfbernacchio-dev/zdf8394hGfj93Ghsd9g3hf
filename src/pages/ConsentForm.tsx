@@ -51,16 +51,35 @@ export default function ConsentForm() {
   };
 
   useEffect(() => {
-    // Force service worker update
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(registrations => {
-        registrations.forEach(registration => {
-          registration.update();
-        });
-      });
-    }
+    const initializeAndLoad = async () => {
+      // Aggressively clear all service workers and caches on mount
+      try {
+        // 1. Unregister ALL service workers immediately
+        if ('serviceWorker' in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations.map(reg => reg.unregister()));
+          console.log(`✅ Unregistered ${registrations.length} service workers`);
+        }
+        
+        // 2. Delete ALL caches
+        if ('caches' in window) {
+          const cacheNames = await caches.keys();
+          await Promise.all(cacheNames.map(name => caches.delete(name)));
+          console.log(`✅ Deleted ${cacheNames.length} caches`);
+        }
+        
+        // 3. Wait a bit for cleanup
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+      } catch (error) {
+        console.error('Cache cleanup error:', error);
+      }
+      
+      // 4. Load patient data with fresh request
+      loadPatientData();
+    };
     
-    loadPatientData();
+    initializeAndLoad();
   }, [token]);
 
   const loadPatientData = async () => {
@@ -68,29 +87,37 @@ export default function ConsentForm() {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
       
-      // Add cache busting parameter
-      const cacheBuster = Date.now();
+      console.log("🔍 Loading patient data for token:", token);
       
-      const response = await fetch(
-        `${supabaseUrl}/functions/v1/get-consent-data?token=${token}&_cb=${cacheBuster}`,
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': supabaseKey,
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-          }
-        }
-      );
+      // Add cache busting parameter + random to ensure uniqueness
+      const cacheBuster = `${Date.now()}_${Math.random()}`;
+      
+      const url = `${supabaseUrl}/functions/v1/get-consent-data?token=${token}&_cb=${cacheBuster}`;
+      console.log("📡 Fetching from:", url);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': supabaseKey,
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+        cache: 'no-store', // Force no caching at fetch level
+      });
 
+      console.log("📥 Response status:", response.status, "OK:", response.ok);
+      
       const data = await response.json();
+      console.log("📦 Response data:", data);
 
       if (!response.ok || data.error) {
+        console.error("❌ Error in response:", { ok: response.ok, error: data.error, data });
         if (data.alreadyAccepted) {
           setSubmitted(true);
         }
-        toast.error(data.error);
+        toast.error(data.error || "Erro ao carregar dados");
         setLoading(false);
         return;
       }
