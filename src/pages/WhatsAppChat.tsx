@@ -69,7 +69,6 @@ export default function WhatsAppChat() {
           filter: `user_id=eq.${user.id}`,
         },
         () => {
-          console.log('Conversation changed, reloading...');
           loadConversations();
         }
       )
@@ -81,7 +80,6 @@ export default function WhatsAppChat() {
           table: 'whatsapp_messages',
         },
         (payload) => {
-          console.log('New message received:', payload);
           // Se a mensagem pertence à conversa selecionada, recarrega mensagens
           if (selectedConversation && payload.new.conversation_id === selectedConversation.id) {
             loadMessages(selectedConversation.id);
@@ -92,10 +90,7 @@ export default function WhatsAppChat() {
       )
       .subscribe();
 
-    console.log('Realtime subscription active');
-
     return () => {
-      console.log('Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
   }, [user, selectedConversation]);
@@ -138,12 +133,24 @@ export default function WhatsAppChat() {
     try {
       const { data, error } = await supabase
         .from("whatsapp_conversations")
-        .select("*")
+        .select(`
+          *,
+          patients!whatsapp_conversations_patient_id_fkey (
+            name
+          )
+        `)
         .eq("user_id", user?.id)
         .order("last_message_at", { ascending: false });
 
       if (error) throw error;
-      setConversations(data || []);
+      
+      // Mapear para usar o nome do paciente em vez de contact_name
+      const conversationsWithPatientNames = (data || []).map((conv: any) => ({
+        ...conv,
+        contact_name: conv.patients?.name || conv.contact_name || conv.phone_number,
+      }));
+      
+      setConversations(conversationsWithPatientNames);
     } catch (error: any) {
       console.error("Error loading conversations:", error);
       toast.error("Erro ao carregar conversas");
@@ -215,17 +222,7 @@ export default function WhatsAppChat() {
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedConversation) {
-      console.log("Send aborted:", { hasMessage: !!newMessage.trim(), hasConversation: !!selectedConversation });
-      return;
-    }
-
-    console.log("Sending WhatsApp message:", {
-      conversationId: selectedConversation.id,
-      message: newMessage.trim(),
-      windowExpires: selectedConversation.window_expires_at,
-      isExpired: isWindowExpired(selectedConversation.window_expires_at)
-    });
+    if (!newMessage.trim() || !selectedConversation) return;
 
     setSending(true);
     try {
@@ -235,8 +232,6 @@ export default function WhatsAppChat() {
           message: newMessage.trim(),
         },
       });
-
-      console.log("WhatsApp send response:", { data, error });
 
       if (error) throw error;
 

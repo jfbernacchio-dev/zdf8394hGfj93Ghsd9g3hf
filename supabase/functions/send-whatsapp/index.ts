@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -140,6 +141,67 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     console.log("WhatsApp message sent successfully:", responseData);
+
+    // Criar/atualizar conversa para abrir janela de 24h
+    try {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      // Buscar paciente pelo telefone normalizado
+      const { data: patient } = await supabase
+        .from("patients")
+        .select("id, user_id, name")
+        .or(`phone.eq.${cleanPhone},phone.eq.${cleanPhone.replace(/^55/, '')}`)
+        .limit(1)
+        .maybeSingle();
+
+      if (patient) {
+        const now = new Date();
+        const windowExpires = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+        // Verificar se conversa existe
+        const { data: existingConv } = await supabase
+          .from("whatsapp_conversations")
+          .select("*")
+          .eq("phone_number", cleanPhone)
+          .eq("user_id", patient.user_id)
+          .maybeSingle();
+
+        if (existingConv) {
+          // Atualizar conversa existente - abre janela de 24h
+          await supabase
+            .from("whatsapp_conversations")
+            .update({
+              last_message_at: now.toISOString(),
+              last_message_from: "therapist",
+              window_expires_at: windowExpires.toISOString(),
+            })
+            .eq("id", existingConv.id);
+          
+          console.log("✅ Conversation updated - 24h window opened");
+        } else {
+          // Criar nova conversa
+          await supabase
+            .from("whatsapp_conversations")
+            .insert({
+              user_id: patient.user_id,
+              patient_id: patient.id,
+              phone_number: cleanPhone,
+              contact_name: patient.name,
+              last_message_at: now.toISOString(),
+              last_message_from: "therapist",
+              window_expires_at: windowExpires.toISOString(),
+              unread_count: 0,
+            });
+          
+          console.log("✅ Conversation created - 24h window opened");
+        }
+      }
+    } catch (convError) {
+      console.error("⚠️ Error updating conversation (non-critical):", convError);
+      // Não falhar o envio se atualização da conversa falhar
+    }
 
     return new Response(
       JSON.stringify({

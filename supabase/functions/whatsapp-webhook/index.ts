@@ -217,7 +217,7 @@ serve(async (req: Request): Promise<Response> => {
               // Find patient by phone (normalized)
               const { data: patient } = await supabase
                 .from("patients")
-                .select("id, user_id, phone")
+                .select("id, user_id, phone, name")
                 .or(`phone.eq.${fromPhone},phone.eq.${fromPhone.replace(/^55/, '')}`)
                 .limit(1)
                 .maybeSingle();
@@ -245,7 +245,7 @@ serve(async (req: Request): Promise<Response> => {
                 conversation = existingConv;
                 console.log("Updating existing conversation:", existingConv.id);
                 
-                // Update conversation
+                // Update conversation (não atualiza contact_name - usa sempre o nome do paciente)
                 await supabase
                   .from("whatsapp_conversations")
                   .update({
@@ -253,20 +253,19 @@ serve(async (req: Request): Promise<Response> => {
                     last_message_from: "patient",
                     window_expires_at: new Date(timestamp.getTime() + 24 * 60 * 60 * 1000).toISOString(),
                     unread_count: existingConv.unread_count + 1,
-                    contact_name: contactName,
                   })
                   .eq("id", existingConv.id);
               } else {
                 console.log("Creating new conversation for patient:", patient.id);
                 
-                // Create new conversation
+                // Create new conversation (usa nome do paciente, não do WhatsApp)
                 const { data: newConv, error: insertError } = await supabase
                   .from("whatsapp_conversations")
                   .insert({
                     user_id: patient.user_id,
                     patient_id: patient.id,
                     phone_number: fromPhone,
-                    contact_name: contactName,
+                    contact_name: patient.name,
                     last_message_at: timestamp.toISOString(),
                     last_message_from: "patient",
                     window_expires_at: new Date(timestamp.getTime() + 24 * 60 * 60 * 1000).toISOString(),
