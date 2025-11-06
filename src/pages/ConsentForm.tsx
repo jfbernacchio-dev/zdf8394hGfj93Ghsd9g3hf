@@ -21,7 +21,7 @@ export default function ConsentForm() {
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    const BUILD_VERSION = "2025-11-06-23:45:00";
+    const BUILD_VERSION = "2025-11-06-23:55:FINAL";
     console.log(`=== ConsentForm mounted - BUILD: ${BUILD_VERSION} ===`);
     console.log("Token from URL:", token);
     

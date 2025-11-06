@@ -51,10 +51,11 @@ export default defineConfig(({ mode }) => ({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/klxyilxprlzhxnwjzcvv\.supabase\.co\/.*/i,
+            // APENAS REST API - NUNCA EDGE FUNCTIONS
+            urlPattern: /^https:\/\/klxyilxprlzhxnwjzcvv\.supabase\.co\/rest\/.*/i,
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'supabase-cache',
+              cacheName: 'supabase-rest-cache',
               expiration: {
                 maxEntries: 100,
                 maxAgeSeconds: 60 * 60 * 24 // 24 hours
@@ -63,8 +64,26 @@ export default defineConfig(({ mode }) => ({
                 statuses: [0, 200]
               }
             }
+          },
+          {
+            // STORAGE - somente leitura
+            urlPattern: /^https:\/\/klxyilxprlzhxnwjzcvv\.supabase\.co\/storage\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'supabase-storage-cache',
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
           }
-        ]
+        ],
+        // CRITICAL: Nunca cachear edge functions
+        navigateFallback: null,
+        cleanupOutdatedCaches: true
       },
       devOptions: {
         enabled: true
