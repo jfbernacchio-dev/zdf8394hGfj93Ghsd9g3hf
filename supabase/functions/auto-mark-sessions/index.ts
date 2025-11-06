@@ -33,14 +33,14 @@ Deno.serve(async (req) => {
     console.log('São Paulo time:', saoPauloTime.toISOString());
     console.log('Processing sessions for date:', todayStr);
 
-    console.log('Auto-marking sessions for date:', todayStr);
+    console.log('Auto-marking sessions for dates up to:', todayStr);
 
-    // Get all scheduled sessions for today
+    // Get all scheduled sessions for today and past dates
     const { data: scheduledSessions, error: fetchError } = await supabaseClient
       .from('sessions')
       .select('*, patients!inner(*)')
       .eq('status', 'scheduled')
-      .eq('date', todayStr);
+      .lte('date', todayStr);
 
     if (fetchError) {
       console.error('Error fetching scheduled sessions:', fetchError);
@@ -49,12 +49,12 @@ Deno.serve(async (req) => {
 
     console.log('Found scheduled sessions:', scheduledSessions?.length || 0);
 
-    // Get all unscheduled sessions for today
+    // Get all unscheduled sessions for today and past dates
     const { data: unscheduledSessions, error: unscheduledFetchError } = await supabaseClient
       .from('sessions')
       .select('*, patients!inner(*)')
       .eq('status', 'unscheduled')
-      .eq('date', todayStr);
+      .lte('date', todayStr);
 
     if (unscheduledFetchError) {
       console.error('Error fetching unscheduled sessions:', unscheduledFetchError);
