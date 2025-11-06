@@ -217,10 +217,12 @@ export const ensureFutureSessions = async (
       .maybeSingle();
 
     if (!existing) {
+      // Check if session date is in the past
+      const status = nextDate < today ? 'attended' : 'scheduled';
       newSessions.push({
         patient_id: patientId,
         date: nextDate,
-        status: 'scheduled',
+        status: status,
         value: patientInfo.session_value,
         paid: false,
         time: patientInfo.session_time,
