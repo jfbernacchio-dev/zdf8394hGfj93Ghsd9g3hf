@@ -13,7 +13,8 @@ export default function ConsentForm() {
   const { token } = useParams();
   const navigate = useNavigate();
   
-  console.log("=== ConsentForm mounted - BUILD: 2025-11-06-20:10 ===");
+  const APP_VERSION = "v2.0.1"; // Force new cache
+  console.log(`=== ConsentForm ${APP_VERSION} mounted ===`);
   console.log("Token from URL:", token);
   
   const [loading, setLoading] = useState(true);
