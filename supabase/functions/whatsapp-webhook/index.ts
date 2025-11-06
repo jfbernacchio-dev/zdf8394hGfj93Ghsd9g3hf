@@ -76,6 +76,7 @@ serve(async (req: Request): Promise<Response> => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const verifyToken = Deno.env.get("WHATSAPP_VERIFY_TOKEN")!;
+    const appSecret = Deno.env.get("WHATSAPP_APP_SECRET")!;
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -107,11 +108,11 @@ serve(async (req: Request): Promise<Response> => {
       if (signature) {
         const bodyText = await req.text();
         
-        // Criar chave HMAC para verificar assinatura
+        // Criar chave HMAC para verificar assinatura (usa App Secret, não Verify Token)
         const encoder = new TextEncoder();
         const key = await crypto.subtle.importKey(
           "raw",
-          encoder.encode(verifyToken),
+          encoder.encode(appSecret),
           { name: "HMAC", hash: "SHA-256" },
           false,
           ["sign"]

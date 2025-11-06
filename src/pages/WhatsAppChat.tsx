@@ -54,6 +54,52 @@ export default function WhatsAppChat() {
     }
   }, [user]);
 
+  // Realtime subscription para novas mensagens e conversas
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('whatsapp-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'whatsapp_conversations',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          console.log('Conversation changed, reloading...');
+          loadConversations();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'whatsapp_messages',
+        },
+        (payload) => {
+          console.log('New message received:', payload);
+          // Se a mensagem pertence à conversa selecionada, recarrega mensagens
+          if (selectedConversation && payload.new.conversation_id === selectedConversation.id) {
+            loadMessages(selectedConversation.id);
+          }
+          // Sempre recarrega conversas para atualizar última mensagem
+          loadConversations();
+        }
+      )
+      .subscribe();
+
+    console.log('Realtime subscription active');
+
+    return () => {
+      console.log('Cleaning up realtime subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [user, selectedConversation]);
+
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
