@@ -252,13 +252,13 @@ const handler = async (req: Request): Promise<Response> => {
       try {
         console.log("Sending consent form via WhatsApp to:", normalizedPhone);
         
-        // Try to use template first, fallback to text if template fails
-        let whatsappResult;
-        let whatsappResponse;
+        let whatsappResult = null;
+        let sendSuccess = false;
         
+        // Try template first
         try {
-          // Use approved template: termo_consentimento (created in English due to Meta's 4-week lock bug)
-          whatsappResponse = await fetch(
+          console.log("Attempting to send via template...");
+          const templateResponse = await fetch(
             `${supabaseUrl}/functions/v1/send-whatsapp`,
             {
               method: "POST",
@@ -271,26 +271,30 @@ const handler = async (req: Request): Promise<Response> => {
                 data: {
                   to: normalizedPhone,
                   templateName: "termo_consentimento",
-                  templateLanguage: "en", // Using English to avoid Meta's 4-week lock bug
-                  parameters: [
-                    recipientName,
-                    consentUrl,
-                  ],
+                  templateLanguage: "en",
+                  parameters: [recipientName, consentUrl],
                 },
               }),
             }
           );
           
-          whatsappResult = await whatsappResponse.json();
+          const templateResult = await templateResponse.json();
+          console.log("Template response:", { ok: templateResponse.ok, result: templateResult });
           
-          // If template fails, fallback to text message
-          if (!whatsappResponse.ok || !whatsappResult.success) {
-            console.log("Template failed, falling back to text message:", whatsappResult);
-            throw new Error("Template not available");
+          if (templateResponse.ok && templateResult.success) {
+            whatsappResult = templateResult;
+            sendSuccess = true;
+            console.log("✅ Template sent successfully");
+          } else {
+            console.log("Template failed, will try fallback");
           }
         } catch (templateError) {
-          console.log("Using fallback text message method");
-          
+          console.log("Template error:", templateError);
+        }
+        
+        // If template failed, try text message
+        if (!sendSuccess) {
+          console.log("Attempting to send via text message...");
           const whatsappMessage = isMinor 
             ? `📋 *Termos de Consentimento - Espaço Mindware*\n\n` +
               `Olá, ${recipientName}!\n\n` +
@@ -304,7 +308,7 @@ const handler = async (req: Request): Promise<Response> => {
               `🔗 Acesse o formulário:\n${consentUrl}\n\n` +
               `📌 Este link é válido por 7 dias.`;
           
-          whatsappResponse = await fetch(
+          const textResponse = await fetch(
             `${supabaseUrl}/functions/v1/send-whatsapp`,
             {
               method: "POST",
@@ -322,18 +326,17 @@ const handler = async (req: Request): Promise<Response> => {
             }
           );
           
-          whatsappResult = await whatsappResponse.json();
+          const textResult = await textResponse.json();
+          console.log("Text message response:", { ok: textResponse.ok, result: textResult });
+          
+          if (textResponse.ok && textResult.success) {
+            whatsappResult = textResult;
+            sendSuccess = true;
+            console.log("✅ Text message sent successfully");
+          }
         }
-
-        console.log("WhatsApp response details:", {
-          ok: whatsappResponse.ok,
-          status: whatsappResponse.status,
-          success: whatsappResult?.success,
-          result: whatsappResult
-        });
         
-        if (whatsappResponse.ok && whatsappResult.success) {
-          console.log("WhatsApp sent successfully");
+        if (sendSuccess && whatsappResult) {
           whatsappSent = true;
           
           // Register message in WhatsApp history
