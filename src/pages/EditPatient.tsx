@@ -216,6 +216,45 @@ const EditPatient = () => {
   };
 
   const updatePatient = async () => {
+    // Check for duplicate CPF if CPF changed and noNfse is false
+    if (formData.cpf !== originalData.cpf && formData.cpf && !formData.no_nfse) {
+      const { data: existingPatient } = await supabase
+        .from('patients')
+        .select('id, name')
+        .neq('id', id)
+        .eq('cpf', formData.cpf)
+        .maybeSingle();
+
+      if (existingPatient) {
+        toast({
+          title: 'CPF já cadastrado',
+          description: `Já existe outro paciente com este CPF: ${existingPatient.name}`,
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+
+    // Check for duplicate guardian CPF if changed
+    if (formData.is_minor && formData.guardian_cpf !== originalData.guardian_cpf && 
+        formData.guardian_cpf && formData.nfse_issue_to === 'guardian') {
+      const { data: existingGuardian } = await supabase
+        .from('patients')
+        .select('id, name, guardian_name')
+        .neq('id', id)
+        .eq('guardian_cpf', formData.guardian_cpf)
+        .maybeSingle();
+
+      if (existingGuardian) {
+        toast({
+          title: 'CPF do responsável já cadastrado',
+          description: `Este CPF já está cadastrado para o responsável de: ${existingGuardian.name}`,
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+
     const hideFromScheduleChanged = formData.hide_from_schedule !== originalData.hide_from_schedule;
     
     const { error } = await supabase.from('patients').update({

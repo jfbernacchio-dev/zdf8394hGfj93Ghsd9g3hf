@@ -351,65 +351,92 @@ const Patients = () => {
   const checkDuplicates = async () => {
     toast({
       title: 'Verificando duplicidades',
-      description: 'Analisando todas as sessões...',
+      description: 'Analisando sessões e pacientes...',
     });
 
-    // Fetch all sessions from all patients
+    // Check for duplicate sessions
     const { data: allSessions } = await supabase
       .from('sessions')
       .select('*, patients!inner(name, user_id)')
       .eq('patients.user_id', user!.id);
 
-    if (!allSessions || allSessions.length === 0) {
-      toast({
-        title: 'Nenhuma sessão encontrada',
-        description: 'Não há sessões para verificar.',
+    const sessionDuplicates: any[] = [];
+
+    if (allSessions && allSessions.length > 0) {
+      // Group sessions by patient_id + date + time
+      const sessionsMap = new Map<string, any[]>();
+
+      allSessions.forEach(session => {
+        const key = `${session.patient_id}_${session.date}_${session.time}`;
+        if (!sessionsMap.has(key)) {
+          sessionsMap.set(key, []);
+        }
+        sessionsMap.get(key)!.push(session);
       });
-      return;
+
+      // Find duplicates (groups with more than 1 session)
+      sessionsMap.forEach((sessionGroup, key) => {
+        if (sessionGroup.length > 1) {
+          const [patientId, date, time] = key.split('_');
+          const patient = patients.find(p => p.id === patientId);
+          
+          sessionDuplicates.push({
+            type: 'session',
+            patientName: patient?.name || 'Desconhecido',
+            patientId,
+            date,
+            time,
+            sessions: sessionGroup,
+            count: sessionGroup.length,
+          });
+        }
+      });
     }
 
-    // Group sessions by patient_id + date + time
-    const sessionsMap = new Map<string, any[]>();
+    // Check for duplicate patients (same CPF)
+    const patientDuplicates: any[] = [];
+    const cpfMap = new Map<string, any[]>();
 
-    allSessions.forEach(session => {
-      const key = `${session.patient_id}_${session.date}_${session.time}`;
-      if (!sessionsMap.has(key)) {
-        sessionsMap.set(key, []);
+    patients.forEach(patient => {
+      if (patient.cpf && patient.cpf.trim() !== '') {
+        const normalizedCpf = patient.cpf.replace(/\D/g, '');
+        if (!cpfMap.has(normalizedCpf)) {
+          cpfMap.set(normalizedCpf, []);
+        }
+        cpfMap.get(normalizedCpf)!.push(patient);
       }
-      sessionsMap.get(key)!.push(session);
     });
 
-    // Find duplicates (groups with more than 1 session)
-    const duplicates: any[] = [];
-
-    sessionsMap.forEach((sessionGroup, key) => {
-      if (sessionGroup.length > 1) {
-        const [patientId, date, time] = key.split('_');
-        const patient = patients.find(p => p.id === patientId);
-        
-        duplicates.push({
-          patientName: patient?.name || 'Desconhecido',
-          patientId,
-          date,
-          time,
-          sessions: sessionGroup,
-          count: sessionGroup.length,
+    cpfMap.forEach((patientGroup, cpf) => {
+      if (patientGroup.length > 1) {
+        patientDuplicates.push({
+          type: 'patient',
+          cpf,
+          patients: patientGroup,
+          count: patientGroup.length,
         });
       }
     });
 
-    setDuplicatesReport(duplicates);
+    const allDuplicates = [...sessionDuplicates, ...patientDuplicates];
+    setDuplicatesReport(allDuplicates);
     setIsDuplicatesDialogOpen(true);
 
-    if (duplicates.length === 0) {
+    if (allDuplicates.length === 0) {
       toast({
         title: 'Nenhuma duplicidade encontrada',
-        description: 'Todas as sessões estão únicas!',
+        description: 'Todas as sessões e pacientes estão únicos!',
       });
     } else {
+      const sessionCount = sessionDuplicates.length;
+      const patientCount = patientDuplicates.length;
+      let description = [];
+      if (sessionCount > 0) description.push(`${sessionCount} sessão(ões) duplicada(s)`);
+      if (patientCount > 0) description.push(`${patientCount} paciente(s) duplicado(s)`);
+      
       toast({
         title: 'Duplicidades encontradas',
-        description: `${duplicates.length} caso(s) de sessões duplicadas detectado(s).`,
+        description: description.join(' e '),
         variant: 'destructive',
       });
     }
@@ -598,7 +625,7 @@ const Patients = () => {
         <Dialog open={isDuplicatesDialogOpen} onOpenChange={setIsDuplicatesDialogOpen}>
           <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Relatório de Sessões Duplicadas</DialogTitle>
+              <DialogTitle>Relatório de Duplicidades</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               {duplicatesReport.length === 0 ? (
@@ -616,52 +643,118 @@ const Patients = () => {
                   
                   {duplicatesReport.map((duplicate, index) => (
                     <Card key={index} className="p-4">
-                      <div className="space-y-3">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h3 className="font-semibold text-foreground">{duplicate.patientName}</h3>
-                            <p className="text-sm text-muted-foreground">
-                              Data: {format(parseISO(duplicate.date), 'dd/MM/yyyy')} às {duplicate.time}
-                            </p>
-                          </div>
-                          <span className="px-2 py-1 bg-warning/20 text-warning-foreground text-xs font-medium rounded">
-                            {duplicate.count}x duplicada
-                          </span>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <p className="text-sm font-medium text-muted-foreground">Sessões duplicadas:</p>
-                          {duplicate.sessions.map((session: any) => (
-                            <div key={session.id} className="text-xs bg-muted/50 p-2 rounded space-y-1">
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">ID da Sessão:</span>
-                                <span className="font-mono">{session.id}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Status:</span>
-                                <span className={session.status === 'attended' ? 'text-success' : ''}>
-                                  {session.status === 'attended' ? 'Compareceu' : 
-                                   session.status === 'missed' ? 'Faltou' : 'Agendado'}
+                      {duplicate.type === 'session' ? (
+                        // Session duplicate
+                        <div className="space-y-3">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 text-xs font-medium rounded">
+                                  Sessão
                                 </span>
                               </div>
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Pago:</span>
-                                <span>{session.paid ? 'Sim' : 'Não'}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Valor:</span>
-                                <span>{formatBrazilianCurrency(session.value)}</span>
-                              </div>
+                              <h3 className="font-semibold text-foreground">{duplicate.patientName}</h3>
+                              <p className="text-sm text-muted-foreground">
+                                Data: {format(parseISO(duplicate.date), 'dd/MM/yyyy')} às {duplicate.time}
+                              </p>
                             </div>
-                          ))}
+                            <span className="px-2 py-1 bg-warning/20 text-warning-foreground text-xs font-medium rounded">
+                              {duplicate.count}x duplicada
+                            </span>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium text-muted-foreground">Sessões duplicadas:</p>
+                            {duplicate.sessions.map((session: any) => (
+                              <div key={session.id} className="text-xs bg-muted/50 p-2 rounded space-y-1">
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">ID da Sessão:</span>
+                                  <span className="font-mono">{session.id}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Status:</span>
+                                  <span className={session.status === 'attended' ? 'text-success' : ''}>
+                                    {session.status === 'attended' ? 'Compareceu' : 
+                                     session.status === 'missed' ? 'Faltou' : 'Agendado'}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Pago:</span>
+                                  <span>{session.paid ? 'Sim' : 'Não'}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Valor:</span>
+                                  <span>{formatBrazilianCurrency(session.value)}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
+                      ) : (
+                        // Patient duplicate
+                        <div className="space-y-3">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 text-xs font-medium rounded">
+                                  Paciente
+                                </span>
+                              </div>
+                              <h3 className="font-semibold text-foreground">CPF Duplicado</h3>
+                              <p className="text-sm text-muted-foreground">
+                                CPF: {duplicate.cpf}
+                              </p>
+                            </div>
+                            <span className="px-2 py-1 bg-warning/20 text-warning-foreground text-xs font-medium rounded">
+                              {duplicate.count} paciente(s)
+                            </span>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium text-muted-foreground">Pacientes com este CPF:</p>
+                            {duplicate.patients.map((patient: any) => (
+                              <div key={patient.id} className="text-xs bg-muted/50 p-2 rounded space-y-1">
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Nome:</span>
+                                  <span className="font-medium">{patient.name}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Email:</span>
+                                  <span>{patient.email || 'Não informado'}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Criado em:</span>
+                                  <span>{format(parseISO(patient.created_at), 'dd/MM/yyyy HH:mm')}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">ID:</span>
+                                  <span className="font-mono text-xs">{patient.id}</span>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="w-full mt-2"
+                                  onClick={() => navigate(`/patients/${patient.id}`)}
+                                >
+                                  Ver Paciente
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 p-3 rounded text-xs">
+                            <p className="text-amber-800 dark:text-amber-200 font-medium mb-1">⚠️ Ação recomendada:</p>
+                            <p className="text-amber-700 dark:text-amber-300">
+                              Revise os pacientes acima e, se necessário, exclua os duplicados mantendo apenas um registro.
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </Card>
                   ))}
                   
                   <div className="bg-muted/50 rounded-lg p-4 mt-4">
                     <p className="text-sm text-muted-foreground">
-                      <strong>Ação necessária:</strong> Revise manualmente cada caso e exclua as sessões duplicadas usando o botão de lixeira no detalhe de cada paciente.
+                      <strong>Ação necessária:</strong> Revise manualmente cada caso e corrija as duplicidades usando as opções disponíveis em cada paciente.
                     </p>
                   </div>
                 </div>

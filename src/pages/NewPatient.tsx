@@ -73,6 +73,44 @@ const NewPatient = () => {
     if (!user) return;
 
     try {
+      // Check for duplicate CPF if CPF is provided and noNfse is false
+      if (formData.cpf && !formData.noNfse) {
+        const { data: existingPatient } = await supabase
+          .from('patients')
+          .select('id, name')
+          .eq('user_id', user.id)
+          .eq('cpf', formData.cpf)
+          .maybeSingle();
+
+        if (existingPatient) {
+          toast({
+            title: 'CPF já cadastrado',
+            description: `Já existe um paciente com este CPF: ${existingPatient.name}`,
+            variant: 'destructive',
+          });
+          return;
+        }
+      }
+
+      // Check for duplicate guardian CPF if minor and guardian CPF provided
+      if (formData.isMinor && formData.guardianCpf && formData.nfseIssueTo === 'guardian') {
+        const { data: existingGuardian } = await supabase
+          .from('patients')
+          .select('id, name, guardian_name')
+          .eq('user_id', user.id)
+          .eq('guardian_cpf', formData.guardianCpf)
+          .maybeSingle();
+
+        if (existingGuardian) {
+          toast({
+            title: 'CPF do responsável já cadastrado',
+            description: `Este CPF já está cadastrado para o responsável de: ${existingGuardian.name}`,
+            variant: 'destructive',
+          });
+          return;
+        }
+      }
+
       // Get user profile to check break time settings
       const { data: profile } = await supabase
         .from('profiles')
