@@ -49,14 +49,15 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
     
     setLoadingToken(true);
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('consent_submissions')
         .select('created_at, patient_id')
         .eq('patient_id', patientId)
         .is('accepted_at', null)
         .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
-        .single();
+        .maybeSingle();
       
+      if (error) throw error;
       setPendingToken(data || null);
     } catch (error) {
       console.error('Error loading pending token:', error);
