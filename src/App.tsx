@@ -18,6 +18,7 @@ import Patients from "./pages/Patients";
 import NewPatient from "./pages/NewPatient";
 import EditPatient from "./pages/EditPatient";
 import PatientDetail from "./pages/PatientDetail";
+import PatientDetailNew from "./pages/PatientDetailNew";
 import Schedule from "./pages/Schedule";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -111,6 +112,7 @@ const App = () => (
             <Route path="/patients/new" element={<ProtectedRoute><Layout><NewPatient /></Layout></ProtectedRoute>} />
             <Route path="/patients/:id/edit" element={<ProtectedRoute><Layout><EditPatient /></Layout></ProtectedRoute>} />
             <Route path="/patients/:id" element={<ProtectedRoute><Layout><PatientDetail /></Layout></ProtectedRoute>} />
+            <Route path="/patient-test/:id" element={<ProtectedRoute><Layout><PatientDetailNew /></Layout></ProtectedRoute>} />
             <Route path="/therapists" element={<ProtectedRoute><Layout><TherapistManagement /></Layout></ProtectedRoute>} />
             <Route path="/therapists/:id" element={<ProtectedRoute><Layout><TherapistDetail /></Layout></ProtectedRoute>} />
             <Route path="/create-therapist" element={<ProtectedRoute><Layout><CreateTherapist /></Layout></ProtectedRoute>} />
