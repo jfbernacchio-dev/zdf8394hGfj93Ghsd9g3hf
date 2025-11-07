@@ -126,7 +126,7 @@ const Navbar = () => {
                 <DropdownMenuTrigger asChild>
                   <button
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                      location.pathname.startsWith('/nfse') || location.pathname.startsWith('/invoice-logs')
+                      location.pathname.startsWith('/nfse') || location.pathname.startsWith('/invoice-logs') || location.pathname === '/payment-control'
                         ? 'bg-primary text-primary-foreground'
                         : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
                     }`}
@@ -137,6 +137,11 @@ const Navbar = () => {
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="bg-popover z-50">
+                  <DropdownMenuItem onClick={() => navigate('/payment-control')}>
+                    <TrendingUp className="w-4 h-4 mr-2" />
+                    Controle de Pagamentos
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger>
                       <FileText className="w-4 h-4 mr-2" />

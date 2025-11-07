@@ -613,19 +613,9 @@ const Financial = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Análise Financeira</h1>
-          <p className="text-muted-foreground">Métricas, insights e controle completo das finanças</p>
-        </div>
-        <Button 
-          onClick={() => window.location.href = '/payment-control'}
-          variant="outline"
-          className="gap-2"
-        >
-          <DollarSign className="h-4 w-4" />
-          Controle de Pagamentos
-        </Button>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-foreground mb-2">Análise Financeira</h1>
+        <p className="text-muted-foreground">Métricas, insights e controle completo das finanças</p>
       </div>
 
       <Card className="p-6 mb-6 shadow-[var(--shadow-card)] border-border">
