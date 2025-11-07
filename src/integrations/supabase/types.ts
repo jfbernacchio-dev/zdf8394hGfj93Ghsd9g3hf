@@ -404,6 +404,45 @@ export type Database = {
           },
         ]
       }
+      nfse_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          has_proof: boolean
+          id: string
+          notes: string | null
+          payment_date: string
+          payment_method: string
+          proof_file_path: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          has_proof?: boolean
+          id?: string
+          notes?: string | null
+          payment_date: string
+          payment_method: string
+          proof_file_path?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          has_proof?: boolean
+          id?: string
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string
+          proof_file_path?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notification_preferences: {
         Row: {
           admin_id: string
@@ -609,6 +648,45 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      payment_allocations: {
+        Row: {
+          allocated_amount: number
+          created_at: string
+          id: string
+          nfse_id: string
+          payment_id: string
+        }
+        Insert: {
+          allocated_amount: number
+          created_at?: string
+          id?: string
+          nfse_id: string
+          payment_id: string
+        }
+        Update: {
+          allocated_amount?: number
+          created_at?: string
+          id?: string
+          nfse_id?: string
+          payment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_allocations_nfse_id_fkey"
+            columns: ["nfse_id"]
+            isOneToOne: false
+            referencedRelation: "nfse_issued"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "nfse_payments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       permission_reviews: {
         Row: {
