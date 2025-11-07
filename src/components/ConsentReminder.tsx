@@ -332,6 +332,46 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
     await loadPatientsWithoutConsent();
   };
 
+  const cancelAllConsentLinks = async () => {
+    if (patientsAwaitingResponse.length === 0) return;
+
+    const confirmed = confirm(
+      `Tem certeza que deseja cancelar todos os links de consentimento pendentes para ${patientsAwaitingResponse.length} paciente(s)? Eles não poderão mais usar os links atuais.`
+    );
+
+    if (!confirmed) return;
+
+    setSending(true);
+    try {
+      const patientIds = patientsAwaitingResponse.map(p => p.id);
+      
+      const { error } = await supabase
+        .from('consent_submissions')
+        .delete()
+        .in('patient_id', patientIds)
+        .is('accepted_at', null);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Links cancelados',
+        description: `Todos os ${patientIds.length} link(s) de consentimento pendente(s) foram cancelados com sucesso.`,
+      });
+
+      // Recarregar lista
+      await loadPatientsWithoutConsent();
+    } catch (error: any) {
+      console.error('Error canceling all consent links:', error);
+      toast({
+        title: 'Erro ao cancelar',
+        description: error.message || 'Não foi possível cancelar os links.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSending(false);
+    }
+  };
+
   // CORREÇÃO #2: Loading consolidado
   if (loading) return null;
 
@@ -522,25 +562,44 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
                   {patientsAwaitingResponse.length} paciente(s) com termo enviado aguardando aceitação
                 </CardDescription>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={resendAllConsentEmails}
-                disabled={sending}
-                className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
-              >
-                {sending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Reenviando...
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-4 h-4 mr-2" />
-                    Reenviar para Todos
-                  </>
-                )}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={cancelAllConsentLinks}
+                  disabled={sending}
+                  className="border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
+                  title="Cancelar todos os links pendentes"
+                >
+                  {sending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Cancelando...
+                    </>
+                  ) : (
+                    'Cancelar Todos'
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={resendAllConsentEmails}
+                  disabled={sending}
+                  className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
+                >
+                  {sending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Reenviando...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4 mr-2" />
+                      Reenviar para Todos
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
