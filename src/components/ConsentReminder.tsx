@@ -33,46 +33,19 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [pendingToken, setPendingToken] = useState<PendingToken | null>(null);
-  const [loadingToken, setLoadingToken] = useState(true);
 
   useEffect(() => {
     if (user) {
       loadPatientsWithoutConsent();
-      if (patientId) {
-        loadPendingToken();
-      }
     }
   }, [user, patientId]);
-
-  const loadPendingToken = async () => {
-    if (!patientId) return;
-    
-    setLoadingToken(true);
-    try {
-      const { data, error } = await supabase
-        .from('consent_submissions')
-        .select('created_at, patient_id')
-        .eq('patient_id', patientId)
-        .is('accepted_at', null)
-        .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
-        .maybeSingle();
-      
-      if (error) throw error;
-      setPendingToken(data || null);
-    } catch (error) {
-      console.error('Error loading pending token:', error);
-      setPendingToken(null);
-    } finally {
-      setLoadingToken(false);
-    }
-  };
 
   const loadPatientsWithoutConsent = async () => {
     if (!user) return;
 
+    setLoading(true);
     try {
-      // Se for individual, buscar apenas esse paciente específico
-      // Se não for, buscar todos os pacientes ativos que não aceitaram
+      // Buscar pacientes ativos
       let query = supabase
         .from('patients')
         .select('id, name, email, phone, privacy_policy_accepted, is_minor, guardian_name, guardian_phone_1')
@@ -87,40 +60,57 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
       }
 
       const { data, error } = await query;
-
       if (error) throw error;
-      
-      // Filtrar pacientes verificando aceitação real (consent_submissions com accepted_at)
+
       const patientsToShow: PatientWithoutConsent[] = [];
       const patientsAwaiting: PatientWithoutConsent[] = [];
       
-      for (const patient of data || []) {
-        // Verificar se tem aceitação válida (accepted_at não null)
-        const { data: acceptedSubmission } = await supabase
+      // CORREÇÃO #3 e #4: Query otimizada em batch para todos os pacientes
+      const patientIds = (data || []).map(p => p.id);
+      
+      if (patientIds.length > 0) {
+        // Buscar todas as aceitações de uma vez
+        const { data: acceptedSubmissions } = await supabase
           .from('consent_submissions')
-          .select('id, accepted_at')
-          .eq('patient_id', patient.id)
-          .not('accepted_at', 'is', null)
-          .maybeSingle();
+          .select('patient_id')
+          .in('patient_id', patientIds)
+          .not('accepted_at', 'is', null);
 
-        // Se já aceitou, pular este paciente
-        if (acceptedSubmission) continue;
+        const acceptedPatientIds = new Set(acceptedSubmissions?.map(s => s.patient_id) || []);
 
-        // Verificar se tem token pendente (sem accepted_at)
-        const { data: pendingTokenData } = await supabase
+        // Buscar todos os tokens pendentes de uma vez (CORREÇÃO #1 e #4)
+        const { data: pendingTokens } = await supabase
           .from('consent_submissions')
-          .select('id, created_at')
-          .eq('patient_id', patient.id)
+          .select('patient_id, created_at')
+          .in('patient_id', patientIds)
           .is('accepted_at', null)
           .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
-          .maybeSingle();
-        
-        // Se tiver token pendente, adicionar à lista de aguardando resposta
-        if (pendingTokenData) {
-          patientsAwaiting.push(patient);
-        } else {
-          // Se não tiver token pendente e não aceitou, adicionar à lista de sem consentimento
-          patientsToShow.push(patient);
+          .order('created_at', { ascending: false });
+
+        // Criar um Map de patient_id -> token mais recente
+        const patientTokenMap = new Map<string, PendingToken>();
+        pendingTokens?.forEach(token => {
+          if (!patientTokenMap.has(token.patient_id)) {
+            patientTokenMap.set(token.patient_id, token);
+          }
+        });
+
+        // Classificar pacientes
+        for (const patient of data || []) {
+          // Se já aceitou, pular
+          if (acceptedPatientIds.has(patient.id)) continue;
+
+          // Se tem token pendente, adicionar à lista de aguardando
+          if (patientTokenMap.has(patient.id)) {
+            patientsAwaiting.push(patient);
+            // CORREÇÃO #2: Se for o paciente individual, setar o pendingToken
+            if (patientId && patient.id === patientId) {
+              setPendingToken(patientTokenMap.get(patient.id)!);
+            }
+          } else {
+            // Se não tem token e não aceitou, adicionar à lista de sem consentimento
+            patientsToShow.push(patient);
+          }
         }
       }
 
@@ -154,9 +144,8 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
         description: 'O link de consentimento foi cancelado com sucesso.',
       });
 
-      // Recarregar lista e token pendente
+      // Recarregar lista
       await loadPatientsWithoutConsent();
-      await loadPendingToken();
     } catch (error: any) {
       console.error('Error canceling consent link:', error);
       toast({
@@ -224,11 +213,8 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
         description,
       });
 
-      // Recarregar lista e token pendente
+      // Recarregar lista
       await loadPatientsWithoutConsent();
-      if (patientId) {
-        await loadPendingToken();
-      }
     } catch (error: any) {
       console.error('Error sending consent email:', error);
       toast({
@@ -344,14 +330,18 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
     await loadPatientsWithoutConsent();
   };
 
+  // CORREÇÃO #2: Loading consolidado
+  if (loading) return null;
+
   // Se for individual, verificar token pendente primeiro
   if (patientId) {
-    if (loading || loadingToken) return null;
-    
     // Se tem token pendente, mostrar card azul de aguardando resposta
     if (pendingToken) {
       const sentDate = new Date(pendingToken.created_at);
       const daysAgo = Math.floor((Date.now() - sentDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      // CORREÇÃO #5: Buscar o paciente correto do array de aguardando resposta
+      const currentPatient = patientsAwaitingResponse.find(p => p.id === patientId);
       
       return (
         <Card className="border-2 border-blue-500 bg-blue-50 dark:bg-blue-950/20">
@@ -388,12 +378,12 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    const patientData = patientsWithoutConsent[0] || patientsAwaitingResponse[0];
-                    if (patientData) {
-                      sendConsentEmail(patientData, true);
+                    // CORREÇÃO #5: Usar o paciente correto
+                    if (currentPatient) {
+                      sendConsentEmail(currentPatient, true);
                     }
                   }}
-                  disabled={sending}
+                  disabled={sending || !currentPatient}
                   className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
                   title="Cancelar link anterior e reenviar novo termo"
                 >
@@ -512,7 +502,6 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
   }
 
   // Lista geral de pacientes sem consentimento
-  if (loading) return null;
   if (patientsWithoutConsent.length === 0 && patientsAwaitingResponse.length === 0) return null;
 
   return (
