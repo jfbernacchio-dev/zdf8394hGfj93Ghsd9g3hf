@@ -35,6 +35,8 @@ const EditPatient = () => {
   };
   
   const [changeFromDate, setChangeFromDate] = useState(getBrazilDate());
+  const [startDateDisplay, setStartDateDisplay] = useState('');
+  const [changeFromDateDisplay, setChangeFromDateDisplay] = useState('');
 
   useEffect(() => {
     loadPatient();
@@ -83,6 +85,8 @@ const EditPatient = () => {
       };
       setFormData(patientData);
       setOriginalData(patientData);
+      setStartDateDisplay(data.start_date ? formatBrazilianDate(data.start_date) : '');
+      setChangeFromDateDisplay(formatBrazilianDate(getBrazilDate()));
     }
   };
 
@@ -855,17 +859,18 @@ const EditPatient = () => {
               <Input
                 id="start_date"
                 type="text"
-                value={formData.start_date ? formatBrazilianDate(formData.start_date) : ''}
+                value={startDateDisplay}
                 onChange={(e) => {
                   const value = e.target.value.replace(/\D/g, '');
                   let formatted = value;
                   if (value.length >= 2) formatted = value.slice(0, 2) + '/' + value.slice(2);
                   if (value.length >= 4) formatted = value.slice(0, 2) + '/' + value.slice(2, 4) + '/' + value.slice(4);
+                  
+                  setStartDateDisplay(formatted);
+                  
                   if (value.length === 8) {
                     const isoDate = parseFromBrazilianDate(formatted);
                     setFormData({ ...formData, start_date: isoDate });
-                  } else if (formatted.length <= 10) {
-                    e.target.value = formatted;
                   }
                 }}
                 placeholder="DD/MM/AAAA"
@@ -1060,17 +1065,18 @@ const EditPatient = () => {
                 <Input
                   id="changeFromDate"
                   type="text"
-                  value={changeFromDate ? formatBrazilianDate(changeFromDate) : ''}
+                  value={changeFromDateDisplay}
                   onChange={(e) => {
                     const value = e.target.value.replace(/\D/g, '');
                     let formatted = value;
                     if (value.length >= 2) formatted = value.slice(0, 2) + '/' + value.slice(2);
                     if (value.length >= 4) formatted = value.slice(0, 2) + '/' + value.slice(2, 4) + '/' + value.slice(4);
+                    
+                    setChangeFromDateDisplay(formatted);
+                    
                     if (value.length === 8) {
                       const isoDate = parseFromBrazilianDate(formatted);
                       setChangeFromDate(isoDate);
-                    } else if (formatted.length <= 10) {
-                      e.target.value = formatted;
                     }
                   }}
                   placeholder="DD/MM/AAAA"
