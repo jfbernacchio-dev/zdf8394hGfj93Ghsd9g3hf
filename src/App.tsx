@@ -39,6 +39,7 @@ import PermissionReview from "./pages/PermissionReview";
 import BackupTests from "./pages/BackupTests";
 import ConsentForm from "./pages/ConsentForm";
 import WhatsAppChat from "./pages/WhatsAppChat";
+import WebsiteMetrics from "./pages/WebsiteMetrics";
 
 const queryClient = new QueryClient();
 
@@ -124,6 +125,7 @@ const App = () => (
             <Route path="/admin/backup-tests" element={<ProtectedRoute><Layout><BackupTests /></Layout></ProtectedRoute>} />
             <Route path="/profile/edit" element={<ProtectedRoute><Layout><ProfileEdit /></Layout></ProtectedRoute>} />
             <Route path="/whatsapp" element={<ProtectedRoute><Layout><WhatsAppChat /></Layout></ProtectedRoute>} />
+            <Route path="/metrics/website" element={<ProtectedRoute><Layout><WebsiteMetrics /></Layout></ProtectedRoute>} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

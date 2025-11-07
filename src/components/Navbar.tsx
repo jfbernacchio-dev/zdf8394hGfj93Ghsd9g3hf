@@ -96,17 +96,32 @@ const Navbar = () => {
                   <span className="font-medium">Terapeutas</span>
                 </Link>
               )}
-              <Link
-                to="/financial"
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                  isActive('/financial')
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-                }`}
-              >
-                <TrendingUp className="w-4 h-4" />
-                <span className="font-medium">Métricas</span>
-              </Link>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                      location.pathname.startsWith('/financial') || location.pathname.startsWith('/metrics')
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                    }`}
+                  >
+                    <TrendingUp className="w-4 h-4" />
+                    <span className="font-medium">Métricas</span>
+                    <ChevronDown className="w-3 h-3" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-popover z-50">
+                  <DropdownMenuItem onClick={() => navigate('/financial')}>
+                    <TrendingUp className="w-4 h-4 mr-2" />
+                    Análise Financeira
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate('/metrics/website')}>
+                    <FileText className="w-4 h-4 mr-2" />
+                    Website
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
