@@ -14,6 +14,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { z } from 'zod';
 
 interface AppointmentDialogProps {
   isOpen: boolean;
@@ -23,6 +24,20 @@ interface AppointmentDialogProps {
   onSuccess: () => void;
   editingAppointment?: any;
 }
+
+// Schema de validação para compromissos
+const appointmentSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: "Data inválida" }),
+  start_time: z.string().regex(/^\d{2}:\d{2}$/, { message: "Horário de início inválido (use formato HH:mm)" }).refine((time) => {
+    const [hours, minutes] = time.split(':').map(Number);
+    return hours >= 0 && hours < 24 && minutes >= 0 && minutes < 60;
+  }, { message: "Horário de início inválido" }),
+  end_time: z.string().regex(/^\d{2}:\d{2}$/, { message: "Horário de fim inválido (use formato HH:mm)" }).refine((time) => {
+    const [hours, minutes] = time.split(':').map(Number);
+    return hours >= 0 && hours < 24 && minutes >= 0 && minutes < 60;
+  }, { message: "Horário de fim inválido" }),
+  description: z.string().trim().min(1, { message: "Descrição é obrigatória" }).max(500, { message: "Descrição deve ter no máximo 500 caracteres" })
+});
 
 export const AppointmentDialog = ({
   isOpen,
@@ -44,8 +59,32 @@ export const AppointmentDialog = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.description.trim()) {
-      toast({ title: 'Descrição é obrigatória', variant: 'destructive' });
+    // Validar dados do formulário
+    try {
+      appointmentSchema.parse(formData);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast({ 
+          title: 'Erro de validação', 
+          description: error.errors[0].message,
+          variant: 'destructive' 
+        });
+        return;
+      }
+    }
+
+    // Validar que horário de fim é após horário de início
+    const [startHours, startMinutes] = formData.start_time.split(':').map(Number);
+    const [endHours, endMinutes] = formData.end_time.split(':').map(Number);
+    const startTotalMinutes = startHours * 60 + startMinutes;
+    const endTotalMinutes = endHours * 60 + endMinutes;
+
+    if (endTotalMinutes <= startTotalMinutes) {
+      toast({ 
+        title: 'Erro de validação', 
+        description: 'O horário de fim deve ser posterior ao horário de início',
+        variant: 'destructive' 
+      });
       return;
     }
 
@@ -54,7 +93,7 @@ export const AppointmentDialog = ({
       date: formData.date,
       start_time: formData.start_time,
       end_time: formData.end_time,
-      description: formData.description
+      description: formData.description.trim()
     };
 
     if (editingAppointment) {
@@ -157,7 +196,9 @@ export const AppointmentDialog = ({
             value={formData.start_time}
             onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
             required
+            placeholder="HH:mm"
           />
+          <p className="text-xs text-muted-foreground mt-1">Formato 24h</p>
         </div>
         <div>
           <Label>Horário Fim</Label>
@@ -167,7 +208,9 @@ export const AppointmentDialog = ({
             value={formData.end_time}
             onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
             required
+            placeholder="HH:mm"
           />
+          <p className="text-xs text-muted-foreground mt-1">Formato 24h</p>
         </div>
       </div>
 
