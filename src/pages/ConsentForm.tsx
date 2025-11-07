@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Loader2, Upload, CheckCircle2 } from "lucide-react";
+import { formatBrazilianDate } from "@/lib/brazilianFormat";
 
 export default function ConsentForm() {
   const { token } = useParams();
@@ -287,7 +288,8 @@ export default function ConsentForm() {
 
                       <div className="mt-4 p-3 bg-background rounded border">
                         <p><strong>Nome do(a) menor:</strong> {patient.name}</p>
-                        <p><strong>Data de nascimento:</strong> {patient.birth_date ? new Date(patient.birth_date).toLocaleDateString('pt-BR') : "Não informado"}</p>
+                        <p><strong>CPF do(a) menor:</strong> {patient.cpf || "Não informado"}</p>
+                        <p><strong>Data de nascimento:</strong> {patient.birth_date ? formatBrazilianDate(patient.birth_date) : "Não informado"}</p>
                         <p><strong>Nome do Responsável Legal:</strong> {patient.guardian_name || "Não informado"}</p>
                         <p><strong>CPF do Responsável:</strong> {patient.guardian_cpf || "Não informado"}</p>
                       </div>
