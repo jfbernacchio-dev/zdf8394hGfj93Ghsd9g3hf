@@ -53,7 +53,6 @@ export default function IssueNFSeDialog({
         .select('*')
         .eq('patient_id', patientId)
         .eq('status', 'attended')
-        .eq('paid', false)
         .order('date', { ascending: true });
 
       if (error) throw error;

@@ -468,6 +468,16 @@ Data de emissão: ${new Date().toLocaleDateString('pt-BR')}`;
       console.error('Error updating NFSe record:', updateError);
     }
 
+    // Mark sessions as nfse_issued
+    const { error: sessionsUpdateError } = await supabase
+      .from('sessions')
+      .update({ status: 'nfse_issued' })
+      .in('id', sessionIds);
+
+    if (sessionsUpdateError) {
+      console.error('Error updating sessions status:', sessionsUpdateError);
+    }
+
     // If NFSe was authorized and we have a PDF URL, send email automatically
     if (focusNFeResult.status === 'autorizado' && focusNFeResult.url_danfse && patient.email) {
       console.log('NFSe authorized, triggering email send...');
