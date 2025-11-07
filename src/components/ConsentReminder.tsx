@@ -84,7 +84,6 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
           .select('patient_id, created_at')
           .in('patient_id', patientIds)
           .is('accepted_at', null)
-          .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
           .order('created_at', { ascending: false });
 
         // Criar um Map de patient_id -> token mais recente
@@ -139,9 +138,12 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
 
       if (error) throw error;
 
+      // Limpar o token pendente do estado
+      setPendingToken(null);
+      
       toast({
-        title: 'Link cancelado',
-        description: 'O link de consentimento foi cancelado com sucesso.',
+        title: 'Todos os links cancelados',
+        description: 'Todos os links de consentimento pendentes foram cancelados com sucesso.',
       });
 
       // Recarregar lista
