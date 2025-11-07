@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 
 import { useToast } from '@/hooks/use-toast';
 import { addWeeks, parseISO, getDay, format } from 'date-fns';
+import { formatBrazilianDate, parseFromBrazilianDate } from '@/lib/brazilianFormat';
 
 const EditPatient = () => {
   const { id } = useParams<{ id: string }>();
@@ -533,9 +534,22 @@ const EditPatient = () => {
               <Label htmlFor="birth_date">Data de nascimento</Label>
               <Input
                 id="birth_date"
-                type="date"
-                value={formData.birth_date || ''}
-                onChange={(e) => setFormData({ ...formData, birth_date: e.target.value })}
+                type="text"
+                value={formData.birth_date ? formatBrazilianDate(formData.birth_date) : ''}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '');
+                  let formatted = value;
+                  if (value.length >= 2) formatted = value.slice(0, 2) + '/' + value.slice(2);
+                  if (value.length >= 4) formatted = value.slice(0, 2) + '/' + value.slice(2, 4) + '/' + value.slice(4);
+                  if (value.length === 8) {
+                    const isoDate = parseFromBrazilianDate(formatted);
+                    setFormData({ ...formData, birth_date: isoDate });
+                  } else if (formatted.length <= 10) {
+                    e.target.value = formatted;
+                  }
+                }}
+                placeholder="DD/MM/AAAA"
+                maxLength={10}
               />
             </div>
 
@@ -840,9 +854,22 @@ const EditPatient = () => {
               <Label htmlFor="start_date">Data de início</Label>
               <Input
                 id="start_date"
-                type="date"
-                value={formData.start_date || ''}
-                onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                type="text"
+                value={formData.start_date ? formatBrazilianDate(formData.start_date) : ''}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '');
+                  let formatted = value;
+                  if (value.length >= 2) formatted = value.slice(0, 2) + '/' + value.slice(2);
+                  if (value.length >= 4) formatted = value.slice(0, 2) + '/' + value.slice(2, 4) + '/' + value.slice(4);
+                  if (value.length === 8) {
+                    const isoDate = parseFromBrazilianDate(formatted);
+                    setFormData({ ...formData, start_date: isoDate });
+                  } else if (formatted.length <= 10) {
+                    e.target.value = formatted;
+                  }
+                }}
+                placeholder="DD/MM/AAAA"
+                maxLength={10}
               />
             </div>
 
@@ -1032,10 +1059,22 @@ const EditPatient = () => {
                 <Label htmlFor="changeFromDate">Aplicar mudanças a partir de:</Label>
                 <Input
                   id="changeFromDate"
-                  type="date"
-                  value={changeFromDate}
-                  onChange={(e) => setChangeFromDate(e.target.value)}
-                  min={getBrazilDate()}
+                  type="text"
+                  value={changeFromDate ? formatBrazilianDate(changeFromDate) : ''}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '');
+                    let formatted = value;
+                    if (value.length >= 2) formatted = value.slice(0, 2) + '/' + value.slice(2);
+                    if (value.length >= 4) formatted = value.slice(0, 2) + '/' + value.slice(2, 4) + '/' + value.slice(4);
+                    if (value.length === 8) {
+                      const isoDate = parseFromBrazilianDate(formatted);
+                      setChangeFromDate(isoDate);
+                    } else if (formatted.length <= 10) {
+                      e.target.value = formatted;
+                    }
+                  }}
+                  placeholder="DD/MM/AAAA"
+                  maxLength={10}
                 />
               </div>
               <div className="flex gap-2">
