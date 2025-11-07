@@ -191,26 +191,44 @@ export const AppointmentDialog = ({
         <div>
           <Label>Horário Início</Label>
           <Input
-            type="time"
-            step="900"
+            type="text"
             value={formData.start_time}
-            onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+            onChange={(e) => {
+              const value = e.target.value.replace(/\D/g, '');
+              let formatted = value;
+              if (value.length >= 2) {
+                formatted = value.slice(0, 2) + ':' + value.slice(2, 4);
+              }
+              if (formatted.length <= 5) {
+                setFormData({ ...formData, start_time: formatted });
+              }
+            }}
             required
             placeholder="HH:mm"
+            maxLength={5}
           />
-          <p className="text-xs text-muted-foreground mt-1">Formato 24h</p>
+          <p className="text-xs text-muted-foreground mt-1">Formato: 09:00</p>
         </div>
         <div>
           <Label>Horário Fim</Label>
           <Input
-            type="time"
-            step="900"
+            type="text"
             value={formData.end_time}
-            onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
+            onChange={(e) => {
+              const value = e.target.value.replace(/\D/g, '');
+              let formatted = value;
+              if (value.length >= 2) {
+                formatted = value.slice(0, 2) + ':' + value.slice(2, 4);
+              }
+              if (formatted.length <= 5) {
+                setFormData({ ...formData, end_time: formatted });
+              }
+            }}
             required
             placeholder="HH:mm"
+            maxLength={5}
           />
-          <p className="text-xs text-muted-foreground mt-1">Formato 24h</p>
+          <p className="text-xs text-muted-foreground mt-1">Formato: 18:00</p>
         </div>
       </div>
 
