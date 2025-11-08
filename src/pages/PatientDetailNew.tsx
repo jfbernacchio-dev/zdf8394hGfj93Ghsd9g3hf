@@ -977,26 +977,25 @@ Assinatura do Profissional`;
           </Card>
         </div>
 
-        {/* New Note Button */}
-        <div className="flex justify-end mb-6">
-          <Button 
-            onClick={() => setIsNoteDialogOpen(true)} 
-            variant="outline" 
-            size="sm"
-            className="gap-2 text-muted-foreground hover:text-foreground"
-          >
-            <StickyNote className="w-4 h-4" />
-            Nova Nota
-          </Button>
-        </div>
-
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="mb-6">
-            <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-            <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
-            <TabsTrigger value="billing">Faturamento</TabsTrigger>
-            <TabsTrigger value="files">Arquivos</TabsTrigger>
-          </TabsList>
+          {/* Tabs Menu and New Note Button aligned */}
+          <div className="flex items-center justify-between mb-6">
+            <TabsList>
+              <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+              <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
+              <TabsTrigger value="billing">Faturamento</TabsTrigger>
+              <TabsTrigger value="files">Arquivos</TabsTrigger>
+            </TabsList>
+            <Button 
+              onClick={() => setIsNoteDialogOpen(true)} 
+              variant="outline" 
+              size="sm"
+              className="gap-2 text-muted-foreground hover:text-foreground"
+            >
+              <StickyNote className="w-4 h-4" />
+              Nova Nota
+            </Button>
+          </div>
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
