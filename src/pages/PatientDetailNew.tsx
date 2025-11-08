@@ -834,6 +834,9 @@ Assinatura do Profissional`;
     setIsEditMode(false);
     setTempSizes({});
     toast({ title: 'Layout salvo com sucesso!' });
+    
+    // Force reload to apply saved sizes
+    setTimeout(() => window.location.reload(), 300);
   };
 
   const handleCancelChanges = () => {
