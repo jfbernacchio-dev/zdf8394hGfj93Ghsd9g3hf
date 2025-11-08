@@ -10,6 +10,8 @@ interface ResizableCardProps {
   isEditMode: boolean;
   defaultWidth?: number;
   defaultHeight?: number;
+  tempSize?: { width: number; height: number } | null;
+  onTempSizeChange?: (id: string, size: { width: number; height: number }) => void;
 }
 
 export const ResizableCard = ({ 
@@ -18,25 +20,25 @@ export const ResizableCard = ({
   className, 
   isEditMode,
   defaultWidth = 300,
-  defaultHeight = 200
+  defaultHeight = 200,
+  tempSize,
+  onTempSizeChange
 }: ResizableCardProps) => {
-  const [size, setSize] = useState({ width: defaultWidth, height: defaultHeight });
+  const [savedSize, setSavedSize] = useState({ width: defaultWidth, height: defaultHeight });
   const [isResizing, setIsResizing] = useState(false);
   const [resizeDirection, setResizeDirection] = useState<'both' | 'horizontal' | 'vertical' | null>(null);
 
-  // Load saved size from localStorage
+  // Load saved size from localStorage on mount
   useEffect(() => {
-    const savedSize = localStorage.getItem(`card-size-${id}`);
-    if (savedSize) {
-      setSize(JSON.parse(savedSize));
+    const saved = localStorage.getItem(`card-size-${id}`);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      setSavedSize(parsed);
     }
   }, [id]);
 
-  // Save size to localStorage
-  const saveSize = (newSize: { width: number; height: number }) => {
-    localStorage.setItem(`card-size-${id}`, JSON.stringify(newSize));
-    setSize(newSize);
-  };
+  // Use tempSize if in edit mode and available, otherwise use savedSize
+  const currentSize = isEditMode && tempSize ? tempSize : savedSize;
 
   const handleMouseDown = (e: React.MouseEvent, direction: 'both' | 'horizontal' | 'vertical') => {
     if (!isEditMode) return;
@@ -47,9 +49,8 @@ export const ResizableCard = ({
     
     const startX = e.clientX;
     const startY = e.clientY;
-    const startWidth = size.width;
-    const startHeight = size.height;
-    let finalSize = { ...size };
+    const startWidth = currentSize.width;
+    const startHeight = currentSize.height;
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
       const deltaX = moveEvent.clientX - startX;
@@ -67,14 +68,14 @@ export const ResizableCard = ({
         newSize.height = Math.max(150, startHeight + deltaY);
       }
       
-      finalSize = newSize;
-      setSize(newSize);
+      if (onTempSizeChange) {
+        onTempSizeChange(id, newSize);
+      }
     };
 
     const handleMouseUp = () => {
       setIsResizing(false);
       setResizeDirection(null);
-      saveSize(finalSize);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
@@ -83,10 +84,6 @@ export const ResizableCard = ({
     document.addEventListener('mouseup', handleMouseUp);
   };
 
-  if (!isEditMode) {
-    return <Card className={className}>{children}</Card>;
-  }
-
   return (
     <div 
       className={cn(
@@ -94,8 +91,8 @@ export const ResizableCard = ({
         isResizing && "cursor-move"
       )}
       style={{ 
-        width: `${size.width}px`,
-        height: `${size.height}px`,
+        width: `${currentSize.width}px`,
+        height: `${currentSize.height}px`,
         minWidth: '200px',
         minHeight: '150px'
       }}

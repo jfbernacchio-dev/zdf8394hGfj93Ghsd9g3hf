@@ -18,6 +18,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, startOfMonth, endOfMonth, isFuture } from 'date-fns';
@@ -62,6 +63,8 @@ const PatientDetailNew = () => {
   const [noteType, setNoteType] = useState<'session' | 'general'>('session');
   const [selectedSessionForNote, setSelectedSessionForNote] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isExitEditDialogOpen, setIsExitEditDialogOpen] = useState(false);
+  const [tempSizes, setTempSizes] = useState<Record<string, { width: number; height: number }>>({});
   
   const getBrazilDate = () => {
     return new Date().toLocaleString('en-CA', { 
@@ -808,6 +811,39 @@ Assinatura do Profissional`;
     }
   };
 
+  const handleEnterEditMode = () => {
+    setTempSizes({});
+    setIsEditMode(true);
+  };
+
+  const handleExitEditMode = () => {
+    setIsExitEditDialogOpen(true);
+  };
+
+  const handleTempSizeChange = (id: string, size: { width: number; height: number }) => {
+    setTempSizes(prev => ({ ...prev, [id]: size }));
+  };
+
+  const handleSaveChanges = () => {
+    // Save all temp sizes to localStorage
+    Object.entries(tempSizes).forEach(([id, size]) => {
+      localStorage.setItem(`card-size-${id}`, JSON.stringify(size));
+    });
+    
+    setIsExitEditDialogOpen(false);
+    setIsEditMode(false);
+    setTempSizes({});
+    toast({ title: 'Layout salvo com sucesso!' });
+  };
+
+  const handleCancelChanges = () => {
+    // Discard all temp sizes
+    setTempSizes({});
+    setIsExitEditDialogOpen(false);
+    setIsEditMode(false);
+    toast({ title: 'Alterações descartadas' });
+  };
+
   if (!patient) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -874,7 +910,7 @@ Assinatura do Profissional`;
             </div>
             <div className="flex items-center gap-2">
               <Button
-                onClick={() => setIsEditMode(!isEditMode)}
+                onClick={isEditMode ? handleExitEditMode : handleEnterEditMode}
                 variant={isEditMode ? "default" : "outline"}
                 size="sm"
               >
@@ -969,6 +1005,8 @@ Assinatura do Profissional`;
                   isEditMode={isEditMode}
                   defaultWidth={350}
                   defaultHeight={220}
+                  tempSize={tempSizes['next-appointment']}
+                  onTempSizeChange={handleTempSizeChange}
                   className="p-6 bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20"
                 >
                   <div className="flex flex-col">
@@ -995,6 +1033,8 @@ Assinatura do Profissional`;
                 isEditMode={isEditMode}
                 defaultWidth={350}
                 defaultHeight={220}
+                tempSize={tempSizes['contact-info']}
+                onTempSizeChange={handleTempSizeChange}
                 className="p-6"
               >
                 <h3 className="font-semibold text-lg mb-4">Informações de Contato</h3>
@@ -1044,6 +1084,8 @@ Assinatura do Profissional`;
                 isEditMode={isEditMode}
                 defaultWidth={350}
                 defaultHeight={220}
+                tempSize={tempSizes['clinical-complaint']}
+                onTempSizeChange={handleTempSizeChange}
                 className="p-6"
               >
                 <div className="flex items-center justify-between mb-4">
@@ -1085,6 +1127,8 @@ Assinatura do Profissional`;
                 isEditMode={isEditMode}
                 defaultWidth={700}
                 defaultHeight={280}
+                tempSize={tempSizes['clinical-info']}
+                onTempSizeChange={handleTempSizeChange}
                 className="lg:col-span-2 p-6"
               >
                 <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
@@ -1119,6 +1163,8 @@ Assinatura do Profissional`;
                   isEditMode={isEditMode}
                   defaultWidth={350}
                   defaultHeight={280}
+                  tempSize={tempSizes['history']}
+                  onTempSizeChange={handleTempSizeChange}
                   className="p-6"
                 >
                   <div className="flex items-center justify-between mb-4">
@@ -1648,6 +1694,26 @@ Assinatura do Profissional`;
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Exit Edit Mode Confirmation Dialog */}
+      <AlertDialog open={isExitEditDialogOpen} onOpenChange={setIsExitEditDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Salvar alterações no layout?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você fez alterações no tamanho dos cards. Deseja salvar essas mudanças ou descartá-las?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelChanges}>
+              Cancelar (descartar mudanças)
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleSaveChanges}>
+              Salvar alterações
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
