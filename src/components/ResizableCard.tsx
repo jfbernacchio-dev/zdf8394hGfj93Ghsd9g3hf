@@ -247,6 +247,22 @@ export const ResizableCard = ({
         </div>
       )}
 
+      {/* Drag handle - shown at bottom center */}
+      {isEditMode && (
+        <div
+          className={cn(
+            "absolute -bottom-3 left-1/2 -translate-x-1/2 cursor-move",
+            "bg-primary hover:bg-primary/90 rounded-full p-2",
+            "opacity-0 group-hover:opacity-100 transition-opacity z-20",
+            isDragging && "opacity-100"
+          )}
+          onMouseDown={handleDragStart}
+          title="Arrastar card"
+        >
+          <Move className="w-4 h-4 text-primary-foreground" />
+        </div>
+      )}
+
       {/* Alignment guides */}
       {isEditMode && alignmentGuides.x.map((x, i) => (
         <div
