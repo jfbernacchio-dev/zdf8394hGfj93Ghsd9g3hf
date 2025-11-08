@@ -949,9 +949,9 @@ Assinatura do Profissional`;
             </div>
 
             {/* First Row: Next Appointment + Contact Info */}
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-20 gap-6">
               {nextSession ? (
-                <Card className="p-6 bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20">
+                <Card className="lg:col-span-4 p-6 bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20">
                   <div className="flex flex-col">
                     <p className="text-sm font-medium text-muted-foreground mb-2">Próximo Agendamento</p>
                     <div className="flex items-center gap-2 mb-1">
@@ -971,7 +971,7 @@ Assinatura do Profissional`;
                 <div className="hidden lg:block" />
               )}
 
-              <Card className="lg:col-span-2 p-6 h-full">
+              <Card className="lg:col-span-9 p-6 h-full">
                 <h3 className="font-semibold text-lg mb-4">Informações de Contato</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                   {patient.phone && (
