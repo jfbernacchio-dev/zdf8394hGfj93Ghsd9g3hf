@@ -948,6 +948,39 @@ Assinatura do Profissional`;
               </Button>
             </div>
 
+            {/* Clinical Complaint */}
+            <Card className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-lg flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-primary" />
+                  Queixa Clínica
+                </h3>
+                <Button 
+                  onClick={() => setIsComplaintDialogOpen(true)} 
+                  size="sm"
+                  variant="ghost"
+                >
+                  <Edit className="w-4 h-4" />
+                </Button>
+              </div>
+              {needsComplaintReview && (
+                <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                      Atualização necessária
+                    </p>
+                    <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                      Revisar queixa clínica
+                    </p>
+                  </div>
+                </div>
+              )}
+              <div className="text-sm text-muted-foreground">
+                {complaint?.complaint_text || 'Nenhuma queixa registrada'}
+              </div>
+            </Card>
+
             {/* First Row: Next Appointment + Contact Info */}
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
               {nextSession ? (
@@ -1043,39 +1076,6 @@ Assinatura do Profissional`;
 
               {/* Right Column - Sidebar */}
               <div className="space-y-6 lg:col-start-3">
-                {/* Clinical Complaint */}
-                <Card className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-lg flex items-center gap-2">
-                      <FileText className="w-5 h-5 text-primary" />
-                      Queixa Clínica
-                    </h3>
-                    <Button 
-                      onClick={() => setIsComplaintDialogOpen(true)} 
-                      size="sm"
-                      variant="ghost"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  {needsComplaintReview && (
-                    <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex items-start gap-2">
-                      <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5" />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                          Atualização necessária
-                        </p>
-                        <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
-                          Revisar queixa clínica
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  <div className="text-sm text-muted-foreground">
-                    {complaint?.complaint_text || 'Nenhuma queixa registrada'}
-                  </div>
-                </Card>
-
                 {/* Notes History */}
                 <Card className="p-6">
                   <div className="flex items-center justify-between mb-4">
