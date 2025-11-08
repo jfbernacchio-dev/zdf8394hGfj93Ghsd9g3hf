@@ -1,8 +1,8 @@
 // Default layout configuration for DashboardTest page
 export const DEFAULT_DASHBOARD_LAYOUT = {
   sectionHeights: {
-    'stats-section': 180,
-    'sessions-section': 180,
+    'metrics-section': 400,
+    'charts-section': 450,
   },
   visibleCards: [
     'total-patients',
@@ -31,8 +31,8 @@ export const resetToDefaultDashboardLayout = () => {
   // Clear all existing customizations
   const keys = Object.keys(localStorage);
   keys.forEach(key => {
-    if (key.startsWith('dashboard-card-size-') || 
-        key.startsWith('dashboard-section-height-') || 
+    if (key.startsWith('card-size-') || 
+        key.startsWith('section-height-') || 
         key === 'dashboard-visible-cards') {
       localStorage.removeItem(key);
     }
@@ -43,11 +43,11 @@ export const resetToDefaultDashboardLayout = () => {
   
   // Set default section heights
   Object.entries(DEFAULT_DASHBOARD_LAYOUT.sectionHeights).forEach(([id, height]) => {
-    localStorage.setItem(`dashboard-section-height-${id}`, height.toString());
+    localStorage.setItem(`section-height-${id}`, height.toString());
   });
   
   // Set default card sizes
   Object.entries(DEFAULT_DASHBOARD_LAYOUT.cardSizes).forEach(([id, size]) => {
-    localStorage.setItem(`dashboard-card-size-${id}`, JSON.stringify(size));
+    localStorage.setItem(`card-size-${id}`, JSON.stringify(size));
   });
 };

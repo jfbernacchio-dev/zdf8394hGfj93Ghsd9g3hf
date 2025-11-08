@@ -20,6 +20,8 @@ import { ResizableCard } from '@/components/ResizableCard';
 import { ResizableSection } from '@/components/ResizableSection';
 import { DEFAULT_DASHBOARD_LAYOUT, resetToDefaultDashboardLayout } from '@/lib/defaultLayoutDashboard';
 import { toast } from 'sonner';
+import { AddCardDialog } from '@/components/AddCardDialog';
+import { CardConfig } from '@/types/cardTypes';
 
 const DashboardTest = () => {
   const { user } = useAuth();
@@ -36,6 +38,10 @@ const DashboardTest = () => {
   const [visibleCards, setVisibleCards] = useState<string[]>([]);
   const [tempCardSizes, setTempCardSizes] = useState<Record<string, { width: number; height: number; x: number; y: number }>>({});
   const [tempSectionHeights, setTempSectionHeights] = useState<Record<string, number>>({});
+  
+  // Add card dialog state
+  const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
+  const [isAddChartDialogOpen, setIsAddChartDialogOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -323,7 +329,7 @@ const DashboardTest = () => {
     
     // Save temp section heights
     Object.entries(tempSectionHeights).forEach(([id, height]) => {
-      localStorage.setItem(`dashboard-section-height-${id}`, height.toString());
+      localStorage.setItem(`section-height-${id}`, height.toString());
     });
     
     // Clear temp state
@@ -360,6 +366,31 @@ const DashboardTest = () => {
     setTempSectionHeights(prev => ({ ...prev, [id]: height }));
   };
 
+  const handleAddCard = (card: CardConfig) => {
+    const newVisibleCards = [...visibleCards, card.id];
+    setVisibleCards(newVisibleCards);
+    localStorage.setItem('dashboard-visible-cards', JSON.stringify(newVisibleCards));
+    
+    // Set default size for the new card
+    const defaultSize = {
+      width: card.defaultWidth || 280,
+      height: card.defaultHeight || 160,
+      x: 0,
+      y: 0,
+    };
+    localStorage.setItem(`card-size-${card.id}`, JSON.stringify(defaultSize));
+    
+    toast.success(`Card "${card.name}" adicionado!`);
+  };
+
+  const handleRemoveCard = (cardId: string) => {
+    const newVisibleCards = visibleCards.filter(id => id !== cardId);
+    setVisibleCards(newVisibleCards);
+    localStorage.setItem('dashboard-visible-cards', JSON.stringify(newVisibleCards));
+    localStorage.removeItem(`card-size-${cardId}`);
+    toast.success('Card removido!');
+  };
+
   const getSavedCardSize = (id: string) => {
     if (tempCardSizes[id]) return tempCardSizes[id];
     const saved = localStorage.getItem(`card-size-${id}`);
@@ -369,9 +400,9 @@ const DashboardTest = () => {
 
   const getSavedSectionHeight = (id: string) => {
     if (tempSectionHeights[id]) return tempSectionHeights[id];
-    const saved = localStorage.getItem(`dashboard-section-height-${id}`);
+    const saved = localStorage.getItem(`section-height-${id}`);
     if (saved) return parseInt(saved);
-    return DEFAULT_DASHBOARD_LAYOUT.sectionHeights[id];
+    return DEFAULT_DASHBOARD_LAYOUT.sectionHeights[id] || 400;
   };
 
   const allCardSizes = Object.keys(DEFAULT_DASHBOARD_LAYOUT.cardSizes).reduce((acc, id) => {
@@ -539,100 +570,162 @@ const DashboardTest = () => {
         </div>
       </Card>
 
-      {/* Stats Section */}
-      <ResizableSection
-        id="stats-section"
-        isEditMode={isEditMode}
-        defaultHeight={getSavedSectionHeight('stats-section')}
-        tempHeight={tempSectionHeights['stats-section']}
-        onTempHeightChange={handleTempSectionHeightChange}
-        className="mb-8"
-      >
-        <div className="relative h-full">
-          {renderCard(
-            'total-patients',
-            <Users className="w-6 h-6 text-primary" />,
-            patients.length,
-            'Total de Pacientes'
-          )}
-          {renderCard(
-            'expected-revenue',
-            <TrendingUp className="w-6 h-6 text-blue-500" />,
-            formatBrazilianCurrency(totalExpected),
-            'Receita Esperada',
-            () => openDialog('expected'),
-            'bg-blue-500/10',
-            'text-blue-500'
-          )}
-          {renderCard(
-            'actual-revenue',
-            <DollarSign className="w-6 h-6 text-[hsl(var(--success))]" />,
-            formatBrazilianCurrency(totalActual),
-            `Receita Efetiva (${revenuePercent}%)`,
-            () => openDialog('actual'),
-            'bg-success/10',
-            'text-[hsl(var(--success))]'
-          )}
-          {renderCard(
-            'attended-sessions',
-            <CheckCircle2 className="w-6 h-6 text-accent" />,
-            visiblePeriodSessions.filter(s => s.status === 'attended').length,
-            'Sessões Realizadas',
-            undefined,
-            'bg-accent/10',
-            'text-accent'
+      {/* Metrics Section - All Cards */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-foreground">Métricas</h2>
+          {isEditMode && (
+            <Button
+              onClick={() => setIsAddCardDialogOpen(true)}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Adicionar Card
+            </Button>
           )}
         </div>
-      </ResizableSection>
+        <ResizableSection
+          id="metrics-section"
+          isEditMode={isEditMode}
+          defaultHeight={getSavedSectionHeight('metrics-section')}
+          tempHeight={tempSectionHeights['metrics-section']}
+          onTempHeightChange={handleTempSectionHeightChange}
+        >
+          <div className="relative h-full">
+            {renderCard(
+              'total-patients',
+              <Users className="w-6 h-6 text-primary" />,
+              patients.length,
+              'Total de Pacientes'
+            )}
+            {renderCard(
+              'expected-revenue',
+              <TrendingUp className="w-6 h-6 text-blue-500" />,
+              formatBrazilianCurrency(totalExpected),
+              'Receita Esperada',
+              () => openDialog('expected'),
+              'bg-blue-500/10',
+              'text-blue-500'
+            )}
+            {renderCard(
+              'actual-revenue',
+              <DollarSign className="w-6 h-6 text-[hsl(var(--success))]" />,
+              formatBrazilianCurrency(totalActual),
+              `Receita Efetiva (${revenuePercent}%)`,
+              () => openDialog('actual'),
+              'bg-success/10',
+              'text-[hsl(var(--success))]'
+            )}
+            {renderCard(
+              'attended-sessions',
+              <CheckCircle2 className="w-6 h-6 text-accent" />,
+              visiblePeriodSessions.filter(s => s.status === 'attended').length,
+              'Sessões Realizadas',
+              undefined,
+              'bg-accent/10',
+              'text-accent'
+            )}
+            {renderCard(
+              'expected-sessions',
+              <Calendar className="w-6 h-6 text-accent" />,
+              expectedSessions,
+              'Sessões Esperadas',
+              undefined,
+              'bg-accent/10',
+              'text-accent'
+            )}
+            {renderCard(
+              'missed-sessions',
+              <AlertCircle className="w-6 h-6 text-destructive" />,
+              missedSessions.length,
+              `Sessões Desmarcadas (${missedPercent}%)`,
+              undefined,
+              'bg-destructive/10',
+              'text-destructive'
+            )}
+            {renderCard(
+              'pending-sessions',
+              <Calendar className="w-6 h-6 text-muted-foreground" />,
+              pendingSessions.length,
+              `Sessões Pendentes (${pendingPercent}%)`,
+              undefined,
+              'bg-muted/50',
+              'text-muted-foreground'
+            )}
+            {renderCard(
+              'unpaid-value',
+              <DollarSign className="w-6 h-6 text-[hsl(var(--warning))]" />,
+              formatBrazilianCurrency(unpaidValue),
+              `Em Aberto (${unpaidSessions.length})`,
+              () => openDialog('unpaid'),
+              'bg-warning/10',
+              'text-[hsl(var(--warning))]'
+            )}
+          </div>
+        </ResizableSection>
+      </div>
 
-      {/* Sessions Section */}
-      <ResizableSection
-        id="sessions-section"
-        isEditMode={isEditMode}
-        defaultHeight={getSavedSectionHeight('sessions-section')}
-        tempHeight={tempSectionHeights['sessions-section']}
-        onTempHeightChange={handleTempSectionHeightChange}
-        className="mb-8"
-      >
-        <div className="relative h-full">
-          {renderCard(
-            'expected-sessions',
-            <Calendar className="w-6 h-6 text-accent" />,
-            expectedSessions,
-            'Sessões Esperadas',
-            undefined,
-            'bg-accent/10',
-            'text-accent'
-          )}
-          {renderCard(
-            'missed-sessions',
-            <AlertCircle className="w-6 h-6 text-destructive" />,
-            missedSessions.length,
-            `Sessões Desmarcadas (${missedPercent}%)`,
-            undefined,
-            'bg-destructive/10',
-            'text-destructive'
-          )}
-          {renderCard(
-            'pending-sessions',
-            <Calendar className="w-6 h-6 text-muted-foreground" />,
-            pendingSessions.length,
-            `Sessões Pendentes (${pendingPercent}%)`,
-            undefined,
-            'bg-muted/50',
-            'text-muted-foreground'
-          )}
-          {renderCard(
-            'unpaid-value',
-            <DollarSign className="w-6 h-6 text-[hsl(var(--warning))]" />,
-            formatBrazilianCurrency(unpaidValue),
-            `Em Aberto (${unpaidSessions.length})`,
-            () => openDialog('unpaid'),
-            'bg-warning/10',
-            'text-[hsl(var(--warning))]'
+      {/* Charts Section - For Visualizations */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-foreground">Gráficos e Visualizações</h2>
+          {isEditMode && (
+            <Button
+              onClick={() => setIsAddChartDialogOpen(true)}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Adicionar Gráfico
+            </Button>
           )}
         </div>
-      </ResizableSection>
+        <ResizableSection
+          id="charts-section"
+          isEditMode={isEditMode}
+          defaultHeight={getSavedSectionHeight('charts-section')}
+          tempHeight={tempSectionHeights['charts-section']}
+          onTempHeightChange={handleTempSectionHeightChange}
+        >
+          <div className="relative h-full">
+            {visibleCards.filter(id => id.startsWith('chart-')).length === 0 ? (
+              <Card className="p-8 text-center border-dashed">
+                <p className="text-muted-foreground">
+                  {isEditMode 
+                    ? 'Clique em "Adicionar Gráfico" para adicionar visualizações'
+                    : 'Nenhum gráfico adicionado. Entre no modo de edição para adicionar gráficos.'
+                  }
+                </p>
+              </Card>
+            ) : (
+              <>
+                {/* Render chart cards here when implemented */}
+                <p className="text-muted-foreground text-center p-8">Gráficos serão renderizados aqui</p>
+              </>
+            )}
+          </div>
+        </ResizableSection>
+      </div>
+
+      {/* Add Card Dialogs */}
+      <AddCardDialog
+        open={isAddCardDialogOpen}
+        onOpenChange={setIsAddCardDialogOpen}
+        onAddCard={handleAddCard}
+        existingCardIds={visibleCards}
+        mode="dashboard-cards"
+      />
+      
+      <AddCardDialog
+        open={isAddChartDialogOpen}
+        onOpenChange={setIsAddChartDialogOpen}
+        onAddCard={handleAddCard}
+        existingCardIds={visibleCards}
+        mode="dashboard-charts"
+      />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">

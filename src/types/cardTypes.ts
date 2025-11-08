@@ -1,4 +1,4 @@
-export type CardCategory = 'statistics' | 'functional';
+export type CardCategory = 'statistics' | 'functional' | 'dashboard-cards' | 'dashboard-charts';
 
 export interface CardConfig {
   id: string;
@@ -184,4 +184,188 @@ export const AVAILABLE_FUNCTIONAL_CARDS: CardConfig[] = [
   },
 ];
 
-export const ALL_AVAILABLE_CARDS = [...AVAILABLE_STAT_CARDS, ...AVAILABLE_FUNCTIONAL_CARDS];
+// Dashboard cards - for metrics section
+export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
+  {
+    id: 'total-patients',
+    name: 'Total de Pacientes',
+    description: 'Número total de pacientes ativos no sistema',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+  },
+  {
+    id: 'expected-revenue',
+    name: 'Faturamento Esperado',
+    description: 'Valor total esperado considerando todas as sessões agendadas',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+  },
+  {
+    id: 'actual-revenue',
+    name: 'Faturamento Real',
+    description: 'Valor real das sessões que foram realizadas e pagas',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+  },
+  {
+    id: 'attended-sessions',
+    name: 'Sessões Comparecidas',
+    description: 'Total de sessões realizadas com comparecimento confirmado',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+  },
+  {
+    id: 'expected-sessions',
+    name: 'Sessões Esperadas',
+    description: 'Total de sessões agendadas incluindo futuras',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+  },
+  {
+    id: 'missed-sessions',
+    name: 'Faltas',
+    description: 'Sessões marcadas como falta pelo paciente',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+  },
+  {
+    id: 'pending-sessions',
+    name: 'Sessões Pendentes',
+    description: 'Sessões agendadas mas ainda não realizadas',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+  },
+  {
+    id: 'unpaid-value',
+    name: 'Valor a Receber',
+    description: 'Total de valores de sessões realizadas mas ainda não pagas',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+  },
+  {
+    id: 'active-therapists',
+    name: 'Terapeutas Ativos',
+    description: 'Número de terapeutas com sessões ativas no sistema',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+  },
+  {
+    id: 'attendance-rate',
+    name: 'Taxa de Comparecimento',
+    description: 'Percentual de sessões comparecidas vs agendadas',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+  },
+  {
+    id: 'monthly-growth',
+    name: 'Crescimento Mensal',
+    description: 'Comparação do faturamento com o mês anterior',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+  },
+  {
+    id: 'payment-rate',
+    name: 'Taxa de Pagamento',
+    description: 'Percentual de sessões pagas vs sessões realizadas',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+  },
+];
+
+// Dashboard charts - for visualization section
+export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
+  {
+    id: 'chart-revenue-trend',
+    name: 'Tendência de Faturamento',
+    description: 'Gráfico de linha mostrando evolução do faturamento ao longo do tempo',
+    category: 'dashboard-charts',
+    defaultWidth: 600,
+    defaultHeight: 400,
+  },
+  {
+    id: 'chart-session-types',
+    name: 'Tipos de Sessão',
+    description: 'Gráfico de pizza com distribuição de sessões comparecidas, faltas e cancelamentos',
+    category: 'dashboard-charts',
+    defaultWidth: 500,
+    defaultHeight: 400,
+  },
+  {
+    id: 'chart-therapist-distribution',
+    name: 'Distribuição por Terapeuta',
+    description: 'Gráfico de barras mostrando número de sessões por terapeuta',
+    category: 'dashboard-charts',
+    defaultWidth: 600,
+    defaultHeight: 400,
+  },
+  {
+    id: 'chart-monthly-comparison',
+    name: 'Comparação Mensal',
+    description: 'Gráfico de barras comparando métricas dos últimos 6 meses',
+    category: 'dashboard-charts',
+    defaultWidth: 700,
+    defaultHeight: 400,
+  },
+  {
+    id: 'chart-payment-status',
+    name: 'Status de Pagamento',
+    description: 'Gráfico de pizza mostrando proporção de sessões pagas vs não pagas',
+    category: 'dashboard-charts',
+    defaultWidth: 500,
+    defaultHeight: 400,
+  },
+  {
+    id: 'chart-attendance-weekly',
+    name: 'Comparecimento Semanal',
+    description: 'Gráfico de linha com taxa de comparecimento por semana',
+    category: 'dashboard-charts',
+    defaultWidth: 700,
+    defaultHeight: 400,
+  },
+  {
+    id: 'chart-revenue-by-therapist',
+    name: 'Faturamento por Terapeuta',
+    description: 'Gráfico de barras horizontais com faturamento individual de cada terapeuta',
+    category: 'dashboard-charts',
+    defaultWidth: 600,
+    defaultHeight: 450,
+  },
+  {
+    id: 'chart-patient-growth',
+    name: 'Crescimento de Pacientes',
+    description: 'Gráfico de área mostrando evolução do número de pacientes',
+    category: 'dashboard-charts',
+    defaultWidth: 700,
+    defaultHeight: 400,
+  },
+  {
+    id: 'chart-hourly-distribution',
+    name: 'Distribuição por Horário',
+    description: 'Gráfico de barras mostrando concentração de sessões por horário do dia',
+    category: 'dashboard-charts',
+    defaultWidth: 600,
+    defaultHeight: 400,
+  },
+  {
+    id: 'chart-cancellation-reasons',
+    name: 'Motivos de Cancelamento',
+    description: 'Gráfico de pizza com categorização dos motivos de faltas',
+    category: 'dashboard-charts',
+    defaultWidth: 500,
+    defaultHeight: 400,
+  },
+];
+
+export const ALL_AVAILABLE_CARDS = [...AVAILABLE_STAT_CARDS, ...AVAILABLE_FUNCTIONAL_CARDS, ...AVAILABLE_DASHBOARD_CARDS, ...AVAILABLE_DASHBOARD_CHARTS];
