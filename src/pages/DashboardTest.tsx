@@ -357,16 +357,24 @@ const DashboardTest = () => {
     setTempSectionHeights(prev => ({ ...prev, [id]: height }));
   };
 
-  const allCardSizes = {
-    ...DEFAULT_DASHBOARD_LAYOUT.cardSizes,
-    ...Object.fromEntries(
-      Object.entries(DEFAULT_DASHBOARD_LAYOUT.cardSizes).map(([id, defaultSize]) => {
-        const saved = localStorage.getItem(`dashboard-card-size-${id}`);
-        return [id, saved ? JSON.parse(saved) : defaultSize];
-      })
-    ),
-    ...tempCardSizes,
+  const getSavedCardSize = (id: string) => {
+    if (tempCardSizes[id]) return tempCardSizes[id];
+    const saved = localStorage.getItem(`dashboard-card-size-${id}`);
+    if (saved) return JSON.parse(saved);
+    return DEFAULT_DASHBOARD_LAYOUT.cardSizes[id];
   };
+
+  const getSavedSectionHeight = (id: string) => {
+    if (tempSectionHeights[id]) return tempSectionHeights[id];
+    const saved = localStorage.getItem(`dashboard-section-height-${id}`);
+    if (saved) return parseInt(saved);
+    return DEFAULT_DASHBOARD_LAYOUT.sectionHeights[id];
+  };
+
+  const allCardSizes = Object.keys(DEFAULT_DASHBOARD_LAYOUT.cardSizes).reduce((acc, id) => {
+    acc[id] = getSavedCardSize(id);
+    return acc;
+  }, {} as Record<string, { width: number; height: number; x: number; y: number }>);
 
   const renderCard = (
     id: string,
@@ -401,8 +409,8 @@ const DashboardTest = () => {
             onClick && "cursor-pointer hover:shadow-lg transition-shadow"
           )}
           isEditMode={isEditMode}
-          defaultWidth={DEFAULT_DASHBOARD_LAYOUT.cardSizes[id]?.width || 280}
-          defaultHeight={DEFAULT_DASHBOARD_LAYOUT.cardSizes[id]?.height || 160}
+          defaultWidth={getSavedCardSize(id)?.width || 280}
+          defaultHeight={getSavedCardSize(id)?.height || 160}
           tempSize={tempCardSizes[id]}
           onTempSizeChange={handleTempCardSizeChange}
           allCardSizes={allCardSizes}
@@ -545,7 +553,7 @@ const DashboardTest = () => {
       <ResizableSection
         id="stats-section"
         isEditMode={isEditMode}
-        defaultHeight={DEFAULT_DASHBOARD_LAYOUT.sectionHeights['stats-section']}
+        defaultHeight={getSavedSectionHeight('stats-section')}
         tempHeight={tempSectionHeights['stats-section']}
         onTempHeightChange={handleTempSectionHeightChange}
         className="mb-8"
@@ -591,7 +599,7 @@ const DashboardTest = () => {
       <ResizableSection
         id="sessions-section"
         isEditMode={isEditMode}
-        defaultHeight={DEFAULT_DASHBOARD_LAYOUT.sectionHeights['sessions-section']}
+        defaultHeight={getSavedSectionHeight('sessions-section')}
         tempHeight={tempSectionHeights['sessions-section']}
         onTempHeightChange={handleTempSectionHeightChange}
         className="mb-8"
