@@ -940,41 +940,86 @@ Assinatura do Profissional`;
 
         {/* Monthly Stats at Top - Always Visible */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-          <Card className="p-4">
+          <ResizableCard 
+            id="stat-total"
+            isEditMode={isEditMode}
+            defaultWidth={200}
+            defaultHeight={120}
+            tempSize={tempSizes['stat-total']}
+            onTempSizeChange={handleTempSizeChange}
+            allCardSizes={tempSizes}
+            className="p-4"
+          >
             <div className="flex flex-col">
               <p className="text-sm text-muted-foreground mb-1">Total no Mês</p>
               <p className="text-3xl font-bold text-foreground">{totalMonthSessions}</p>
               <p className="text-xs text-muted-foreground mt-1">sessões</p>
             </div>
-          </Card>
-          <Card className="p-4">
+          </ResizableCard>
+          <ResizableCard 
+            id="stat-attended"
+            isEditMode={isEditMode}
+            defaultWidth={200}
+            defaultHeight={120}
+            tempSize={tempSizes['stat-attended']}
+            onTempSizeChange={handleTempSizeChange}
+            allCardSizes={tempSizes}
+            className="p-4"
+          >
             <div className="flex flex-col">
               <p className="text-sm text-muted-foreground mb-1">Comparecidas</p>
               <p className="text-3xl font-bold text-accent">{attendedMonthSessions}</p>
               <p className="text-xs text-muted-foreground mt-1">no mês</p>
             </div>
-          </Card>
-          <Card className="p-4">
+          </ResizableCard>
+          <ResizableCard 
+            id="stat-scheduled"
+            isEditMode={isEditMode}
+            defaultWidth={200}
+            defaultHeight={120}
+            tempSize={tempSizes['stat-scheduled']}
+            onTempSizeChange={handleTempSizeChange}
+            allCardSizes={tempSizes}
+            className="p-4"
+          >
             <div className="flex flex-col">
               <p className="text-sm text-muted-foreground mb-1">Agendadas</p>
               <p className="text-3xl font-bold text-blue-500">{scheduledMonthSessions}</p>
               <p className="text-xs text-muted-foreground mt-1">no mês</p>
             </div>
-          </Card>
-          <Card className="p-4">
+          </ResizableCard>
+          <ResizableCard 
+            id="stat-unpaid"
+            isEditMode={isEditMode}
+            defaultWidth={200}
+            defaultHeight={120}
+            tempSize={tempSizes['stat-unpaid']}
+            onTempSizeChange={handleTempSizeChange}
+            allCardSizes={tempSizes}
+            className="p-4"
+          >
             <div className="flex flex-col">
               <p className="text-sm text-muted-foreground mb-1">A Pagar</p>
               <p className="text-3xl font-bold text-orange-500">{unpaidMonthSessions}</p>
               <p className="text-xs text-muted-foreground mt-1">no mês</p>
             </div>
-          </Card>
-          <Card className="p-4">
+          </ResizableCard>
+          <ResizableCard 
+            id="stat-nfse"
+            isEditMode={isEditMode}
+            defaultWidth={200}
+            defaultHeight={120}
+            tempSize={tempSizes['stat-nfse']}
+            onTempSizeChange={handleTempSizeChange}
+            allCardSizes={tempSizes}
+            className="p-4"
+          >
             <div className="flex flex-col">
               <p className="text-sm text-muted-foreground mb-1">A Receber</p>
               <p className="text-3xl font-bold text-emerald-500">{nfseIssuedSessions}</p>
               <p className="text-xs text-muted-foreground mt-1">NFSe emitida</p>
             </div>
-          </Card>
+          </ResizableCard>
         </div>
 
         <Tabs defaultValue="overview" className="w-full">
