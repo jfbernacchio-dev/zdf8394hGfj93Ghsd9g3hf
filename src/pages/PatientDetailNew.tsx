@@ -1073,10 +1073,11 @@ Assinatura do Profissional`;
                   </div>
                 </div>
               </Card>
+            </div>
 
-              {/* Right Column - Sidebar */}
-              <div className="space-y-6 lg:col-start-3">
-                {/* Notes History */}
+            {/* Third Row: History */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-start-3">
                 <Card className="p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-semibold text-lg">Histórico</h3>
