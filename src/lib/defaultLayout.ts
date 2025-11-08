@@ -1,8 +1,8 @@
 // Default layout configuration for PatientDetailNew page
 export const DEFAULT_LAYOUT = {
   sectionHeights: {
-    'stats-section': 150,
-    'functional-section': 510,
+    'stats-section': 155,
+    'functional-section': 552,
   },
   visibleCards: [
     'stat-total',
@@ -17,10 +17,11 @@ export const DEFAULT_LAYOUT = {
     'history',
   ],
   cardSizes: {
-    'history': { width: 430, height: 280, x: 0, y: 0 },
+    'history': { width: 430, height: 160, x: 458, y: -7 },
     'contact-info': { width: 647, height: 220, x: -211, y: 0 },
-    'clinical-info': { width: 894, height: 280, x: 0, y: 0 },
-    'clinical-complaint': { width: 431, height: 220, x: 0, y: 0 },
+    'stat-total': { width: 200, height: 120, x: 1, y: 0 },
+    'clinical-info': { width: 894, height: 304, x: -1, y: -151 },
+    'clinical-complaint': { width: 431, height: 364, x: 0, y: 0 },
     'next-appointment': { width: 227, height: 220, x: 0, y: 0 },
   } as Record<string, { width: number; height: number; x: number; y: number }>,
 };
