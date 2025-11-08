@@ -178,7 +178,8 @@ export const ResizableCard = ({
         height: `${currentSize.height}px`,
         minWidth: '200px',
         minHeight: '150px',
-        transform: `translate(${currentSize.x}px, ${currentSize.y}px)`
+        // Only apply transform when in edit mode
+        ...(isEditMode && { transform: `translate(${currentSize.x}px, ${currentSize.y}px)` })
       }}
     >
       <Card 

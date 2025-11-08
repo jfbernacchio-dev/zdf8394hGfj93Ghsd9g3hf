@@ -825,9 +825,14 @@ Assinatura do Profissional`;
   };
 
   const handleSaveChanges = () => {
-    // Save all temp sizes to localStorage
+    // Save all temp sizes to localStorage, but reset x and y to 0 for grid layout
     Object.entries(tempSizes).forEach(([id, size]) => {
-      localStorage.setItem(`card-size-${id}`, JSON.stringify(size));
+      localStorage.setItem(`card-size-${id}`, JSON.stringify({
+        width: size.width,
+        height: size.height,
+        x: 0,
+        y: 0
+      }));
     });
     
     setIsExitEditDialogOpen(false);
