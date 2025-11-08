@@ -64,7 +64,7 @@ const PatientDetailNew = () => {
   const [selectedSessionForNote, setSelectedSessionForNote] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isExitEditDialogOpen, setIsExitEditDialogOpen] = useState(false);
-  const [tempSizes, setTempSizes] = useState<Record<string, { width: number; height: number }>>({});
+  const [tempSizes, setTempSizes] = useState<Record<string, { width: number; height: number; x: number; y: number }>>({});
   
   const getBrazilDate = () => {
     return new Date().toLocaleString('en-CA', { 
@@ -820,7 +820,7 @@ Assinatura do Profissional`;
     setIsExitEditDialogOpen(true);
   };
 
-  const handleTempSizeChange = (id: string, size: { width: number; height: number }) => {
+  const handleTempSizeChange = (id: string, size: { width: number; height: number; x: number; y: number }) => {
     setTempSizes(prev => ({ ...prev, [id]: size }));
   };
 
