@@ -332,6 +332,9 @@ const DashboardTest = () => {
     setIsEditMode(false);
     
     toast.success('Layout salvo com sucesso!');
+    
+    // Force reload to apply saved sizes
+    setTimeout(() => window.location.reload(), 300);
   };
 
   const handleCancelEdit = () => {
