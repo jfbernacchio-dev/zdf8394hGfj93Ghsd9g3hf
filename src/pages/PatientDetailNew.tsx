@@ -935,7 +935,7 @@ Assinatura do Profissional`;
               </Card>
             </div>
 
-            {/* Próximo Agendamento + Contact Info Row */}
+            {/* Main Grid Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Next Appointment - 1/3 width */}
               {nextSession && (
@@ -999,10 +999,8 @@ Assinatura do Profissional`;
                   )}
                 </div>
               </Card>
-            </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Left Column - Main Info */}
+              {/* Left Column - Clinical Information (2/3 width) */}
               <div className="lg:col-span-2 space-y-6">
                 {/* Clinical Information */}
                 <Card className="p-6">
@@ -1031,8 +1029,8 @@ Assinatura do Profissional`;
                 </Card>
               </div>
 
-              {/* Right Column - Sidebar */}
-              <div className="space-y-6">
+              {/* Right Column - Sidebar (1/3 width) */}
+              <div className="lg:col-span-1 space-y-6">
                 {/* New Note Button - Discreet */}
                 <div className="flex justify-end">
                   <Button 
