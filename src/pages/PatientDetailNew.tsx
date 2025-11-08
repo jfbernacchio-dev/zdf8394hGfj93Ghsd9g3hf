@@ -936,26 +936,29 @@ Assinatura do Profissional`;
             </div>
 
             {/* First Row: Next Appointment + Contact Info */}
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-6 gap-6">
               {nextSession ? (
                 <Card className="p-6 bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20">
                   <div className="flex flex-col">
-                    <span className="text-sm text-muted-foreground mb-2">Próximo Agendamento</span>
-                    <div className="space-y-1">
-                      <p className="font-semibold text-lg">
-                        {format(new Date(nextSession.session_date), "dd/MM/yyyy")}
-                      </p>
-                      <p className="text-muted-foreground">
-                        {nextSession.session_time}
+                    <p className="text-sm font-medium text-muted-foreground mb-2">Próximo Agendamento</p>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Calendar className="w-5 h-5 text-primary" />
+                      <p className="text-xl font-bold text-foreground">
+                        {format(parseISO(nextSession.date), "EEE, dd 'de' MMM", { locale: ptBR })}
                       </p>
                     </div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Clock className="w-4 h-4" />
+                      <p className="text-base">{nextSession.time || 'Horário não definido'}</p>
+                    </div>
+                    <Badge variant="secondary" className="bg-primary/10 text-primary mt-3 self-start">Agendada</Badge>
                   </div>
                 </Card>
               ) : (
                 <div className="hidden lg:block" />
               )}
 
-              <Card className="lg:col-span-4 p-6">
+              <Card className="lg:col-span-5 p-6">
                 <h3 className="font-semibold text-lg mb-4">Informações de Contato</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                   {patient.phone && (
@@ -999,8 +1002,8 @@ Assinatura do Profissional`;
             </div>
 
             {/* Second Row: Clinical Info + Sidebar */}
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-              <Card className="lg:col-span-4 p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <Card className="lg:col-span-2 p-6">
                 <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
                   <Tag className="w-5 h-5 text-primary" />
                   Informação Clínica
