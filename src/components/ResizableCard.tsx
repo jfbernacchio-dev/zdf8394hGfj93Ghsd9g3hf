@@ -10,9 +10,9 @@ interface ResizableCardProps {
   isEditMode: boolean;
   defaultWidth?: number;
   defaultHeight?: number;
-  tempSize?: { width: number; height: number; x: number; y: number } | null;
-  onTempSizeChange?: (id: string, size: { width: number; height: number; x: number; y: number }) => void;
-  allCardSizes?: Record<string, { width: number; height: number; x: number; y: number }>;
+  tempSize?: { width: number; height: number } | null;
+  onTempSizeChange?: (id: string, size: { width: number; height: number }) => void;
+  allCardSizes?: Record<string, { width: number; height: number }>;
 }
 
 type ResizeDirection = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
@@ -28,40 +28,43 @@ export const ResizableCard = ({
   onTempSizeChange,
   allCardSizes = {}
 }: ResizableCardProps) => {
-  const [savedSize, setSavedSize] = useState({ width: defaultWidth, height: defaultHeight, x: 0, y: 0 });
+  const [savedSize, setSavedSize] = useState({ width: defaultWidth, height: defaultHeight });
   const [isResizing, setIsResizing] = useState(false);
   const [resizeDirection, setResizeDirection] = useState<ResizeDirection | null>(null);
-  const [alignmentGuides, setAlignmentGuides] = useState<{ x: number[], y: number[] }>({ x: [], y: [] });
+  const [alignmentGuides, setAlignmentGuides] = useState<{ vertical: number[], horizontal: number[] }>({ 
+    vertical: [], 
+    horizontal: [] 
+  });
 
   // Load saved size from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem(`card-size-${id}`);
     if (saved) {
       const parsed = JSON.parse(saved);
-      setSavedSize({ ...parsed, x: parsed.x || 0, y: parsed.y || 0 });
+      setSavedSize({ width: parsed.width, height: parsed.height });
     }
   }, [id]);
 
   // Use tempSize if in edit mode and available, otherwise use savedSize
   const currentSize = isEditMode && tempSize ? tempSize : savedSize;
 
-  const SNAP_THRESHOLD = 10; // pixels
+  const SNAP_THRESHOLD = 8; // pixels
 
   const checkAlignment = (newWidth: number, newHeight: number) => {
-    const guides = { x: [] as number[], y: [] as number[] };
+    const guides = { vertical: [] as number[], horizontal: [] as number[] };
     
     // Check against other cards
     Object.entries(allCardSizes).forEach(([otherId, otherSize]) => {
       if (otherId === id) return;
       
-      // Check horizontal alignment (width/right edge)
+      // Check width alignment (vertical line at matching width)
       if (Math.abs(newWidth - otherSize.width) < SNAP_THRESHOLD) {
-        guides.x.push(otherSize.width);
+        guides.vertical.push(otherSize.width);
       }
       
-      // Check vertical alignment (height/bottom edge)
+      // Check height alignment (horizontal line at matching height)
       if (Math.abs(newHeight - otherSize.height) < SNAP_THRESHOLD) {
-        guides.y.push(otherSize.height);
+        guides.horizontal.push(otherSize.height);
       }
     });
     
@@ -80,8 +83,6 @@ export const ResizableCard = ({
     const startY = e.clientY;
     const startWidth = currentSize.width;
     const startHeight = currentSize.height;
-    const startPosX = currentSize.x;
-    const startPosY = currentSize.y;
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
       const deltaX = moveEvent.clientX - startX;
@@ -89,30 +90,21 @@ export const ResizableCard = ({
       
       let newWidth = startWidth;
       let newHeight = startHeight;
-      let newX = startPosX;
-      let newY = startPosY;
       
       // Handle different resize directions
+      // For left/top sides, we resize in the opposite direction
       switch (direction) {
         case 'e': // East (right)
           newWidth = Math.max(200, startWidth + deltaX);
           break;
-        case 'w': // West (left)
+        case 'w': // West (left) - expand/contract from left
           newWidth = Math.max(200, startWidth - deltaX);
-          newX = startPosX + deltaX;
-          if (newWidth === 200) {
-            newX = startPosX + startWidth - 200;
-          }
           break;
         case 's': // South (bottom)
           newHeight = Math.max(150, startHeight + deltaY);
           break;
-        case 'n': // North (top)
+        case 'n': // North (top) - expand/contract from top
           newHeight = Math.max(150, startHeight - deltaY);
-          newY = startPosY + deltaY;
-          if (newHeight === 150) {
-            newY = startPosY + startHeight - 150;
-          }
           break;
         case 'se': // Southeast (bottom-right)
           newWidth = Math.max(200, startWidth + deltaX);
@@ -120,45 +112,29 @@ export const ResizableCard = ({
           break;
         case 'sw': // Southwest (bottom-left)
           newWidth = Math.max(200, startWidth - deltaX);
-          newX = startPosX + deltaX;
-          if (newWidth === 200) {
-            newX = startPosX + startWidth - 200;
-          }
           newHeight = Math.max(150, startHeight + deltaY);
           break;
         case 'ne': // Northeast (top-right)
           newWidth = Math.max(200, startWidth + deltaX);
           newHeight = Math.max(150, startHeight - deltaY);
-          newY = startPosY + deltaY;
-          if (newHeight === 150) {
-            newY = startPosY + startHeight - 150;
-          }
           break;
         case 'nw': // Northwest (top-left)
           newWidth = Math.max(200, startWidth - deltaX);
-          newX = startPosX + deltaX;
-          if (newWidth === 200) {
-            newX = startPosX + startWidth - 200;
-          }
           newHeight = Math.max(150, startHeight - deltaY);
-          newY = startPosY + deltaY;
-          if (newHeight === 150) {
-            newY = startPosY + startHeight - 150;
-          }
           break;
       }
       
       checkAlignment(newWidth, newHeight);
       
       if (onTempSizeChange) {
-        onTempSizeChange(id, { width: newWidth, height: newHeight, x: newX, y: newY });
+        onTempSizeChange(id, { width: newWidth, height: newHeight });
       }
     };
 
     const handleMouseUp = () => {
       setIsResizing(false);
       setResizeDirection(null);
-      setAlignmentGuides({ x: [], y: [] });
+      setAlignmentGuides({ vertical: [], horizontal: [] });
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
@@ -177,9 +153,7 @@ export const ResizableCard = ({
         width: `${currentSize.width}px`,
         height: `${currentSize.height}px`,
         minWidth: '200px',
-        minHeight: '150px',
-        // Only apply transform when in edit mode
-        ...(isEditMode && { transform: `translate(${currentSize.x}px, ${currentSize.y}px)` })
+        minHeight: '150px'
       }}
     >
       <Card 
@@ -192,18 +166,20 @@ export const ResizableCard = ({
         {children}
       </Card>
 
-      {/* Alignment guides */}
-      {isEditMode && alignmentGuides.x.map((x, i) => (
+      {/* Vertical Alignment guides (for width matching) */}
+      {isEditMode && alignmentGuides.vertical.map((x, i) => (
         <div
-          key={`x-guide-${i}`}
-          className="absolute top-0 bottom-0 w-0.5 bg-blue-500 z-50 pointer-events-none"
+          key={`v-guide-${i}`}
+          className="fixed top-0 bottom-0 w-0.5 bg-blue-500/70 z-50 pointer-events-none shadow-lg"
           style={{ left: `${x}px` }}
         />
       ))}
-      {isEditMode && alignmentGuides.y.map((y, i) => (
+      
+      {/* Horizontal Alignment guides (for height matching) */}
+      {isEditMode && alignmentGuides.horizontal.map((y, i) => (
         <div
-          key={`y-guide-${i}`}
-          className="absolute left-0 right-0 h-0.5 bg-blue-500 z-50 pointer-events-none"
+          key={`h-guide-${i}`}
+          className="fixed left-0 right-0 h-0.5 bg-blue-500/70 z-50 pointer-events-none shadow-lg"
           style={{ top: `${y}px` }}
         />
       ))}

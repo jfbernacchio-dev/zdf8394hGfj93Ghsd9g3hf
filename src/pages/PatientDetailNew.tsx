@@ -64,7 +64,7 @@ const PatientDetailNew = () => {
   const [selectedSessionForNote, setSelectedSessionForNote] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isExitEditDialogOpen, setIsExitEditDialogOpen] = useState(false);
-  const [tempSizes, setTempSizes] = useState<Record<string, { width: number; height: number; x: number; y: number }>>({});
+  const [tempSizes, setTempSizes] = useState<Record<string, { width: number; height: number }>>({});
   
   const getBrazilDate = () => {
     return new Date().toLocaleString('en-CA', { 
@@ -820,18 +820,16 @@ Assinatura do Profissional`;
     setIsExitEditDialogOpen(true);
   };
 
-  const handleTempSizeChange = (id: string, size: { width: number; height: number; x: number; y: number }) => {
+  const handleTempSizeChange = (id: string, size: { width: number; height: number }) => {
     setTempSizes(prev => ({ ...prev, [id]: size }));
   };
 
   const handleSaveChanges = () => {
-    // Save all temp sizes to localStorage, but reset x and y to 0 for grid layout
+    // Save all temp sizes to localStorage
     Object.entries(tempSizes).forEach(([id, size]) => {
       localStorage.setItem(`card-size-${id}`, JSON.stringify({
         width: size.width,
-        height: size.height,
-        x: 0,
-        y: 0
+        height: size.height
       }));
     });
     
