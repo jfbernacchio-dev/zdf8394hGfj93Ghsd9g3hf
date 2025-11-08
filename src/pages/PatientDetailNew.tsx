@@ -935,23 +935,10 @@ Assinatura do Profissional`;
               </Card>
             </div>
 
-            {/* New Note Button */}
-            <div className="flex justify-end">
-              <Button 
-                onClick={() => setIsNoteDialogOpen(true)} 
-                variant="outline" 
-                size="sm"
-                className="gap-2 text-muted-foreground hover:text-foreground"
-              >
-                <StickyNote className="w-4 h-4" />
-                Nova Nota
-              </Button>
-            </div>
-
-            {/* First Row: Next Appointment + Contact Info + Clinical Complaint */}
-            <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
+            {/* First Row: Next Appointment + Contact Info */}
+            <div className="grid grid-cols-1 lg:grid-cols-6 gap-6">
               {nextSession ? (
-                <Card className="p-6 bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20 lg:col-span-2">
+                <Card className="p-6 bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20">
                   <div className="flex flex-col">
                     <p className="text-sm font-medium text-muted-foreground mb-2">Próximo Agendamento</p>
                     <div className="flex items-center gap-2 mb-1">
@@ -971,7 +958,7 @@ Assinatura do Profissional`;
                 <div className="hidden lg:block" />
               )}
 
-              <Card className="p-6 lg:col-span-4">
+              <Card className="lg:col-span-5 p-6">
                 <h3 className="font-semibold text-lg mb-4">Informações de Contato</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                   {patient.phone && (
@@ -1012,39 +999,6 @@ Assinatura do Profissional`;
                   )}
                 </div>
               </Card>
-
-              {/* Clinical Complaint */}
-              <Card className="p-6 lg:col-span-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-lg flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-primary" />
-                    Queixa Clínica
-                  </h3>
-                  <Button 
-                    onClick={() => setIsComplaintDialogOpen(true)} 
-                    size="sm"
-                    variant="ghost"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                </div>
-                {needsComplaintReview && (
-                  <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                        Atualização necessária
-                      </p>
-                      <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
-                        Revisar queixa clínica
-                      </p>
-                    </div>
-                  </div>
-                )}
-                <div className="text-sm text-muted-foreground">
-                  {complaint?.complaint_text || 'Nenhuma queixa registrada'}
-                </div>
-              </Card>
             </div>
 
             {/* Second Row: Clinical Info + Sidebar */}
@@ -1052,7 +1006,7 @@ Assinatura do Profissional`;
               <Card className="lg:col-span-2 p-6">
                 <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
                   <Tag className="w-5 h-5 text-primary" />
-                  Informações Clínicas
+                  Informação Clínica
                 </h3>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between py-2 border-b">
@@ -1076,6 +1030,52 @@ Assinatura do Profissional`;
 
               {/* Right Column - Sidebar */}
               <div className="space-y-6 lg:col-start-3">
+                {/* New Note Button - Discreet */}
+                <div className="flex justify-end">
+                  <Button 
+                    onClick={() => setIsNoteDialogOpen(true)} 
+                    variant="outline" 
+                    size="sm"
+                    className="gap-2 text-muted-foreground hover:text-foreground"
+                  >
+                    <StickyNote className="w-4 h-4" />
+                    Nova Nota
+                  </Button>
+                </div>
+
+                {/* Clinical Complaint */}
+                <Card className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold text-lg flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-primary" />
+                      Queixa Clínica
+                    </h3>
+                    <Button 
+                      onClick={() => setIsComplaintDialogOpen(true)} 
+                      size="sm"
+                      variant="ghost"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  {needsComplaintReview && (
+                    <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                          Atualização necessária
+                        </p>
+                        <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                          Revisar queixa clínica
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  <div className="text-sm text-muted-foreground">
+                    {complaint?.complaint_text || 'Nenhuma queixa registrada'}
+                  </div>
+                </Card>
+
                 {/* Notes History */}
                 <Card className="p-6">
                   <div className="flex items-center justify-between mb-4">
