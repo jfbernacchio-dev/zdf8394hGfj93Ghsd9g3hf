@@ -2,8 +2,7 @@
 export const DEFAULT_LAYOUT = {
   sectionHeights: {
     'stats-section': 150,
-    'functional-section-1': 225,
-    'functional-section-2': 285,
+    'functional-section': 510,
   },
   visibleCards: [
     'stat-total',
