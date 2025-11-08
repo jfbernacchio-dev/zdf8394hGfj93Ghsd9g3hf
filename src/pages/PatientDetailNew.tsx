@@ -938,6 +938,58 @@ Assinatura do Profissional`;
           <ConsentReminder patientId={id} />
         </div>
 
+        {/* Monthly Stats at Top - Always Visible */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+          <Card className="p-4">
+            <div className="flex flex-col">
+              <p className="text-sm text-muted-foreground mb-1">Total no Mês</p>
+              <p className="text-3xl font-bold text-foreground">{totalMonthSessions}</p>
+              <p className="text-xs text-muted-foreground mt-1">sessões</p>
+            </div>
+          </Card>
+          <Card className="p-4">
+            <div className="flex flex-col">
+              <p className="text-sm text-muted-foreground mb-1">Comparecidas</p>
+              <p className="text-3xl font-bold text-accent">{attendedMonthSessions}</p>
+              <p className="text-xs text-muted-foreground mt-1">no mês</p>
+            </div>
+          </Card>
+          <Card className="p-4">
+            <div className="flex flex-col">
+              <p className="text-sm text-muted-foreground mb-1">Agendadas</p>
+              <p className="text-3xl font-bold text-blue-500">{scheduledMonthSessions}</p>
+              <p className="text-xs text-muted-foreground mt-1">no mês</p>
+            </div>
+          </Card>
+          <Card className="p-4">
+            <div className="flex flex-col">
+              <p className="text-sm text-muted-foreground mb-1">A Pagar</p>
+              <p className="text-3xl font-bold text-orange-500">{unpaidMonthSessions}</p>
+              <p className="text-xs text-muted-foreground mt-1">no mês</p>
+            </div>
+          </Card>
+          <Card className="p-4">
+            <div className="flex flex-col">
+              <p className="text-sm text-muted-foreground mb-1">A Receber</p>
+              <p className="text-3xl font-bold text-emerald-500">{nfseIssuedSessions}</p>
+              <p className="text-xs text-muted-foreground mt-1">NFSe emitida</p>
+            </div>
+          </Card>
+        </div>
+
+        {/* New Note Button */}
+        <div className="flex justify-end mb-6">
+          <Button 
+            onClick={() => setIsNoteDialogOpen(true)} 
+            variant="outline" 
+            size="sm"
+            className="gap-2 text-muted-foreground hover:text-foreground"
+          >
+            <StickyNote className="w-4 h-4" />
+            Nova Nota
+          </Button>
+        </div>
+
         <Tabs defaultValue="overview" className="w-full">
           <TabsList className="mb-6">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
@@ -948,57 +1000,6 @@ Assinatura do Profissional`;
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
-            {/* Monthly Stats at Top */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              <Card className="p-4">
-                <div className="flex flex-col">
-                  <p className="text-sm text-muted-foreground mb-1">Total no Mês</p>
-                  <p className="text-3xl font-bold text-foreground">{totalMonthSessions}</p>
-                  <p className="text-xs text-muted-foreground mt-1">sessões</p>
-                </div>
-              </Card>
-              <Card className="p-4">
-                <div className="flex flex-col">
-                  <p className="text-sm text-muted-foreground mb-1">Comparecidas</p>
-                  <p className="text-3xl font-bold text-accent">{attendedMonthSessions}</p>
-                  <p className="text-xs text-muted-foreground mt-1">no mês</p>
-                </div>
-              </Card>
-              <Card className="p-4">
-                <div className="flex flex-col">
-                  <p className="text-sm text-muted-foreground mb-1">Agendadas</p>
-                  <p className="text-3xl font-bold text-blue-500">{scheduledMonthSessions}</p>
-                  <p className="text-xs text-muted-foreground mt-1">no mês</p>
-                </div>
-              </Card>
-              <Card className="p-4">
-                <div className="flex flex-col">
-                  <p className="text-sm text-muted-foreground mb-1">A Pagar</p>
-                  <p className="text-3xl font-bold text-orange-500">{unpaidMonthSessions}</p>
-                  <p className="text-xs text-muted-foreground mt-1">no mês</p>
-                </div>
-              </Card>
-              <Card className="p-4">
-                <div className="flex flex-col">
-                  <p className="text-sm text-muted-foreground mb-1">A Receber</p>
-                  <p className="text-3xl font-bold text-emerald-500">{nfseIssuedSessions}</p>
-                  <p className="text-xs text-muted-foreground mt-1">NFSe emitida</p>
-                </div>
-              </Card>
-            </div>
-
-            {/* New Note Button */}
-            <div className="flex justify-end">
-              <Button 
-                onClick={() => setIsNoteDialogOpen(true)} 
-                variant="outline" 
-                size="sm"
-                className="gap-2 text-muted-foreground hover:text-foreground"
-              >
-                <StickyNote className="w-4 h-4" />
-                Nova Nota
-              </Button>
-            </div>
 
             {/* First Row: Next Appointment + Contact Info + Clinical Complaint */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
