@@ -216,8 +216,8 @@ export const ResizableCard = ({
       style={{ 
         width: `${currentSize.width}px`,
         height: `${currentSize.height}px`,
-        minWidth: '200px',
-        minHeight: '150px',
+        minWidth: '150px',
+        minHeight: '60px',
         transform: `translate(${currentSize.x}px, ${currentSize.y}px)`
       }}
     >
