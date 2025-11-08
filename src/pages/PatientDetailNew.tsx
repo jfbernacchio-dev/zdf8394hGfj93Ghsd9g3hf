@@ -918,7 +918,7 @@ Assinatura do Profissional`;
                 size="sm"
               >
                 <Settings className="w-4 h-4 mr-2" />
-                {isEditMode ? 'Sair do Modo Edição' : 'Modo Edição'}
+                {isEditMode ? 'Salvar Layout' : 'Editar Layout'}
               </Button>
               <Button
                 onClick={() => navigate(`/patients/${id}/edit`)}

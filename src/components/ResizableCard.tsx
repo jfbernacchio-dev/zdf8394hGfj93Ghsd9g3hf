@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { GripHorizontal } from 'lucide-react';
+import { GripHorizontal, Move } from 'lucide-react';
 
 interface ResizableCardProps {
   id: string;
@@ -30,6 +30,7 @@ export const ResizableCard = ({
 }: ResizableCardProps) => {
   const [savedSize, setSavedSize] = useState({ width: defaultWidth, height: defaultHeight, x: 0, y: 0 });
   const [isResizing, setIsResizing] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [resizeDirection, setResizeDirection] = useState<ResizeDirection | null>(null);
   const [alignmentGuides, setAlignmentGuides] = useState<{ x: number[], y: number[] }>({ x: [], y: [] });
 
@@ -66,6 +67,45 @@ export const ResizableCard = ({
     });
     
     setAlignmentGuides(guides);
+  };
+
+  const handleDragStart = (e: React.MouseEvent) => {
+    if (!isEditMode) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+    
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startPosX = currentSize.x;
+    const startPosY = currentSize.y;
+
+    const handleDragMove = (moveEvent: MouseEvent) => {
+      const deltaX = moveEvent.clientX - startX;
+      const deltaY = moveEvent.clientY - startY;
+      
+      const newX = startPosX + deltaX;
+      const newY = startPosY + deltaY;
+      
+      if (onTempSizeChange) {
+        onTempSizeChange(id, { 
+          width: currentSize.width, 
+          height: currentSize.height, 
+          x: newX, 
+          y: newY 
+        });
+      }
+    };
+
+    const handleDragEnd = () => {
+      setIsDragging(false);
+      document.removeEventListener('mousemove', handleDragMove);
+      document.removeEventListener('mouseup', handleDragEnd);
+    };
+
+    document.addEventListener('mousemove', handleDragMove);
+    document.addEventListener('mouseup', handleDragEnd);
   };
 
   const handleMouseDown = (e: React.MouseEvent, direction: ResizeDirection) => {
@@ -171,7 +211,7 @@ export const ResizableCard = ({
     <div 
       className={cn(
         "relative group",
-        isResizing && "cursor-move"
+        (isResizing || isDragging) && "cursor-move"
       )}
       style={{ 
         width: `${currentSize.width}px`,
@@ -190,6 +230,22 @@ export const ResizableCard = ({
       >
         {children}
       </Card>
+
+      {/* Drag handle - shown at top center */}
+      {isEditMode && (
+        <div
+          className={cn(
+            "absolute -top-3 left-1/2 -translate-x-1/2 cursor-move",
+            "bg-primary hover:bg-primary/90 rounded-full p-2",
+            "opacity-0 group-hover:opacity-100 transition-opacity z-20",
+            isDragging && "opacity-100"
+          )}
+          onMouseDown={handleDragStart}
+          title="Arrastar card"
+        >
+          <Move className="w-4 h-4 text-primary-foreground" />
+        </div>
+      )}
 
       {/* Alignment guides */}
       {isEditMode && alignmentGuides.x.map((x, i) => (
