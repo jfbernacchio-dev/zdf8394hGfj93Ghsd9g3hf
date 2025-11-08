@@ -935,6 +935,19 @@ Assinatura do Profissional`;
               </Card>
             </div>
 
+            {/* New Note Button */}
+            <div className="flex justify-end">
+              <Button 
+                onClick={() => setIsNoteDialogOpen(true)} 
+                variant="outline" 
+                size="sm"
+                className="gap-2 text-muted-foreground hover:text-foreground"
+              >
+                <StickyNote className="w-4 h-4" />
+                Nova Nota
+              </Button>
+            </div>
+
             {/* First Row: Next Appointment + Contact Info */}
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
               {nextSession ? (
@@ -1030,19 +1043,6 @@ Assinatura do Profissional`;
 
               {/* Right Column - Sidebar */}
               <div className="space-y-6 lg:col-start-3">
-                {/* New Note Button - Discreet */}
-                <div className="flex justify-end">
-                  <Button 
-                    onClick={() => setIsNoteDialogOpen(true)} 
-                    variant="outline" 
-                    size="sm"
-                    className="gap-2 text-muted-foreground hover:text-foreground"
-                  >
-                    <StickyNote className="w-4 h-4" />
-                    Nova Nota
-                  </Button>
-                </div>
-
                 {/* Clinical Complaint */}
                 <Card className="p-6">
                   <div className="flex items-center justify-between mb-4">
