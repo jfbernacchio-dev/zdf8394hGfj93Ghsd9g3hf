@@ -13,7 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ArrowLeft, Plus, Calendar, DollarSign, Edit, FileText, Download, Trash2, Phone, MapPin, Mail, User, Clock, Tag } from 'lucide-react';
+import { ArrowLeft, Plus, Calendar, DollarSign, Edit, FileText, Download, Trash2, Phone, MapPin, Mail, User, Clock, Tag, AlertCircle, ChevronDown, ChevronUp, StickyNote } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -50,6 +50,15 @@ const PatientDetailNew = () => {
   const [customEndDate, setCustomEndDate] = useState('');
   const [showScheduled, setShowScheduled] = useState(false);
   const [showUnpaid, setShowUnpaid] = useState(false);
+  const [complaint, setComplaint] = useState<any>(null);
+  const [complaintText, setComplaintText] = useState('');
+  const [isComplaintDialogOpen, setIsComplaintDialogOpen] = useState(false);
+  const [showFullHistory, setShowFullHistory] = useState(false);
+  const [sessionHistory, setSessionHistory] = useState<any[]>([]);
+  const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false);
+  const [noteText, setNoteText] = useState('');
+  const [noteType, setNoteType] = useState<'session' | 'general'>('session');
+  const [selectedSessionForNote, setSelectedSessionForNote] = useState<string | null>(null);
   
   const getBrazilDate = () => {
     return new Date().toLocaleString('en-CA', { 
@@ -101,6 +110,8 @@ const PatientDetailNew = () => {
   const loadData = async () => {
     const { data: patientData } = await supabase.from('patients').select('*').eq('id', id).single();
     const { data: sessionsData } = await supabase.from('sessions').select('*').eq('patient_id', id).order('date', { ascending: false });
+    const { data: complaintData } = await supabase.from('patient_complaints').select('*').eq('patient_id', id).order('created_at', { ascending: false }).limit(1).maybeSingle();
+    const { data: historyData } = await supabase.from('session_history').select('*').eq('patient_id', id).order('changed_at', { ascending: false });
     
     if (user) {
       const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
@@ -109,6 +120,9 @@ const PatientDetailNew = () => {
     
     setPatient(patientData);
     setAllSessions(sessionsData || []);
+    setComplaint(complaintData);
+    setComplaintText(complaintData?.complaint_text || '');
+    setSessionHistory(historyData || []);
 
     await logAdminAccess('view_patient', undefined, id, 'Admin viewed patient details (NEW UI)');
   };
@@ -580,6 +594,217 @@ Assinatura do Profissional`;
     }
   };
 
+  const handleSaveComplaint = async () => {
+    if (!complaintText.trim()) {
+      toast({
+        title: 'Erro',
+        description: 'Digite uma queixa clínica',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const nextReviewDate = new Date();
+      nextReviewDate.setMonth(nextReviewDate.getMonth() + 3);
+
+      if (complaint) {
+        // Update existing
+        const { error } = await supabase
+          .from('patient_complaints')
+          .update({
+            complaint_text: complaintText,
+            next_review_date: nextReviewDate.toISOString().split('T')[0],
+            dismissed_at: null,
+          })
+          .eq('id', complaint.id);
+
+        if (error) throw error;
+      } else {
+        // Create new
+        const { error } = await supabase
+          .from('patient_complaints')
+          .insert({
+            patient_id: id,
+            complaint_text: complaintText,
+            next_review_date: nextReviewDate.toISOString().split('T')[0],
+          });
+
+        if (error) throw error;
+      }
+
+      toast({ title: 'Queixa clínica salva!' });
+      setIsComplaintDialogOpen(false);
+      loadData();
+    } catch (error: any) {
+      console.error('Error saving complaint:', error);
+      toast({
+        title: 'Erro ao salvar',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDismissComplaint = async () => {
+    if (!complaint) return;
+
+    try {
+      const nextReviewDate = new Date();
+      nextReviewDate.setMonth(nextReviewDate.getMonth() + 3);
+
+      const { error } = await supabase
+        .from('patient_complaints')
+        .update({
+          dismissed_at: new Date().toISOString(),
+          next_review_date: nextReviewDate.toISOString().split('T')[0],
+        })
+        .eq('id', complaint.id);
+
+      if (error) throw error;
+
+      toast({ title: 'Revisão adiada por 3 meses' });
+      loadData();
+    } catch (error: any) {
+      console.error('Error dismissing complaint:', error);
+      toast({
+        title: 'Erro',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleSaveNote = async () => {
+    if (!noteText.trim()) {
+      toast({
+        title: 'Erro',
+        description: 'Digite o conteúdo da nota',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      if (noteType === 'session' && selectedSessionForNote) {
+        // Save as individual file for specific session
+        const fileName = `nota_clinica_${format(new Date(), 'yyyy-MM-dd_HHmmss')}.txt`;
+        const fileBlob = new Blob([noteText], { type: 'text/plain' });
+        const filePath = `${user?.id}/${id}/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('patient_files')
+          .upload(filePath, fileBlob);
+
+        if (uploadError) throw uploadError;
+
+        // Link to patient_files
+        const { error: dbError } = await supabase
+          .from('patient_files')
+          .insert({
+            patient_id: id,
+            file_name: fileName,
+            file_path: filePath,
+            file_type: 'text/plain',
+            category: 'clinical_notes',
+            is_clinical: true,
+            uploaded_by: user?.id,
+          });
+
+        if (dbError) throw dbError;
+
+        // Also update session notes field
+        const { error: sessionError } = await supabase
+          .from('sessions')
+          .update({ notes: noteText })
+          .eq('id', selectedSessionForNote);
+
+        if (sessionError) throw sessionError;
+
+        toast({ title: 'Nota clínica salva e anexada à sessão!' });
+      } else {
+        // Save/append to general patient notes file
+        const fileName = 'notas_gerais_paciente.txt';
+        const filePath = `${user?.id}/${id}/${fileName}`;
+
+        // Try to get existing file
+        const { data: existingFiles } = await supabase.storage
+          .from('patient_files')
+          .list(`${user?.id}/${id}`, {
+            search: 'notas_gerais_paciente.txt'
+          });
+
+        let newContent = noteText;
+
+        if (existingFiles && existingFiles.length > 0) {
+          // Download existing content
+          const { data: existingData } = await supabase.storage
+            .from('patient_files')
+            .download(filePath);
+
+          if (existingData) {
+            const existingText = await existingData.text();
+            newContent = `${existingText}\n\n--- ${format(new Date(), 'dd/MM/yyyy HH:mm')} ---\n${noteText}`;
+          }
+
+          // Delete old file
+          await supabase.storage
+            .from('patient_files')
+            .remove([filePath]);
+        } else {
+          newContent = `--- ${format(new Date(), 'dd/MM/yyyy HH:mm')} ---\n${noteText}`;
+        }
+
+        // Upload new/updated file
+        const fileBlob = new Blob([newContent], { type: 'text/plain' });
+        const { error: uploadError } = await supabase.storage
+          .from('patient_files')
+          .upload(filePath, fileBlob);
+
+        if (uploadError) throw uploadError;
+
+        // Check if record exists in patient_files
+        const { data: existingRecord } = await supabase
+          .from('patient_files')
+          .select('id')
+          .eq('patient_id', id)
+          .eq('file_name', fileName)
+          .maybeSingle();
+
+        if (!existingRecord) {
+          // Create new record
+          const { error: dbError } = await supabase
+            .from('patient_files')
+            .insert({
+              patient_id: id,
+              file_name: fileName,
+              file_path: filePath,
+              file_type: 'text/plain',
+              category: 'clinical_notes',
+              is_clinical: true,
+              uploaded_by: user?.id,
+            });
+
+          if (dbError) throw dbError;
+        }
+
+        toast({ title: 'Nota geral adicionada ao arquivo do paciente!' });
+      }
+
+      setIsNoteDialogOpen(false);
+      setNoteText('');
+      setSelectedSessionForNote(null);
+      loadData();
+    } catch (error: any) {
+      console.error('Error saving note:', error);
+      toast({
+        title: 'Erro ao salvar nota',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
   if (!patient) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -589,14 +814,27 @@ Assinatura do Profissional`;
   }
 
   const now = new Date();
-  const pastSessions = sessions.filter(s => !isFuture(parseISO(s.date)));
-  const totalSessions = pastSessions.length;
-  const attendedSessions = pastSessions.filter(s => s.status === 'attended').length;
-  const attendedPercentage = totalSessions > 0 ? ((attendedSessions / totalSessions) * 100).toFixed(1) : '0';
-  const futureSessions = sessions.filter(s => isFuture(parseISO(s.date)) && s.status === 'scheduled');
+  const monthStart = startOfMonth(now);
+  const monthEnd = endOfMonth(now);
+  
+  // Stats do mês atual
+  const monthSessions = allSessions.filter(s => {
+    const sessionDate = parseISO(s.date);
+    return sessionDate >= monthStart && sessionDate <= monthEnd;
+  });
+  const totalMonthSessions = monthSessions.length;
+  const attendedMonthSessions = monthSessions.filter(s => s.status === 'attended').length;
+  const scheduledMonthSessions = monthSessions.filter(s => s.status === 'scheduled' && isFuture(parseISO(s.date))).length;
+  const unpaidMonthSessions = monthSessions.filter(s => s.status === 'attended' && !s.paid).length;
+  const nfseIssuedSessions = allSessions.filter(s => s.status === 'nfse_issued').length;
+  
+  const futureSessions = allSessions.filter(s => isFuture(parseISO(s.date)) && s.status === 'scheduled');
   const nextSession = futureSessions.length > 0 ? futureSessions[futureSessions.length - 1] : null;
-  const unpaidSessions = sessions.filter(s => s.status === 'attended' && !s.paid);
-  const recentSessions = sessions.filter(s => s.notes).slice(0, 5);
+  const recentSessions = allSessions.filter(s => s.notes).slice(0, 5);
+  
+  // Check if complaint needs review
+  const needsComplaintReview = complaint && !complaint.dismissed_at && 
+    new Date(complaint.next_review_date) <= now;
 
   return (
     <div className="min-h-screen bg-background">
@@ -658,6 +896,45 @@ Assinatura do Profissional`;
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
+            {/* Monthly Stats at Top */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <Card className="p-4">
+                <div className="flex flex-col">
+                  <p className="text-sm text-muted-foreground mb-1">Total no Mês</p>
+                  <p className="text-3xl font-bold text-foreground">{totalMonthSessions}</p>
+                  <p className="text-xs text-muted-foreground mt-1">sessões</p>
+                </div>
+              </Card>
+              <Card className="p-4">
+                <div className="flex flex-col">
+                  <p className="text-sm text-muted-foreground mb-1">Comparecidas</p>
+                  <p className="text-3xl font-bold text-accent">{attendedMonthSessions}</p>
+                  <p className="text-xs text-muted-foreground mt-1">no mês</p>
+                </div>
+              </Card>
+              <Card className="p-4">
+                <div className="flex flex-col">
+                  <p className="text-sm text-muted-foreground mb-1">Agendadas</p>
+                  <p className="text-3xl font-bold text-blue-500">{scheduledMonthSessions}</p>
+                  <p className="text-xs text-muted-foreground mt-1">no mês</p>
+                </div>
+              </Card>
+              <Card className="p-4">
+                <div className="flex flex-col">
+                  <p className="text-sm text-muted-foreground mb-1">A Pagar</p>
+                  <p className="text-3xl font-bold text-orange-500">{unpaidMonthSessions}</p>
+                  <p className="text-xs text-muted-foreground mt-1">no mês</p>
+                </div>
+              </Card>
+              <Card className="p-4">
+                <div className="flex flex-col">
+                  <p className="text-sm text-muted-foreground mb-1">A Receber</p>
+                  <p className="text-3xl font-bold text-emerald-500">{nfseIssuedSessions}</p>
+                  <p className="text-xs text-muted-foreground mt-1">NFSe emitida</p>
+                </div>
+              </Card>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Left Column - Main Info */}
               <div className="lg:col-span-2 space-y-6">
@@ -708,40 +985,6 @@ Assinatura do Profissional`;
                     </div>
                   </div>
                 </Card>
-
-                {/* Stats Grid */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <Card className="p-4">
-                    <div className="flex flex-col">
-                      <p className="text-sm text-muted-foreground mb-1">Total</p>
-                      <p className="text-3xl font-bold text-foreground">{totalSessions}</p>
-                      <p className="text-xs text-muted-foreground mt-1">sessões</p>
-                    </div>
-                  </Card>
-                  <Card className="p-4">
-                    <div className="flex flex-col">
-                      <p className="text-sm text-muted-foreground mb-1">Comparecidas</p>
-                      <p className="text-3xl font-bold text-accent">{attendedSessions}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{attendedPercentage}%</p>
-                    </div>
-                  </Card>
-                  <Card className="p-4">
-                    <div className="flex flex-col">
-                      <p className="text-sm text-muted-foreground mb-1">Agendadas</p>
-                      <p className="text-3xl font-bold text-blue-500">{futureSessions.length}</p>
-                      <p className="text-xs text-muted-foreground mt-1">futuras</p>
-                    </div>
-                  </Card>
-                  <Card className="p-4">
-                    <div className="flex flex-col">
-                      <p className="text-sm text-muted-foreground mb-1">A Pagar</p>
-                      <p className="text-3xl font-bold text-orange-500">{unpaidSessions.length}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {patient.monthly_price ? 'meses' : 'sessões'}
-                      </p>
-                    </div>
-                  </Card>
-                </div>
               </div>
 
               {/* Right Column - Sidebar */}
@@ -789,46 +1032,104 @@ Assinatura do Profissional`;
                   </div>
                 </Card>
 
+                {/* Clinical Complaint */}
+                <Card className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold text-lg flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-primary" />
+                      Queixa Clínica
+                    </h3>
+                    <Button 
+                      onClick={() => setIsComplaintDialogOpen(true)} 
+                      size="sm"
+                      variant="ghost"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  {needsComplaintReview && (
+                    <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                          Atualização necessária
+                        </p>
+                        <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                          Revisar queixa clínica
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  <div className="text-sm text-muted-foreground">
+                    {complaint?.complaint_text || 'Nenhuma queixa registrada'}
+                  </div>
+                </Card>
+
                 {/* Notes History */}
                 <Card className="p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-semibold text-lg">History</h3>
-                    <Button onClick={openNewSessionDialog} size="sm">
-                      <Plus className="w-4 h-4 mr-1" />
-                      New Note
-                    </Button>
                   </div>
-                  <ScrollArea className="h-[400px] pr-4">
-                    <div className="space-y-3">
-                      {recentSessions.length > 0 ? (
-                        recentSessions.map((session) => (
-                          <div 
-                            key={session.id}
-                            className="p-3 rounded-lg border bg-card hover:bg-accent/5 transition-colors cursor-pointer"
-                            onClick={() => openEditDialog(session)}
-                          >
-                            <div className="flex items-start justify-between mb-2">
-                              <div>
-                                <p className="font-medium text-sm">
-                                  {session.notes.substring(0, 30)}
-                                  {session.notes.length > 30 ? '...' : ''}
-                                </p>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  {format(parseISO(session.date), "dd 'de' MMM, yyyy", { locale: ptBR })}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        ))
+                  <div className={cn("space-y-3", !showFullHistory && "max-h-[200px] overflow-hidden relative")}>
+                    {sessionHistory.length > 0 ? (
+                      sessionHistory.slice(0, showFullHistory ? undefined : 3).map((history) => (
+                        <div 
+                          key={history.id}
+                          className="p-3 rounded-lg border bg-card text-xs"
+                        >
+                          <p className="text-muted-foreground">
+                            {format(new Date(history.changed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          </p>
+                          <p className="mt-1">
+                            <span className="line-through text-muted-foreground">
+                              {history.old_day} {history.old_time}
+                            </span>
+                            {' → '}
+                            <span className="font-medium">
+                              {history.new_day} {history.new_time}
+                            </span>
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        Nenhuma alteração registrada
+                      </p>
+                    )}
+                    {!showFullHistory && sessionHistory.length > 3 && (
+                      <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-card to-transparent" />
+                    )}
+                  </div>
+                  {sessionHistory.length > 3 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowFullHistory(!showFullHistory)}
+                      className="w-full mt-2 text-xs"
+                    >
+                      {showFullHistory ? (
+                        <>
+                          <ChevronUp className="w-3 h-3 mr-1" />
+                          Mostrar menos
+                        </>
                       ) : (
-                        <p className="text-sm text-muted-foreground text-center py-8">
-                          Nenhuma nota registrada ainda
-                        </p>
+                        <>
+                          <ChevronDown className="w-3 h-3 mr-1" />
+                          Mostrar mais
+                        </>
                       )}
-                    </div>
-                  </ScrollArea>
+                    </Button>
+                  )}
                 </Card>
               </div>
+            </div>
+            
+            {/* New Note Button */}
+            <div className="flex justify-center">
+              <Button onClick={() => setIsNoteDialogOpen(true)} size="lg" className="gap-2">
+                <StickyNote className="w-5 h-5" />
+                Nova Nota Clínica
+              </Button>
             </div>
           </TabsContent>
 
@@ -1014,18 +1315,18 @@ Assinatura do Profissional`;
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card className="p-6">
                 <p className="text-sm text-muted-foreground mb-2">Sessões em Aberto</p>
-                <p className="text-3xl font-bold">{unpaidSessions.length}</p>
+                <p className="text-3xl font-bold">{allSessions.filter(s => s.status === 'attended' && !s.paid).length}</p>
               </Card>
               <Card className="p-6">
                 <p className="text-sm text-muted-foreground mb-2">Valor Total em Aberto</p>
                 <p className="text-3xl font-bold">
                   {formatBrazilianCurrency(
                     patient.monthly_price ? 
-                      unpaidSessions.reduce((acc, session) => {
+                      allSessions.filter(s => s.status === 'attended' && !s.paid).reduce((acc, session) => {
                         const monthYear = format(parseISO(session.date), 'MM/yyyy');
                         return acc;
                       }, 0) * Number(patient.session_value) :
-                      unpaidSessions.reduce((sum, s) => sum + Number(s.value || 0), 0)
+                      allSessions.filter(s => s.status === 'attended' && !s.paid).reduce((sum, s) => sum + Number(s.value || 0), 0)
                   )}
                 </p>
               </Card>
@@ -1042,8 +1343,8 @@ Assinatura do Profissional`;
             <Card className="p-6">
               <h3 className="font-semibold mb-4">Sessões Não Pagas</h3>
               <div className="space-y-2">
-                {unpaidSessions.length > 0 ? (
-                  unpaidSessions.map(session => (
+                {allSessions.filter(s => s.status === 'attended' && !s.paid).length > 0 ? (
+                  allSessions.filter(s => s.status === 'attended' && !s.paid).map(session => (
                     <div key={session.id} className="flex justify-between items-center py-3 border-b last:border-0">
                       <div>
                         <p className="font-medium">{format(parseISO(session.date), 'dd/MM/yyyy')}</p>
@@ -1209,6 +1510,94 @@ Assinatura do Profissional`;
                   Marcar como Pagas
                 </Button>
               </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Complaint Dialog */}
+      <Dialog open={isComplaintDialogOpen} onOpenChange={setIsComplaintDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Queixa Clínica</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Textarea
+              value={complaintText}
+              onChange={(e) => setComplaintText(e.target.value)}
+              placeholder="Descreva a razão pela qual o paciente buscou terapia..."
+              rows={8}
+            />
+            <div className="flex justify-between">
+              {needsComplaintReview && (
+                <Button variant="outline" onClick={handleDismissComplaint}>
+                  Ignorar (3 meses)
+                </Button>
+              )}
+              <div className="flex gap-2 ml-auto">
+                <Button variant="outline" onClick={() => setIsComplaintDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleSaveComplaint}>Salvar</Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Note Dialog */}
+      <Dialog open={isNoteDialogOpen} onOpenChange={setIsNoteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nova Nota Clínica</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Tipo de Nota</Label>
+              <Select value={noteType} onValueChange={(val: 'session' | 'general') => setNoteType(val)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="general">Nota Geral do Paciente</SelectItem>
+                  <SelectItem value="session">Nota de Sessão Específica</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {noteType === 'session' && (
+              <div className="space-y-2">
+                <Label>Selecione a Sessão</Label>
+                <Select value={selectedSessionForNote || ''} onValueChange={setSelectedSessionForNote}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Escolha uma sessão" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allSessions.slice(0, 20).map((session) => (
+                      <SelectItem key={session.id} value={session.id}>
+                        {format(parseISO(session.date), "dd/MM/yyyy", { locale: ptBR })} - {session.time || 'Sem horário'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label>Conteúdo da Nota</Label>
+              <Textarea
+                value={noteText}
+                onChange={(e) => setNoteText(e.target.value)}
+                placeholder="Digite o conteúdo da nota clínica..."
+                rows={10}
+              />
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsNoteDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSaveNote}>Salvar Nota</Button>
             </div>
           </div>
         </DialogContent>

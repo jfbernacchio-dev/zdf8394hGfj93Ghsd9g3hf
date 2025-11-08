@@ -479,6 +479,44 @@ export type Database = {
         }
         Relationships: []
       }
+      patient_complaints: {
+        Row: {
+          complaint_text: string | null
+          created_at: string
+          dismissed_at: string | null
+          id: string
+          next_review_date: string
+          patient_id: string
+          updated_at: string
+        }
+        Insert: {
+          complaint_text?: string | null
+          created_at?: string
+          dismissed_at?: string | null
+          id?: string
+          next_review_date: string
+          patient_id: string
+          updated_at?: string
+        }
+        Update: {
+          complaint_text?: string | null
+          created_at?: string
+          dismissed_at?: string | null
+          id?: string
+          next_review_date?: string
+          patient_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_complaints_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patient_files: {
         Row: {
           category: string
