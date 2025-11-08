@@ -30,6 +30,8 @@ import { PatientFiles } from '@/components/PatientFiles';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import IssueNFSeDialog from '@/components/IssueNFSeDialog';
 import { ConsentReminder } from '@/components/ConsentReminder';
+import { ResizableCard } from '@/components/ResizableCard';
+import { Settings } from 'lucide-react';
 
 const PatientDetailNew = () => {
   const { id } = useParams();
@@ -59,6 +61,7 @@ const PatientDetailNew = () => {
   const [noteText, setNoteText] = useState('');
   const [noteType, setNoteType] = useState<'session' | 'general'>('session');
   const [selectedSessionForNote, setSelectedSessionForNote] = useState<string | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
   
   const getBrazilDate = () => {
     return new Date().toLocaleString('en-CA', { 
@@ -869,13 +872,23 @@ Assinatura do Profissional`;
                 </div>
               </div>
             </div>
-            <Button
-              onClick={() => navigate(`/patients/${id}/edit`)}
-              variant="outline"
-            >
-              <Edit className="w-4 h-4 mr-2" />
-              Editar
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => setIsEditMode(!isEditMode)}
+                variant={isEditMode ? "default" : "outline"}
+                size="sm"
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                {isEditMode ? 'Sair do Modo Edição' : 'Modo Edição'}
+              </Button>
+              <Button
+                onClick={() => navigate(`/patients/${id}/edit`)}
+                variant="outline"
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Editar
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -951,7 +964,13 @@ Assinatura do Profissional`;
             {/* First Row: Next Appointment + Contact Info + Clinical Complaint */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {nextSession ? (
-                <Card className="p-6 bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20">
+                <ResizableCard 
+                  id="next-appointment"
+                  isEditMode={isEditMode}
+                  defaultWidth={350}
+                  defaultHeight={220}
+                  className="p-6 bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20"
+                >
                   <div className="flex flex-col">
                     <p className="text-sm font-medium text-muted-foreground mb-2">Próximo Agendamento</p>
                     <div className="flex items-center gap-2 mb-1">
@@ -966,12 +985,18 @@ Assinatura do Profissional`;
                     </div>
                     <Badge variant="secondary" className="bg-primary/10 text-primary mt-3 self-start">Agendada</Badge>
                   </div>
-                </Card>
+                </ResizableCard>
               ) : (
                 <div className="hidden lg:block" />
               )}
 
-              <Card className="p-6">
+              <ResizableCard 
+                id="contact-info"
+                isEditMode={isEditMode}
+                defaultWidth={350}
+                defaultHeight={220}
+                className="p-6"
+              >
                 <h3 className="font-semibold text-lg mb-4">Informações de Contato</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                   {patient.phone && (
@@ -1011,10 +1036,16 @@ Assinatura do Profissional`;
                     </div>
                   )}
                 </div>
-              </Card>
+              </ResizableCard>
 
               {/* Clinical Complaint */}
-              <Card className="p-6">
+              <ResizableCard 
+                id="clinical-complaint"
+                isEditMode={isEditMode}
+                defaultWidth={350}
+                defaultHeight={220}
+                className="p-6"
+              >
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold text-lg flex items-center gap-2">
                     <FileText className="w-5 h-5 text-primary" />
@@ -1044,12 +1075,18 @@ Assinatura do Profissional`;
                 <div className="text-sm text-muted-foreground">
                   {complaint?.complaint_text || 'Nenhuma queixa registrada'}
                 </div>
-              </Card>
+              </ResizableCard>
             </div>
 
             {/* Second Row: Clinical Info + Sidebar */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <Card className="lg:col-span-2 p-6">
+              <ResizableCard 
+                id="clinical-info"
+                isEditMode={isEditMode}
+                defaultWidth={700}
+                defaultHeight={280}
+                className="lg:col-span-2 p-6"
+              >
                 <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
                   <Tag className="w-5 h-5 text-primary" />
                   Informações Clínicas
@@ -1072,12 +1109,18 @@ Assinatura do Profissional`;
                     <span className="font-medium">{patient.session_time || 'Não definido'}</span>
                   </div>
                 </div>
-              </Card>
+              </ResizableCard>
 
               {/* Right Column - Sidebar */}
               <div className="space-y-6 lg:col-start-3 lg:flex lg:flex-col lg:justify-end">
                 {/* Notes History */}
-                <Card className="p-6">
+                <ResizableCard 
+                  id="history"
+                  isEditMode={isEditMode}
+                  defaultWidth={350}
+                  defaultHeight={280}
+                  className="p-6"
+                >
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-semibold text-lg">Histórico</h3>
                   </div>
@@ -1131,7 +1174,7 @@ Assinatura do Profissional`;
                       )}
                     </Button>
                   )}
-                </Card>
+                </ResizableCard>
               </div>
             </div>
           </TabsContent>
