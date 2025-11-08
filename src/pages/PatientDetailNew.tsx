@@ -940,113 +940,52 @@ Assinatura do Profissional`;
 
         {/* Monthly Stats at Top - Always Visible */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-          <ResizableCard 
-            id="stat-total-month"
-            isEditMode={isEditMode}
-            defaultWidth={200}
-            defaultHeight={120}
-            tempSize={tempSizes['stat-total-month']}
-            onTempSizeChange={handleTempSizeChange}
-            allCardSizes={tempSizes}
-            className="p-4"
-          >
+          <Card className="p-4">
             <div className="flex flex-col">
               <p className="text-sm text-muted-foreground mb-1">Total no Mês</p>
               <p className="text-3xl font-bold text-foreground">{totalMonthSessions}</p>
               <p className="text-xs text-muted-foreground mt-1">sessões</p>
             </div>
-          </ResizableCard>
-          
-          <ResizableCard 
-            id="stat-attended"
-            isEditMode={isEditMode}
-            defaultWidth={200}
-            defaultHeight={120}
-            tempSize={tempSizes['stat-attended']}
-            onTempSizeChange={handleTempSizeChange}
-            allCardSizes={tempSizes}
-            className="p-4"
-          >
+          </Card>
+          <Card className="p-4">
             <div className="flex flex-col">
               <p className="text-sm text-muted-foreground mb-1">Comparecidas</p>
               <p className="text-3xl font-bold text-accent">{attendedMonthSessions}</p>
               <p className="text-xs text-muted-foreground mt-1">no mês</p>
             </div>
-          </ResizableCard>
-          
-          <ResizableCard 
-            id="stat-scheduled"
-            isEditMode={isEditMode}
-            defaultWidth={200}
-            defaultHeight={120}
-            tempSize={tempSizes['stat-scheduled']}
-            onTempSizeChange={handleTempSizeChange}
-            allCardSizes={tempSizes}
-            className="p-4"
-          >
+          </Card>
+          <Card className="p-4">
             <div className="flex flex-col">
               <p className="text-sm text-muted-foreground mb-1">Agendadas</p>
               <p className="text-3xl font-bold text-blue-500">{scheduledMonthSessions}</p>
               <p className="text-xs text-muted-foreground mt-1">no mês</p>
             </div>
-          </ResizableCard>
-          
-          <ResizableCard 
-            id="stat-unpaid"
-            isEditMode={isEditMode}
-            defaultWidth={200}
-            defaultHeight={120}
-            tempSize={tempSizes['stat-unpaid']}
-            onTempSizeChange={handleTempSizeChange}
-            allCardSizes={tempSizes}
-            className="p-4"
-          >
+          </Card>
+          <Card className="p-4">
             <div className="flex flex-col">
               <p className="text-sm text-muted-foreground mb-1">A Pagar</p>
               <p className="text-3xl font-bold text-orange-500">{unpaidMonthSessions}</p>
               <p className="text-xs text-muted-foreground mt-1">no mês</p>
             </div>
-          </ResizableCard>
-          
-          <ResizableCard 
-            id="stat-nfse"
-            isEditMode={isEditMode}
-            defaultWidth={200}
-            defaultHeight={120}
-            tempSize={tempSizes['stat-nfse']}
-            onTempSizeChange={handleTempSizeChange}
-            allCardSizes={tempSizes}
-            className="p-4"
-          >
+          </Card>
+          <Card className="p-4">
             <div className="flex flex-col">
               <p className="text-sm text-muted-foreground mb-1">A Receber</p>
               <p className="text-3xl font-bold text-emerald-500">{nfseIssuedSessions}</p>
               <p className="text-xs text-muted-foreground mt-1">NFSe emitida</p>
             </div>
-          </ResizableCard>
+          </Card>
         </div>
 
         <Tabs defaultValue="overview" className="w-full">
           {/* Tabs Menu and New Note Button aligned */}
-          <div className="flex items-center justify-between mb-6 gap-4">
-            <ResizableCard 
-              id="tabs-menu"
-              isEditMode={isEditMode}
-              defaultWidth={500}
-              defaultHeight={50}
-              tempSize={tempSizes['tabs-menu']}
-              onTempSizeChange={handleTempSizeChange}
-              allCardSizes={tempSizes}
-              className="flex items-center p-2"
-            >
-              <TabsList>
-                <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-                <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
-                <TabsTrigger value="billing">Faturamento</TabsTrigger>
-                <TabsTrigger value="files">Arquivos</TabsTrigger>
-              </TabsList>
-            </ResizableCard>
-            
+          <div className="flex items-center justify-between mb-6">
+            <TabsList>
+              <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+              <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
+              <TabsTrigger value="billing">Faturamento</TabsTrigger>
+              <TabsTrigger value="files">Arquivos</TabsTrigger>
+            </TabsList>
             <Button 
               onClick={() => setIsNoteDialogOpen(true)} 
               variant="outline" 
