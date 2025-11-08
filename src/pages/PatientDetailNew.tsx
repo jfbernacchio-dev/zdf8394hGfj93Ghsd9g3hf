@@ -32,6 +32,7 @@ import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import IssueNFSeDialog from '@/components/IssueNFSeDialog';
 import { ConsentReminder } from '@/components/ConsentReminder';
 import { ResizableCard } from '@/components/ResizableCard';
+import { ResizableSection } from '@/components/ResizableSection';
 import { Settings } from 'lucide-react';
 import { AddCardDialog } from '@/components/AddCardDialog';
 import { CardConfig, ALL_AVAILABLE_CARDS } from '@/types/cardTypes';
@@ -67,6 +68,7 @@ const PatientDetailNew = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [isExitEditDialogOpen, setIsExitEditDialogOpen] = useState(false);
   const [tempSizes, setTempSizes] = useState<Record<string, { width: number; height: number; x: number; y: number }>>({});
+  const [tempSectionHeights, setTempSectionHeights] = useState<Record<string, number>>({});
   const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
   const [visibleCards, setVisibleCards] = useState<string[]>([]);
   
@@ -830,6 +832,7 @@ Assinatura do Profissional`;
 
   const handleEnterEditMode = () => {
     setTempSizes({});
+    setTempSectionHeights({});
     setIsEditMode(true);
   };
 
@@ -841,10 +844,19 @@ Assinatura do Profissional`;
     setTempSizes(prev => ({ ...prev, [id]: size }));
   };
 
+  const handleTempSectionHeightChange = (id: string, height: number) => {
+    setTempSectionHeights(prev => ({ ...prev, [id]: height }));
+  };
+
   const handleSaveChanges = () => {
     // Save all temp sizes to localStorage
     Object.entries(tempSizes).forEach(([id, size]) => {
       localStorage.setItem(`card-size-${id}`, JSON.stringify(size));
+    });
+    
+    // Save all section heights to localStorage
+    Object.entries(tempSectionHeights).forEach(([id, height]) => {
+      localStorage.setItem(`section-height-${id}`, height.toString());
     });
     
     // Save visible cards
@@ -853,6 +865,7 @@ Assinatura do Profissional`;
     setIsExitEditDialogOpen(false);
     setIsEditMode(false);
     setTempSizes({});
+    setTempSectionHeights({});
     toast({ title: 'Layout salvo com sucesso!' });
     
     // Force reload to apply saved sizes
@@ -862,6 +875,7 @@ Assinatura do Profissional`;
   const handleCancelChanges = () => {
     // Discard all temp sizes and card changes
     setTempSizes({});
+    setTempSectionHeights({});
     setIsExitEditDialogOpen(false);
     setIsEditMode(false);
     
@@ -1096,11 +1110,19 @@ Assinatura do Profissional`;
               </Button>
             </div>
           )}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            {['stat-total', 'stat-attended', 'stat-scheduled', 'stat-unpaid', 'stat-nfse',
-              'stat-total-all', 'stat-revenue-month', 'stat-paid-month', 'stat-missed-month',
-              'stat-attendance-rate', 'stat-unscheduled-month'].map(cardId => renderStatCard(cardId))}
-          </div>
+          <ResizableSection
+            id="stats-section"
+            isEditMode={isEditMode}
+            defaultHeight={200}
+            tempHeight={tempSectionHeights['stats-section']}
+            onTempHeightChange={handleTempSectionHeightChange}
+          >
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              {['stat-total', 'stat-attended', 'stat-scheduled', 'stat-unpaid', 'stat-nfse',
+                'stat-total-all', 'stat-revenue-month', 'stat-paid-month', 'stat-missed-month',
+                'stat-attendance-rate', 'stat-unscheduled-month'].map(cardId => renderStatCard(cardId))}
+            </div>
+          </ResizableSection>
         </div>
 
         <Tabs defaultValue="overview" className="w-full">
@@ -1140,8 +1162,15 @@ Assinatura do Profissional`;
              )}
 
              {/* First Row: Next Appointment + Contact Info + Clinical Complaint */}
-             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-               {nextSession && isCardVisible('next-appointment') && renderFunctionalCard(
+             <ResizableSection
+               id="functional-section-1"
+               isEditMode={isEditMode}
+               defaultHeight={300}
+               tempHeight={tempSectionHeights['functional-section-1']}
+               onTempHeightChange={handleTempSectionHeightChange}
+             >
+               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                 {nextSession && isCardVisible('next-appointment') && renderFunctionalCard(
                  'next-appointment',
                  <div className="flex flex-col">
                    <p className="text-sm font-medium text-muted-foreground mb-2">Próximo Agendamento</p>
@@ -1238,12 +1267,20 @@ Assinatura do Profissional`;
                      {complaint?.complaint_text || 'Nenhuma queixa registrada'}
                    </div>
                  </>
-               )}
-             </div>
+                 )}
+               </div>
+             </ResizableSection>
 
              {/* Second Row: Clinical Info + Sidebar */}
-             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-               {isCardVisible('clinical-info') && renderFunctionalCard(
+             <ResizableSection
+               id="functional-section-2"
+               isEditMode={isEditMode}
+               defaultHeight={300}
+               tempHeight={tempSectionHeights['functional-section-2']}
+               onTempHeightChange={handleTempSectionHeightChange}
+              >
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {isCardVisible('clinical-info') && renderFunctionalCard(
                  'clinical-info',
                  <>
                    <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
@@ -1475,11 +1512,11 @@ Assinatura do Profissional`;
                        </div>
                      </div>
                    </>,
-                   { width: 350, height: 250 }
-                 )}
-               </div>
-             </div>
-          </TabsContent>
+                     { width: 350, height: 250 }
+                  )}
+                </div>
+              </ResizableSection>
+           </TabsContent>
 
           {/* Appointments Tab */}
           <TabsContent value="appointments" className="space-y-4">
