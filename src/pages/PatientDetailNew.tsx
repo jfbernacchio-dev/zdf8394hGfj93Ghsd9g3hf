@@ -938,7 +938,7 @@ Assinatura do Profissional`;
             {/* Main Grid Layout - Single grid for proper alignment */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Next Appointment - 1/3 width */}
-              {nextSession && (
+              {nextSession ? (
                 <Card className="p-6 bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20">
                   <div className="flex flex-col">
                     <p className="text-sm font-medium text-muted-foreground mb-2">Próximo Agendamento</p>
@@ -955,9 +955,11 @@ Assinatura do Profissional`;
                     <Badge variant="secondary" className="bg-primary/10 text-primary mt-3 self-start">Agendada</Badge>
                   </div>
                 </Card>
+              ) : (
+                <div className="hidden lg:block" />
               )}
 
-              {/* Contact Info - 2/3 width */}
+              {/* Contact Info - 2/3 width - always starts at column 2 on lg+ */}
               <Card className="lg:col-span-2 p-6">
                 <h3 className="font-semibold text-lg mb-4">Informações de Contato</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
