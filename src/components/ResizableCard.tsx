@@ -49,12 +49,16 @@ export const ResizableCard = ({
     const startY = e.clientY;
     const startWidth = size.width;
     const startHeight = size.height;
+    let finalSize = { ...size };
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
       const deltaX = moveEvent.clientX - startX;
       const deltaY = moveEvent.clientY - startY;
       
-      const newSize = { ...size };
+      const newSize = { 
+        width: startWidth,
+        height: startHeight
+      };
       
       if (direction === 'both' || direction === 'horizontal') {
         newSize.width = Math.max(200, startWidth + deltaX);
@@ -63,13 +67,14 @@ export const ResizableCard = ({
         newSize.height = Math.max(150, startHeight + deltaY);
       }
       
+      finalSize = newSize;
       setSize(newSize);
     };
 
     const handleMouseUp = () => {
       setIsResizing(false);
       setResizeDirection(null);
-      saveSize(size);
+      saveSize(finalSize);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
