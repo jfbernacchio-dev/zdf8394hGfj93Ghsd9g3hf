@@ -135,55 +135,55 @@ export const ResizableCard = ({
       // Handle different resize directions
       switch (direction) {
         case 'e': // East (right)
-          newWidth = Math.max(200, startWidth + deltaX);
+          newWidth = Math.max(150, startWidth + deltaX);
           break;
         case 'w': // West (left)
-          newWidth = Math.max(200, startWidth - deltaX);
+          newWidth = Math.max(150, startWidth - deltaX);
           newX = startPosX + deltaX;
-          if (newWidth === 200) {
-            newX = startPosX + startWidth - 200;
+          if (newWidth === 150) {
+            newX = startPosX + startWidth - 150;
           }
           break;
         case 's': // South (bottom)
-          newHeight = Math.max(150, startHeight + deltaY);
+          newHeight = Math.max(60, startHeight + deltaY);
           break;
         case 'n': // North (top)
-          newHeight = Math.max(150, startHeight - deltaY);
+          newHeight = Math.max(60, startHeight - deltaY);
           newY = startPosY + deltaY;
-          if (newHeight === 150) {
-            newY = startPosY + startHeight - 150;
+          if (newHeight === 60) {
+            newY = startPosY + startHeight - 60;
           }
           break;
         case 'se': // Southeast (bottom-right)
-          newWidth = Math.max(200, startWidth + deltaX);
-          newHeight = Math.max(150, startHeight + deltaY);
+          newWidth = Math.max(150, startWidth + deltaX);
+          newHeight = Math.max(60, startHeight + deltaY);
           break;
         case 'sw': // Southwest (bottom-left)
-          newWidth = Math.max(200, startWidth - deltaX);
+          newWidth = Math.max(150, startWidth - deltaX);
           newX = startPosX + deltaX;
-          if (newWidth === 200) {
-            newX = startPosX + startWidth - 200;
+          if (newWidth === 150) {
+            newX = startPosX + startWidth - 150;
           }
-          newHeight = Math.max(150, startHeight + deltaY);
+          newHeight = Math.max(60, startHeight + deltaY);
           break;
         case 'ne': // Northeast (top-right)
-          newWidth = Math.max(200, startWidth + deltaX);
-          newHeight = Math.max(150, startHeight - deltaY);
+          newWidth = Math.max(150, startWidth + deltaX);
+          newHeight = Math.max(60, startHeight - deltaY);
           newY = startPosY + deltaY;
-          if (newHeight === 150) {
-            newY = startPosY + startHeight - 150;
+          if (newHeight === 60) {
+            newY = startPosY + startHeight - 60;
           }
           break;
         case 'nw': // Northwest (top-left)
-          newWidth = Math.max(200, startWidth - deltaX);
+          newWidth = Math.max(150, startWidth - deltaX);
           newX = startPosX + deltaX;
-          if (newWidth === 200) {
-            newX = startPosX + startWidth - 200;
+          if (newWidth === 150) {
+            newX = startPosX + startWidth - 150;
           }
-          newHeight = Math.max(150, startHeight - deltaY);
+          newHeight = Math.max(60, startHeight - deltaY);
           newY = startPosY + deltaY;
-          if (newHeight === 150) {
-            newY = startPosY + startHeight - 150;
+          if (newHeight === 60) {
+            newY = startPosY + startHeight - 60;
           }
           break;
       }
