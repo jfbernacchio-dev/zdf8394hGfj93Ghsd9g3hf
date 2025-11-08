@@ -1511,11 +1511,12 @@ Assinatura do Profissional`;
                          </p>
                        </div>
                      </div>
-                   </>,
-                     { width: 350, height: 250 }
-                  )}
-                </div>
-              </ResizableSection>
+                    </>,
+                      { width: 350, height: 250 }
+                   )}
+                 </div>
+               </div>
+               </ResizableSection>
            </TabsContent>
 
           {/* Appointments Tab */}
