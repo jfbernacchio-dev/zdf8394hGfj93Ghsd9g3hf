@@ -1096,7 +1096,7 @@ Assinatura do Profissional`;
               </Button>
             </div>
           )}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className={`grid grid-cols-2 md:grid-cols-5 gap-4 ${isEditMode ? 'min-h-0' : ''}`}>
             {['stat-total', 'stat-attended', 'stat-scheduled', 'stat-unpaid', 'stat-nfse',
               'stat-total-all', 'stat-revenue-month', 'stat-paid-month', 'stat-missed-month',
               'stat-attendance-rate', 'stat-unscheduled-month'].map(cardId => renderStatCard(cardId))}
