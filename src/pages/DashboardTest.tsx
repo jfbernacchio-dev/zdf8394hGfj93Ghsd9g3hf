@@ -316,9 +316,9 @@ const DashboardTest = () => {
     // Save visible cards
     localStorage.setItem('dashboard-visible-cards', JSON.stringify(visibleCards));
     
-    // Save temp sizes to localStorage
+    // Save temp sizes to localStorage with the correct key that ResizableCard uses
     Object.entries(tempCardSizes).forEach(([id, size]) => {
-      localStorage.setItem(`dashboard-card-size-${id}`, JSON.stringify(size));
+      localStorage.setItem(`card-size-${id}`, JSON.stringify(size));
     });
     
     // Save temp section heights
@@ -359,7 +359,7 @@ const DashboardTest = () => {
 
   const getSavedCardSize = (id: string) => {
     if (tempCardSizes[id]) return tempCardSizes[id];
-    const saved = localStorage.getItem(`dashboard-card-size-${id}`);
+    const saved = localStorage.getItem(`card-size-${id}`);
     if (saved) return JSON.parse(saved);
     return DEFAULT_DASHBOARD_LAYOUT.cardSizes[id];
   };
