@@ -10,9 +10,9 @@ interface ResizableCardProps {
   isEditMode: boolean;
   defaultWidth?: number;
   defaultHeight?: number;
-  tempSize?: { width: number; height: number } | null;
-  onTempSizeChange?: (id: string, size: { width: number; height: number }) => void;
-  allCardSizes?: Record<string, { width: number; height: number }>;
+  tempSize?: { width: number; height: number; x: number; y: number } | null;
+  onTempSizeChange?: (id: string, size: { width: number; height: number; x: number; y: number }) => void;
+  allCardSizes?: Record<string, { width: number; height: number; x: number; y: number }>;
 }
 
 type ResizeDirection = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
@@ -28,7 +28,7 @@ export const ResizableCard = ({
   onTempSizeChange,
   allCardSizes = {}
 }: ResizableCardProps) => {
-  const [savedSize, setSavedSize] = useState({ width: defaultWidth, height: defaultHeight });
+  const [savedSize, setSavedSize] = useState({ width: defaultWidth, height: defaultHeight, x: 0, y: 0 });
   const [isResizing, setIsResizing] = useState(false);
   const [resizeDirection, setResizeDirection] = useState<ResizeDirection | null>(null);
   const [alignmentGuides, setAlignmentGuides] = useState<{ x: number[], y: number[] }>({ x: [], y: [] });
@@ -38,7 +38,7 @@ export const ResizableCard = ({
     const saved = localStorage.getItem(`card-size-${id}`);
     if (saved) {
       const parsed = JSON.parse(saved);
-      setSavedSize(parsed);
+      setSavedSize({ ...parsed, x: parsed.x || 0, y: parsed.y || 0 });
     }
   }, [id]);
 
@@ -49,10 +49,6 @@ export const ResizableCard = ({
 
   const checkAlignment = (newWidth: number, newHeight: number) => {
     const guides = { x: [] as number[], y: [] as number[] };
-    
-    // Get edges of current card
-    const currentRight = newWidth;
-    const currentBottom = newHeight;
     
     // Check against other cards
     Object.entries(allCardSizes).forEach(([otherId, otherSize]) => {
@@ -84,6 +80,8 @@ export const ResizableCard = ({
     const startY = e.clientY;
     const startWidth = currentSize.width;
     const startHeight = currentSize.height;
+    const startPosX = currentSize.x;
+    const startPosY = currentSize.y;
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
       const deltaX = moveEvent.clientX - startX;
@@ -91,6 +89,8 @@ export const ResizableCard = ({
       
       let newWidth = startWidth;
       let newHeight = startHeight;
+      let newX = startPosX;
+      let newY = startPosY;
       
       // Handle different resize directions
       switch (direction) {
@@ -99,12 +99,20 @@ export const ResizableCard = ({
           break;
         case 'w': // West (left)
           newWidth = Math.max(200, startWidth - deltaX);
+          newX = startPosX + deltaX;
+          if (newWidth === 200) {
+            newX = startPosX + startWidth - 200;
+          }
           break;
         case 's': // South (bottom)
           newHeight = Math.max(150, startHeight + deltaY);
           break;
         case 'n': // North (top)
           newHeight = Math.max(150, startHeight - deltaY);
+          newY = startPosY + deltaY;
+          if (newHeight === 150) {
+            newY = startPosY + startHeight - 150;
+          }
           break;
         case 'se': // Southeast (bottom-right)
           newWidth = Math.max(200, startWidth + deltaX);
@@ -112,22 +120,38 @@ export const ResizableCard = ({
           break;
         case 'sw': // Southwest (bottom-left)
           newWidth = Math.max(200, startWidth - deltaX);
+          newX = startPosX + deltaX;
+          if (newWidth === 200) {
+            newX = startPosX + startWidth - 200;
+          }
           newHeight = Math.max(150, startHeight + deltaY);
           break;
         case 'ne': // Northeast (top-right)
           newWidth = Math.max(200, startWidth + deltaX);
           newHeight = Math.max(150, startHeight - deltaY);
+          newY = startPosY + deltaY;
+          if (newHeight === 150) {
+            newY = startPosY + startHeight - 150;
+          }
           break;
         case 'nw': // Northwest (top-left)
           newWidth = Math.max(200, startWidth - deltaX);
+          newX = startPosX + deltaX;
+          if (newWidth === 200) {
+            newX = startPosX + startWidth - 200;
+          }
           newHeight = Math.max(150, startHeight - deltaY);
+          newY = startPosY + deltaY;
+          if (newHeight === 150) {
+            newY = startPosY + startHeight - 150;
+          }
           break;
       }
       
       checkAlignment(newWidth, newHeight);
       
       if (onTempSizeChange) {
-        onTempSizeChange(id, { width: newWidth, height: newHeight });
+        onTempSizeChange(id, { width: newWidth, height: newHeight, x: newX, y: newY });
       }
     };
 
@@ -153,7 +177,8 @@ export const ResizableCard = ({
         width: `${currentSize.width}px`,
         height: `${currentSize.height}px`,
         minWidth: '200px',
-        minHeight: '150px'
+        minHeight: '150px',
+        transform: `translate(${currentSize.x}px, ${currentSize.y}px)`
       }}
     >
       <Card 
