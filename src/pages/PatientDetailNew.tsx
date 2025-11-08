@@ -1096,7 +1096,7 @@ Assinatura do Profissional`;
               </Button>
             </div>
           )}
-          <div className={`${isEditMode ? 'relative min-h-[120px]' : 'grid grid-cols-2 md:grid-cols-5 gap-4'}`}>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             {['stat-total', 'stat-attended', 'stat-scheduled', 'stat-unpaid', 'stat-nfse',
               'stat-total-all', 'stat-revenue-month', 'stat-paid-month', 'stat-missed-month',
               'stat-attendance-rate', 'stat-unscheduled-month'].map(cardId => renderStatCard(cardId))}
@@ -1140,7 +1140,7 @@ Assinatura do Profissional`;
              )}
 
              {/* First Row: Next Appointment + Contact Info + Clinical Complaint */}
-             <div className={`${isEditMode ? 'relative min-h-[200px]' : 'grid grid-cols-1 lg:grid-cols-3 gap-6'}`}>
+             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                {nextSession && isCardVisible('next-appointment') && renderFunctionalCard(
                  'next-appointment',
                  <div className="flex flex-col">
@@ -1242,7 +1242,7 @@ Assinatura do Profissional`;
              </div>
 
              {/* Second Row: Clinical Info + Sidebar */}
-             <div className={`${isEditMode ? 'relative min-h-[300px]' : 'grid grid-cols-1 lg:grid-cols-3 gap-6'}`}>
+             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                {isCardVisible('clinical-info') && renderFunctionalCard(
                  'clinical-info',
                  <>
