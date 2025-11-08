@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ThemeProvider } from "./components/ThemeProvider";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
+import DashboardTest from "./pages/DashboardTest";
 import Financial from "./pages/Financial";
 import Index from "./pages/Index";
 import TerapiaCognitivaComportamental from "./pages/TerapiaCognitivaComportamental";
@@ -102,6 +103,7 @@ const App = () => (
             
             {/* Sistema de Gestão */}
             <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
+            <Route path="/dashboard-test" element={<ProtectedRoute><Layout><DashboardTest /></Layout></ProtectedRoute>} />
             <Route path="/install" element={<Install />} />
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
