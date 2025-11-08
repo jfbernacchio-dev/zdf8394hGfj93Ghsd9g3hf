@@ -31,40 +31,41 @@ export const ResizableCard = ({
   const [savedSize, setSavedSize] = useState({ width: defaultWidth, height: defaultHeight });
   const [isResizing, setIsResizing] = useState(false);
   const [resizeDirection, setResizeDirection] = useState<ResizeDirection | null>(null);
-  const [alignmentGuides, setAlignmentGuides] = useState<{ vertical: number[], horizontal: number[] }>({ 
-    vertical: [], 
-    horizontal: [] 
-  });
+  const [alignmentGuides, setAlignmentGuides] = useState<{ x: number[], y: number[] }>({ x: [], y: [] });
 
   // Load saved size from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem(`card-size-${id}`);
     if (saved) {
       const parsed = JSON.parse(saved);
-      setSavedSize({ width: parsed.width, height: parsed.height });
+      setSavedSize(parsed);
     }
   }, [id]);
 
   // Use tempSize if in edit mode and available, otherwise use savedSize
   const currentSize = isEditMode && tempSize ? tempSize : savedSize;
 
-  const SNAP_THRESHOLD = 8; // pixels
+  const SNAP_THRESHOLD = 10; // pixels
 
   const checkAlignment = (newWidth: number, newHeight: number) => {
-    const guides = { vertical: [] as number[], horizontal: [] as number[] };
+    const guides = { x: [] as number[], y: [] as number[] };
+    
+    // Get edges of current card
+    const currentRight = newWidth;
+    const currentBottom = newHeight;
     
     // Check against other cards
     Object.entries(allCardSizes).forEach(([otherId, otherSize]) => {
       if (otherId === id) return;
       
-      // Check width alignment (vertical line at matching width)
+      // Check horizontal alignment (width/right edge)
       if (Math.abs(newWidth - otherSize.width) < SNAP_THRESHOLD) {
-        guides.vertical.push(otherSize.width);
+        guides.x.push(otherSize.width);
       }
       
-      // Check height alignment (horizontal line at matching height)
+      // Check vertical alignment (height/bottom edge)
       if (Math.abs(newHeight - otherSize.height) < SNAP_THRESHOLD) {
-        guides.horizontal.push(otherSize.height);
+        guides.y.push(otherSize.height);
       }
     });
     
@@ -92,18 +93,17 @@ export const ResizableCard = ({
       let newHeight = startHeight;
       
       // Handle different resize directions
-      // For left/top sides, we resize in the opposite direction
       switch (direction) {
         case 'e': // East (right)
           newWidth = Math.max(200, startWidth + deltaX);
           break;
-        case 'w': // West (left) - expand/contract from left
+        case 'w': // West (left)
           newWidth = Math.max(200, startWidth - deltaX);
           break;
         case 's': // South (bottom)
           newHeight = Math.max(150, startHeight + deltaY);
           break;
-        case 'n': // North (top) - expand/contract from top
+        case 'n': // North (top)
           newHeight = Math.max(150, startHeight - deltaY);
           break;
         case 'se': // Southeast (bottom-right)
@@ -134,7 +134,7 @@ export const ResizableCard = ({
     const handleMouseUp = () => {
       setIsResizing(false);
       setResizeDirection(null);
-      setAlignmentGuides({ vertical: [], horizontal: [] });
+      setAlignmentGuides({ x: [], y: [] });
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
@@ -166,20 +166,18 @@ export const ResizableCard = ({
         {children}
       </Card>
 
-      {/* Vertical Alignment guides (for width matching) */}
-      {isEditMode && alignmentGuides.vertical.map((x, i) => (
+      {/* Alignment guides */}
+      {isEditMode && alignmentGuides.x.map((x, i) => (
         <div
-          key={`v-guide-${i}`}
-          className="fixed top-0 bottom-0 w-0.5 bg-blue-500/70 z-50 pointer-events-none shadow-lg"
+          key={`x-guide-${i}`}
+          className="absolute top-0 bottom-0 w-0.5 bg-blue-500 z-50 pointer-events-none"
           style={{ left: `${x}px` }}
         />
       ))}
-      
-      {/* Horizontal Alignment guides (for height matching) */}
-      {isEditMode && alignmentGuides.horizontal.map((y, i) => (
+      {isEditMode && alignmentGuides.y.map((y, i) => (
         <div
-          key={`h-guide-${i}`}
-          className="fixed left-0 right-0 h-0.5 bg-blue-500/70 z-50 pointer-events-none shadow-lg"
+          key={`y-guide-${i}`}
+          className="absolute left-0 right-0 h-0.5 bg-blue-500 z-50 pointer-events-none"
           style={{ top: `${y}px` }}
         />
       ))}

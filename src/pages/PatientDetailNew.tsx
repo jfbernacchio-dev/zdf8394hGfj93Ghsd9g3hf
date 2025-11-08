@@ -827,10 +827,7 @@ Assinatura do Profissional`;
   const handleSaveChanges = () => {
     // Save all temp sizes to localStorage
     Object.entries(tempSizes).forEach(([id, size]) => {
-      localStorage.setItem(`card-size-${id}`, JSON.stringify({
-        width: size.width,
-        height: size.height
-      }));
+      localStorage.setItem(`card-size-${id}`, JSON.stringify(size));
     });
     
     setIsExitEditDialogOpen(false);
