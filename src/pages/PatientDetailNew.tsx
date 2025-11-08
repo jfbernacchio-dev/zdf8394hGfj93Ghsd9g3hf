@@ -935,11 +935,11 @@ Assinatura do Profissional`;
               </Card>
             </div>
 
-            {/* Main Grid Layout */}
+            {/* Main Grid Layout - Single grid for proper alignment */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Next Appointment - 1/3 width */}
               {nextSession && (
-                <Card className="lg:col-span-1 p-6 bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20">
+                <Card className="p-6 bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20">
                   <div className="flex flex-col">
                     <p className="text-sm font-medium text-muted-foreground mb-2">Próximo Agendamento</p>
                     <div className="flex items-center gap-2 mb-1">
@@ -1000,37 +1000,34 @@ Assinatura do Profissional`;
                 </div>
               </Card>
 
-              {/* Left Column - Clinical Information (2/3 width) */}
-              <div className="lg:col-span-2 space-y-6">
-                {/* Clinical Information */}
-                <Card className="p-6">
-                  <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                    <Tag className="w-5 h-5 text-primary" />
-                    Informação Clínica
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between py-2 border-b">
-                      <span className="text-muted-foreground">Profissional</span>
-                      <span className="font-medium">{userProfile?.full_name || 'Não definido'}</span>
-                    </div>
-                    <div className="flex items-center justify-between py-2 border-b">
-                      <span className="text-muted-foreground">Valor da Sessão</span>
-                      <span className="font-medium">{formatBrazilianCurrency(patient.session_value)}</span>
-                    </div>
-                    <div className="flex items-center justify-between py-2 border-b">
-                      <span className="text-muted-foreground">Modalidade</span>
-                      <Badge variant="outline">{patient.monthly_price ? 'Mensal' : 'Por Sessão'}</Badge>
-                    </div>
-                    <div className="flex items-center justify-between py-2">
-                      <span className="text-muted-foreground">Horário Padrão</span>
-                      <span className="font-medium">{patient.session_time || 'Não definido'}</span>
-                    </div>
+              {/* Clinical Information - 2/3 width */}
+              <Card className="lg:col-span-2 p-6">
+                <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                  <Tag className="w-5 h-5 text-primary" />
+                  Informação Clínica
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between py-2 border-b">
+                    <span className="text-muted-foreground">Profissional</span>
+                    <span className="font-medium">{userProfile?.full_name || 'Não definido'}</span>
                   </div>
-                </Card>
-              </div>
+                  <div className="flex items-center justify-between py-2 border-b">
+                    <span className="text-muted-foreground">Valor da Sessão</span>
+                    <span className="font-medium">{formatBrazilianCurrency(patient.session_value)}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b">
+                    <span className="text-muted-foreground">Modalidade</span>
+                    <Badge variant="outline">{patient.monthly_price ? 'Mensal' : 'Por Sessão'}</Badge>
+                  </div>
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-muted-foreground">Horário Padrão</span>
+                    <span className="font-medium">{patient.session_time || 'Não definido'}</span>
+                  </div>
+                </div>
+              </Card>
 
               {/* Right Column - Sidebar (1/3 width) */}
-              <div className="lg:col-span-1 space-y-6">
+              <div className="space-y-6">
                 {/* New Note Button - Discreet */}
                 <div className="flex justify-end">
                   <Button 
