@@ -1014,7 +1014,7 @@ Assinatura do Profissional`;
               </Card>
 
               {/* Clinical Complaint */}
-              <Card className="p-6">
+              <Card className="p-6 min-h-[280px] flex flex-col">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold text-lg flex items-center gap-2">
                     <FileText className="w-5 h-5 text-primary" />
