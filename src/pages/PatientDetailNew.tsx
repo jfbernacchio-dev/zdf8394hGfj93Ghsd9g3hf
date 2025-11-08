@@ -1083,9 +1083,8 @@ Assinatura do Profissional`;
 
         {/* Monthly Stats at Top - Always Visible */}
         <div className="mb-4">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">Cards Estatísticos</h3>
-            {isEditMode && (
+          {isEditMode && (
+            <div className="flex justify-end mb-4">
               <Button
                 onClick={() => setIsAddCardDialogOpen(true)}
                 size="sm"
@@ -1095,8 +1094,8 @@ Assinatura do Profissional`;
                 <Plus className="w-4 h-4" />
                 Adicionar Card
               </Button>
-            )}
-          </div>
+            </div>
+          )}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             {['stat-total', 'stat-attended', 'stat-scheduled', 'stat-unpaid', 'stat-nfse',
               'stat-total-all', 'stat-revenue-month', 'stat-paid-month', 'stat-missed-month',
@@ -1126,10 +1125,8 @@ Assinatura do Profissional`;
 
            {/* Overview Tab */}
            <TabsContent value="overview" className="space-y-6">
-             {/* Cards Funcionais Header */}
-             <div className="flex items-center justify-between mb-4">
-               <h3 className="text-lg font-semibold">Cards Funcionais</h3>
-               {isEditMode && (
+             {isEditMode && (
+               <div className="flex justify-end mb-4">
                  <Button
                    onClick={() => setIsAddCardDialogOpen(true)}
                    size="sm"
@@ -1139,8 +1136,8 @@ Assinatura do Profissional`;
                    <Plus className="w-4 h-4" />
                    Adicionar Card
                  </Button>
-               )}
-             </div>
+               </div>
+             )}
 
              {/* First Row: Next Appointment + Contact Info + Clinical Complaint */}
              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
