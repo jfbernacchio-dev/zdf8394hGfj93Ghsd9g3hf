@@ -935,9 +935,8 @@ Assinatura do Profissional`;
               </Card>
             </div>
 
-            {/* Main Grid Layout - Single grid for proper alignment */}
+            {/* First Row: Next Appointment + Contact Info */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Next Appointment - 1/3 width */}
               {nextSession ? (
                 <Card className="p-6 bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20">
                   <div className="flex flex-col">
@@ -959,7 +958,6 @@ Assinatura do Profissional`;
                 <div className="hidden lg:block" />
               )}
 
-              {/* Contact Info - 2/3 width - always starts at column 2 on lg+ */}
               <Card className="lg:col-span-2 p-6">
                 <h3 className="font-semibold text-lg mb-4">Informações de Contato</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
@@ -1001,8 +999,12 @@ Assinatura do Profissional`;
                   )}
                 </div>
               </Card>
+            </div>
 
-              {/* Clinical Information - 2/3 width */}
+            {/* Second Row: Clinical Info + Sidebar */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="hidden lg:block" />
+              
               <Card className="lg:col-span-2 p-6">
                 <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
                   <Tag className="w-5 h-5 text-primary" />
@@ -1028,8 +1030,8 @@ Assinatura do Profissional`;
                 </div>
               </Card>
 
-              {/* Right Column - Sidebar (1/3 width) */}
-              <div className="space-y-6">
+              {/* Right Column - Sidebar */}
+              <div className="space-y-6 lg:col-start-3">
                 {/* New Note Button - Discreet */}
                 <div className="flex justify-end">
                   <Button 
