@@ -33,10 +33,9 @@ import IssueNFSeDialog from '@/components/IssueNFSeDialog';
 import { ConsentReminder } from '@/components/ConsentReminder';
 import { ResizableCard } from '@/components/ResizableCard';
 import { ResizableSection } from '@/components/ResizableSection';
-import { Settings, RotateCcw } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import { AddCardDialog } from '@/components/AddCardDialog';
 import { CardConfig, ALL_AVAILABLE_CARDS } from '@/types/cardTypes';
-import { DEFAULT_LAYOUT, resetToDefaultLayout } from '@/lib/defaultLayout';
 
 const PatientDetailNew = () => {
   const { id } = useParams();
@@ -93,23 +92,18 @@ const PatientDetailNew = () => {
   });
 
   useEffect(() => {
-    // Load visible cards from localStorage or use default
+    // Load visible cards from localStorage
     const savedCards = localStorage.getItem('visible-cards');
     if (savedCards) {
       setVisibleCards(JSON.parse(savedCards));
     } else {
-      // Use default visible cards
-      setVisibleCards(DEFAULT_LAYOUT.visibleCards);
-      localStorage.setItem('visible-cards', JSON.stringify(DEFAULT_LAYOUT.visibleCards));
+      // Default visible cards
+      const defaultCards = [
+        'stat-total', 'stat-attended', 'stat-scheduled', 'stat-unpaid', 'stat-nfse',
+        'next-appointment', 'contact-info', 'clinical-complaint', 'clinical-info', 'history'
+      ];
+      setVisibleCards(defaultCards);
     }
-
-    // Initialize default section heights if not set
-    Object.entries(DEFAULT_LAYOUT.sectionHeights).forEach(([id, height]) => {
-      const saved = localStorage.getItem(`section-height-${id}`);
-      if (!saved) {
-        localStorage.setItem(`section-height-${id}`, height.toString());
-      }
-    });
 
     loadData();
     
@@ -894,12 +888,6 @@ Assinatura do Profissional`;
     toast({ title: 'Alterações descartadas' });
   };
 
-  const handleRestoreDefault = () => {
-    resetToDefaultLayout();
-    toast({ title: 'Layout restaurado para o padrão!' });
-    setTimeout(() => window.location.reload(), 500);
-  };
-
   const handleAddCard = (cardConfig: CardConfig) => {
     if (!visibleCards.includes(cardConfig.id)) {
       setVisibleCards([...visibleCards, cardConfig.id]);
@@ -1081,16 +1069,6 @@ Assinatura do Profissional`;
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {isEditMode && (
-                <Button
-                  onClick={handleRestoreDefault}
-                  variant="outline"
-                  size="sm"
-                >
-                  <RotateCcw className="w-4 h-4 mr-2" />
-                  Restaurar Padrão
-                </Button>
-              )}
               <Button
                 onClick={isEditMode ? handleExitEditMode : handleEnterEditMode}
                 variant={isEditMode ? "default" : "outline"}
