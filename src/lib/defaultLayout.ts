@@ -1,10 +1,10 @@
 // Default layout configuration for patient detail page
 export const DEFAULT_LAYOUT = {
-  // Section heights
+  // Section heights - optimized for better visibility
   sectionHeights: {
-    'stats-section': 200,
-    'functional-section-1': 300,
-    'functional-section-2': 300,
+    'stats-section': 220,
+    'functional-section-1': 400,
+    'functional-section-2': 400,
   },
   
   // Card sizes and positions (only for cards that need custom positioning)
@@ -12,7 +12,7 @@ export const DEFAULT_LAYOUT = {
     // Add custom card sizes here if needed in the future
   },
   
-  // Visible cards by default
+  // Visible cards by default - all essential cards enabled
   visibleCards: [
     'stat-total',
     'stat-attended',
