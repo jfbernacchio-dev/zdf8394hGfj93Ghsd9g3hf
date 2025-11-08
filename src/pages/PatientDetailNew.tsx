@@ -888,10 +888,10 @@ Assinatura do Profissional`;
 
         <Tabs defaultValue="overview" className="w-full">
           <TabsList className="mb-6">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="appointments">Appointments</TabsTrigger>
-            <TabsTrigger value="billing">Billing</TabsTrigger>
-            <TabsTrigger value="files">Files</TabsTrigger>
+            <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+            <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
+            <TabsTrigger value="billing">Faturamento</TabsTrigger>
+            <TabsTrigger value="files">Arquivos</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -935,31 +935,75 @@ Assinatura do Profissional`;
               </Card>
             </div>
 
+            {/* Próximo Agendamento + Contact Info Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Next Appointment - 1/3 width */}
+              {nextSession && (
+                <Card className="lg:col-span-1 p-6 bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20">
+                  <div className="flex flex-col">
+                    <p className="text-sm font-medium text-muted-foreground mb-2">Próximo Agendamento</p>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Calendar className="w-5 h-5 text-primary" />
+                      <p className="text-xl font-bold text-foreground">
+                        {format(parseISO(nextSession.date), "EEE, dd 'de' MMM", { locale: ptBR })}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Clock className="w-4 h-4" />
+                      <p className="text-base">{nextSession.time || 'Horário não definido'}</p>
+                    </div>
+                    <Badge variant="secondary" className="bg-primary/10 text-primary mt-3 self-start">Agendada</Badge>
+                  </div>
+                </Card>
+              )}
+
+              {/* Contact Info - 2/3 width */}
+              <Card className="lg:col-span-2 p-6">
+                <h3 className="font-semibold text-lg mb-4">Informações de Contato</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                  {patient.phone && (
+                    <div className="flex items-start gap-3">
+                      <Phone className="w-4 h-4 text-muted-foreground mt-1" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Telefone</p>
+                        <p className="font-medium">{patient.phone}</p>
+                      </div>
+                    </div>
+                  )}
+                  {patient.email && (
+                    <div className="flex items-start gap-3">
+                      <Mail className="w-4 h-4 text-muted-foreground mt-1" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Email</p>
+                        <p className="font-medium text-sm">{patient.email}</p>
+                      </div>
+                    </div>
+                  )}
+                  {patient.address && (
+                    <div className="flex items-start gap-3">
+                      <MapPin className="w-4 h-4 text-muted-foreground mt-1" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Endereço</p>
+                        <p className="font-medium text-sm">{patient.address}</p>
+                      </div>
+                    </div>
+                  )}
+                  {patient.cpf && (
+                    <div className="flex items-start gap-3">
+                      <User className="w-4 h-4 text-muted-foreground mt-1" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">CPF</p>
+                        <p className="font-medium">{patient.cpf}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Left Column - Main Info */}
               <div className="lg:col-span-2 space-y-6">
-                {/* Next Appointment */}
-                {nextSession && (
-                  <Card className="p-6 bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground mb-2">Próximo Agendamento</p>
-                        <div className="flex items-center gap-2 mb-1">
-                          <Calendar className="w-5 h-5 text-primary" />
-                          <p className="text-2xl font-bold text-foreground">
-                            {format(parseISO(nextSession.date), "EEE, dd 'de' MMM", { locale: ptBR })}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <Clock className="w-4 h-4" />
-                          <p className="text-lg">{nextSession.time || 'Horário não definido'}</p>
-                        </div>
-                      </div>
-                      <Badge variant="secondary" className="bg-primary/10 text-primary">Agendada</Badge>
-                    </div>
-                  </Card>
-                )}
-
                 {/* Clinical Information */}
                 <Card className="p-6">
                   <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
@@ -989,48 +1033,18 @@ Assinatura do Profissional`;
 
               {/* Right Column - Sidebar */}
               <div className="space-y-6">
-                {/* Contact Info */}
-                <Card className="p-6">
-                  <h3 className="font-semibold text-lg mb-4">Contact Info</h3>
-                  <div className="space-y-4">
-                    {patient.phone && (
-                      <div className="flex items-start gap-3">
-                        <Phone className="w-4 h-4 text-muted-foreground mt-1" />
-                        <div>
-                          <p className="text-sm text-muted-foreground">Telefone</p>
-                          <p className="font-medium">{patient.phone}</p>
-                        </div>
-                      </div>
-                    )}
-                    {patient.email && (
-                      <div className="flex items-start gap-3">
-                        <Mail className="w-4 h-4 text-muted-foreground mt-1" />
-                        <div>
-                          <p className="text-sm text-muted-foreground">Email</p>
-                          <p className="font-medium text-sm">{patient.email}</p>
-                        </div>
-                      </div>
-                    )}
-                    {patient.address && (
-                      <div className="flex items-start gap-3">
-                        <MapPin className="w-4 h-4 text-muted-foreground mt-1" />
-                        <div>
-                          <p className="text-sm text-muted-foreground">Endereço</p>
-                          <p className="font-medium text-sm">{patient.address}</p>
-                        </div>
-                      </div>
-                    )}
-                    {patient.cpf && (
-                      <div className="flex items-start gap-3">
-                        <User className="w-4 h-4 text-muted-foreground mt-1" />
-                        <div>
-                          <p className="text-sm text-muted-foreground">CPF</p>
-                          <p className="font-medium">{patient.cpf}</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </Card>
+                {/* New Note Button - Discreet */}
+                <div className="flex justify-end">
+                  <Button 
+                    onClick={() => setIsNoteDialogOpen(true)} 
+                    variant="outline" 
+                    size="sm"
+                    className="gap-2 text-muted-foreground hover:text-foreground"
+                  >
+                    <StickyNote className="w-4 h-4" />
+                    Nova Nota
+                  </Button>
+                </div>
 
                 {/* Clinical Complaint */}
                 <Card className="p-6">
@@ -1068,7 +1082,7 @@ Assinatura do Profissional`;
                 {/* Notes History */}
                 <Card className="p-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-lg">History</h3>
+                    <h3 className="font-semibold text-lg">Histórico</h3>
                   </div>
                   <div className={cn("space-y-3", !showFullHistory && "max-h-[200px] overflow-hidden relative")}>
                     {sessionHistory.length > 0 ? (
@@ -1122,14 +1136,6 @@ Assinatura do Profissional`;
                   )}
                 </Card>
               </div>
-            </div>
-            
-            {/* New Note Button */}
-            <div className="flex justify-center">
-              <Button onClick={() => setIsNoteDialogOpen(true)} size="lg" className="gap-2">
-                <StickyNote className="w-5 h-5" />
-                Nova Nota Clínica
-              </Button>
             </div>
           </TabsContent>
 
