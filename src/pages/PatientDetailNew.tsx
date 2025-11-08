@@ -1075,7 +1075,7 @@ Assinatura do Profissional`;
               </Card>
 
               {/* Right Column - Sidebar */}
-              <div className="space-y-6 lg:col-start-3">
+              <div className="space-y-6 lg:col-start-3 lg:flex lg:flex-col lg:justify-end">
                 {/* Notes History */}
                 <Card className="p-6">
                   <div className="flex items-center justify-between mb-4">
