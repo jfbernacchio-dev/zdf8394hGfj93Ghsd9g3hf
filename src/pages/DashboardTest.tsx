@@ -399,38 +399,25 @@ const DashboardTest = () => {
       </>
     );
 
-    if (isEditMode) {
-      return (
-        <ResizableCard
-          key={id}
-          id={id}
-          className={cn(
-            "p-6 shadow-[var(--shadow-card)] border-border",
-            onClick && "cursor-pointer hover:shadow-lg transition-shadow"
-          )}
-          isEditMode={isEditMode}
-          defaultWidth={getSavedCardSize(id)?.width || 280}
-          defaultHeight={getSavedCardSize(id)?.height || 160}
-          tempSize={tempCardSizes[id]}
-          onTempSizeChange={handleTempCardSizeChange}
-          allCardSizes={allCardSizes}
-        >
-          {CardContent}
-        </ResizableCard>
-      );
-    }
-
     return (
-      <Card 
+      <ResizableCard
         key={id}
+        id={id}
         className={cn(
           "p-6 shadow-[var(--shadow-card)] border-border",
           onClick && "cursor-pointer hover:shadow-lg transition-shadow"
         )}
-        onClick={onClick}
+        isEditMode={isEditMode}
+        defaultWidth={getSavedCardSize(id)?.width || 280}
+        defaultHeight={getSavedCardSize(id)?.height || 160}
+        tempSize={tempCardSizes[id]}
+        onTempSizeChange={handleTempCardSizeChange}
+        allCardSizes={allCardSizes}
       >
-        {CardContent}
-      </Card>
+        <div onClick={onClick}>
+          {CardContent}
+        </div>
+      </ResizableCard>
     );
   };
 
@@ -558,7 +545,7 @@ const DashboardTest = () => {
         onTempHeightChange={handleTempSectionHeightChange}
         className="mb-8"
       >
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        <div className="relative h-full">
           {renderCard(
             'total-patients',
             <Users className="w-6 h-6 text-primary" />,
@@ -604,7 +591,7 @@ const DashboardTest = () => {
         onTempHeightChange={handleTempSectionHeightChange}
         className="mb-8"
       >
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        <div className="relative h-full">
           {renderCard(
             'expected-sessions',
             <Calendar className="w-6 h-6 text-accent" />,

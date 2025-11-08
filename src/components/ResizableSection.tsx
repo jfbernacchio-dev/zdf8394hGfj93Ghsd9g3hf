@@ -82,7 +82,7 @@ export const ResizableSection = ({
         className
       )}
       style={{ 
-        minHeight: isEditMode ? `${currentHeight}px` : 'auto',
+        minHeight: `${currentHeight}px`,
         height: isEditMode ? `${currentHeight}px` : 'auto'
       }}
     >
