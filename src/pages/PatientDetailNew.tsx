@@ -1182,14 +1182,14 @@ Assinatura do Profissional`;
                </div>
              )}
 
-             {/* First Row: Next Appointment + Contact Info + Clinical Complaint */}
-             <ResizableSection
-               id="functional-section-1"
-               isEditMode={isEditMode}
-               defaultHeight={300}
-               tempHeight={tempSectionHeights['functional-section-1']}
-               onTempHeightChange={handleTempSectionHeightChange}
-             >
+              {/* Functional Cards Section */}
+              <ResizableSection
+                id="functional-section"
+                isEditMode={isEditMode}
+                defaultHeight={510}
+                tempHeight={tempSectionHeights['functional-section']}
+                onTempHeightChange={handleTempSectionHeightChange}
+              >
                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                  {nextSession && isCardVisible('next-appointment') && renderFunctionalCard(
                  'next-appointment',
@@ -1287,21 +1287,10 @@ Assinatura do Profissional`;
                    <div className="text-sm text-muted-foreground">
                      {complaint?.complaint_text || 'Nenhuma queixa registrada'}
                    </div>
-                 </>
-                 )}
-               </div>
-             </ResizableSection>
+                  </>
+                  )}
 
-             {/* Second Row: Clinical Info + Sidebar */}
-             <ResizableSection
-               id="functional-section-2"
-               isEditMode={isEditMode}
-               defaultHeight={300}
-               tempHeight={tempSectionHeights['functional-section-2']}
-               onTempHeightChange={handleTempSectionHeightChange}
-              >
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {isCardVisible('clinical-info') && renderFunctionalCard(
+                   {isCardVisible('clinical-info') && renderFunctionalCard(
                  'clinical-info',
                  <>
                    <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
@@ -1328,11 +1317,9 @@ Assinatura do Profissional`;
                    </div>
                  </>,
                  { width: 700, height: 280, className: 'lg:col-span-2' }
-               )}
+                )}
 
-               {/* Right Column - Sidebar */}
-               <div className="space-y-6 lg:col-start-3 lg:flex lg:flex-col lg:justify-end">
-                 {isCardVisible('history') && renderFunctionalCard(
+                  {isCardVisible('history') && renderFunctionalCard(
                    'history',
                    <>
                      <div className="flex items-center justify-between mb-4">
@@ -1532,12 +1519,11 @@ Assinatura do Profissional`;
                          </p>
                        </div>
                      </div>
-                    </>,
-                      { width: 350, height: 250 }
-                   )}
-                 </div>
-               </div>
-               </ResizableSection>
+                     </>,
+                       { width: 350, height: 250 }
+                    )}
+                </div>
+              </ResizableSection>
            </TabsContent>
 
           {/* Appointments Tab */}
