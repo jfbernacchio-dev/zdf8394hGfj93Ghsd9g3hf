@@ -1010,6 +1010,7 @@ Assinatura do Profissional`;
                   defaultHeight={220}
                   tempSize={tempSizes['next-appointment']}
                   onTempSizeChange={handleTempSizeChange}
+                  allCardSizes={tempSizes}
                   className="p-6 bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20"
                 >
                   <div className="flex flex-col">
@@ -1038,6 +1039,7 @@ Assinatura do Profissional`;
                 defaultHeight={220}
                 tempSize={tempSizes['contact-info']}
                 onTempSizeChange={handleTempSizeChange}
+                allCardSizes={tempSizes}
                 className="p-6"
               >
                 <h3 className="font-semibold text-lg mb-4">Informações de Contato</h3>
@@ -1089,6 +1091,7 @@ Assinatura do Profissional`;
                 defaultHeight={220}
                 tempSize={tempSizes['clinical-complaint']}
                 onTempSizeChange={handleTempSizeChange}
+                allCardSizes={tempSizes}
                 className="p-6"
               >
                 <div className="flex items-center justify-between mb-4">
@@ -1132,6 +1135,7 @@ Assinatura do Profissional`;
                 defaultHeight={280}
                 tempSize={tempSizes['clinical-info']}
                 onTempSizeChange={handleTempSizeChange}
+                allCardSizes={tempSizes}
                 className="lg:col-span-2 p-6"
               >
                 <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
@@ -1168,6 +1172,7 @@ Assinatura do Profissional`;
                   defaultHeight={280}
                   tempSize={tempSizes['history']}
                   onTempSizeChange={handleTempSizeChange}
+                  allCardSizes={tempSizes}
                   className="p-6"
                 >
                   <div className="flex items-center justify-between mb-4">

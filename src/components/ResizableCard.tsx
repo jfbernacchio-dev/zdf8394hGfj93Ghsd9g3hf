@@ -12,7 +12,10 @@ interface ResizableCardProps {
   defaultHeight?: number;
   tempSize?: { width: number; height: number } | null;
   onTempSizeChange?: (id: string, size: { width: number; height: number }) => void;
+  allCardSizes?: Record<string, { width: number; height: number }>;
 }
+
+type ResizeDirection = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
 
 export const ResizableCard = ({ 
   id, 
@@ -22,11 +25,13 @@ export const ResizableCard = ({
   defaultWidth = 300,
   defaultHeight = 200,
   tempSize,
-  onTempSizeChange
+  onTempSizeChange,
+  allCardSizes = {}
 }: ResizableCardProps) => {
   const [savedSize, setSavedSize] = useState({ width: defaultWidth, height: defaultHeight });
   const [isResizing, setIsResizing] = useState(false);
-  const [resizeDirection, setResizeDirection] = useState<'both' | 'horizontal' | 'vertical' | null>(null);
+  const [resizeDirection, setResizeDirection] = useState<ResizeDirection | null>(null);
+  const [alignmentGuides, setAlignmentGuides] = useState<{ x: number[], y: number[] }>({ x: [], y: [] });
 
   // Load saved size from localStorage on mount
   useEffect(() => {
@@ -40,10 +45,38 @@ export const ResizableCard = ({
   // Use tempSize if in edit mode and available, otherwise use savedSize
   const currentSize = isEditMode && tempSize ? tempSize : savedSize;
 
-  const handleMouseDown = (e: React.MouseEvent, direction: 'both' | 'horizontal' | 'vertical') => {
+  const SNAP_THRESHOLD = 10; // pixels
+
+  const checkAlignment = (newWidth: number, newHeight: number) => {
+    const guides = { x: [] as number[], y: [] as number[] };
+    
+    // Get edges of current card
+    const currentRight = newWidth;
+    const currentBottom = newHeight;
+    
+    // Check against other cards
+    Object.entries(allCardSizes).forEach(([otherId, otherSize]) => {
+      if (otherId === id) return;
+      
+      // Check horizontal alignment (width/right edge)
+      if (Math.abs(newWidth - otherSize.width) < SNAP_THRESHOLD) {
+        guides.x.push(otherSize.width);
+      }
+      
+      // Check vertical alignment (height/bottom edge)
+      if (Math.abs(newHeight - otherSize.height) < SNAP_THRESHOLD) {
+        guides.y.push(otherSize.height);
+      }
+    });
+    
+    setAlignmentGuides(guides);
+  };
+
+  const handleMouseDown = (e: React.MouseEvent, direction: ResizeDirection) => {
     if (!isEditMode) return;
     
     e.preventDefault();
+    e.stopPropagation();
     setIsResizing(true);
     setResizeDirection(direction);
     
@@ -56,26 +89,52 @@ export const ResizableCard = ({
       const deltaX = moveEvent.clientX - startX;
       const deltaY = moveEvent.clientY - startY;
       
-      const newSize = { 
-        width: startWidth,
-        height: startHeight
-      };
+      let newWidth = startWidth;
+      let newHeight = startHeight;
       
-      if (direction === 'both' || direction === 'horizontal') {
-        newSize.width = Math.max(200, startWidth + deltaX);
+      // Handle different resize directions
+      switch (direction) {
+        case 'e': // East (right)
+          newWidth = Math.max(200, startWidth + deltaX);
+          break;
+        case 'w': // West (left)
+          newWidth = Math.max(200, startWidth - deltaX);
+          break;
+        case 's': // South (bottom)
+          newHeight = Math.max(150, startHeight + deltaY);
+          break;
+        case 'n': // North (top)
+          newHeight = Math.max(150, startHeight - deltaY);
+          break;
+        case 'se': // Southeast (bottom-right)
+          newWidth = Math.max(200, startWidth + deltaX);
+          newHeight = Math.max(150, startHeight + deltaY);
+          break;
+        case 'sw': // Southwest (bottom-left)
+          newWidth = Math.max(200, startWidth - deltaX);
+          newHeight = Math.max(150, startHeight + deltaY);
+          break;
+        case 'ne': // Northeast (top-right)
+          newWidth = Math.max(200, startWidth + deltaX);
+          newHeight = Math.max(150, startHeight - deltaY);
+          break;
+        case 'nw': // Northwest (top-left)
+          newWidth = Math.max(200, startWidth - deltaX);
+          newHeight = Math.max(150, startHeight - deltaY);
+          break;
       }
-      if (direction === 'both' || direction === 'vertical') {
-        newSize.height = Math.max(150, startHeight + deltaY);
-      }
+      
+      checkAlignment(newWidth, newHeight);
       
       if (onTempSizeChange) {
-        onTempSizeChange(id, newSize);
+        onTempSizeChange(id, { width: newWidth, height: newHeight });
       }
     };
 
     const handleMouseUp = () => {
       setIsResizing(false);
       setResizeDirection(null);
+      setAlignmentGuides({ x: [], y: [] });
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
@@ -107,42 +166,107 @@ export const ResizableCard = ({
         {children}
       </Card>
 
+      {/* Alignment guides */}
+      {isEditMode && alignmentGuides.x.map((x, i) => (
+        <div
+          key={`x-guide-${i}`}
+          className="absolute top-0 bottom-0 w-0.5 bg-blue-500 z-50 pointer-events-none"
+          style={{ left: `${x}px` }}
+        />
+      ))}
+      {isEditMode && alignmentGuides.y.map((y, i) => (
+        <div
+          key={`y-guide-${i}`}
+          className="absolute left-0 right-0 h-0.5 bg-blue-500 z-50 pointer-events-none"
+          style={{ top: `${y}px` }}
+        />
+      ))}
+
       {/* Resize handles */}
       {isEditMode && (
         <>
-          {/* Bottom-right corner handle */}
+          {/* Corner handles */}
           <div
             className={cn(
-              "absolute bottom-0 right-0 w-6 h-6 cursor-nwse-resize",
-              "bg-primary/80 hover:bg-primary rounded-tl-lg",
-              "flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity",
-              isResizing && resizeDirection === 'both' && "opacity-100"
+              "absolute top-0 left-0 w-4 h-4 cursor-nwse-resize",
+              "bg-primary/80 hover:bg-primary rounded-br-lg -translate-x-1/2 -translate-y-1/2",
+              "opacity-0 group-hover:opacity-100 transition-opacity z-10",
+              isResizing && resizeDirection === 'nw' && "opacity-100"
             )}
-            onMouseDown={(e) => handleMouseDown(e, 'both')}
+            onMouseDown={(e) => handleMouseDown(e, 'nw')}
+          />
+          
+          <div
+            className={cn(
+              "absolute top-0 right-0 w-4 h-4 cursor-nesw-resize",
+              "bg-primary/80 hover:bg-primary rounded-bl-lg translate-x-1/2 -translate-y-1/2",
+              "opacity-0 group-hover:opacity-100 transition-opacity z-10",
+              isResizing && resizeDirection === 'ne' && "opacity-100"
+            )}
+            onMouseDown={(e) => handleMouseDown(e, 'ne')}
+          />
+          
+          <div
+            className={cn(
+              "absolute bottom-0 left-0 w-4 h-4 cursor-nesw-resize",
+              "bg-primary/80 hover:bg-primary rounded-tr-lg -translate-x-1/2 translate-y-1/2",
+              "opacity-0 group-hover:opacity-100 transition-opacity z-10",
+              isResizing && resizeDirection === 'sw' && "opacity-100"
+            )}
+            onMouseDown={(e) => handleMouseDown(e, 'sw')}
+          />
+          
+          <div
+            className={cn(
+              "absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize",
+              "bg-primary/80 hover:bg-primary rounded-tl-lg translate-x-1/2 translate-y-1/2",
+              "flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10",
+              isResizing && resizeDirection === 'se' && "opacity-100"
+            )}
+            onMouseDown={(e) => handleMouseDown(e, 'se')}
           >
-            <GripHorizontal className="w-4 h-4 text-primary-foreground rotate-45" />
+            <GripHorizontal className="w-3 h-3 text-primary-foreground rotate-45" />
           </div>
 
-          {/* Right edge handle */}
+          {/* Edge handles */}
           <div
             className={cn(
-              "absolute top-1/2 right-0 w-2 h-16 -translate-y-1/2 cursor-ew-resize",
-              "bg-primary/60 hover:bg-primary rounded-l",
-              "opacity-0 group-hover:opacity-100 transition-opacity",
-              isResizing && resizeDirection === 'horizontal' && "opacity-100"
+              "absolute top-0 left-1/2 h-2 w-16 -translate-x-1/2 -translate-y-1/2 cursor-ns-resize",
+              "bg-primary/60 hover:bg-primary rounded",
+              "opacity-0 group-hover:opacity-100 transition-opacity z-10",
+              isResizing && resizeDirection === 'n' && "opacity-100"
             )}
-            onMouseDown={(e) => handleMouseDown(e, 'horizontal')}
+            onMouseDown={(e) => handleMouseDown(e, 'n')}
           />
-
-          {/* Bottom edge handle */}
+          
           <div
             className={cn(
-              "absolute bottom-0 left-1/2 h-2 w-16 -translate-x-1/2 cursor-ns-resize",
-              "bg-primary/60 hover:bg-primary rounded-t",
-              "opacity-0 group-hover:opacity-100 transition-opacity",
-              isResizing && resizeDirection === 'vertical' && "opacity-100"
+              "absolute bottom-0 left-1/2 h-2 w-16 -translate-x-1/2 translate-y-1/2 cursor-ns-resize",
+              "bg-primary/60 hover:bg-primary rounded",
+              "opacity-0 group-hover:opacity-100 transition-opacity z-10",
+              isResizing && resizeDirection === 's' && "opacity-100"
             )}
-            onMouseDown={(e) => handleMouseDown(e, 'vertical')}
+            onMouseDown={(e) => handleMouseDown(e, 's')}
+          />
+          
+          <div
+            className={cn(
+              "absolute left-0 top-1/2 w-2 h-16 -translate-y-1/2 -translate-x-1/2 cursor-ew-resize",
+              "bg-primary/60 hover:bg-primary rounded",
+              "opacity-0 group-hover:opacity-100 transition-opacity z-10",
+              isResizing && resizeDirection === 'w' && "opacity-100"
+            )}
+            onMouseDown={(e) => handleMouseDown(e, 'w')}
+          />
+          
+          <div
+            className={cn(
+              "absolute right-0 top-1/2 w-2 h-16 -translate-y-1/2 translate-x-1/2 cursor-ew-resize",
+              "bg-primary/60 hover:bg-primary rounded",
+              "opacity-0 group-hover:opacity-100 transition-opacity z-10",
+              isResizing && resizeDirection === 'e' && "opacity-100"
+            )}
+            onMouseDown={(e) => handleMouseDown(e, 'e')}
           />
         </>
       )}
