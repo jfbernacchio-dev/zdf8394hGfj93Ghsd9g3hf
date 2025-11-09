@@ -37,11 +37,10 @@ export const ComplianceReminder = () => {
     const today = new Date();
     const tasksData: ComplianceTask[] = [];
 
-    // Check Log Review (monthly)
+    // Check Log Review (monthly) - any admin
     const { data: lastLogReview } = await supabase
       .from('log_reviews')
       .select('created_at')
-      .eq('reviewed_by', user.id)
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
@@ -62,10 +61,11 @@ export const ComplianceReminder = () => {
       url: '/admin/log-review'
     });
 
-    // Check Backup Test (monthly)
+    // Check Backup Test (monthly) - any admin
     const { data: lastBackupTest } = await supabase
       .from('backup_tests')
       .select('created_at')
+      .eq('test_type', 'manual')
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
@@ -86,11 +86,10 @@ export const ComplianceReminder = () => {
       url: '/admin/backup-tests'
     });
 
-    // Check Permission Review (quarterly)
+    // Check Permission Review (quarterly) - any admin
     const { data: lastPermissionReview } = await supabase
       .from('permission_reviews')
       .select('created_at, next_review_date')
-      .eq('reviewed_by', user.id)
       .order('created_at', { ascending: false })
       .limit(1)
       .single();

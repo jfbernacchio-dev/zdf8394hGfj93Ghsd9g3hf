@@ -35,11 +35,10 @@ Deno.serve(async (req) => {
     for (const admin of admins) {
       // Check if it's the 1st of the month for monthly reviews
       if (dayOfMonth === 1) {
-        // Check last log review
+        // Check last log review (any admin)
         const { data: lastLogReview } = await supabase
           .from('log_reviews')
           .select('created_at')
-          .eq('reviewed_by', admin.user_id)
           .order('created_at', { ascending: false })
           .limit(1)
           .single();
@@ -60,7 +59,7 @@ Deno.serve(async (req) => {
           });
         }
 
-        // Check last backup test
+        // Check last backup test (any admin)
         const { data: lastBackupTest } = await supabase
           .from('backup_tests')
           .select('created_at')
@@ -86,11 +85,10 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Check for quarterly permission review (every 90 days)
+      // Check for quarterly permission review (any admin)
       const { data: lastPermissionReview } = await supabase
         .from('permission_reviews')
         .select('next_review_date, created_at')
-        .eq('reviewed_by', admin.user_id)
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
