@@ -477,8 +477,13 @@ const DashboardTest = () => {
           const monthEnd = endOfMonth(monthDate);
           
           const monthSessions = sessions.filter(s => {
-            const sessionDate = parseISO(s.session_date);
-            return sessionDate >= monthStart && sessionDate <= monthEnd;
+            if (!s.session_date) return false;
+            try {
+              const sessionDate = parseISO(s.session_date);
+              return sessionDate >= monthStart && sessionDate <= monthEnd;
+            } catch {
+              return false;
+            }
           });
           
           const attended = monthSessions.filter(s => s.status === 'Comparecida').length;
@@ -532,11 +537,16 @@ const DashboardTest = () => {
           
           const revenue = sessions
             .filter(s => {
-              const sessionDate = parseISO(s.session_date);
-              return sessionDate >= monthStart && 
-                     sessionDate <= monthEnd && 
-                     s.status === 'Comparecida' && 
-                     s.payment_status === 'Pago';
+              if (!s.session_date) return false;
+              try {
+                const sessionDate = parseISO(s.session_date);
+                return sessionDate >= monthStart && 
+                       sessionDate <= monthEnd && 
+                       s.status === 'Comparecida' && 
+                       s.payment_status === 'Pago';
+              } catch {
+                return false;
+              }
             })
             .reduce((sum, s) => sum + (s.price || 0), 0);
           
