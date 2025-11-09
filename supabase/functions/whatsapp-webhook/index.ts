@@ -229,11 +229,11 @@ serve(async (req: Request): Promise<Response> => {
                 timestamp
               });
 
-              // Find patient by phone (normalized)
+              // Find patient by phone (normalized) - check main phone and guardian phones
               const { data: patient, error: patientSearchError } = await supabase
                 .from("patients")
-                .select("id, user_id, phone, name")
-                .or(`phone.eq.${fromPhone},phone.eq.${fromPhone.replace(/^55/, '')}`)
+                .select("id, user_id, phone, name, guardian_phone_1, guardian_phone_2")
+                .or(`phone.eq.${fromPhone},phone.eq.${fromPhone.replace(/^55/, '')},guardian_phone_1.eq.${fromPhone},guardian_phone_1.eq.${fromPhone.replace(/^55/, '')},guardian_phone_2.eq.${fromPhone},guardian_phone_2.eq.${fromPhone.replace(/^55/, '')}`)
                 .limit(1)
                 .maybeSingle();
 
