@@ -393,14 +393,17 @@ const handler = async (req: Request): Promise<Response> => {
 
             if (existingConv) {
               conversationId = existingConv.id;
+              const now = new Date();
               await supabase
                 .from("whatsapp_conversations")
                 .update({
-                  last_message_at: new Date().toISOString(),
+                  last_message_at: now.toISOString(),
                   last_message_from: "therapist",
+                  window_expires_at: new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(),
                 })
                 .eq("id", conversationId);
             } else {
+              const now = new Date();
               const { data: newConv } = await supabase
                 .from("whatsapp_conversations")
                 .insert({
@@ -408,8 +411,9 @@ const handler = async (req: Request): Promise<Response> => {
                   patient_id: patientId,
                   phone_number: normalizedPhone,
                   contact_name: patient.name,
-                  last_message_at: new Date().toISOString(),
+                  last_message_at: now.toISOString(),
                   last_message_from: "therapist",
+                  window_expires_at: new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(),
                   status: "active",
                   unread_count: 0,
                 })

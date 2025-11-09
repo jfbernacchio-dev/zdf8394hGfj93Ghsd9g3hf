@@ -194,10 +194,19 @@ serve(async (req: Request): Promise<Response> => {
         for (const entry of body.entry) {
           for (const change of entry.changes) {
             if (change.field === "messages") {
+              // Check for status updates (not new messages)
+              if (change.value.statuses) {
+                console.log("📊 Status update received, ignoring");
+                continue;
+              }
+
               const message = change.value.messages?.[0];
               const contact = change.value.contacts?.[0];
 
-              if (!message) continue;
+              if (!message) {
+                console.log("⚠️ No message in webhook data");
+                continue;
+              }
 
               // Validar estrutura da mensagem
               const validation = whatsappMessageSchema.safeParse(message);
@@ -212,18 +221,32 @@ serve(async (req: Request): Promise<Response> => {
               const messageId = message.id;
               const timestamp = new Date(parseInt(message.timestamp) * 1000);
 
-              console.log("Processing message from (normalized):", fromPhone);
+              console.log("📥 Processing message from:", {
+                original: message.from,
+                normalized: fromPhone,
+                messageId,
+                type: message.type,
+                timestamp
+              });
 
               // Find patient by phone (normalized)
-              const { data: patient } = await supabase
+              const { data: patient, error: patientSearchError } = await supabase
                 .from("patients")
                 .select("id, user_id, phone, name")
                 .or(`phone.eq.${fromPhone},phone.eq.${fromPhone.replace(/^55/, '')}`)
                 .limit(1)
                 .maybeSingle();
 
+              console.log("🔍 Patient search result:", {
+                found: !!patient,
+                patientId: patient?.id,
+                patientName: patient?.name,
+                patientPhone: patient?.phone,
+                searchError: patientSearchError
+              });
+
               if (!patient) {
-                console.log("Patient not found for phone:", fromPhone);
+                console.log("❌ Patient not found for phone:", fromPhone);
                 return new Response(JSON.stringify({ success: true, message: "Patient not found" }), {
                   status: 200,
                   headers: { ...corsHeaders, "Content-Type": "application/json" },
