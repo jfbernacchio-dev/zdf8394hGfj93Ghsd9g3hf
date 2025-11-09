@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowLeft, FileText, Calendar, DollarSign, MessageSquare } from "lucide-react";
@@ -6,12 +6,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ClinicalComplaintSummary from "@/components/ClinicalComplaintSummary";
 
 export default function PatientDetailMock() {
-  const { id } = useParams();
   const navigate = useNavigate();
+
+  // Mock patient UUID válido para testes
+  const MOCK_PATIENT_ID = "00000000-0000-0000-0000-000000000001";
 
   // Mock patient data
   const mockPatient = {
-    id: id || "mock-patient-id",
+    id: MOCK_PATIENT_ID,
     name: "Paciente Teste - Mock",
     email: "teste@mock.com",
     phone: "(11) 99999-9999",
@@ -35,7 +37,7 @@ export default function PatientDetailMock() {
           <h1 className="text-3xl font-bold">{mockPatient.name}</h1>
           <p className="text-muted-foreground">MOCK - Sistema de Queixa Clínica (Teste)</p>
         </div>
-        <Button onClick={() => navigate(`/patients/${id}/complaint/new`)}>
+        <Button onClick={() => navigate(`/patients/${MOCK_PATIENT_ID}/complaint/new`)}>
           <FileText className="h-4 w-4 mr-2" />
           Nova Queixa
         </Button>
@@ -106,23 +108,23 @@ export default function PatientDetailMock() {
               </p>
               <div className="flex gap-2">
                 <Button 
-                  onClick={() => navigate(`/patients/${id}/complaint/new`)}
+                  onClick={() => navigate(`/patients/${MOCK_PATIENT_ID}/complaint/new`)}
                   variant="default"
                 >
                   <FileText className="h-4 w-4 mr-2" />
                   Criar Nova Queixa
                 </Button>
                 <Button 
-                  onClick={() => navigate(`/patients/${id}`)}
+                  onClick={() => navigate("/patients")}
                   variant="outline"
                 >
-                  Ver Paciente Real
+                  Ver Lista de Pacientes
                 </Button>
               </div>
             </div>
 
             {/* Componente de Resumo da Queixa */}
-            <ClinicalComplaintSummary patientId={id || ""} />
+            <ClinicalComplaintSummary patientId={MOCK_PATIENT_ID} />
           </div>
         </TabsContent>
 
