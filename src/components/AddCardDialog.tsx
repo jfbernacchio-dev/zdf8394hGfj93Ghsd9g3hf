@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
-import { Plus, BarChart3, Layers, Info, PieChart, TrendingUp } from 'lucide-react';
+import { Plus, BarChart3, Layers, Info, PieChart, TrendingUp, X } from 'lucide-react';
 import { AVAILABLE_STAT_CARDS, AVAILABLE_FUNCTIONAL_CARDS, AVAILABLE_DASHBOARD_CARDS, AVAILABLE_DASHBOARD_CHARTS, CardConfig } from '@/types/cardTypes';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -13,24 +13,35 @@ interface AddCardDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAddCard: (cardConfig: CardConfig) => void;
+  onRemoveCard: (cardId: string) => void;
   existingCardIds: string[];
   mode?: 'patient' | 'dashboard-cards' | 'dashboard-charts';
 }
 
-export const AddCardDialog = ({ open, onOpenChange, onAddCard, existingCardIds, mode = 'patient' }: AddCardDialogProps) => {
+export const AddCardDialog = ({ open, onOpenChange, onAddCard, onRemoveCard, existingCardIds, mode = 'patient' }: AddCardDialogProps) => {
   const [selectedTab, setSelectedTab] = useState<'statistics' | 'functional'>('statistics');
+  const [viewMode, setViewMode] = useState<'available' | 'added'>('available');
 
   const availableStatCards = AVAILABLE_STAT_CARDS.filter(card => !existingCardIds.includes(card.id));
   const availableFunctionalCards = AVAILABLE_FUNCTIONAL_CARDS.filter(card => !existingCardIds.includes(card.id));
   const availableDashboardCards = AVAILABLE_DASHBOARD_CARDS.filter(card => !existingCardIds.includes(card.id));
   const availableDashboardCharts = AVAILABLE_DASHBOARD_CHARTS.filter(card => !existingCardIds.includes(card.id));
 
+  const addedStatCards = AVAILABLE_STAT_CARDS.filter(card => existingCardIds.includes(card.id));
+  const addedFunctionalCards = AVAILABLE_FUNCTIONAL_CARDS.filter(card => existingCardIds.includes(card.id));
+  const addedDashboardCards = AVAILABLE_DASHBOARD_CARDS.filter(card => existingCardIds.includes(card.id));
+  const addedDashboardCharts = AVAILABLE_DASHBOARD_CHARTS.filter(card => existingCardIds.includes(card.id));
+
   const handleAddCard = (card: CardConfig) => {
     onAddCard(card);
     onOpenChange(false);
   };
 
-  const renderCardItem = (card: CardConfig) => (
+  const handleRemoveCard = (cardId: string) => {
+    onRemoveCard(cardId);
+  };
+
+  const renderCardItem = (card: CardConfig, isAdded: boolean = false) => (
     <Card key={card.id} className="p-4 hover:bg-accent/5 transition-colors">
       <div className="flex flex-col gap-3">
         <div className="flex items-start gap-2">
@@ -51,14 +62,26 @@ export const AddCardDialog = ({ open, onOpenChange, onAddCard, existingCardIds, 
             </Tooltip>
           </TooltipProvider>
         </div>
-        <Button
-          onClick={() => handleAddCard(card)}
-          size="sm"
-          className="w-full gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Adicionar
-        </Button>
+        {isAdded ? (
+          <Button
+            onClick={() => handleRemoveCard(card.id)}
+            size="sm"
+            variant="destructive"
+            className="w-full gap-2"
+          >
+            <X className="w-4 h-4" />
+            Remover
+          </Button>
+        ) : (
+          <Button
+            onClick={() => handleAddCard(card)}
+            size="sm"
+            className="w-full gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Adicionar
+          </Button>
+        )}
       </div>
     </Card>
   );
@@ -68,23 +91,50 @@ export const AddCardDialog = ({ open, onOpenChange, onAddCard, existingCardIds, 
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-3xl max-h-[80vh]">
           <DialogHeader>
-            <DialogTitle>Adicionar Card de Métricas</DialogTitle>
+            <DialogTitle>Gerenciar Cards de Métricas</DialogTitle>
             <DialogDescription>
-              Escolha um card para adicionar à seção de métricas do dashboard
+              Adicione ou remova cards da seção de métricas do dashboard
             </DialogDescription>
           </DialogHeader>
 
-          <ScrollArea className="h-[50vh] mt-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pr-4">
-              {availableDashboardCards.length > 0 ? (
-                availableDashboardCards.map((card) => renderCardItem(card))
-              ) : (
-                <div className="col-span-2 text-center py-8 text-muted-foreground">
-                  Todos os cards de métricas já estão adicionados
+          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'available' | 'added')} className="mt-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="available">
+                Disponíveis ({availableDashboardCards.length})
+              </TabsTrigger>
+              <TabsTrigger value="added">
+                Adicionados ({addedDashboardCards.length})
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="available">
+              <ScrollArea className="h-[50vh]">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pr-4">
+                  {availableDashboardCards.length > 0 ? (
+                    availableDashboardCards.map((card) => renderCardItem(card, false))
+                  ) : (
+                    <div className="col-span-2 text-center py-8 text-muted-foreground">
+                      Todos os cards de métricas já estão adicionados
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </ScrollArea>
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="added">
+              <ScrollArea className="h-[50vh]">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pr-4">
+                  {addedDashboardCards.length > 0 ? (
+                    addedDashboardCards.map((card) => renderCardItem(card, true))
+                  ) : (
+                    <div className="col-span-2 text-center py-8 text-muted-foreground">
+                      Nenhum card adicionado ainda
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
     );
@@ -95,23 +145,50 @@ export const AddCardDialog = ({ open, onOpenChange, onAddCard, existingCardIds, 
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-3xl max-h-[80vh]">
           <DialogHeader>
-            <DialogTitle>Adicionar Gráfico</DialogTitle>
+            <DialogTitle>Gerenciar Gráficos</DialogTitle>
             <DialogDescription>
-              Escolha um gráfico para adicionar à seção de visualizações do dashboard
+              Adicione ou remova gráficos da seção de visualizações do dashboard
             </DialogDescription>
           </DialogHeader>
 
-          <ScrollArea className="h-[50vh] mt-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pr-4">
-              {availableDashboardCharts.length > 0 ? (
-                availableDashboardCharts.map((card) => renderCardItem(card))
-              ) : (
-                <div className="col-span-2 text-center py-8 text-muted-foreground">
-                  Todos os gráficos já estão adicionados
+          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'available' | 'added')} className="mt-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="available">
+                Disponíveis ({availableDashboardCharts.length})
+              </TabsTrigger>
+              <TabsTrigger value="added">
+                Adicionados ({addedDashboardCharts.length})
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="available">
+              <ScrollArea className="h-[50vh]">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pr-4">
+                  {availableDashboardCharts.length > 0 ? (
+                    availableDashboardCharts.map((card) => renderCardItem(card, false))
+                  ) : (
+                    <div className="col-span-2 text-center py-8 text-muted-foreground">
+                      Todos os gráficos já estão adicionados
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </ScrollArea>
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="added">
+              <ScrollArea className="h-[50vh]">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pr-4">
+                  {addedDashboardCharts.length > 0 ? (
+                    addedDashboardCharts.map((card) => renderCardItem(card, true))
+                  ) : (
+                    <div className="col-span-2 text-center py-8 text-muted-foreground">
+                      Nenhum gráfico adicionado ainda
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
     );
@@ -121,9 +198,9 @@ export const AddCardDialog = ({ open, onOpenChange, onAddCard, existingCardIds, 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[80vh]">
         <DialogHeader>
-          <DialogTitle>Adicionar Card ao Layout</DialogTitle>
+          <DialogTitle>Gerenciar Cards do Layout</DialogTitle>
           <DialogDescription>
-            Escolha um card para adicionar à visualização do paciente
+            Adicione ou remova cards da visualização do paciente
           </DialogDescription>
         </DialogHeader>
 
@@ -140,31 +217,85 @@ export const AddCardDialog = ({ open, onOpenChange, onAddCard, existingCardIds, 
           </TabsList>
 
           <TabsContent value="statistics" className="mt-4">
-            <ScrollArea className="h-[50vh]">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pr-4">
-                {availableStatCards.length > 0 ? (
-                  availableStatCards.map((card) => renderCardItem(card))
-                ) : (
-                  <div className="col-span-2 text-center py-8 text-muted-foreground">
-                    Todos os cards estatísticos já estão adicionados
+            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'available' | 'added')}>
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="available">
+                  Disponíveis ({availableStatCards.length})
+                </TabsTrigger>
+                <TabsTrigger value="added">
+                  Adicionados ({addedStatCards.length})
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="available">
+                <ScrollArea className="h-[45vh]">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pr-4">
+                    {availableStatCards.length > 0 ? (
+                      availableStatCards.map((card) => renderCardItem(card, false))
+                    ) : (
+                      <div className="col-span-2 text-center py-8 text-muted-foreground">
+                        Todos os cards estatísticos já estão adicionados
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </ScrollArea>
+                </ScrollArea>
+              </TabsContent>
+
+              <TabsContent value="added">
+                <ScrollArea className="h-[45vh]">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pr-4">
+                    {addedStatCards.length > 0 ? (
+                      addedStatCards.map((card) => renderCardItem(card, true))
+                    ) : (
+                      <div className="col-span-2 text-center py-8 text-muted-foreground">
+                        Nenhum card estatístico adicionado ainda
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
           <TabsContent value="functional" className="mt-4">
-            <ScrollArea className="h-[50vh]">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pr-4">
-                {availableFunctionalCards.length > 0 ? (
-                  availableFunctionalCards.map((card) => renderCardItem(card))
-                ) : (
-                  <div className="col-span-2 text-center py-8 text-muted-foreground">
-                    Todos os cards funcionais disponíveis já estão adicionados
+            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'available' | 'added')}>
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="available">
+                  Disponíveis ({availableFunctionalCards.length})
+                </TabsTrigger>
+                <TabsTrigger value="added">
+                  Adicionados ({addedFunctionalCards.length})
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="available">
+                <ScrollArea className="h-[45vh]">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pr-4">
+                    {availableFunctionalCards.length > 0 ? (
+                      availableFunctionalCards.map((card) => renderCardItem(card, false))
+                    ) : (
+                      <div className="col-span-2 text-center py-8 text-muted-foreground">
+                        Todos os cards funcionais já estão adicionados
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </ScrollArea>
+                </ScrollArea>
+              </TabsContent>
+
+              <TabsContent value="added">
+                <ScrollArea className="h-[45vh]">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pr-4">
+                    {addedFunctionalCards.length > 0 ? (
+                      addedFunctionalCards.map((card) => renderCardItem(card, true))
+                    ) : (
+                      <div className="col-span-2 text-center py-8 text-muted-foreground">
+                        Nenhum card funcional adicionado ainda
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
+              </TabsContent>
+            </Tabs>
           </TabsContent>
         </Tabs>
       </DialogContent>

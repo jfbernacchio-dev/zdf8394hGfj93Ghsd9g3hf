@@ -2021,6 +2021,7 @@ Assinatura do Profissional`;
         open={isAddCardDialogOpen}
         onOpenChange={setIsAddCardDialogOpen}
         onAddCard={handleAddCard}
+        onRemoveCard={handleRemoveCard}
         existingCardIds={visibleCards}
       />
     </div>

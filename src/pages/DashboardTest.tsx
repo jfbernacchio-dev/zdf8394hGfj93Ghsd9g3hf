@@ -715,6 +715,7 @@ const DashboardTest = () => {
         open={isAddCardDialogOpen}
         onOpenChange={setIsAddCardDialogOpen}
         onAddCard={handleAddCard}
+        onRemoveCard={handleRemoveCard}
         existingCardIds={visibleCards}
         mode="dashboard-cards"
       />
@@ -723,6 +724,7 @@ const DashboardTest = () => {
         open={isAddChartDialogOpen}
         onOpenChange={setIsAddChartDialogOpen}
         onAddCard={handleAddCard}
+        onRemoveCard={handleRemoveCard}
         existingCardIds={visibleCards}
         mode="dashboard-charts"
       />
