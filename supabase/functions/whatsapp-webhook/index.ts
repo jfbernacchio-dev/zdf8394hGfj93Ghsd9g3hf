@@ -255,17 +255,23 @@ serve(async (req: Request): Promise<Response> => {
 
               console.log("Found patient:", patient.id, "for user:", patient.user_id);
 
-              // Find or create conversation (using normalized phone and patient_id)
-              // Don't filter by user_id to allow any admin/therapist to receive responses
+              // Find or create conversation (using normalized phone and user_id)
+              // Messages MUST go to the patient's owner only
               let conversation;
-              const { data: existingConv } = await supabase
+              const { data: existingConv, error: convSearchError } = await supabase
                 .from("whatsapp_conversations")
                 .select("*")
                 .eq("phone_number", fromPhone)
-                .eq("patient_id", patient.id)
-                .order("last_message_at", { ascending: false })
-                .limit(1)
+                .eq("user_id", patient.user_id)
                 .maybeSingle();
+              
+              console.log("🔍 Conversation search:", {
+                searchPhone: fromPhone,
+                searchUserId: patient.user_id,
+                foundConversation: !!existingConv,
+                conversationId: existingConv?.id,
+                error: convSearchError
+              });
 
               if (existingConv) {
                 conversation = existingConv;
