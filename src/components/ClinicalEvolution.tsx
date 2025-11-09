@@ -198,9 +198,18 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
     }
   };
 
+  // For 0-100 scale (percentile)
   const getProgressColor = (value: number) => {
     if (value >= 70) return 'bg-green-500';
     if (value >= 40) return 'bg-yellow-500';
+    return 'bg-red-500';
+  };
+
+  // For -100 to +100 scale
+  const getProgressColorBipolar = (value: number) => {
+    const absValue = Math.abs(value);
+    if (absValue <= 15) return 'bg-green-500';
+    if (absValue <= 50) return 'bg-yellow-500';
     return 'bg-red-500';
   };
 
@@ -327,7 +336,7 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
   const renderEvaluationCard = (
     title: string,
     data: any,
-    getSummary: (data: any) => { text: string; severity: Severity; values?: { label: string; value: number }[] }
+    getSummary: (data: any) => { text: string; severity: Severity; values?: { label: string; value: number; scale?: 'bipolar' | 'unipolar' }[] }
   ) => {
     if (!data) return null;
 
@@ -342,20 +351,38 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
           <p className="text-sm">{text}</p>
           {values && values.length > 0 && (
             <div className="space-y-2">
-              {values.map((item) => (
-                <div key={item.label} className="space-y-1">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">{item.label}</span>
-                    <span className="font-medium">{item.value}%</span>
+              {values.map((item) => {
+                const isBipolar = item.scale === 'bipolar';
+                const displayValue = isBipolar ? item.value : `${item.value}%`;
+                const barWidth = isBipolar ? ((item.value + 100) / 2) : item.value;
+                const barColor = isBipolar ? getProgressColorBipolar(item.value) : getProgressColor(item.value);
+                
+                return (
+                  <div key={item.label} className="space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">{item.label}</span>
+                      <span className="font-medium">{displayValue}</span>
+                    </div>
+                    {isBipolar ? (
+                      <div className="relative h-2 bg-muted rounded-full overflow-hidden">
+                        {/* Center line at 50% for bipolar scales */}
+                        <div className="absolute left-1/2 top-0 bottom-0 w-px bg-foreground/20" />
+                        <div
+                          className={cn("h-full transition-all", barColor)}
+                          style={{ width: `${barWidth}%` }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="relative h-2 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className={cn("h-full transition-all", barColor)}
+                          style={{ width: `${item.value}%` }}
+                        />
+                      </div>
+                    )}
                   </div>
-                  <div className="relative h-2 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className={cn("h-full transition-all", getProgressColor(item.value))}
-                      style={{ width: `${item.value}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
@@ -394,9 +421,9 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
       text, 
       severity, 
       values: [
-        { label: 'Nível', value: ((level + 100) / 2) },
-        { label: 'Campo', value: ((field + 100) / 2) },
-        { label: 'Auto-consciência', value: ((selfConsciousness + 100) / 2) }
+        { label: 'Nível', value: level, scale: 'bipolar' as const },
+        { label: 'Campo', value: field, scale: 'bipolar' as const },
+        { label: 'Auto-consciência', value: selfConsciousness, scale: 'bipolar' as const }
       ] 
     };
   };
@@ -420,7 +447,7 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
     return {
       text,
       severity,
-      values: [{ label: 'Insight', value: insight }]
+      values: [{ label: 'Insight', value: insight, scale: 'unipolar' as const }]
     };
   };
 
@@ -451,8 +478,8 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
       text,
       severity,
       values: [
-        { label: 'Fixação', value: fixation },
-        { label: 'Evocação', value: recall }
+        { label: 'Fixação', value: fixation, scale: 'unipolar' as const },
+        { label: 'Evocação', value: recall, scale: 'unipolar' as const }
       ]
     };
   };
@@ -484,8 +511,8 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
       text,
       severity,
       values: [
-        { label: 'Polaridade', value: ((polarity + 100) / 2) },
-        { label: 'Labilidade', value: lability }
+        { label: 'Polaridade', value: polarity, scale: 'bipolar' as const },
+        { label: 'Labilidade', value: lability, scale: 'unipolar' as const }
       ]
     };
   };
@@ -520,7 +547,7 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
     return { 
       text, 
       severity,
-      values: [{ label: 'Curso do Pensamento', value: ((course + 100) / 2) }]
+      values: [{ label: 'Curso do Pensamento', value: course, scale: 'bipolar' as const }]
     };
   };
 
@@ -543,7 +570,7 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
     return { 
       text, 
       severity,
-      values: [{ label: 'Velocidade da fala', value: ((speechRate + 100) / 2) }]
+      values: [{ label: 'Velocidade da fala', value: speechRate, scale: 'bipolar' as const }]
     };
   };
 
@@ -587,8 +614,8 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
       text,
       severity,
       values: [
-        { label: 'Aprendizagem', value: learning },
-        { label: 'Raciocínio Abstrato', value: reasoning }
+        { label: 'Aprendizagem', value: learning, scale: 'unipolar' as const },
+        { label: 'Raciocínio Abstrato', value: reasoning, scale: 'unipolar' as const }
       ]
     };
   };
@@ -624,8 +651,8 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
       text, 
       severity, 
       values: [
-        { label: 'Energia Volitiva', value: ((energy + 100) / 2) },
-        { label: 'Controle de Impulsos', value: ((impulse + 100) / 2) }
+        { label: 'Energia Volitiva', value: energy, scale: 'bipolar' as const },
+        { label: 'Controle de Impulsos', value: impulse, scale: 'bipolar' as const }
       ] 
     };
   };
@@ -652,8 +679,8 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
       text, 
       severity,
       values: [
-        { label: 'Atividade Motora', value: ((activity + 100) / 2) },
-        { label: 'Expressividade Facial', value: facialExpressiveness }
+        { label: 'Atividade Motora', value: activity, scale: 'bipolar' as const },
+        { label: 'Expressividade Facial', value: facialExpressiveness, scale: 'unipolar' as const }
       ]
     };
   };
@@ -685,8 +712,8 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
       text,
       severity,
       values: [
-        { label: 'Amplitude', value: range },
-        { label: 'Concentração', value: concentration }
+        { label: 'Amplitude', value: range, scale: 'unipolar' as const },
+        { label: 'Concentração', value: concentration, scale: 'unipolar' as const }
       ]
     };
   };
@@ -720,8 +747,8 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
       text,
       severity,
       values: [
-        { label: 'Coerência do Self', value: coherence },
-        { label: 'Estabilidade Afetiva', value: stability }
+        { label: 'Coerência do Self', value: coherence, scale: 'unipolar' as const },
+        { label: 'Estabilidade Afetiva', value: stability, scale: 'unipolar' as const }
       ]
     };
   };
