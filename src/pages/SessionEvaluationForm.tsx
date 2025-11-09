@@ -245,7 +245,7 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
         description: 'Avaliação salva com sucesso!'
       });
 
-      navigate(`/patients/${patientId}`);
+      navigate(`/patients/${patientId}`, { state: { openTab: 'evolution' } });
     } catch (error: any) {
       console.error('Erro ao salvar avaliação:', error);
       toast({

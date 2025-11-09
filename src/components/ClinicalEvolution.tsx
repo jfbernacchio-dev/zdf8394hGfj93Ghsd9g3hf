@@ -731,7 +731,7 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
                       )}
                       onClick={() => setSelectedSessionId(session.id)}
                     >
-                      <CardContent className="p-3 space-y-2">
+                       <CardContent className="p-3 space-y-2">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <Calendar className="w-4 h-4 text-muted-foreground" />
@@ -739,9 +739,24 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
                               {format(parseISO(session.date), 'dd/MM/yyyy', { locale: ptBR })}
                             </span>
                           </div>
-                          {session.time && (
-                            <span className="text-xs text-muted-foreground">{session.time}</span>
-                          )}
+                          <div className="flex items-center gap-2">
+                            {session.time && (
+                              <span className="text-xs text-muted-foreground">{session.time}</span>
+                            )}
+                            {session.has_evaluation && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/patients/${patientId}/sessions/${session.id}/evaluation`);
+                                }}
+                              >
+                                <Edit className="w-3 h-3" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
 
                         <Badge variant="outline" className={cn("text-xs", getStatusColor(session.status))}>
@@ -793,20 +808,11 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
             ) : (
               <ScrollArea className="h-full">
                 <div className="space-y-4 pr-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-2xl font-bold">Avaliação da Sessão</h2>
-                      <span className="text-sm text-muted-foreground">
-                        {format(parseISO(evaluation.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                      </span>
-                    </div>
-                    <Button
-                      variant="outline"
-                      onClick={() => navigate(`/patients/${patientId}/sessions/${selectedSessionId}/evaluation`)}
-                    >
-                      <Edit className="w-4 h-4 mr-2" />
-                      Editar Avaliação
-                    </Button>
+                  <div>
+                    <h2 className="text-2xl font-bold">Avaliação da Sessão</h2>
+                    <span className="text-sm text-muted-foreground">
+                      {format(parseISO(evaluation.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    </span>
                   </div>
 
                   <Separator />

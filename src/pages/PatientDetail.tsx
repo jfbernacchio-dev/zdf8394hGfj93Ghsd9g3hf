@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { logAdminAccess } from '@/lib/auditLog';
@@ -43,11 +43,13 @@ import { ClinicalEvolution } from '@/components/ClinicalEvolution';
 const PatientDetailNew = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
   const [patient, setPatient] = useState<any>(null);
   const [sessions, setSessions] = useState<any[]>([]);
   const [allSessions, setAllSessions] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState('overview');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<any>(null);
   const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = useState(false);
@@ -134,6 +136,15 @@ const PatientDetailNew = () => {
       supabase.removeChannel(channel);
     };
   }, [id, user]);
+
+  // Handle navigation state to open specific tab
+  useEffect(() => {
+    if (location.state?.openTab) {
+      setActiveTab(location.state.openTab);
+      // Clear the state to avoid reopening the tab on refresh
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location, navigate]);
 
   useEffect(() => {
     filterSessions();
@@ -1155,7 +1166,7 @@ Assinatura do Profissional`;
           </ResizableSection>
         </div>
 
-        <Tabs defaultValue="overview" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           {/* Tabs Menu and New Note Button aligned */}
           <div className="flex items-center justify-between mb-6">
             <TabsList>
