@@ -158,6 +158,91 @@ const EditPatient = () => {
     }
   };
 
+  const handlePermanentDelete = async () => {
+    const confirmMessage = 
+      '⚠️ EXCLUSÃO PERMANENTE - COMPLIANCE LGPD\n\n' +
+      'Esta ação irá EXCLUIR PERMANENTEMENTE todos os dados do paciente:\n' +
+      '• Dados pessoais e cadastrais\n' +
+      '• Histórico de sessões\n' +
+      '• Arquivos e documentos\n' +
+      '• Notas fiscais\n' +
+      '• Conversas WhatsApp\n' +
+      '• Consentimentos\n' +
+      '• Registros de queixas\n\n' +
+      'Esta é uma ação de COMPLIANCE irreversível.\n\n' +
+      'Digite "EXCLUIR PERMANENTEMENTE" para confirmar:';
+
+    const userInput = prompt(confirmMessage);
+
+    if (userInput !== 'EXCLUIR PERMANENTEMENTE') {
+      if (userInput !== null) {
+        toast({
+          title: "Exclusão cancelada",
+          description: "A confirmação não corresponde. Nenhum dado foi excluído.",
+          variant: "default",
+        });
+      }
+      return;
+    }
+
+    try {
+      // Delete all related data in cascade
+      await supabase.from('sessions').delete().eq('patient_id', id);
+      await supabase.from('session_history').delete().eq('patient_id', id);
+      await supabase.from('nfse_issued').delete().eq('patient_id', id);
+      await supabase.from('consent_submissions').delete().eq('patient_id', id);
+      await supabase.from('patient_complaints').delete().eq('patient_id', id);
+      
+      // Delete WhatsApp conversations and messages
+      const { data: conversations } = await supabase
+        .from('whatsapp_conversations')
+        .select('id')
+        .eq('patient_id', id);
+      
+      if (conversations && conversations.length > 0) {
+        const conversationIds = conversations.map(c => c.id);
+        await supabase.from('whatsapp_messages').delete().in('conversation_id', conversationIds);
+        await supabase.from('whatsapp_conversations').delete().in('id', conversationIds);
+      }
+      
+      // Delete patient files from storage
+      const { data: files } = await supabase
+        .from('patient_files')
+        .select('file_path')
+        .eq('patient_id', id);
+      
+      if (files && files.length > 0) {
+        for (const file of files) {
+          await supabase.storage.from('patient-files').remove([file.file_path]);
+        }
+      }
+      
+      await supabase.from('patient_files').delete().eq('patient_id', id);
+      
+      // Finally delete the patient
+      const { error } = await supabase.from('patients').delete().eq('id', id);
+      
+      if (error) throw error;
+
+      // Log the permanent deletion for compliance
+      await logAdminAccess('delete_patient', undefined, id, 'Exclusão permanente de todos os dados do paciente (compliance LGPD)');
+
+      toast({
+        title: "✅ Exclusão Permanente Concluída",
+        description: "Todos os dados do paciente foram excluídos permanentemente conforme compliance LGPD.",
+      });
+
+      navigate('/patients');
+    } catch (error: any) {
+      console.error('Error permanently deleting patient:', error);
+      toast({
+        title: "Erro na exclusão permanente",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -1046,6 +1131,14 @@ const EditPatient = () => {
                 onClick={handleDelete}
               >
                 Excluir Paciente
+              </Button>
+              <Button 
+                type="button" 
+                variant="destructive"
+                className="flex-1 bg-red-900 hover:bg-red-950 border-2 border-red-600"
+                onClick={handlePermanentDelete}
+              >
+                🗑️ Excluir Permanentemente
               </Button>
             </div>
           </form>
