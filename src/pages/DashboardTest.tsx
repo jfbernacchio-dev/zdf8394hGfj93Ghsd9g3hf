@@ -535,9 +535,28 @@ const DashboardTest = () => {
           // Só adiciona se houver sessões neste intervalo
           if (intervalSessions.length > 0) {
             const attended = intervalSessions.filter(s => s.status === 'attended').length;
+            
+            // Calculate revenue considering monthly patients
+            const monthlyPatientsInInterval = new Map<string, Set<string>>();
             const revenue = intervalSessions
-              .filter(s => s.status === 'attended' && s.paid === true)
-              .reduce((sum, s) => sum + (Number(s.value) || 0), 0);
+              .filter(s => s.status === 'attended')
+              .reduce((sum, s) => {
+                const patient = patients.find(p => p.id === s.patient_id);
+                if (patient?.monthly_price) {
+                  const monthKey = format(parseISO(s.date), 'yyyy-MM');
+                  if (!monthlyPatientsInInterval.has(s.patient_id)) {
+                    monthlyPatientsInInterval.set(s.patient_id, new Set());
+                  }
+                  const months = monthlyPatientsInInterval.get(s.patient_id)!;
+                  if (!months.has(monthKey)) {
+                    months.add(monthKey);
+                    return sum + (Number(s.value) || 0);
+                  }
+                  return sum;
+                }
+                return sum + (Number(s.value) || 0);
+              }, 0);
+            
             const attendanceRate = intervalSessions.length > 0 
               ? (attended / intervalSessions.length) * 100 
               : 0;
@@ -545,7 +564,7 @@ const DashboardTest = () => {
             chartData.push({
               label: formatTimeLabel(intervalDate, currentScale!),
               sessoes: attended,
-              faturamento: revenue / 100,
+              receita: revenue / 100,
               taxa: Math.round(attendanceRate),
             });
           }
@@ -567,7 +586,7 @@ const DashboardTest = () => {
               />
               <Legend />
               <Bar yAxisId="left" dataKey="sessoes" fill={COLORS[0]} name="Sessões" />
-              <Bar yAxisId="left" dataKey="faturamento" fill={COLORS[1]} name="Faturamento (R$)" />
+              <Bar yAxisId="left" dataKey="receita" fill={COLORS[1]} name="Receita (R$)" />
               <Bar yAxisId="right" dataKey="taxa" fill={COLORS[2]} name="Taxa (%)" />
             </BarChart>
           </ResponsiveContainer>
@@ -592,16 +611,32 @@ const DashboardTest = () => {
               const sessionDate = parseISO(s.date);
               return sessionDate >= intervalStart && 
                      sessionDate <= intervalEnd && 
-                     s.status === 'attended' && 
-                     s.paid === true;
+                     s.status === 'attended';
             } catch {
               return false;
             }
           });
           
-          // Só adiciona se houver sessões pagas neste intervalo
+          // Só adiciona se houver sessões atendidas neste intervalo
           if (intervalSessions.length > 0) {
-            const revenue = intervalSessions.reduce((sum, s) => sum + (Number(s.value) || 0), 0);
+            // Calculate revenue considering monthly patients
+            const monthlyPatientsInInterval = new Map<string, Set<string>>();
+            const revenue = intervalSessions.reduce((sum, s) => {
+              const patient = patients.find(p => p.id === s.patient_id);
+              if (patient?.monthly_price) {
+                const monthKey = format(parseISO(s.date), 'yyyy-MM');
+                if (!monthlyPatientsInInterval.has(s.patient_id)) {
+                  monthlyPatientsInInterval.set(s.patient_id, new Set());
+                }
+                const months = monthlyPatientsInInterval.get(s.patient_id)!;
+                if (!months.has(monthKey)) {
+                  months.add(monthKey);
+                  return sum + (Number(s.value) || 0);
+                }
+                return sum;
+              }
+              return sum + (Number(s.value) || 0);
+            }, 0);
             
             chartData.push({
               label: formatTimeLabel(intervalDate, currentScale!),
@@ -625,7 +660,7 @@ const DashboardTest = () => {
                 formatter={(value) => `R$ ${Number(value).toFixed(2)}`}
               />
               <Legend />
-              <Line type="monotone" dataKey="valor" stroke={COLORS[0]} strokeWidth={2} name="Faturamento (R$)" />
+              <Line type="monotone" dataKey="valor" stroke={COLORS[0]} strokeWidth={2} name="Receita (R$)" />
             </LineChart>
           </ResponsiveContainer>
         ) : (
@@ -815,20 +850,40 @@ const DashboardTest = () => {
       }
 
       case 'chart-revenue-by-therapist': {
-        // Group revenue by therapist
+        // Group revenue by therapist considering monthly patients
         const therapistRevenue = new Map<string, number>();
+        const monthlyPatientsByTherapist = new Map<string, Map<string, Set<string>>>();
         
-        periodSessions.filter(s => s.status === 'attended' && s.paid === true).forEach(session => {
+        periodSessions.filter(s => s.status === 'attended').forEach(session => {
           const patient = patients.find(p => p.id === session.patient_id);
           if (patient) {
-            const revenue = therapistRevenue.get(patient.user_id) || 0;
-            therapistRevenue.set(patient.user_id, revenue + (Number(session.value) || 0));
+            const therapistId = patient.user_id;
+            
+            if (patient.monthly_price) {
+              const monthKey = format(parseISO(session.date), 'yyyy-MM');
+              if (!monthlyPatientsByTherapist.has(therapistId)) {
+                monthlyPatientsByTherapist.set(therapistId, new Map());
+              }
+              const therapistMonthly = monthlyPatientsByTherapist.get(therapistId)!;
+              if (!therapistMonthly.has(session.patient_id)) {
+                therapistMonthly.set(session.patient_id, new Set());
+              }
+              const months = therapistMonthly.get(session.patient_id)!;
+              if (!months.has(monthKey)) {
+                months.add(monthKey);
+                const current = therapistRevenue.get(therapistId) || 0;
+                therapistRevenue.set(therapistId, current + (Number(session.value) || 0));
+              }
+            } else {
+              const current = therapistRevenue.get(therapistId) || 0;
+              therapistRevenue.set(therapistId, current + (Number(session.value) || 0));
+            }
           }
         });
 
         const chartData = Array.from(therapistRevenue.entries()).map(([userId, revenue]) => ({
           terapeuta: userId === user?.id ? 'Você' : 'Terapeuta',
-          faturamento: revenue / 100,
+          receita: revenue / 100,
         }));
 
         chartContent = chartData.length > 0 ? (
@@ -846,7 +901,7 @@ const DashboardTest = () => {
                 formatter={(value) => `R$ ${Number(value).toFixed(2)}`}
               />
               <Legend />
-              <Bar dataKey="faturamento" fill={COLORS[1]} name="Faturamento (R$)" />
+              <Bar dataKey="receita" fill={COLORS[1]} name="Receita (R$)" />
             </BarChart>
           </ResponsiveContainer>
         ) : (
