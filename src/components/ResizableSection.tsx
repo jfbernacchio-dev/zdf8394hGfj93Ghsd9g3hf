@@ -81,11 +81,9 @@ export const ResizableSection = ({
         isEditMode && "border-2 border-dashed border-primary/30 rounded-lg",
         className
       )}
-      style={isEditMode ? { 
+      style={{ 
         minHeight: `${currentHeight}px`,
         height: `${currentHeight}px`
-      } : {
-        height: 'auto'
       }}
     >
       {/* Top resize handle */}
