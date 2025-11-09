@@ -11,6 +11,10 @@ import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { SessionFileUpload } from './SessionFileUpload';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 interface ClinicalEvolutionProps {
   patientId: string;
@@ -54,6 +58,9 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
   const [evaluation, setEvaluation] = useState<SessionEvaluation | null>(null);
   const [period, setPeriod] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [clinicalNotes, setClinicalNotes] = useState('');
+  const [savingNotes, setSavingNotes] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     loadSessions();
@@ -64,6 +71,7 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
       loadEvaluation(selectedSessionId);
       const session = sessions.find(s => s.id === selectedSessionId);
       setSelectedSession(session || null);
+      setClinicalNotes(session?.notes || '');
     }
   }, [selectedSessionId, sessions]);
 
@@ -197,48 +205,121 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
   const generateSummary = (evaluation: SessionEvaluation): string => {
     const summaryParts: string[] = [];
 
-    // Consciousness
-    if (evaluation.consciousness_data?.level < 40) {
+    // 1. Consciousness
+    const consciousness = evaluation.consciousness_data;
+    if (consciousness?.level < 40) {
       summaryParts.push('rebaixamento do nível de consciência');
+    } else if (consciousness?.depersonalization || consciousness?.derealization) {
+      summaryParts.push('fenômenos dissociativos');
     }
 
-    // Orientation
+    // 2. Orientation
     const orientation = evaluation.orientation_data;
-    if (!orientation?.time || !orientation?.space || !orientation?.person) {
+    const orientedCount = [orientation?.time, orientation?.space, orientation?.person, orientation?.situation].filter(Boolean).length;
+    if (orientedCount < 4) {
       summaryParts.push('desorientação parcial');
     }
 
-    // Mood
+    // 3. Memory
+    const memory = evaluation.memory_data;
+    const memoryAvg = ((memory?.fixation || 0) + (memory?.recall || 0)) / 2;
+    if (memoryAvg < 50) {
+      summaryParts.push('prejuízo de memória');
+    }
+
+    // 4. Mood
     const mood = evaluation.mood_data;
     if (mood?.polarity < -30) {
       summaryParts.push('humor deprimido');
     } else if (mood?.polarity > 30) {
       summaryParts.push('humor elevado');
     }
+    if (mood?.lability > 60) {
+      summaryParts.push('labilidade emocional');
+    }
 
-    // Thought
+    // 5. Thought
     const thought = evaluation.thought_data;
-    if (thought?.obsessive || thought?.delusional) {
-      summaryParts.push('alterações do pensamento');
+    const thoughtAlterations = [];
+    if (thought?.obsessive) thoughtAlterations.push('obsessivo');
+    if (thought?.delusional) thoughtAlterations.push('delirante');
+    if (thought?.incoherent) thoughtAlterations.push('incoerente');
+    if (thought?.tangential) thoughtAlterations.push('tangencial');
+    if (thoughtAlterations.length > 0) {
+      summaryParts.push(`pensamento ${thoughtAlterations.join(', ')}`);
     }
 
-    // Memory
-    const memory = evaluation.memory_data;
-    if (memory?.fixation < 50 || memory?.recall < 50) {
-      summaryParts.push('prejuízo de memória');
+    // 6. Language
+    const language = evaluation.language_data;
+    const speechRate = language?.speech_rate || 0;
+    if (Math.abs(speechRate) > 50) {
+      summaryParts.push(speechRate > 0 ? 'fala muito acelerada' : 'fala muito lentificada');
+    } else if (Math.abs(speechRate) > 20) {
+      summaryParts.push(speechRate > 0 ? 'fala acelerada' : 'fala lentificada');
     }
 
-    // Attention
+    // 7. Sensoperception
+    const senso = evaluation.sensoperception_data;
+    const hallucinations = [];
+    if (senso?.auditory) hallucinations.push('auditivas');
+    if (senso?.visual) hallucinations.push('visuais');
+    if (senso?.tactile) hallucinations.push('táteis');
+    if (senso?.olfactory) hallucinations.push('olfativas');
+    if (hallucinations.length > 0) {
+      summaryParts.push(`alucinações ${hallucinations.join(', ')}`);
+    }
+
+    // 8. Intelligence
+    const intel = evaluation.intelligence_data;
+    const intelAvg = ((intel?.learning_capacity || 0) + (intel?.abstract_reasoning || 0)) / 2;
+    if (intelAvg < 50) {
+      summaryParts.push('prejuízo das funções intelectuais');
+    }
+
+    // 9. Will
+    const will = evaluation.will_data;
+    if (will?.volitional_energy < 40) {
+      summaryParts.push('energia volitiva reduzida');
+    }
+    if (will?.impulse_control < 40) {
+      summaryParts.push('dificuldade no controle de impulsos');
+    }
+
+    // 10. Psychomotor
+    const psycho = evaluation.psychomotor_data;
+    const motorActivity = psycho?.motor_activity || 0;
+    if (Math.abs(motorActivity) > 50) {
+      summaryParts.push(motorActivity > 0 ? 'agitação psicomotora' : 'lentificação psicomotora');
+    }
+
+    // 11. Attention
     const attention = evaluation.attention_data;
-    if (attention?.concentration < 50 || attention?.distractibility) {
+    const attentionAvg = ((attention?.range || 0) + (attention?.concentration || 0)) / 2;
+    if (attentionAvg < 50 || attention?.distractibility) {
       summaryParts.push('déficit de atenção');
+    }
+
+    // 12. Personality
+    const personality = evaluation.personality_data;
+    const traits = [];
+    if (personality?.anxious) traits.push('ansioso');
+    if (personality?.avoidant) traits.push('evitativo');
+    if (personality?.obsessive) traits.push('obsessivo');
+    if (personality?.borderline) traits.push('borderline');
+    if (personality?.antisocial) traits.push('antissocial');
+    if (personality?.narcissistic) traits.push('narcisista');
+    if (traits.length > 0) {
+      summaryParts.push(`traços de personalidade ${traits.join(', ')}`);
+    }
+    if ((personality?.self_coherence || 0) < 40 || (personality?.affective_stability || 0) < 40) {
+      summaryParts.push('instabilidade da personalidade');
     }
 
     if (summaryParts.length === 0) {
       return 'Paciente não apresenta alterações significativas nas funções psíquicas avaliadas. Exame mental dentro dos padrões esperados.';
     }
 
-    return `Paciente apresenta ${summaryParts.join(', ')}. Demais funções psíquicas preservadas.`;
+    return `Paciente apresenta ${summaryParts.join(', ')}. ${summaryParts.length < 6 ? 'Demais funções psíquicas preservadas.' : ''}`;
   };
 
   const renderEvaluationCard = (
@@ -581,154 +662,247 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
     };
   };
 
+  const handleSaveClinicalNotes = async () => {
+    if (!selectedSessionId) return;
+
+    setSavingNotes(true);
+    const { error } = await supabase
+      .from('sessions')
+      .update({ notes: clinicalNotes })
+      .eq('id', selectedSessionId);
+
+    if (error) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível salvar as anotações.',
+        variant: 'destructive',
+      });
+    } else {
+      toast({
+        title: 'Sucesso',
+        description: 'Anotações salvas com sucesso.',
+      });
+      loadSessions();
+    }
+    setSavingNotes(false);
+  };
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-300px)]">
-      {/* Sidebar with sessions list */}
-      <div className="lg:col-span-1 space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Sessões</h3>
-          <Select value={period} onValueChange={setPeriod}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Período" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas</SelectItem>
-              <SelectItem value="last_month">Último Mês</SelectItem>
-              <SelectItem value="last_3_months">Últimos 3 Meses</SelectItem>
-              <SelectItem value="last_year">Último Ano</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+    <Tabs defaultValue="sessions" className="w-full">
+      <TabsList className="mb-4">
+        <TabsTrigger value="sessions">Avaliação de Sessões</TabsTrigger>
+        <TabsTrigger value="evolution">Evolução do Paciente</TabsTrigger>
+      </TabsList>
 
-        <ScrollArea className="h-[calc(100vh-400px)] pr-4">
-          {loading ? (
-            <div className="text-sm text-muted-foreground">Carregando...</div>
-          ) : sessions.length === 0 ? (
-            <div className="text-sm text-muted-foreground">Nenhuma sessão encontrada</div>
-          ) : (
-            <div className="space-y-2">
-              {sessions.map((session) => (
-                <Card
-                  key={session.id}
-                  className={cn(
-                    "cursor-pointer transition-all hover:shadow-md",
-                    selectedSessionId === session.id && "ring-2 ring-primary"
-                  )}
-                  onClick={() => setSelectedSessionId(session.id)}
-                >
-                  <CardContent className="p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-muted-foreground" />
-                        <span className="text-sm font-medium">
-                          {format(parseISO(session.date), 'dd/MM/yyyy', { locale: ptBR })}
-                        </span>
-                      </div>
-                      {session.time && (
-                        <span className="text-xs text-muted-foreground">{session.time}</span>
-                      )}
-                    </div>
-
-                    <Badge variant="outline" className={cn("text-xs", getStatusColor(session.status))}>
-                      {getStatusLabel(session.status)}
-                    </Badge>
-
-                    <div className="flex gap-2 flex-wrap">
-                      {session.has_evaluation && (
-                        <div className="flex items-center gap-1 text-xs text-accent">
-                          <CheckCircle2 className="w-3 h-3" />
-                          <span>Avaliação</span>
-                        </div>
-                      )}
-                      {session.notes && (
-                        <div className="flex items-center gap-1 text-xs text-blue-600">
-                          <FileText className="w-3 h-3" />
-                          <span>Notas</span>
-                        </div>
-                      )}
-                      {session.has_files && (
-                        <div className="flex items-center gap-1 text-xs text-orange-600">
-                          <Paperclip className="w-3 h-3" />
-                          <span>Arquivos</span>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+      <TabsContent value="sessions" className="mt-0">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-300px)]">
+          {/* Sidebar with sessions list */}
+          <div className="lg:col-span-1 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Sessões</h3>
+              <Select value={period} onValueChange={setPeriod}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Período" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  <SelectItem value="last_month">Último Mês</SelectItem>
+                  <SelectItem value="last_3_months">Últimos 3 Meses</SelectItem>
+                  <SelectItem value="last_year">Último Ano</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          )}
-        </ScrollArea>
-      </div>
 
-      {/* Main content - Evaluation display */}
-      <div className="lg:col-span-3">
-        {!selectedSessionId ? (
-          <Card className="h-full flex items-center justify-center">
-            <CardContent className="text-center p-8">
-              <p className="text-muted-foreground">Selecione uma sessão para ver os detalhes</p>
-            </CardContent>
-          </Card>
-        ) : !evaluation ? (
-          <Card className="h-full flex items-center justify-center">
-            <CardContent className="text-center p-8">
-              <p className="text-muted-foreground">Esta sessão não possui avaliação registrada</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <ScrollArea className="h-full">
-            <div className="space-y-4 pr-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold">Avaliação da Sessão</h2>
-                <span className="text-sm text-muted-foreground">
-                  {format(parseISO(evaluation.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                </span>
-              </div>
+            <ScrollArea className="h-[calc(100vh-400px)] pr-4">
+              {loading ? (
+                <div className="text-sm text-muted-foreground">Carregando...</div>
+              ) : sessions.length === 0 ? (
+                <div className="text-sm text-muted-foreground">Nenhuma sessão encontrada</div>
+              ) : (
+                <div className="space-y-2">
+                  {sessions.map((session) => (
+                    <Card
+                      key={session.id}
+                      className={cn(
+                        "cursor-pointer transition-all hover:shadow-md",
+                        selectedSessionId === session.id && "ring-2 ring-primary"
+                      )}
+                      onClick={() => setSelectedSessionId(session.id)}
+                    >
+                      <CardContent className="p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-sm font-medium">
+                              {format(parseISO(session.date), 'dd/MM/yyyy', { locale: ptBR })}
+                            </span>
+                          </div>
+                          {session.time && (
+                            <span className="text-xs text-muted-foreground">{session.time}</span>
+                          )}
+                        </div>
 
-              <Separator />
+                        <Badge variant="outline" className={cn("text-xs", getStatusColor(session.status))}>
+                          {getStatusLabel(session.status)}
+                        </Badge>
 
-              {/* Summary */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Resumo Clínico</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm leading-relaxed">{generateSummary(evaluation)}</p>
-                </CardContent>
-              </Card>
-
-              {/* File Upload */}
-              {selectedSession && (
-                <div className="flex justify-end">
-                  <SessionFileUpload
-                    sessionId={selectedSession.id}
-                    sessionDate={selectedSession.date}
-                    patientId={patientId}
-                    onUploadComplete={loadSessions}
-                  />
+                        <div className="flex gap-2 flex-wrap">
+                          {session.has_evaluation && (
+                            <div className="flex items-center gap-1 text-xs text-accent">
+                              <CheckCircle2 className="w-3 h-3" />
+                              <span>Avaliação</span>
+                            </div>
+                          )}
+                          {session.notes && (
+                            <div className="flex items-center gap-1 text-xs text-blue-600">
+                              <FileText className="w-3 h-3" />
+                              <span>Notas</span>
+                            </div>
+                          )}
+                          {session.has_files && (
+                            <div className="flex items-center gap-1 text-xs text-orange-600">
+                              <Paperclip className="w-3 h-3" />
+                              <span>Arquivos</span>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               )}
+            </ScrollArea>
+          </div>
 
-              <Separator />
+          {/* Main content - Evaluation display */}
+          <div className="lg:col-span-3">
+            {!selectedSessionId ? (
+              <Card className="h-full flex items-center justify-center">
+                <CardContent className="text-center p-8">
+                  <p className="text-muted-foreground">Selecione uma sessão para ver os detalhes</p>
+                </CardContent>
+              </Card>
+            ) : !evaluation ? (
+              <Card className="h-full flex items-center justify-center">
+                <CardContent className="text-center p-8">
+                  <p className="text-muted-foreground">Esta sessão não possui avaliação registrada</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <ScrollArea className="h-full">
+                <div className="space-y-4 pr-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-bold">Avaliação da Sessão</h2>
+                    <span className="text-sm text-muted-foreground">
+                      {format(parseISO(evaluation.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    </span>
+                  </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {renderEvaluationCard('1. Consciência', evaluation.consciousness_data, getConsciousnessSummary)}
-                {renderEvaluationCard('2. Orientação', evaluation.orientation_data, getOrientationSummary)}
-                {renderEvaluationCard('3. Memória', evaluation.memory_data, getMemorySummary)}
-                {renderEvaluationCard('4. Humor / Afeto', evaluation.mood_data, getMoodSummary)}
-                {renderEvaluationCard('5. Pensamento', evaluation.thought_data, getThoughtSummary)}
-                {renderEvaluationCard('6. Linguagem', evaluation.language_data, getLanguageSummary)}
-                {renderEvaluationCard('7. Sensopercepção', evaluation.sensoperception_data, getSensoperceptionSummary)}
-                {renderEvaluationCard('8. Inteligência', evaluation.intelligence_data, getIntelligenceSummary)}
-                {renderEvaluationCard('9. Vontade', evaluation.will_data, getWillSummary)}
-                {renderEvaluationCard('10. Psicomotricidade', evaluation.psychomotor_data, getPsychomotorSummary)}
-                {renderEvaluationCard('11. Atenção', evaluation.attention_data, getAttentionSummary)}
-                {renderEvaluationCard('12. Personalidade', evaluation.personality_data, getPersonalitySummary)}
-              </div>
-            </div>
-          </ScrollArea>
-        )}
+                  <Separator />
+
+                  {/* Summary */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Resumo Clínico</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm leading-relaxed">{generateSummary(evaluation)}</p>
+                    </CardContent>
+                  </Card>
+
+                  {/* Clinical Notes */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Anotações Clínicas</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <Textarea
+                        placeholder="Adicione suas anotações clínicas sobre esta sessão..."
+                        value={clinicalNotes}
+                        onChange={(e) => setClinicalNotes(e.target.value)}
+                        className="min-h-[100px]"
+                      />
+                      <div className="flex justify-end">
+                        <Button onClick={handleSaveClinicalNotes} disabled={savingNotes}>
+                          {savingNotes ? 'Salvando...' : 'Salvar Anotações'}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* File Upload */}
+                  {selectedSession && (
+                    <div className="flex justify-end">
+                      <SessionFileUpload
+                        sessionId={selectedSession.id}
+                        sessionDate={selectedSession.date}
+                        patientId={patientId}
+                        onUploadComplete={loadSessions}
+                      />
+                    </div>
+                  )}
+
+                  <Separator />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {renderEvaluationCard('1. Consciência', evaluation.consciousness_data, getConsciousnessSummary)}
+                    {renderEvaluationCard('2. Orientação', evaluation.orientation_data, getOrientationSummary)}
+                    {renderEvaluationCard('3. Memória', evaluation.memory_data, getMemorySummary)}
+                    {renderEvaluationCard('4. Humor / Afeto', evaluation.mood_data, getMoodSummary)}
+                    {renderEvaluationCard('5. Pensamento', evaluation.thought_data, getThoughtSummary)}
+                    {renderEvaluationCard('6. Linguagem', evaluation.language_data, getLanguageSummary)}
+                    {renderEvaluationCard('7. Sensopercepção', evaluation.sensoperception_data, getSensoperceptionSummary)}
+                    {renderEvaluationCard('8. Inteligência', evaluation.intelligence_data, getIntelligenceSummary)}
+                    {renderEvaluationCard('9. Vontade', evaluation.will_data, getWillSummary)}
+                    {renderEvaluationCard('10. Psicomotricidade', evaluation.psychomotor_data, getPsychomotorSummary)}
+                    {renderEvaluationCard('11. Atenção', evaluation.attention_data, getAttentionSummary)}
+                    {renderEvaluationCard('12. Personalidade', evaluation.personality_data, getPersonalitySummary)}
+                  </div>
+                </div>
+              </ScrollArea>
+            )}
+          </div>
+        </div>
+      </TabsContent>
+
+      <TabsContent value="evolution" className="mt-0">
+        <PatientEvolutionMetrics patientId={patientId} period={period} setPeriod={setPeriod} />
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+interface PatientEvolutionMetricsProps {
+  patientId: string;
+  period: string;
+  setPeriod: (period: string) => void;
+}
+
+function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolutionMetricsProps) {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold">Evolução do Paciente</h3>
+        <Select value={period} onValueChange={setPeriod}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Período" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas</SelectItem>
+            <SelectItem value="last_month">Último Mês</SelectItem>
+            <SelectItem value="last_3_months">Últimos 3 Meses</SelectItem>
+            <SelectItem value="last_year">Último Ano</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
+
+      <Card>
+        <CardContent className="p-8 text-center">
+          <p className="text-muted-foreground">
+            Área reservada para gráficos e métricas de evolução do paciente ao longo do tempo.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
