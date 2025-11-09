@@ -1205,7 +1205,7 @@ const DashboardTest = () => {
               </p>
             </Card>
           ) : (
-            <div className="relative h-full min-h-[600px]">
+            <div className="relative h-full">
               {visibleCards
                 .filter(id => id.startsWith('chart-'))
                 .map(id => renderChart(id))
