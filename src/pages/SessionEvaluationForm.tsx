@@ -485,7 +485,112 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
           </CardContent>
         </Card>
 
-        {/* 3. MEMÓRIA */}
+        {/* 3. SENSOPERCEPÇÃO */}
+        <Card>
+          <CardHeader>
+            <CardTitle>3. Sensopercepção</CardTitle>
+            <CardDescription>Percepção sensorial e alterações perceptivas</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label>Percepção global</Label>
+              <Select
+                value={sensoperception.global_perception}
+                onValueChange={(value) => setSensoperception({ ...sensoperception, global_perception: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="normal">Normal</SelectItem>
+                  <SelectItem value="slightly_altered">Levemente alterada</SelectItem>
+                  <SelectItem value="distortive">Distorsiva (ilusões)</SelectItem>
+                  <SelectItem value="hallucinatory">Perceptiva sem objeto (alucinação)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-3">
+              <Label>Tipo de alteração (se presente)</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="auditory"
+                    checked={sensoperception.auditory}
+                    onCheckedChange={(checked) => setSensoperception({ ...sensoperception, auditory: checked as boolean })}
+                  />
+                  <label htmlFor="auditory" className="text-sm cursor-pointer">
+                    Auditiva
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="visual"
+                    checked={sensoperception.visual}
+                    onCheckedChange={(checked) => setSensoperception({ ...sensoperception, visual: checked as boolean })}
+                  />
+                  <label htmlFor="visual" className="text-sm cursor-pointer">
+                    Visual
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="tactile"
+                    checked={sensoperception.tactile}
+                    onCheckedChange={(checked) => setSensoperception({ ...sensoperception, tactile: checked as boolean })}
+                  />
+                  <label htmlFor="tactile" className="text-sm cursor-pointer">
+                    Tátil
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="olfactory"
+                    checked={sensoperception.olfactory}
+                    onCheckedChange={(checked) => setSensoperception({ ...sensoperception, olfactory: checked as boolean })}
+                  />
+                  <label htmlFor="olfactory" className="text-sm cursor-pointer">
+                    Olfativa
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="kinesthetic"
+                    checked={sensoperception.kinesthetic}
+                    onCheckedChange={(checked) => setSensoperception({ ...sensoperception, kinesthetic: checked as boolean })}
+                  />
+                  <label htmlFor="kinesthetic" className="text-sm cursor-pointer">
+                    Cinestésica
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="mixed"
+                    checked={sensoperception.mixed}
+                    onCheckedChange={(checked) => setSensoperception({ ...sensoperception, mixed: checked as boolean })}
+                  />
+                  <label htmlFor="mixed" className="text-sm cursor-pointer">
+                    Mista
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sensoperception_description">Descrição fenomenológica breve</Label>
+              <Textarea
+                id="sensoperception_description"
+                value={sensoperception.description}
+                onChange={(e) => setSensoperception({ ...sensoperception, description: e.target.value })}
+                placeholder="Máx. 250 caracteres"
+                maxLength={250}
+                rows={2}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 4. MEMÓRIA */}
         <Card>
           <CardHeader>
             <CardTitle>3. Memória</CardTitle>
@@ -589,7 +694,184 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
           </CardContent>
         </Card>
 
-        {/* 4. HUMOR / AFETO */}
+        {/* 5. PENSAMENTO */}
+        <Card>
+          <CardHeader>
+            <CardTitle>5. Pensamento</CardTitle>
+            <CardDescription>Curso, forma e conteúdo do pensamento</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <Label>Curso do pensamento</Label>
+                <span className="text-sm font-medium">{thought.course}</span>
+              </div>
+              <Slider
+                value={[thought.course]}
+                onValueChange={(v) => setThought({ ...thought, course: v[0] })}
+                min={-100}
+                max={100}
+                step={1}
+              />
+              <p className="text-xs text-muted-foreground">
+                -100 (lentificação) | 0 (normal) | +100 (fuga de ideias)
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <Label>Forma do pensamento</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="tangential"
+                    checked={thought.tangential}
+                    onCheckedChange={(checked) => setThought({ ...thought, tangential: checked as boolean })}
+                  />
+                  <label htmlFor="tangential" className="text-sm cursor-pointer">
+                    Tangencial
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="incoherent"
+                    checked={thought.incoherent}
+                    onCheckedChange={(checked) => setThought({ ...thought, incoherent: checked as boolean })}
+                  />
+                  <label htmlFor="incoherent" className="text-sm cursor-pointer">
+                    Incoerente
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="dissociated"
+                    checked={thought.dissociated}
+                    onCheckedChange={(checked) => setThought({ ...thought, dissociated: checked as boolean })}
+                  />
+                  <label htmlFor="dissociated" className="text-sm cursor-pointer">
+                    Dissociado
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="circumstantial"
+                    checked={thought.circumstantial}
+                    onCheckedChange={(checked) => setThought({ ...thought, circumstantial: checked as boolean })}
+                  />
+                  <label htmlFor="circumstantial" className="text-sm cursor-pointer">
+                    Circunstancial
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Label>Conteúdo do pensamento</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="delusional"
+                    checked={thought.delusional}
+                    onCheckedChange={(checked) => setThought({ ...thought, delusional: checked as boolean })}
+                  />
+                  <label htmlFor="delusional" className="text-sm cursor-pointer">
+                    Ideias delirantes
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="obsessive"
+                    checked={thought.obsessive}
+                    onCheckedChange={(checked) => setThought({ ...thought, obsessive: checked as boolean })}
+                  />
+                  <label htmlFor="obsessive" className="text-sm cursor-pointer">
+                    Ideias obsessivas
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="overvalued"
+                    checked={thought.overvalued}
+                    onCheckedChange={(checked) => setThought({ ...thought, overvalued: checked as boolean })}
+                  />
+                  <label htmlFor="overvalued" className="text-sm cursor-pointer">
+                    Ideias supervalorizadas
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="thought_description">Descrição livre do conteúdo</Label>
+              <Textarea
+                id="thought_description"
+                value={thought.description}
+                onChange={(e) => setThought({ ...thought, description: e.target.value })}
+                placeholder="200-500 caracteres"
+                minLength={200}
+                maxLength={500}
+                rows={4}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 6. LINGUAGEM */}
+        <Card>
+          <CardHeader>
+            <CardTitle>6. Linguagem</CardTitle>
+            <CardDescription>Velocidade, articulação e coerência da fala</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <Label>Velocidade da fala</Label>
+                <span className="text-sm font-medium">{language.speech_rate}</span>
+              </div>
+              <Slider
+                value={[language.speech_rate]}
+                onValueChange={(v) => setLanguage({ ...language, speech_rate: v[0] })}
+                min={-100}
+                max={100}
+                step={1}
+              />
+              <p className="text-xs text-muted-foreground">
+                -100 (bradilalia) | 0 (ritmo normal) | +100 (taquilalia)
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Articulação / coerência</Label>
+              <Select
+                value={language.articulation}
+                onValueChange={(value) => setLanguage({ ...language, articulation: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="normal">Normal / Coerente</SelectItem>
+                  <SelectItem value="vague">Discurso vago</SelectItem>
+                  <SelectItem value="echolalia">Ecolalia</SelectItem>
+                  <SelectItem value="mutism">Mutismo</SelectItem>
+                  <SelectItem value="neologisms">Neologismos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="language_observations">Observações</Label>
+              <Textarea
+                id="language_observations"
+                value={language.observations}
+                onChange={(e) => setLanguage({ ...language, observations: e.target.value })}
+                placeholder="Anotar exemplos clínicos (ex: fala acelerada com trocadilhos; fuga de ideias)..."
+                rows={3}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 7. HUMOR / AFETO */}
         <Card>
           <CardHeader>
             <CardTitle>4. Humor / Afeto</CardTitle>
@@ -669,7 +951,7 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
           </CardContent>
         </Card>
 
-        {/* 5. VONTADE */}
+        {/* 8. VONTADE */}
         <Card>
           <CardHeader>
             <CardTitle>5. Vontade</CardTitle>
@@ -734,7 +1016,245 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
           </CardContent>
         </Card>
 
-        {/* 6. PERSONALIDADE / EU */}
+        {/* 9. PSICOMOTRICIDADE */}
+        <Card>
+          <CardHeader>
+            <CardTitle>9. Psicomotricidade</CardTitle>
+            <CardDescription>Atividade motora, tônus e expressividade</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <Label>Atividade motora geral</Label>
+                <span className="text-sm font-medium">{psychomotor.motor_activity}</span>
+              </div>
+              <Slider
+                value={[psychomotor.motor_activity]}
+                onValueChange={(v) => setPsychomotor({ ...psychomotor, motor_activity: v[0] })}
+                min={-100}
+                max={100}
+                step={1}
+              />
+              <p className="text-xs text-muted-foreground">
+                -100 (inibição) | 0 (movimento normal) | +100 (agitação)
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Tônus e gestualidade</Label>
+              <Select
+                value={psychomotor.tone_gestures}
+                onValueChange={(value) => setPsychomotor({ ...psychomotor, tone_gestures: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="normal">Normal</SelectItem>
+                  <SelectItem value="stereotyped">Estereotipado</SelectItem>
+                  <SelectItem value="catatonic">Catatônico</SelectItem>
+                  <SelectItem value="mannerisms">Maneirismos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <Label>Expressividade facial</Label>
+                <span className="text-sm font-medium">{psychomotor.facial_expressiveness}</span>
+              </div>
+              <Slider
+                value={[psychomotor.facial_expressiveness]}
+                onValueChange={(v) => setPsychomotor({ ...psychomotor, facial_expressiveness: v[0] })}
+                min={0}
+                max={100}
+                step={1}
+              />
+              <p className="text-xs text-muted-foreground">
+                0 (neutra) | 100 (muito expressiva)
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="psychomotor_notes">Observações</Label>
+              <Textarea
+                id="psychomotor_notes"
+                value={psychomotor.notes}
+                onChange={(e) => setPsychomotor({ ...psychomotor, notes: e.target.value })}
+                placeholder="Observações sobre psicomotricidade..."
+                rows={2}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 10. ORIENTAÇÃO / JUÍZO / CRÍTICA */}
+        <Card>
+          <CardHeader>
+            <CardTitle>10. Orientação / Juízo / Crítica</CardTitle>
+            <CardDescription>Orientação, juízo de realidade e insight</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-3">
+              <Label>Orientação auto / alopsíquica</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="orientation_time"
+                    checked={orientation.time}
+                    onCheckedChange={(checked) => setOrientation({ ...orientation, time: checked as boolean })}
+                  />
+                  <label htmlFor="orientation_time" className="text-sm cursor-pointer">
+                    Tempo
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="orientation_space"
+                    checked={orientation.space}
+                    onCheckedChange={(checked) => setOrientation({ ...orientation, space: checked as boolean })}
+                  />
+                  <label htmlFor="orientation_space" className="text-sm cursor-pointer">
+                    Espaço
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="orientation_person"
+                    checked={orientation.person}
+                    onCheckedChange={(checked) => setOrientation({ ...orientation, person: checked as boolean })}
+                  />
+                  <label htmlFor="orientation_person" className="text-sm cursor-pointer">
+                    Pessoa
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="orientation_situation"
+                    checked={orientation.situation}
+                    onCheckedChange={(checked) => setOrientation({ ...orientation, situation: checked as boolean })}
+                  />
+                  <label htmlFor="orientation_situation" className="text-sm cursor-pointer">
+                    Situação
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Juízo de realidade</Label>
+              <Select
+                value={orientation.reality_judgment}
+                onValueChange={(value) => setOrientation({ ...orientation, reality_judgment: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="intact">Íntegro</SelectItem>
+                  <SelectItem value="partially_altered">Parcialmente alterado</SelectItem>
+                  <SelectItem value="severely_altered">Gravemente alterado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <Label>Crítica e insight</Label>
+                <span className="text-sm font-medium">{orientation.insight}</span>
+              </div>
+              <Slider
+                value={[orientation.insight]}
+                onValueChange={(v) => setOrientation({ ...orientation, insight: v[0] })}
+                min={0}
+                max={100}
+                step={1}
+              />
+              <p className="text-xs text-muted-foreground">
+                0 (sem insight) | 100 (crítico sobre a própria condição)
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="orientation_comments">Comentário sobre insight e percepção de doença</Label>
+              <Textarea
+                id="orientation_comments"
+                value={orientation.comments}
+                onChange={(e) => setOrientation({ ...orientation, comments: e.target.value })}
+                placeholder="Comentário sobre insight e percepção de doença..."
+                rows={3}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 11. INTELIGÊNCIA */}
+        <Card>
+          <CardHeader>
+            <CardTitle>11. Inteligência</CardTitle>
+            <CardDescription>Raciocínio, aprendizagem e capacidade adaptativa</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <Label>Raciocínio abstrato</Label>
+                <span className="text-sm font-medium">{intelligence.abstract_reasoning}</span>
+              </div>
+              <Slider
+                value={[intelligence.abstract_reasoning]}
+                onValueChange={(v) => setIntelligence({ ...intelligence, abstract_reasoning: v[0] })}
+                min={0}
+                max={100}
+                step={1}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <Label>Capacidade de aprendizagem</Label>
+                <span className="text-sm font-medium">{intelligence.learning_capacity}</span>
+              </div>
+              <Slider
+                value={[intelligence.learning_capacity]}
+                onValueChange={(v) => setIntelligence({ ...intelligence, learning_capacity: v[0] })}
+                min={0}
+                max={100}
+                step={1}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Capacidade adaptativa / prática</Label>
+              <Select
+                value={intelligence.adaptive_capacity}
+                onValueChange={(value) => setIntelligence({ ...intelligence, adaptive_capacity: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="normal">Normal</SelectItem>
+                  <SelectItem value="mild">Déficit leve</SelectItem>
+                  <SelectItem value="moderate">Déficit moderado</SelectItem>
+                  <SelectItem value="severe">Déficit grave</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="intelligence_notes">Observações</Label>
+              <Textarea
+                id="intelligence_notes"
+                value={intelligence.notes}
+                onChange={(e) => setIntelligence({ ...intelligence, notes: e.target.value })}
+                placeholder="Observações sobre inteligência e capacidades cognitivas..."
+                rows={2}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 12. PERSONALIDADE / EU */}
         <Card>
           <CardHeader>
             <CardTitle>6. Personalidade / Eu</CardTitle>
@@ -867,71 +1387,6 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
           </CardContent>
         </Card>
 
-        {/* 7. INTELIGÊNCIA */}
-        <Card>
-          <CardHeader>
-            <CardTitle>7. Inteligência</CardTitle>
-            <CardDescription>Raciocínio, aprendizagem e capacidade adaptativa</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label>Raciocínio abstrato</Label>
-                <span className="text-sm font-medium">{intelligence.abstract_reasoning}</span>
-              </div>
-              <Slider
-                value={[intelligence.abstract_reasoning]}
-                onValueChange={(v) => setIntelligence({ ...intelligence, abstract_reasoning: v[0] })}
-                min={0}
-                max={100}
-                step={1}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label>Expressividade facial</Label>
-                <span className="text-sm font-medium">{intelligence.facial_expressivity}</span>
-              </div>
-              <Slider
-                value={[intelligence.facial_expressivity]}
-                onValueChange={(v) => setIntelligence({ ...intelligence, facial_expressivity: v[0] })}
-                min={0}
-                max={100}
-                step={1}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Capacidade adaptativa / prática</Label>
-              <Select
-                value={intelligence.adaptive_capacity}
-                onValueChange={(value) => setIntelligence({ ...intelligence, adaptive_capacity: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="normal">Normal</SelectItem>
-                  <SelectItem value="mild">Déficit leve</SelectItem>
-                  <SelectItem value="moderate">Déficit moderado</SelectItem>
-                  <SelectItem value="severe">Déficit grave</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="intelligence_notes">Observações</Label>
-              <Textarea
-                id="intelligence_notes"
-                value={intelligence.notes}
-                onChange={(e) => setIntelligence({ ...intelligence, notes: e.target.value })}
-                placeholder="Observações sobre inteligência e capacidades cognitivas..."
-                rows={2}
-              />
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Botão de salvar fixo no rodapé */}
