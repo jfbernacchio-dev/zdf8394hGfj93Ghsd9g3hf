@@ -4,16 +4,75 @@ import { Card } from "@/components/ui/card";
 import { ArrowLeft, FileText, Calendar, DollarSign, MessageSquare } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ClinicalComplaintSummary from "@/components/ClinicalComplaintSummary";
+import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function PatientDetailMock() {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [mockPatientId, setMockPatientId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Mock patient UUID válido para testes
-  const MOCK_PATIENT_ID = "00000000-0000-0000-0000-000000000001";
+  useEffect(() => {
+    const initializeMockPatient = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          toast({
+            title: "Erro",
+            description: "Você precisa estar logado para acessar esta página",
+            variant: "destructive"
+          });
+          navigate("/login");
+          return;
+        }
+
+        // Buscar qualquer paciente do usuário para usar como mock
+        const { data: patients, error } = await supabase
+          .from("patients")
+          .select("id")
+          .eq("user_id", user.id)
+          .limit(1);
+
+        if (error) throw error;
+
+        if (patients && patients.length > 0) {
+          setMockPatientId(patients[0].id);
+        } else {
+          toast({
+            title: "Nenhum paciente encontrado",
+            description: "Crie um paciente primeiro para testar o sistema de queixa clínica",
+            variant: "destructive"
+          });
+          navigate("/patients");
+        }
+      } catch (error) {
+        console.error("Erro ao inicializar paciente mock:", error);
+        toast({
+          title: "Erro",
+          description: "Erro ao carregar dados do paciente",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeMockPatient();
+  }, [navigate, toast]);
+
+  if (loading || !mockPatientId) {
+    return (
+      <div className="container mx-auto p-6 max-w-7xl">
+        <p className="text-center text-muted-foreground">Carregando...</p>
+      </div>
+    );
+  }
 
   // Mock patient data
   const mockPatient = {
-    id: MOCK_PATIENT_ID,
+    id: mockPatientId,
     name: "Paciente Teste - Mock",
     email: "teste@mock.com",
     phone: "(11) 99999-9999",
@@ -37,7 +96,7 @@ export default function PatientDetailMock() {
           <h1 className="text-3xl font-bold">{mockPatient.name}</h1>
           <p className="text-muted-foreground">MOCK - Sistema de Queixa Clínica (Teste)</p>
         </div>
-        <Button onClick={() => navigate(`/patients/${MOCK_PATIENT_ID}/complaint/new`)}>
+        <Button onClick={() => navigate(`/patients/${mockPatientId}/complaint/new`)}>
           <FileText className="h-4 w-4 mr-2" />
           Nova Queixa
         </Button>
@@ -108,7 +167,7 @@ export default function PatientDetailMock() {
               </p>
               <div className="flex gap-2">
                 <Button 
-                  onClick={() => navigate(`/patients/${MOCK_PATIENT_ID}/complaint/new`)}
+                  onClick={() => navigate(`/patients/${mockPatientId}/complaint/new`)}
                   variant="default"
                 >
                   <FileText className="h-4 w-4 mr-2" />
@@ -124,7 +183,7 @@ export default function PatientDetailMock() {
             </div>
 
             {/* Componente de Resumo da Queixa */}
-            <ClinicalComplaintSummary patientId={MOCK_PATIENT_ID} />
+            <ClinicalComplaintSummary patientId={mockPatientId} />
           </div>
         </TabsContent>
 
