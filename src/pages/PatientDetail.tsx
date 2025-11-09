@@ -32,6 +32,7 @@ import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import IssueNFSeDialog from '@/components/IssueNFSeDialog';
 import { ConsentReminder } from '@/components/ConsentReminder';
 import { ResizableCard } from '@/components/ResizableCard';
+import ClinicalComplaintSummary from '@/components/ClinicalComplaintSummary';
 import { ResizableSection } from '@/components/ResizableSection';
 import { Settings, RotateCcw } from 'lucide-react';
 import { AddCardDialog } from '@/components/AddCardDialog';
@@ -1099,6 +1100,13 @@ Assinatura do Profissional`;
                 {isEditMode ? 'Salvar Layout' : 'Editar Layout'}
               </Button>
               <Button
+                onClick={() => navigate(`/patients/${id}/complaint/new`)}
+                variant="outline"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Nova Queixa
+              </Button>
+              <Button
                 onClick={() => navigate(`/patients/${id}/edit`)}
                 variant="outline"
               >
@@ -1151,6 +1159,7 @@ Assinatura do Profissional`;
           <div className="flex items-center justify-between mb-6">
             <TabsList>
               <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+              <TabsTrigger value="complaint">Queixa Clínica</TabsTrigger>
               <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
               <TabsTrigger value="billing">Faturamento</TabsTrigger>
               <TabsTrigger value="files">Arquivos</TabsTrigger>
@@ -1755,6 +1764,11 @@ Assinatura do Profissional`;
                 )}
               </div>
             </Card>
+          </TabsContent>
+
+          {/* Clinical Complaint Tab */}
+          <TabsContent value="complaint" className="space-y-6">
+            <ClinicalComplaintSummary patientId={id!} />
           </TabsContent>
 
           {/* Files Tab */}
