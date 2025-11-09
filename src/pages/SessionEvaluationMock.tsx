@@ -52,7 +52,7 @@ export default function SessionEvaluationMock() {
             phone: '(11) 99999-9999',
             session_value: 200,
             frequency: 'weekly',
-            session_day: 'Monday',
+            session_day: 'monday',
             session_time: '14:00',
             status: 'active',
             no_nfse: true
