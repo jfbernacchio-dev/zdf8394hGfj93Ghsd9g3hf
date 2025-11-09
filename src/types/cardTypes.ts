@@ -4,6 +4,7 @@ export interface CardConfig {
   id: string;
   name: string;
   description: string;
+  detailedDescription?: string;
   category: CardCategory;
   icon?: string;
   defaultWidth?: number;
@@ -189,7 +190,8 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
   {
     id: 'total-patients',
     name: 'Total de Pacientes',
-    description: 'Exibe a contagem absoluta de pacientes únicos cadastrados no sistema que possuem pelo menos uma sessão no período selecionado. Cálculo: COUNT(DISTINCT patient_id) WHERE session.date IN [período]. Útil para medir a base ativa de atendimento.',
+    description: 'Pacientes únicos com sessões no período',
+    detailedDescription: 'Exibe a contagem absoluta de pacientes únicos cadastrados no sistema que possuem pelo menos uma sessão no período selecionado. Cálculo: COUNT(DISTINCT patient_id) WHERE session.date IN [período]. Útil para medir a base ativa de atendimento.',
     category: 'dashboard-cards',
     defaultWidth: 280,
     defaultHeight: 160,
@@ -197,7 +199,8 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
   {
     id: 'expected-revenue',
     name: 'Faturamento Esperado',
-    description: 'Soma do valor de todas as sessões agendadas no período, independente do status de pagamento ou comparecimento. Cálculo: Σ(session.price) WHERE session.date IN [período] AND status IN (scheduled, attended, missed). Representa o potencial máximo de receita se todas as sessões fossem realizadas e pagas.',
+    description: 'Valor total de todas as sessões agendadas',
+    detailedDescription: 'Soma do valor de todas as sessões agendadas no período, independente do status de pagamento ou comparecimento. Cálculo: Σ(session.price) WHERE session.date IN [período] AND status IN (scheduled, attended, missed). Representa o potencial máximo de receita se todas as sessões fossem realizadas e pagas.',
     category: 'dashboard-cards',
     defaultWidth: 280,
     defaultHeight: 160,
@@ -205,7 +208,8 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
   {
     id: 'actual-revenue',
     name: 'Faturamento Real',
-    description: 'Soma do valor efetivamente recebido de sessões realizadas e pagas no período. Cálculo: Σ(session.price) WHERE session.date IN [período] AND status = attended AND payment_status = paid. Representa a receita líquida consolidada. Inclui percentual em relação ao faturamento esperado: (Faturamento Real / Faturamento Esperado) × 100%.',
+    description: 'Valor efetivamente recebido',
+    detailedDescription: 'Soma do valor efetivamente recebido de sessões realizadas e pagas no período. Cálculo: Σ(session.price) WHERE session.date IN [período] AND status = attended AND payment_status = paid. Representa a receita líquida consolidada. Inclui percentual em relação ao faturamento esperado: (Faturamento Real / Faturamento Esperado) × 100%.',
     category: 'dashboard-cards',
     defaultWidth: 280,
     defaultHeight: 160,
@@ -213,7 +217,8 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
   {
     id: 'attended-sessions',
     name: 'Sessões Comparecidas',
-    description: 'Contagem de sessões com status "attended" (comparecidas) no período selecionado. Cálculo: COUNT(session_id) WHERE status = attended AND session.date IN [período]. Métrica fundamental para avaliar a efetividade do agendamento e engajamento dos pacientes.',
+    description: 'Sessões realizadas com presença confirmada',
+    detailedDescription: 'Contagem de sessões com status "attended" (comparecidas) no período selecionado. Cálculo: COUNT(session_id) WHERE status = attended AND session.date IN [período]. Métrica fundamental para avaliar a efetividade do agendamento e engajamento dos pacientes.',
     category: 'dashboard-cards',
     defaultWidth: 280,
     defaultHeight: 160,
@@ -221,7 +226,8 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
   {
     id: 'expected-sessions',
     name: 'Sessões Esperadas',
-    description: 'Número total de sessões agendadas no período, incluindo futuras, comparecidas e faltantes. Cálculo: COUNT(session_id) WHERE session.date IN [período] AND status IN (scheduled, attended, missed). Base para cálculos de taxa de comparecimento e previsão de carga de trabalho.',
+    description: 'Total de sessões agendadas',
+    detailedDescription: 'Número total de sessões agendadas no período, incluindo futuras, comparecidas e faltantes. Cálculo: COUNT(session_id) WHERE session.date IN [período] AND status IN (scheduled, attended, missed). Base para cálculos de taxa de comparecimento e previsão de carga de trabalho.',
     category: 'dashboard-cards',
     defaultWidth: 280,
     defaultHeight: 160,
@@ -229,7 +235,8 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
   {
     id: 'missed-sessions',
     name: 'Faltas',
-    description: 'Contagem de sessões marcadas como "missed" (falta não justificada do paciente) no período. Cálculo: COUNT(session_id) WHERE status = missed AND session.date IN [período]. Inclui percentual de faltas: (Faltas / Sessões Esperadas) × 100%. Indicador crítico de qualidade do atendimento e engajamento.',
+    description: 'Sessões com ausência não justificada',
+    detailedDescription: 'Contagem de sessões marcadas como "missed" (falta não justificada do paciente) no período. Cálculo: COUNT(session_id) WHERE status = missed AND session.date IN [período]. Inclui percentual de faltas: (Faltas / Sessões Esperadas) × 100%. Indicador crítico de qualidade do atendimento e engajamento.',
     category: 'dashboard-cards',
     defaultWidth: 280,
     defaultHeight: 160,
@@ -237,7 +244,8 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
   {
     id: 'pending-sessions',
     name: 'Sessões Pendentes',
-    description: 'Sessões com status "scheduled" (agendadas mas ainda não realizadas) no período. Cálculo: COUNT(session_id) WHERE status = scheduled AND session.date IN [período]. Inclui percentual: (Pendentes / Sessões Esperadas) × 100%. Importante para planejamento de agenda e previsão de receita a realizar.',
+    description: 'Agendamentos futuros ainda não realizados',
+    detailedDescription: 'Sessões com status "scheduled" (agendadas mas ainda não realizadas) no período. Cálculo: COUNT(session_id) WHERE status = scheduled AND session.date IN [período]. Inclui percentual: (Pendentes / Sessões Esperadas) × 100%. Importante para planejamento de agenda e previsão de receita a realizar.',
     category: 'dashboard-cards',
     defaultWidth: 280,
     defaultHeight: 160,
@@ -245,7 +253,8 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
   {
     id: 'unpaid-value',
     name: 'Valor a Receber',
-    description: 'Soma dos valores de sessões realizadas (attended) mas com pagamento pendente no período. Cálculo: Σ(session.price) WHERE status = attended AND payment_status IN (pending, unpaid) AND session.date IN [período]. Exibe quantidade de sessões não pagas entre parênteses. Métrica crucial para gestão de fluxo de caixa.',
+    description: 'Total de sessões realizadas sem pagamento',
+    detailedDescription: 'Soma dos valores de sessões realizadas (attended) mas com pagamento pendente no período. Cálculo: Σ(session.price) WHERE status = attended AND payment_status IN (pending, unpaid) AND session.date IN [período]. Exibe quantidade de sessões não pagas entre parênteses. Métrica crucial para gestão de fluxo de caixa.',
     category: 'dashboard-cards',
     defaultWidth: 280,
     defaultHeight: 160,
@@ -253,7 +262,8 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
   {
     id: 'active-therapists',
     name: 'Terapeutas Ativos',
-    description: 'Número de terapeutas únicos que possuem ao menos uma sessão (qualquer status) no período selecionado. Cálculo: COUNT(DISTINCT therapist_id) WHERE session.date IN [período]. Útil para distribuição de carga de trabalho e análise de produtividade da equipe.',
+    description: 'Profissionais com atendimentos no período',
+    detailedDescription: 'Número de terapeutas únicos que possuem ao menos uma sessão (qualquer status) no período selecionado. Cálculo: COUNT(DISTINCT therapist_id) WHERE session.date IN [período]. Útil para distribuição de carga de trabalho e análise de produtividade da equipe.',
     category: 'dashboard-cards',
     defaultWidth: 280,
     defaultHeight: 160,
@@ -261,7 +271,8 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
   {
     id: 'attendance-rate',
     name: 'Taxa de Comparecimento',
-    description: 'Razão percentual entre sessões comparecidas e sessões esperadas. Cálculo: (Sessões Comparecidas / Sessões Esperadas) × 100%. Métrica-chave de qualidade operacional. Valores típicos saudáveis: >80%. Abaixo de 70% indica necessidade de intervenção na gestão de agendamentos.',
+    description: 'Percentual de presenças confirmadas',
+    detailedDescription: 'Razão percentual entre sessões comparecidas e sessões esperadas. Cálculo: (Sessões Comparecidas / Sessões Esperadas) × 100%. Métrica-chave de qualidade operacional. Valores típicos saudáveis: >80%. Abaixo de 70% indica necessidade de intervenção na gestão de agendamentos.',
     category: 'dashboard-cards',
     defaultWidth: 280,
     defaultHeight: 160,
@@ -269,7 +280,8 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
   {
     id: 'monthly-growth',
     name: 'Crescimento Mensal',
-    description: 'Variação percentual do faturamento real entre o período atual e o período anterior de mesmo tamanho. Cálculo: ((Faturamento Atual - Faturamento Anterior) / Faturamento Anterior) × 100%. Valores positivos indicam crescimento. Se o período for "Este Mês", compara com o mês anterior. Indicador de tendência de negócio.',
+    description: 'Variação vs período anterior',
+    detailedDescription: 'Variação percentual do faturamento real entre o período atual e o período anterior de mesmo tamanho. Cálculo: ((Faturamento Atual - Faturamento Anterior) / Faturamento Anterior) × 100%. Valores positivos indicam crescimento. Se o período for "Este Mês", compara com o mês anterior. Indicador de tendência de negócio.',
     category: 'dashboard-cards',
     defaultWidth: 280,
     defaultHeight: 160,
@@ -277,7 +289,8 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
   {
     id: 'payment-rate',
     name: 'Taxa de Pagamento',
-    description: 'Razão percentual entre sessões pagas e sessões realizadas no período. Cálculo: (Sessões Pagas / Sessões Comparecidas) × 100% onde Sessões Pagas = COUNT(session_id WHERE status = attended AND payment_status = paid). Valores ideais: >90%. Abaixo de 80% indica necessidade de revisão das políticas de cobrança.',
+    description: 'Percentual de sessões efetivamente pagas',
+    detailedDescription: 'Razão percentual entre sessões pagas e sessões realizadas no período. Cálculo: (Sessões Pagas / Sessões Comparecidas) × 100% onde Sessões Pagas = COUNT(session_id WHERE status = attended AND payment_status = paid). Valores ideais: >90%. Abaixo de 80% indica necessidade de revisão das políticas de cobrança.',
     category: 'dashboard-cards',
     defaultWidth: 280,
     defaultHeight: 160,
@@ -289,7 +302,8 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
   {
     id: 'chart-revenue-trend',
     name: 'Tendência de Faturamento',
-    description: 'Gráfico de linha temporal (série temporal) mostrando a evolução do faturamento real ao longo do período selecionado. Eixo X: data (dia/semana/mês dependendo do período). Eixo Y: valor em R$. Cada ponto representa Σ(session.price) WHERE status = attended AND payment_status = paid para aquele intervalo. Útil para identificar sazonalidades, tendências de crescimento/declínio (regressão linear), e anomalias. Permite análise de padrões como: média móvel de 7 dias, desvio padrão, e projeções futuras.',
+    description: 'Evolução da receita ao longo do tempo',
+    detailedDescription: 'Gráfico de linha temporal (série temporal) mostrando a evolução do faturamento real ao longo do período selecionado. Eixo X: data (dia/semana/mês dependendo do período). Eixo Y: valor em R$. Cada ponto representa Σ(session.price) WHERE status = attended AND payment_status = paid para aquele intervalo. Útil para identificar sazonalidades, tendências de crescimento/declínio (regressão linear), e anomalias. Permite análise de padrões como: média móvel de 7 dias, desvio padrão, e projeções futuras.',
     category: 'dashboard-charts',
     defaultWidth: 600,
     defaultHeight: 400,
@@ -297,7 +311,8 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
   {
     id: 'chart-session-types',
     name: 'Tipos de Sessão',
-    description: 'Gráfico de pizza (pie chart) representando a distribuição proporcional dos diferentes status de sessões no período. Categorias: Comparecidas (attended), Faltas (missed), Canceladas (cancelled), Agendadas/Pendentes (scheduled). Cada fatia representa: (COUNT(status_X) / COUNT(total)) × 100%. Inclui valores absolutos e percentuais. Ideal para análise de composição e identificação rápida de problemas operacionais (ex: fatia de faltas muito grande). Cores semânticas: verde (comparecidas), vermelho (faltas), amarelo (pendentes).',
+    description: 'Proporção de status de sessões',
+    detailedDescription: 'Gráfico de pizza (pie chart) representando a distribuição proporcional dos diferentes status de sessões no período. Categorias: Comparecidas (attended), Faltas (missed), Canceladas (cancelled), Agendadas/Pendentes (scheduled). Cada fatia representa: (COUNT(status_X) / COUNT(total)) × 100%. Inclui valores absolutos e percentuais. Ideal para análise de composição e identificação rápida de problemas operacionais (ex: fatia de faltas muito grande). Cores semânticas: verde (comparecidas), vermelho (faltas), amarelo (pendentes).',
     category: 'dashboard-charts',
     defaultWidth: 500,
     defaultHeight: 400,
@@ -305,7 +320,8 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
   {
     id: 'chart-therapist-distribution',
     name: 'Distribuição por Terapeuta',
-    description: 'Gráfico de barras verticais com número de sessões realizadas por cada terapeuta no período. Eixo X: nome do terapeuta. Eixo Y: COUNT(session_id) WHERE status = attended. Ordenado decrescentemente por volume. Permite comparação visual de carga de trabalho, identificação de desequilíbrios na distribuição, e análise de produtividade individual. Pode incluir linha de referência com a média: (Total Sessões / Número de Terapeutas). Útil para planejamento de recursos humanos.',
+    description: 'Sessões realizadas por cada profissional',
+    detailedDescription: 'Gráfico de barras verticais com número de sessões realizadas por cada terapeuta no período. Eixo X: nome do terapeuta. Eixo Y: COUNT(session_id) WHERE status = attended. Ordenado decrescentemente por volume. Permite comparação visual de carga de trabalho, identificação de desequilíbrios na distribuição, e análise de produtividade individual. Pode incluir linha de referência com a média: (Total Sessões / Número de Terapeutas). Útil para planejamento de recursos humanos.',
     category: 'dashboard-charts',
     defaultWidth: 600,
     defaultHeight: 400,
@@ -313,7 +329,8 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
   {
     id: 'chart-monthly-comparison',
     name: 'Comparação Mensal',
-    description: 'Gráfico de barras agrupadas comparando múltiplas métricas ao longo dos últimos 6 meses. Eixo X: meses. Eixo Y: valores (normalizados se necessário). Métricas típicas: Faturamento Real, Sessões Comparecidas, Taxa de Comparecimento (%). Cada mês possui 2-3 barras lado a lado para comparação direta. Cálculo por mês: agregar todas as métricas WHERE MONTH(session.date) = mês_X. Permite análise de tendências multi-dimensionais, correlações entre métricas, e identificação de padrões sazonais.',
+    description: 'Comparativo de métricas nos últimos meses',
+    detailedDescription: 'Gráfico de barras agrupadas comparando múltiplas métricas ao longo dos últimos 6 meses. Eixo X: meses. Eixo Y: valores (normalizados se necessário). Métricas típicas: Faturamento Real, Sessões Comparecidas, Taxa de Comparecimento (%). Cada mês possui 2-3 barras lado a lado para comparação direta. Cálculo por mês: agregar todas as métricas WHERE MONTH(session.date) = mês_X. Permite análise de tendências multi-dimensionais, correlações entre métricas, e identificação de padrões sazonais.',
     category: 'dashboard-charts',
     defaultWidth: 700,
     defaultHeight: 400,
@@ -321,7 +338,8 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
   {
     id: 'chart-payment-status',
     name: 'Status de Pagamento',
-    description: 'Gráfico de pizza mostrando a proporção entre sessões pagas e não pagas no período, considerando apenas sessões realizadas (attended). Categorias: Pagas (payment_status = paid), Pendentes (pending), Não Pagas (unpaid). Cálculo: (COUNT(status_pagamento) / COUNT(attended)) × 100%. Métrica crucial para gestão financeira e fluxo de caixa. Idealmente, a fatia "Pagas" deve representar >90% do total. Fatias grandes de "Não Pagas" indicam necessidade de revisão das políticas de cobrança ou follow-up.',
+    description: 'Proporção entre pagas e não pagas',
+    detailedDescription: 'Gráfico de pizza mostrando a proporção entre sessões pagas e não pagas no período, considerando apenas sessões realizadas (attended). Categorias: Pagas (payment_status = paid), Pendentes (pending), Não Pagas (unpaid). Cálculo: (COUNT(status_pagamento) / COUNT(attended)) × 100%. Métrica crucial para gestão financeira e fluxo de caixa. Idealmente, a fatia "Pagas" deve representar >90% do total. Fatias grandes de "Não Pagas" indicam necessidade de revisão das políticas de cobrança ou follow-up.',
     category: 'dashboard-charts',
     defaultWidth: 500,
     defaultHeight: 400,
@@ -329,7 +347,8 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
   {
     id: 'chart-attendance-weekly',
     name: 'Comparecimento Semanal',
-    description: 'Gráfico de linha mostrando a taxa de comparecimento calculada semanalmente ao longo do período. Eixo X: semanas (ISO week). Eixo Y: percentual (0-100%). Cálculo por semana: (COUNT(attended) / COUNT(expected)) × 100% WHERE WEEK(session.date) = semana_X. Inclui linha de tendência (regressão linear) e bandas de controle (média ± 1 desvio padrão). Útil para monitorar qualidade do serviço ao longo do tempo, detectar degradação de performance, e avaliar impacto de intervenções operacionais.',
+    description: 'Taxa de presença semana a semana',
+    detailedDescription: 'Gráfico de linha mostrando a taxa de comparecimento calculada semanalmente ao longo do período. Eixo X: semanas (ISO week). Eixo Y: percentual (0-100%). Cálculo por semana: (COUNT(attended) / COUNT(expected)) × 100% WHERE WEEK(session.date) = semana_X. Inclui linha de tendência (regressão linear) e bandas de controle (média ± 1 desvio padrão). Útil para monitorar qualidade do serviço ao longo do tempo, detectar degradação de performance, e avaliar impacto de intervenções operacionais.',
     category: 'dashboard-charts',
     defaultWidth: 700,
     defaultHeight: 400,
@@ -337,7 +356,8 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
   {
     id: 'chart-revenue-by-therapist',
     name: 'Faturamento por Terapeuta',
-    description: 'Gráfico de barras horizontais exibindo o faturamento real gerado por cada terapeuta no período. Eixo Y: nome do terapeuta. Eixo X: Σ(session.price) WHERE therapist_id = X AND status = attended AND payment_status = paid. Ordenado decrescentemente. Cores podem variar por faixa de valor. Permite análise de contribuição individual para receita total, identificação de top performers, e planejamento de incentivos. Pode incluir meta de faturamento como linha vertical de referência.',
+    description: 'Receita gerada por cada profissional',
+    detailedDescription: 'Gráfico de barras horizontais exibindo o faturamento real gerado por cada terapeuta no período. Eixo Y: nome do terapeuta. Eixo X: Σ(session.price) WHERE therapist_id = X AND status = attended AND payment_status = paid. Ordenado decrescentemente. Cores podem variar por faixa de valor. Permite análise de contribuição individual para receita total, identificação de top performers, e planejamento de incentivos. Pode incluir meta de faturamento como linha vertical de referência.',
     category: 'dashboard-charts',
     defaultWidth: 600,
     defaultHeight: 450,
@@ -345,7 +365,8 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
   {
     id: 'chart-patient-growth',
     name: 'Crescimento de Pacientes',
-    description: 'Gráfico de área (area chart) mostrando a evolução acumulada do número de pacientes ativos ao longo do tempo. Eixo X: data (mensal ou quinzenal dependendo do período). Eixo Y: COUNT(DISTINCT patient_id) cumulativo até aquela data. A área preenchida abaixo da linha enfatiza o crescimento absoluto. Útil para visualizar o crescimento da base de clientes, identificar períodos de aquisição acelerada ou churn, e projetar capacidade futura. Pode incluir taxa de crescimento mensal como anotação.',
+    description: 'Evolução da base ativa ao longo do tempo',
+    detailedDescription: 'Gráfico de área (area chart) mostrando a evolução acumulada do número de pacientes ativos ao longo do tempo. Eixo X: data (mensal ou quinzenal dependendo do período). Eixo Y: COUNT(DISTINCT patient_id) cumulativo até aquela data. A área preenchida abaixo da linha enfatiza o crescimento absoluto. Útil para visualizar o crescimento da base de clientes, identificar períodos de aquisição acelerada ou churn, e projetar capacidade futura. Pode incluir taxa de crescimento mensal como anotação.',
     category: 'dashboard-charts',
     defaultWidth: 700,
     defaultHeight: 400,
@@ -353,7 +374,8 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
   {
     id: 'chart-hourly-distribution',
     name: 'Distribuição por Horário',
-    description: 'Gráfico de barras verticais mostrando o número de sessões agendadas por hora do dia no período. Eixo X: faixas horárias (0h-23h ou 8h-20h para horário comercial). Eixo Y: COUNT(session_id) WHERE HOUR(session.time) = hora_X. Permite identificar horários de pico, horários ociosos, e otimizar a grade de horários disponíveis. Útil para planejamento de escalas, identificação de oportunidades de agendamento, e análise de preferências dos pacientes. Pode comparar dias úteis vs fins de semana.',
+    description: 'Volume de sessões em cada hora do dia',
+    detailedDescription: 'Gráfico de barras verticais mostrando o número de sessões agendadas por hora do dia no período. Eixo X: faixas horárias (0h-23h ou 8h-20h para horário comercial). Eixo Y: COUNT(session_id) WHERE HOUR(session.time) = hora_X. Permite identificar horários de pico, horários ociosos, e otimizar a grade de horários disponíveis. Útil para planejamento de escalas, identificação de oportunidades de agendamento, e análise de preferências dos pacientes. Pode comparar dias úteis vs fins de semana.',
     category: 'dashboard-charts',
     defaultWidth: 600,
     defaultHeight: 400,
@@ -361,7 +383,8 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
   {
     id: 'chart-cancellation-reasons',
     name: 'Motivos de Cancelamento',
-    description: 'Gráfico de pizza categorizando os motivos registrados para faltas e cancelamentos no período. Categorias típicas: Doença, Compromisso, Esquecimento, Viagem, Outros, Não Informado. Cálculo: (COUNT(cancellation_reason = X) / COUNT(total_cancellations)) × 100%. Apenas sessões com status = missed ou cancelled. Útil para análise de causa raiz, identificação de padrões evitáveis (ex: muitos esquecimentos → implementar lembretes), e definição de políticas de faltas. Permite ações corretivas direcionadas.',
+    description: 'Categorização das causas de faltas',
+    detailedDescription: 'Gráfico de pizza categorizando os motivos registrados para faltas e cancelamentos no período. Categorias típicas: Doença, Compromisso, Esquecimento, Viagem, Outros, Não Informado. Cálculo: (COUNT(cancellation_reason = X) / COUNT(total_cancellations)) × 100%. Apenas sessões com status = missed ou cancelled. Útil para análise de causa raiz, identificação de padrões evitáveis (ex: muitos esquecimentos → implementar lembretes), e definição de políticas de faltas. Permite ações corretivas direcionadas.',
     category: 'dashboard-charts',
     defaultWidth: 500,
     defaultHeight: 400,
