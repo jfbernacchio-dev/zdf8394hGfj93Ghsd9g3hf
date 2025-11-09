@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -6,7 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format, parseISO, startOfMonth, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CheckCircle2, FileText, Paperclip, Calendar } from 'lucide-react';
+import { CheckCircle2, FileText, Paperclip, Calendar, Edit } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
@@ -52,6 +53,7 @@ interface SessionEvaluation {
 type Severity = 'normal' | 'moderate' | 'severe';
 
 export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
+  const navigate = useNavigate();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
@@ -792,10 +794,19 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
               <ScrollArea className="h-full">
                 <div className="space-y-4 pr-4">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-bold">Avaliação da Sessão</h2>
-                    <span className="text-sm text-muted-foreground">
-                      {format(parseISO(evaluation.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                    </span>
+                    <div>
+                      <h2 className="text-2xl font-bold">Avaliação da Sessão</h2>
+                      <span className="text-sm text-muted-foreground">
+                        {format(parseISO(evaluation.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      </span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => navigate(`/patients/${patientId}/sessions/${selectedSessionId}/evaluation`)}
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Editar Avaliação
+                    </Button>
                   </div>
 
                   <Separator />

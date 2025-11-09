@@ -119,6 +119,7 @@ const App = () => (
             <Route path="/patients/:id/edit" element={<ProtectedRoute><Layout><EditPatient /></Layout></ProtectedRoute>} />
             <Route path="/patients/:patientId/complaint/new" element={<ProtectedRoute><Layout><ClinicalComplaintForm /></Layout></ProtectedRoute>} />
             <Route path="/patients/:patientId/complaint/:complaintId/edit" element={<ProtectedRoute><Layout><ClinicalComplaintForm /></Layout></ProtectedRoute>} />
+            <Route path="/patients/:patientId/sessions/:sessionId/evaluation" element={<ProtectedRoute><Layout><SessionEvaluationForm /></Layout></ProtectedRoute>} />
             <Route path="/sessions/:sessionId/evaluation" element={<ProtectedRoute><Layout><SessionEvaluationForm /></Layout></ProtectedRoute>} />
             <Route path="/sessions/mock/evaluation" element={<ProtectedRoute><Layout><SessionEvaluationMock /></Layout></ProtectedRoute>} />
             <Route path="/patients/:id" element={<ProtectedRoute><Layout><PatientDetail /></Layout></ProtectedRoute>} />
