@@ -1235,6 +1235,84 @@ export type Database = {
         }
         Relationships: []
       }
+      session_evaluations: {
+        Row: {
+          attention_data: Json | null
+          consciousness_data: Json | null
+          created_at: string
+          evaluated_by: string
+          id: string
+          intelligence_data: Json | null
+          language_data: Json | null
+          memory_data: Json | null
+          mood_data: Json | null
+          orientation_data: Json | null
+          patient_id: string
+          personality_data: Json | null
+          psychomotor_data: Json | null
+          sensoperception_data: Json | null
+          session_id: string
+          thought_data: Json | null
+          updated_at: string
+          will_data: Json | null
+        }
+        Insert: {
+          attention_data?: Json | null
+          consciousness_data?: Json | null
+          created_at?: string
+          evaluated_by: string
+          id?: string
+          intelligence_data?: Json | null
+          language_data?: Json | null
+          memory_data?: Json | null
+          mood_data?: Json | null
+          orientation_data?: Json | null
+          patient_id: string
+          personality_data?: Json | null
+          psychomotor_data?: Json | null
+          sensoperception_data?: Json | null
+          session_id: string
+          thought_data?: Json | null
+          updated_at?: string
+          will_data?: Json | null
+        }
+        Update: {
+          attention_data?: Json | null
+          consciousness_data?: Json | null
+          created_at?: string
+          evaluated_by?: string
+          id?: string
+          intelligence_data?: Json | null
+          language_data?: Json | null
+          memory_data?: Json | null
+          mood_data?: Json | null
+          orientation_data?: Json | null
+          patient_id?: string
+          personality_data?: Json | null
+          psychomotor_data?: Json | null
+          sensoperception_data?: Json | null
+          session_id?: string
+          thought_data?: Json | null
+          updated_at?: string
+          will_data?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_evaluations_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_evaluations_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       session_history: {
         Row: {
           changed_at: string
