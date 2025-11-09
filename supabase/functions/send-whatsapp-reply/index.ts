@@ -12,7 +12,9 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
     "http://localhost:4173",
   ];
   
-  const corsOrigin = origin && allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+  // Permitir Lovable preview domains
+  const isLovablePreview = origin?.includes('.lovableproject.com') || origin?.includes('.lovable.app');
+  const corsOrigin = origin && (allowedOrigins.includes(origin) || isLovablePreview) ? origin : allowedOrigins[0];
   
   return {
     "Access-Control-Allow-Origin": corsOrigin,
