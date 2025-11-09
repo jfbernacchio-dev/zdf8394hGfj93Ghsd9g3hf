@@ -25,13 +25,13 @@ export const ResizableSection = ({
   const [isResizing, setIsResizing] = useState(false);
   const [resizeDirection, setResizeDirection] = useState<'top' | 'bottom' | null>(null);
 
-  // Load saved height from localStorage on mount
+  // Load saved height from localStorage on mount and when exiting edit mode
   useEffect(() => {
     const saved = localStorage.getItem(`section-height-${id}`);
     if (saved) {
       setSavedHeight(parseInt(saved));
     }
-  }, [id]);
+  }, [id, isEditMode]); // Reload when isEditMode changes
 
   // Use tempHeight if in edit mode and available, otherwise use savedHeight
   const currentHeight = isEditMode && tempHeight ? tempHeight : savedHeight;
