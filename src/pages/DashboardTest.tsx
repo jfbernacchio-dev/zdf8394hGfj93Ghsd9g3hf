@@ -462,6 +462,10 @@ const DashboardTest = () => {
     const chartConfig = [...AVAILABLE_DASHBOARD_CHARTS].find(c => c.id === id);
     if (!chartConfig) return null;
 
+    console.log('Rendering chart:', id);
+    console.log('Total sessions available:', sessions.length);
+    console.log('Sample session:', sessions[0]);
+
     let chartContent;
     const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--muted))', '#8b5cf6', '#ec4899'];
 
@@ -502,7 +506,9 @@ const DashboardTest = () => {
           });
         }
         
-        chartContent = (
+        console.log('Monthly comparison data:', monthsData);
+        
+        chartContent = monthsData.length > 0 && monthsData.some(d => d.sessoes > 0 || d.faturamento > 0) ? (
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={monthsData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -522,6 +528,10 @@ const DashboardTest = () => {
               <Bar yAxisId="right" dataKey="taxa" fill={COLORS[2]} name="Taxa (%)" />
             </BarChart>
           </ResponsiveContainer>
+        ) : (
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-sm text-muted-foreground">Sem dados disponíveis para o período</p>
+          </div>
         );
         break;
       }
@@ -556,7 +566,9 @@ const DashboardTest = () => {
           });
         }
         
-        chartContent = (
+        console.log('Revenue trend data:', monthsData);
+        
+        chartContent = monthsData.length > 0 && monthsData.some(d => d.valor > 0) ? (
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={monthsData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -574,6 +586,10 @@ const DashboardTest = () => {
               <Line type="monotone" dataKey="valor" stroke={COLORS[0]} strokeWidth={2} name="Faturamento (R$)" />
             </LineChart>
           </ResponsiveContainer>
+        ) : (
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-sm text-muted-foreground">Sem dados disponíveis para o período</p>
+          </div>
         );
         break;
       }
