@@ -21,7 +21,7 @@ import { ResizableSection } from '@/components/ResizableSection';
 import { DEFAULT_DASHBOARD_LAYOUT, resetToDefaultDashboardLayout } from '@/lib/defaultLayoutDashboard';
 import { toast } from 'sonner';
 import { AddCardDialog } from '@/components/AddCardDialog';
-import { CardConfig } from '@/types/cardTypes';
+import { CardConfig, AVAILABLE_DASHBOARD_CHARTS } from '@/types/cardTypes';
 
 const DashboardTest = () => {
   const { user } = useAuth();
@@ -455,6 +455,38 @@ const DashboardTest = () => {
     );
   };
 
+  const renderChart = (id: string) => {
+    if (!visibleCards.includes(id)) return null;
+
+    const chartConfig = [...AVAILABLE_DASHBOARD_CHARTS].find(c => c.id === id);
+    if (!chartConfig) return null;
+
+    return (
+      <ResizableCard
+        key={id}
+        id={id}
+        className="p-6 shadow-[var(--shadow-card)] border-border"
+        isEditMode={isEditMode}
+        defaultWidth={getSavedCardSize(id)?.width || 600}
+        defaultHeight={getSavedCardSize(id)?.height || 400}
+        tempSize={tempCardSizes[id]}
+        onTempSizeChange={handleTempCardSizeChange}
+        allCardSizes={allCardSizes}
+      >
+        <div className="h-full flex flex-col">
+          <h3 className="text-lg font-semibold text-foreground mb-2">{chartConfig.name}</h3>
+          <p className="text-sm text-muted-foreground mb-4">{chartConfig.description}</p>
+          <div className="flex-1 flex items-center justify-center border border-dashed border-border rounded-lg bg-muted/20">
+            <p className="text-sm text-muted-foreground text-center px-4">
+              Gráfico em desenvolvimento<br/>
+              <span className="text-xs">{chartConfig.detailedDescription?.substring(0, 100)}...</span>
+            </p>
+          </div>
+        </div>
+      </ResizableCard>
+    );
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8 flex items-center justify-between">
@@ -702,8 +734,16 @@ const DashboardTest = () => {
               </Card>
             ) : (
               <>
-                {/* Render chart cards here when implemented */}
-                <p className="text-muted-foreground text-center p-8">Gráficos serão renderizados aqui</p>
+                {renderChart('chart-revenue-trend')}
+                {renderChart('chart-session-types')}
+                {renderChart('chart-therapist-distribution')}
+                {renderChart('chart-monthly-comparison')}
+                {renderChart('chart-payment-status')}
+                {renderChart('chart-attendance-weekly')}
+                {renderChart('chart-revenue-by-therapist')}
+                {renderChart('chart-patient-growth')}
+                {renderChart('chart-hourly-distribution')}
+                {renderChart('chart-cancellation-reasons')}
               </>
             )}
           </div>
