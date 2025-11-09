@@ -130,6 +130,287 @@ export type Database = {
         }
         Relationships: []
       }
+      cid_catalog: {
+        Row: {
+          changed_at: string | null
+          code: string
+          created_at: string | null
+          fetched_at: string | null
+          group_code: string | null
+          group_name: string | null
+          id: string
+          source: string | null
+          title: string
+          version: string | null
+        }
+        Insert: {
+          changed_at?: string | null
+          code: string
+          created_at?: string | null
+          fetched_at?: string | null
+          group_code?: string | null
+          group_name?: string | null
+          id?: string
+          source?: string | null
+          title: string
+          version?: string | null
+        }
+        Update: {
+          changed_at?: string | null
+          code?: string
+          created_at?: string | null
+          fetched_at?: string | null
+          group_code?: string | null
+          group_name?: string | null
+          id?: string
+          source?: string | null
+          title?: string
+          version?: string | null
+        }
+        Relationships: []
+      }
+      cid_symptom_packs: {
+        Row: {
+          code: string | null
+          created_at: string | null
+          group_code: string | null
+          id: string
+          is_custom: boolean | null
+          specifiers: Json | null
+          symptoms: Json
+          updated_at: string | null
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string | null
+          group_code?: string | null
+          id?: string
+          is_custom?: boolean | null
+          specifiers?: Json | null
+          symptoms?: Json
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string | null
+          created_at?: string | null
+          group_code?: string | null
+          id?: string
+          is_custom?: boolean | null
+          specifiers?: Json | null
+          symptoms?: Json
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      clinical_complaints: {
+        Row: {
+          aggressiveness: string | null
+          cid_code: string | null
+          cid_group: string | null
+          cid_title: string | null
+          clinical_notes: string | null
+          comorbidities: Json | null
+          course: string | null
+          created_at: string | null
+          created_by: string
+          functional_impairment: string | null
+          has_no_diagnosis: boolean | null
+          id: string
+          is_active: boolean | null
+          onset_duration_weeks: number | null
+          onset_type: string | null
+          patient_id: string
+          reported_by: string | null
+          severity: string | null
+          suicidality: string | null
+          updated_at: string | null
+          vulnerabilities: string[] | null
+        }
+        Insert: {
+          aggressiveness?: string | null
+          cid_code?: string | null
+          cid_group?: string | null
+          cid_title?: string | null
+          clinical_notes?: string | null
+          comorbidities?: Json | null
+          course?: string | null
+          created_at?: string | null
+          created_by: string
+          functional_impairment?: string | null
+          has_no_diagnosis?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          onset_duration_weeks?: number | null
+          onset_type?: string | null
+          patient_id: string
+          reported_by?: string | null
+          severity?: string | null
+          suicidality?: string | null
+          updated_at?: string | null
+          vulnerabilities?: string[] | null
+        }
+        Update: {
+          aggressiveness?: string | null
+          cid_code?: string | null
+          cid_group?: string | null
+          cid_title?: string | null
+          clinical_notes?: string | null
+          comorbidities?: Json | null
+          course?: string | null
+          created_at?: string | null
+          created_by?: string
+          functional_impairment?: string | null
+          has_no_diagnosis?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          onset_duration_weeks?: number | null
+          onset_type?: string | null
+          patient_id?: string
+          reported_by?: string | null
+          severity?: string | null
+          suicidality?: string | null
+          updated_at?: string | null
+          vulnerabilities?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinical_complaints_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      complaint_medications: {
+        Row: {
+          adverse_effects: string | null
+          class: string
+          complaint_id: string
+          created_at: string | null
+          dosage: string | null
+          end_date: string | null
+          frequency: string | null
+          id: string
+          is_current: boolean | null
+          notes: string | null
+          start_date: string | null
+          substance: string | null
+        }
+        Insert: {
+          adverse_effects?: string | null
+          class: string
+          complaint_id: string
+          created_at?: string | null
+          dosage?: string | null
+          end_date?: string | null
+          frequency?: string | null
+          id?: string
+          is_current?: boolean | null
+          notes?: string | null
+          start_date?: string | null
+          substance?: string | null
+        }
+        Update: {
+          adverse_effects?: string | null
+          class?: string
+          complaint_id?: string
+          created_at?: string | null
+          dosage?: string | null
+          end_date?: string | null
+          frequency?: string | null
+          id?: string
+          is_current?: boolean | null
+          notes?: string | null
+          start_date?: string | null
+          substance?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_medications_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "clinical_complaints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      complaint_specifiers: {
+        Row: {
+          complaint_id: string
+          created_at: string | null
+          id: string
+          specifier_type: string
+          specifier_value: string
+        }
+        Insert: {
+          complaint_id: string
+          created_at?: string | null
+          id?: string
+          specifier_type: string
+          specifier_value: string
+        }
+        Update: {
+          complaint_id?: string
+          created_at?: string | null
+          id?: string
+          specifier_type?: string
+          specifier_value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_specifiers_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "clinical_complaints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      complaint_symptoms: {
+        Row: {
+          category: string | null
+          complaint_id: string
+          created_at: string | null
+          frequency: string | null
+          id: string
+          intensity: number | null
+          is_present: boolean | null
+          notes: string | null
+          symptom_label: string
+        }
+        Insert: {
+          category?: string | null
+          complaint_id: string
+          created_at?: string | null
+          frequency?: string | null
+          id?: string
+          intensity?: number | null
+          is_present?: boolean | null
+          notes?: string | null
+          symptom_label: string
+        }
+        Update: {
+          category?: string | null
+          complaint_id?: string
+          created_at?: string | null
+          frequency?: string | null
+          id?: string
+          intensity?: number | null
+          is_present?: boolean | null
+          notes?: string | null
+          symptom_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_symptoms_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "clinical_complaints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consent_submissions: {
         Row: {
           accepted_at: string | null
@@ -237,6 +518,36 @@ export type Database = {
           review_period_end?: string
           review_period_start?: string
           reviewed_by?: string
+        }
+        Relationships: []
+      }
+      medication_catalog: {
+        Row: {
+          cid_codes: string[] | null
+          class: string
+          created_at: string | null
+          id: string
+          indications: Json
+          is_common: boolean | null
+          substance: string
+        }
+        Insert: {
+          cid_codes?: string[] | null
+          class: string
+          created_at?: string | null
+          id?: string
+          indications?: Json
+          is_common?: boolean | null
+          substance: string
+        }
+        Update: {
+          cid_codes?: string[] | null
+          class?: string
+          created_at?: string | null
+          id?: string
+          indications?: Json
+          is_common?: boolean | null
+          substance?: string
         }
         Relationships: []
       }
