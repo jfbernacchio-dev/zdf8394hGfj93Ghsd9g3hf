@@ -692,6 +692,86 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
           </CardContent>
         </Card>
 
+        {/* 4. HUMOR / AFETO */}
+        <Card>
+          <CardHeader className="p-4 pb-3">
+            <CardTitle className="text-lg">4. Humor / Afeto</CardTitle>
+            <CardDescription className="text-xs">Polaridade afetiva e reatividade emocional</CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 pt-0 space-y-4">
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <Label>Polaridade afetiva principal</Label>
+                <span className="text-sm font-medium">{mood.polarity}</span>
+              </div>
+              <Slider
+                value={[mood.polarity]}
+                onValueChange={(v) => setMood({ ...mood, polarity: v[0] })}
+                min={-100}
+                max={100}
+                step={1}
+              />
+              <p className="text-xs text-muted-foreground">
+                -100 (depressivo) | 0 (eutímico) | +100 (eufórico)
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <Label>Labilidade afetiva</Label>
+                <span className="text-sm font-medium">{mood.lability}</span>
+              </div>
+              <Slider
+                value={[mood.lability]}
+                onValueChange={(v) => setMood({ ...mood, lability: v[0] })}
+                min={0}
+                max={100}
+                step={1}
+              />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="emotional_responsiveness"
+                checked={mood.emotional_responsiveness}
+                onCheckedChange={(checked) => setMood({ ...mood, emotional_responsiveness: checked as boolean })}
+              />
+              <label htmlFor="emotional_responsiveness" className="text-sm cursor-pointer">
+                Responsividade emocional apropriada
+              </label>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Adequação afetiva</Label>
+              <Select
+                value={mood.adequacy}
+                onValueChange={(value) => setMood({ ...mood, adequacy: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="adequate">Adequado</SelectItem>
+                  <SelectItem value="blunted">Embotado</SelectItem>
+                  <SelectItem value="incongruent">Incongruente</SelectItem>
+                  <SelectItem value="parathymic">Paratímico</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="mood_notes">Observações</Label>
+              <Textarea
+                id="mood_notes"
+                value={mood.notes}
+                onChange={(e) => setMood({ ...mood, notes: e.target.value })}
+                placeholder="Observações sobre humor e afeto..."
+                rows={2}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
         {/* 5. PENSAMENTO */}
         <Card>
           <CardHeader className="p-4 pb-3">
@@ -869,87 +949,7 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
           </CardContent>
         </Card>
 
-        {/* 7. HUMOR / AFETO */}
-        <Card>
-          <CardHeader className="p-4 pb-3">
-            <CardTitle className="text-lg">4. Humor / Afeto</CardTitle>
-            <CardDescription className="text-xs">Polaridade afetiva e reatividade emocional</CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 pt-0 space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label>Polaridade afetiva principal</Label>
-                <span className="text-sm font-medium">{mood.polarity}</span>
-              </div>
-              <Slider
-                value={[mood.polarity]}
-                onValueChange={(v) => setMood({ ...mood, polarity: v[0] })}
-                min={-100}
-                max={100}
-                step={1}
-              />
-              <p className="text-xs text-muted-foreground">
-                -100 (depressivo) | 0 (eutímico) | +100 (eufórico)
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label>Labilidade afetiva</Label>
-                <span className="text-sm font-medium">{mood.lability}</span>
-              </div>
-              <Slider
-                value={[mood.lability]}
-                onValueChange={(v) => setMood({ ...mood, lability: v[0] })}
-                min={0}
-                max={100}
-                step={1}
-              />
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="emotional_responsiveness"
-                checked={mood.emotional_responsiveness}
-                onCheckedChange={(checked) => setMood({ ...mood, emotional_responsiveness: checked as boolean })}
-              />
-              <label htmlFor="emotional_responsiveness" className="text-sm cursor-pointer">
-                Responsividade emocional apropriada
-              </label>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Adequação afetiva</Label>
-              <Select
-                value={mood.adequacy}
-                onValueChange={(value) => setMood({ ...mood, adequacy: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="adequate">Adequado</SelectItem>
-                  <SelectItem value="blunted">Embotado</SelectItem>
-                  <SelectItem value="incongruent">Incongruente</SelectItem>
-                  <SelectItem value="parathymic">Paratímico</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="mood_notes">Observações</Label>
-              <Textarea
-                id="mood_notes"
-                value={mood.notes}
-                onChange={(e) => setMood({ ...mood, notes: e.target.value })}
-                placeholder="Observações sobre humor e afeto..."
-                rows={2}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* 8. VONTADE */}
+        {/* 7. VONTADE */}
         <Card>
           <CardHeader className="p-4 pb-3">
             <CardTitle className="text-lg">5. Vontade</CardTitle>
