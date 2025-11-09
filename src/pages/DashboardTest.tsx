@@ -463,7 +463,7 @@ const DashboardTest = () => {
     if (!chartConfig) return null;
 
     let chartContent;
-    const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--muted))'];
+    const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--muted))', '#8b5cf6', '#ec4899'];
 
     switch (id) {
       case 'chart-monthly-comparison': {
@@ -477,9 +477,9 @@ const DashboardTest = () => {
           const monthEnd = endOfMonth(monthDate);
           
           const monthSessions = sessions.filter(s => {
-            if (!s.session_date) return false;
+            if (!s.date) return false;
             try {
-              const sessionDate = parseISO(s.session_date);
+              const sessionDate = parseISO(s.date);
               return sessionDate >= monthStart && sessionDate <= monthEnd;
             } catch {
               return false;
@@ -488,8 +488,8 @@ const DashboardTest = () => {
           
           const attended = monthSessions.filter(s => s.status === 'Comparecida').length;
           const revenue = monthSessions
-            .filter(s => s.status === 'Comparecida' && s.payment_status === 'Pago')
-            .reduce((sum, s) => sum + (s.price || 0), 0);
+            .filter(s => s.status === 'Comparecida' && s.paid === true)
+            .reduce((sum, s) => sum + (Number(s.value) || 0), 0);
           const attendanceRate = monthSessions.length > 0 
             ? (attended / monthSessions.length) * 100 
             : 0;
@@ -497,7 +497,7 @@ const DashboardTest = () => {
           monthsData.push({
             month: format(monthDate, 'MMM', { locale: ptBR }),
             sessoes: attended,
-            faturamento: revenue / 100, // Convert to display value
+            faturamento: revenue / 100,
             taxa: Math.round(attendanceRate),
           });
         }
@@ -537,18 +537,18 @@ const DashboardTest = () => {
           
           const revenue = sessions
             .filter(s => {
-              if (!s.session_date) return false;
+              if (!s.date) return false;
               try {
-                const sessionDate = parseISO(s.session_date);
+                const sessionDate = parseISO(s.date);
                 return sessionDate >= monthStart && 
                        sessionDate <= monthEnd && 
                        s.status === 'Comparecida' && 
-                       s.payment_status === 'Pago';
+                       s.paid === true;
               } catch {
                 return false;
               }
             })
-            .reduce((sum, s) => sum + (s.price || 0), 0);
+            .reduce((sum, s) => sum + (Number(s.value) || 0), 0);
           
           monthsData.push({
             month: format(monthDate, 'MMM/yy', { locale: ptBR }),
@@ -621,10 +621,10 @@ const DashboardTest = () => {
       }
 
       case 'chart-payment-status': {
+        const attendedSessions = sessions.filter(s => s.status === 'Comparecida');
         const paymentCounts = {
-          'Pago': sessions.filter(s => s.status === 'Comparecida' && s.payment_status === 'Pago').length,
-          'Pendente': sessions.filter(s => s.status === 'Comparecida' && s.payment_status === 'Pendente').length,
-          'Não Pago': sessions.filter(s => s.status === 'Comparecida' && s.payment_status === 'Não Pago').length,
+          'Pago': attendedSessions.filter(s => s.paid === true).length,
+          'Não Pago': attendedSessions.filter(s => s.paid === false || s.paid === null).length,
         };
         
         const pieData = Object.entries(paymentCounts)
@@ -657,6 +657,251 @@ const DashboardTest = () => {
               />
             </PieChart>
           </ResponsiveContainer>
+        );
+        break;
+      }
+
+      case 'chart-therapist-distribution': {
+        // Group sessions by therapist
+        const therapistSessionCount = new Map<string, number>();
+        
+        sessions.filter(s => s.status === 'Comparecida').forEach(session => {
+          const patient = patients.find(p => p.id === session.patient_id);
+          if (patient) {
+            const count = therapistSessionCount.get(patient.user_id) || 0;
+            therapistSessionCount.set(patient.user_id, count + 1);
+          }
+        });
+
+        const chartData = Array.from(therapistSessionCount.entries()).map(([userId, count]) => ({
+          terapeuta: userId === user?.id ? 'Você' : 'Terapeuta',
+          sessoes: count,
+        }));
+
+        chartContent = chartData.length > 0 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="terapeuta" stroke="hsl(var(--foreground))" />
+              <YAxis stroke="hsl(var(--foreground))" />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'hsl(var(--background))', 
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '6px'
+                }}
+              />
+              <Legend />
+              <Bar dataKey="sessoes" fill={COLORS[0]} name="Sessões Realizadas" />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-sm text-muted-foreground">Sem dados disponíveis</p>
+          </div>
+        );
+        break;
+      }
+
+      case 'chart-attendance-weekly': {
+        // Get last 12 weeks data
+        const weeksData = [];
+        const now = new Date();
+        
+        for (let i = 11; i >= 0; i--) {
+          const weekStart = new Date(now);
+          weekStart.setDate(now.getDate() - (i * 7));
+          const weekEnd = new Date(weekStart);
+          weekEnd.setDate(weekStart.getDate() + 6);
+          
+          const weekSessions = sessions.filter(s => {
+            if (!s.date) return false;
+            try {
+              const sessionDate = parseISO(s.date);
+              return sessionDate >= weekStart && sessionDate <= weekEnd;
+            } catch {
+              return false;
+            }
+          });
+          
+          const attended = weekSessions.filter(s => s.status === 'Comparecida').length;
+          const expected = weekSessions.filter(s => ['Comparecida', 'Faltou'].includes(s.status)).length;
+          const rate = expected > 0 ? (attended / expected) * 100 : 0;
+          
+          weeksData.push({
+            semana: `S${12 - i}`,
+            taxa: Math.round(rate),
+          });
+        }
+
+        chartContent = (
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={weeksData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="semana" stroke="hsl(var(--foreground))" />
+              <YAxis stroke="hsl(var(--foreground))" domain={[0, 100]} />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'hsl(var(--background))', 
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '6px'
+                }}
+                formatter={(value) => `${value}%`}
+              />
+              <Legend />
+              <Line type="monotone" dataKey="taxa" stroke={COLORS[0]} strokeWidth={2} name="Taxa de Comparecimento (%)" />
+            </LineChart>
+          </ResponsiveContainer>
+        );
+        break;
+      }
+
+      case 'chart-revenue-by-therapist': {
+        // Group revenue by therapist
+        const therapistRevenue = new Map<string, number>();
+        
+        sessions.filter(s => s.status === 'Comparecida' && s.paid === true).forEach(session => {
+          const patient = patients.find(p => p.id === session.patient_id);
+          if (patient) {
+            const revenue = therapistRevenue.get(patient.user_id) || 0;
+            therapistRevenue.set(patient.user_id, revenue + (Number(session.value) || 0));
+          }
+        });
+
+        const chartData = Array.from(therapistRevenue.entries()).map(([userId, revenue]) => ({
+          terapeuta: userId === user?.id ? 'Você' : 'Terapeuta',
+          faturamento: revenue / 100,
+        }));
+
+        chartContent = chartData.length > 0 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis type="number" stroke="hsl(var(--foreground))" />
+              <YAxis dataKey="terapeuta" type="category" stroke="hsl(var(--foreground))" />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'hsl(var(--background))', 
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '6px'
+                }}
+                formatter={(value) => `R$ ${Number(value).toFixed(2)}`}
+              />
+              <Legend />
+              <Bar dataKey="faturamento" fill={COLORS[1]} name="Faturamento (R$)" />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-sm text-muted-foreground">Sem dados disponíveis</p>
+          </div>
+        );
+        break;
+      }
+
+      case 'chart-patient-growth': {
+        // Count unique patients per month over last 12 months
+        const monthsData = [];
+        const now = new Date();
+        const patientFirstSession = new Map<string, Date>();
+        
+        // Find first session date for each patient
+        sessions.forEach(s => {
+          if (!s.date) return;
+          try {
+            const sessionDate = parseISO(s.date);
+            const current = patientFirstSession.get(s.patient_id);
+            if (!current || sessionDate < current) {
+              patientFirstSession.set(s.patient_id, sessionDate);
+            }
+          } catch {}
+        });
+        
+        for (let i = 11; i >= 0; i--) {
+          const monthDate = subMonths(now, i);
+          const monthEnd = endOfMonth(monthDate);
+          
+          // Count patients with first session up to this month
+          const activePatients = Array.from(patientFirstSession.values())
+            .filter(firstDate => firstDate <= monthEnd).length;
+          
+          monthsData.push({
+            month: format(monthDate, 'MMM/yy', { locale: ptBR }),
+            pacientes: activePatients,
+          });
+        }
+
+        chartContent = (
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={monthsData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="month" stroke="hsl(var(--foreground))" />
+              <YAxis stroke="hsl(var(--foreground))" />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'hsl(var(--background))', 
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '6px'
+                }}
+              />
+              <Legend />
+              <Line type="monotone" dataKey="pacientes" stroke={COLORS[2]} strokeWidth={2} fill={COLORS[2]} fillOpacity={0.2} name="Pacientes Ativos" />
+            </LineChart>
+          </ResponsiveContainer>
+        );
+        break;
+      }
+
+      case 'chart-hourly-distribution': {
+        // Count sessions by hour
+        const hourCounts = new Map<number, number>();
+        
+        sessions.forEach(s => {
+          if (!s.time) return;
+          try {
+            const [hour] = s.time.split(':').map(Number);
+            hourCounts.set(hour, (hourCounts.get(hour) || 0) + 1);
+          } catch {}
+        });
+
+        const chartData = Array.from({ length: 24 }, (_, hour) => ({
+          hora: `${hour}h`,
+          sessoes: hourCounts.get(hour) || 0,
+        })).filter(d => d.sessoes > 0);
+
+        chartContent = chartData.length > 0 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="hora" stroke="hsl(var(--foreground))" />
+              <YAxis stroke="hsl(var(--foreground))" />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'hsl(var(--background))', 
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '6px'
+                }}
+              />
+              <Legend />
+              <Bar dataKey="sessoes" fill={COLORS[3]} name="Sessões" />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-sm text-muted-foreground">Sem dados disponíveis</p>
+          </div>
+        );
+        break;
+      }
+
+      case 'chart-cancellation-reasons': {
+        // For now show a placeholder since we don't have cancellation reasons in the schema
+        chartContent = (
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-sm text-muted-foreground text-center px-4">
+              Gráfico de motivos de cancelamento requer campo adicional no banco de dados
+            </p>
+          </div>
         );
         break;
       }
