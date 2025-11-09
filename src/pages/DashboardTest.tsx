@@ -462,10 +462,6 @@ const DashboardTest = () => {
     const chartConfig = [...AVAILABLE_DASHBOARD_CHARTS].find(c => c.id === id);
     if (!chartConfig) return null;
 
-    console.log('Rendering chart:', id);
-    console.log('Total sessions available:', sessions.length);
-    console.log('Sample session:', sessions[0]);
-
     let chartContent;
     const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--muted))', '#8b5cf6', '#ec4899'];
 
@@ -505,9 +501,6 @@ const DashboardTest = () => {
             taxa: Math.round(attendanceRate),
           });
         }
-        
-        console.log('Monthly comparison data:', monthsData);
-        console.log('Data details:', JSON.stringify(monthsData, null, 2));
         
         chartContent = monthsData.length > 0 && monthsData.some(d => d.sessoes > 0 || d.faturamento > 0) ? (
           <ResponsiveContainer width="100%" height="100%">
@@ -566,9 +559,6 @@ const DashboardTest = () => {
             valor: revenue / 100,
           });
         }
-        
-        console.log('Revenue trend data:', monthsData);
-        console.log('Revenue details:', JSON.stringify(monthsData, null, 2));
         
         chartContent = monthsData.length > 0 && monthsData.some(d => d.valor > 0) ? (
           <ResponsiveContainer width="100%" height="100%">
@@ -935,20 +925,34 @@ const DashboardTest = () => {
         );
     }
 
-    return (
-      <Card
-        key={id}
-        className={cn(
-          "p-6 shadow-[var(--shadow-card)] border-border h-full flex flex-col",
-          isEditMode && "ring-2 ring-primary/30 ring-offset-2"
-        )}
-      >
+    const ChartContent = (
+      <div className="flex flex-col h-full p-6">
         <h3 className="text-lg font-semibold text-foreground mb-2">{chartConfig.name}</h3>
         <p className="text-sm text-muted-foreground mb-4">{chartConfig.description}</p>
-        <div className="flex-1 min-h-[300px]">
+        <div className="flex-1 min-h-[200px]">
           {chartContent}
         </div>
-      </Card>
+      </div>
+    );
+
+    return (
+      <ResizableCard
+        key={id}
+        id={id}
+        isEditMode={isEditMode}
+        defaultWidth={chartConfig.defaultWidth || 600}
+        defaultHeight={chartConfig.defaultHeight || 400}
+        tempSize={tempCardSizes[id]}
+        onTempSizeChange={(cardId, newSize) => {
+          setTempCardSizes(prev => ({
+            ...prev,
+            [cardId]: newSize
+          }));
+        }}
+        allCardSizes={isEditMode ? tempCardSizes : allCardSizes}
+      >
+        {ChartContent}
+      </ResizableCard>
     );
   };
 
@@ -1197,7 +1201,7 @@ const DashboardTest = () => {
               </p>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+            <div className="relative h-full min-h-[600px]">
               {visibleCards
                 .filter(id => id.startsWith('chart-'))
                 .map(id => renderChart(id))
