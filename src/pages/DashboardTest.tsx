@@ -462,28 +462,22 @@ const DashboardTest = () => {
     if (!chartConfig) return null;
 
     return (
-      <ResizableCard
+      <Card
         key={id}
-        id={id}
-        className="p-6 shadow-[var(--shadow-card)] border-border"
-        isEditMode={isEditMode}
-        defaultWidth={getSavedCardSize(id)?.width || 600}
-        defaultHeight={getSavedCardSize(id)?.height || 400}
-        tempSize={tempCardSizes[id]}
-        onTempSizeChange={handleTempCardSizeChange}
-        allCardSizes={allCardSizes}
+        className={cn(
+          "p-6 shadow-[var(--shadow-card)] border-border h-full flex flex-col",
+          isEditMode && "ring-2 ring-primary/30 ring-offset-2"
+        )}
       >
-        <div className="h-full flex flex-col">
-          <h3 className="text-lg font-semibold text-foreground mb-2">{chartConfig.name}</h3>
-          <p className="text-sm text-muted-foreground mb-4">{chartConfig.description}</p>
-          <div className="flex-1 flex items-center justify-center border border-dashed border-border rounded-lg bg-muted/20">
-            <p className="text-sm text-muted-foreground text-center px-4">
-              Gráfico em desenvolvimento<br/>
-              <span className="text-xs">{chartConfig.detailedDescription?.substring(0, 100)}...</span>
-            </p>
-          </div>
+        <h3 className="text-lg font-semibold text-foreground mb-2">{chartConfig.name}</h3>
+        <p className="text-sm text-muted-foreground mb-4">{chartConfig.description}</p>
+        <div className="flex-1 flex items-center justify-center border border-dashed border-border rounded-lg bg-muted/20 min-h-[300px]">
+          <p className="text-sm text-muted-foreground text-center px-4">
+            Gráfico em desenvolvimento<br/>
+            <span className="text-xs">{chartConfig.detailedDescription?.substring(0, 100)}...</span>
+          </p>
         </div>
-      </ResizableCard>
+      </Card>
     );
   };
 
@@ -722,31 +716,29 @@ const DashboardTest = () => {
           tempHeight={tempSectionHeights['charts-section']}
           onTempHeightChange={handleTempSectionHeightChange}
         >
-          <div className="relative h-full">
-            {visibleCards.filter(id => id.startsWith('chart-')).length === 0 ? (
-              <Card className="p-8 text-center border-dashed">
-                <p className="text-muted-foreground">
-                  {isEditMode 
-                    ? 'Clique em "Adicionar Gráfico" para adicionar visualizações'
-                    : 'Nenhum gráfico adicionado. Entre no modo de edição para adicionar gráficos.'
-                  }
-                </p>
-              </Card>
-            ) : (
-              <>
-                {renderChart('chart-revenue-trend')}
-                {renderChart('chart-session-types')}
-                {renderChart('chart-therapist-distribution')}
-                {renderChart('chart-monthly-comparison')}
-                {renderChart('chart-payment-status')}
-                {renderChart('chart-attendance-weekly')}
-                {renderChart('chart-revenue-by-therapist')}
-                {renderChart('chart-patient-growth')}
-                {renderChart('chart-hourly-distribution')}
-                {renderChart('chart-cancellation-reasons')}
-              </>
-            )}
-          </div>
+          {visibleCards.filter(id => id.startsWith('chart-')).length === 0 ? (
+            <Card className="p-8 text-center border-dashed">
+              <p className="text-muted-foreground">
+                {isEditMode 
+                  ? 'Clique em "Adicionar Gráfico" para adicionar visualizações'
+                  : 'Nenhum gráfico adicionado. Entre no modo de edição para adicionar gráficos.'
+                }
+              </p>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+              {renderChart('chart-revenue-trend')}
+              {renderChart('chart-session-types')}
+              {renderChart('chart-therapist-distribution')}
+              {renderChart('chart-monthly-comparison')}
+              {renderChart('chart-payment-status')}
+              {renderChart('chart-attendance-weekly')}
+              {renderChart('chart-revenue-by-therapist')}
+              {renderChart('chart-patient-growth')}
+              {renderChart('chart-hourly-distribution')}
+              {renderChart('chart-cancellation-reasons')}
+            </div>
+          )}
         </ResizableSection>
       </div>
 
