@@ -20,6 +20,7 @@ import NewPatient from "./pages/NewPatient";
 import EditPatient from "./pages/EditPatient";
 import PatientDetail from "./pages/PatientDetail";
 import PatientDetailOLD from "./pages/PatientDetailOLD";
+import PatientDetailMock from "./pages/PatientDetailMock";
 import Schedule from "./pages/Schedule";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -115,6 +116,7 @@ const App = () => (
             <Route path="/patients" element={<ProtectedRoute><Layout><Patients /></Layout></ProtectedRoute>} />
             <Route path="/patients/new" element={<ProtectedRoute><Layout><NewPatient /></Layout></ProtectedRoute>} />
             <Route path="/patients/:id/edit" element={<ProtectedRoute><Layout><EditPatient /></Layout></ProtectedRoute>} />
+            <Route path="/patients/:id/mock" element={<ProtectedRoute><Layout><PatientDetailMock /></Layout></ProtectedRoute>} />
             <Route path="/patients/:patientId/complaint/new" element={<ProtectedRoute><Layout><ClinicalComplaintForm /></Layout></ProtectedRoute>} />
             <Route path="/patients/:patientId/complaint/:complaintId/edit" element={<ProtectedRoute><Layout><ClinicalComplaintForm /></Layout></ProtectedRoute>} />
             <Route path="/patients/:id" element={<ProtectedRoute><Layout><PatientDetail /></Layout></ProtectedRoute>} />
