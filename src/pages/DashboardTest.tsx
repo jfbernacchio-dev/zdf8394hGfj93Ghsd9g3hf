@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Users, Calendar, DollarSign, TrendingUp, AlertCircle, CheckCircle2, CalendarIcon, Settings, Save, RotateCcw, Plus } from 'lucide-react';
+import { Users, Calendar, DollarSign, TrendingUp, AlertCircle, CheckCircle2, CalendarIcon, Settings, Save, RotateCcw, Plus, Clock } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
@@ -24,6 +24,8 @@ import { toast } from 'sonner';
 import { AddCardDialog } from '@/components/AddCardDialog';
 import { CardConfig, AVAILABLE_DASHBOARD_CHARTS } from '@/types/cardTypes';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { useChartTimeScale, generateTimeIntervals, formatTimeLabel, getIntervalBounds, getScaleLabel, TimeScale } from '@/hooks/useChartTimeScale';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 
 const DashboardTest = () => {
   const { user } = useAuth();
@@ -137,6 +139,15 @@ const DashboardTest = () => {
   };
 
   const { start, end } = getDateRange();
+  
+  // Time scale management
+  const { 
+    automaticScale, 
+    getScale, 
+    setScaleOverride, 
+    clearOverride, 
+    hasOverride 
+  } = useChartTimeScale({ startDate: start, endDate: end });
   
   const now = new Date();
   now.setHours(0, 0, 0, 0);
@@ -490,49 +501,58 @@ const DashboardTest = () => {
     const chartConfig = [...AVAILABLE_DASHBOARD_CHARTS].find(c => c.id === id);
     if (!chartConfig) return null;
 
+    // Determine if this chart uses time-based data
+    const timeBasedCharts = [
+      'chart-monthly-comparison',
+      'chart-revenue-trend',
+      'chart-attendance-weekly',
+      'chart-patient-growth',
+    ];
+    const isTimeBasedChart = timeBasedCharts.includes(id);
+    const currentScale = isTimeBasedChart ? getScale(id) : null;
+
     let chartContent;
     const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--muted))', '#8b5cf6', '#ec4899'];
 
     switch (id) {
       case 'chart-monthly-comparison': {
-        const monthsData = [];
-        const months = eachMonthOfInterval({ start, end });
+        const intervals = generateTimeIntervals(start, end, currentScale!);
+        const chartData = [];
         
-        months.forEach(monthDate => {
-          const monthStart = startOfMonth(monthDate);
-          const monthEnd = endOfMonth(monthDate);
+        intervals.forEach(intervalDate => {
+          const { start: intervalStart, end: intervalEnd } = getIntervalBounds(intervalDate, currentScale!);
           
-          const monthSessions = sessions.filter(s => {
+          const intervalSessions = sessions.filter(s => {
             if (!s.date) return false;
             try {
               const sessionDate = parseISO(s.date);
-              return sessionDate >= monthStart && sessionDate <= monthEnd;
+              return sessionDate >= intervalStart && sessionDate <= intervalEnd;
             } catch {
               return false;
             }
           });
           
-          const attended = monthSessions.filter(s => s.status === 'attended').length;
-          const revenue = monthSessions
+          const attended = intervalSessions.filter(s => s.status === 'attended').length;
+          const revenue = intervalSessions
             .filter(s => s.status === 'attended' && s.paid === true)
             .reduce((sum, s) => sum + (Number(s.value) || 0), 0);
-          const attendanceRate = monthSessions.length > 0 
-            ? (attended / monthSessions.length) * 100 
+          const attendanceRate = intervalSessions.length > 0 
+            ? (attended / intervalSessions.length) * 100 
             : 0;
           
-          monthsData.push({
-            month: format(monthDate, 'MMM/yy', { locale: ptBR }),
+          chartData.push({
+            label: formatTimeLabel(intervalDate, currentScale!),
             sessoes: attended,
             faturamento: revenue / 100,
             taxa: Math.round(attendanceRate),
           });
         });
         
-        chartContent = monthsData.length > 0 && monthsData.some(d => d.sessoes > 0 || d.faturamento > 0) ? (
+        chartContent = chartData.length > 0 && chartData.some(d => d.sessoes > 0 || d.faturamento > 0) ? (
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={monthsData}>
+            <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="month" stroke="hsl(var(--foreground))" />
+              <XAxis dataKey="label" stroke="hsl(var(--foreground))" />
               <YAxis yAxisId="left" stroke="hsl(var(--foreground))" />
               <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--foreground))" />
               <Tooltip 
@@ -557,20 +577,19 @@ const DashboardTest = () => {
       }
 
       case 'chart-revenue-trend': {
-        const monthsData = [];
-        const months = eachMonthOfInterval({ start, end });
+        const intervals = generateTimeIntervals(start, end, currentScale!);
+        const chartData = [];
         
-        months.forEach(monthDate => {
-          const monthStart = startOfMonth(monthDate);
-          const monthEnd = endOfMonth(monthDate);
+        intervals.forEach(intervalDate => {
+          const { start: intervalStart, end: intervalEnd } = getIntervalBounds(intervalDate, currentScale!);
           
           const revenue = sessions
             .filter(s => {
               if (!s.date) return false;
               try {
                 const sessionDate = parseISO(s.date);
-                return sessionDate >= monthStart && 
-                       sessionDate <= monthEnd && 
+                return sessionDate >= intervalStart && 
+                       sessionDate <= intervalEnd && 
                        s.status === 'attended' && 
                        s.paid === true;
               } catch {
@@ -579,17 +598,17 @@ const DashboardTest = () => {
             })
             .reduce((sum, s) => sum + (Number(s.value) || 0), 0);
           
-          monthsData.push({
-            month: format(monthDate, 'MMM/yy', { locale: ptBR }),
+          chartData.push({
+            label: formatTimeLabel(intervalDate, currentScale!),
             valor: revenue / 100,
           });
         });
         
-        chartContent = monthsData.length > 0 && monthsData.some(d => d.valor > 0) ? (
+        chartContent = chartData.length > 0 && chartData.some(d => d.valor > 0) ? (
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={monthsData}>
+            <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="month" stroke="hsl(var(--foreground))" />
+              <XAxis dataKey="label" stroke="hsl(var(--foreground))" />
               <YAxis stroke="hsl(var(--foreground))" />
               <Tooltip 
                 contentStyle={{ 
@@ -737,42 +756,37 @@ const DashboardTest = () => {
       }
 
       case 'chart-attendance-weekly': {
-        // Calculate weeks in period
-        const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-        const numWeeks = Math.max(1, Math.ceil(daysDiff / 7));
-        const weeksData = [];
+        const intervals = generateTimeIntervals(start, end, currentScale!);
+        const chartData = [];
         
-        for (let i = numWeeks - 1; i >= 0; i--) {
-          const weekEnd = new Date(end);
-          weekEnd.setDate(end.getDate() - (i * 7));
-          const weekStart = new Date(weekEnd);
-          weekStart.setDate(weekEnd.getDate() - 6);
+        intervals.forEach(intervalDate => {
+          const { start: intervalStart, end: intervalEnd } = getIntervalBounds(intervalDate, currentScale!);
           
-          const weekSessions = sessions.filter(s => {
+          const intervalSessions = sessions.filter(s => {
             if (!s.date) return false;
             try {
               const sessionDate = parseISO(s.date);
-              return sessionDate >= weekStart && sessionDate <= weekEnd && sessionDate <= end;
+              return sessionDate >= intervalStart && sessionDate <= intervalEnd;
             } catch {
               return false;
             }
           });
           
-          const attended = weekSessions.filter(s => s.status === 'attended').length;
-          const expected = weekSessions.filter(s => ['attended', 'missed'].includes(s.status)).length;
+          const attended = intervalSessions.filter(s => s.status === 'attended').length;
+          const expected = intervalSessions.filter(s => ['attended', 'missed'].includes(s.status)).length;
           const rate = expected > 0 ? (attended / expected) * 100 : 0;
           
-          weeksData.push({
-            semana: `S${numWeeks - i}`,
+          chartData.push({
+            label: formatTimeLabel(intervalDate, currentScale!),
             taxa: Math.round(rate),
           });
-        }
+        });
 
         chartContent = (
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={weeksData}>
+            <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="semana" stroke="hsl(var(--foreground))" />
+              <XAxis dataKey="label" stroke="hsl(var(--foreground))" />
               <YAxis stroke="hsl(var(--foreground))" domain={[0, 100]} />
               <Tooltip 
                 contentStyle={{ 
@@ -834,8 +848,8 @@ const DashboardTest = () => {
       }
 
       case 'chart-patient-growth': {
-        const monthsData = [];
-        const months = eachMonthOfInterval({ start, end });
+        const intervals = generateTimeIntervals(start, end, currentScale!);
+        const chartData = [];
         const patientFirstSession = new Map<string, Date>();
         
         // Find first session date for each patient
@@ -850,24 +864,24 @@ const DashboardTest = () => {
           } catch {}
         });
         
-        months.forEach(monthDate => {
-          const monthEnd = endOfMonth(monthDate);
+        intervals.forEach(intervalDate => {
+          const { end: intervalEnd } = getIntervalBounds(intervalDate, currentScale!);
           
-          // Count patients with first session up to this month
+          // Count patients with first session up to this interval
           const activePatients = Array.from(patientFirstSession.values())
-            .filter(firstDate => firstDate <= monthEnd).length;
+            .filter(firstDate => firstDate <= intervalEnd).length;
           
-          monthsData.push({
-            month: format(monthDate, 'MMM/yy', { locale: ptBR }),
+          chartData.push({
+            label: formatTimeLabel(intervalDate, currentScale!),
             pacientes: activePatients,
           });
         });
 
         chartContent = (
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={monthsData}>
+            <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="month" stroke="hsl(var(--foreground))" />
+              <XAxis dataKey="label" stroke="hsl(var(--foreground))" />
               <YAxis stroke="hsl(var(--foreground))" />
               <Tooltip 
                 contentStyle={{ 
@@ -951,8 +965,71 @@ const DashboardTest = () => {
 
     const ChartContent = (
       <div className="flex flex-col h-full p-6">
-        <h3 className="text-lg font-semibold text-foreground mb-2">{chartConfig.name}</h3>
-        <p className="text-sm text-muted-foreground mb-4">{chartConfig.description}</p>
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-foreground">{chartConfig.name}</h3>
+              {isTimeBasedChart && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-accent/50 text-accent-foreground">
+                  {hasOverride(id) ? getScaleLabel(currentScale!) : `Auto: ${getScaleLabel(automaticScale)}`}
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">{chartConfig.description}</p>
+          </div>
+          {isTimeBasedChart && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-accent">
+                  <Clock className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 bg-popover border-border z-50">
+                <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                  Escala de Tempo
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={() => clearOverride(id)}
+                  className={cn(
+                    "cursor-pointer",
+                    !hasOverride(id) && "bg-accent"
+                  )}
+                >
+                  Automática ({getScaleLabel(automaticScale)})
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={() => setScaleOverride(id, 'daily')}
+                  className={cn(
+                    "cursor-pointer",
+                    currentScale === 'daily' && hasOverride(id) && "bg-accent"
+                  )}
+                >
+                  Diária
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => setScaleOverride(id, 'weekly')}
+                  className={cn(
+                    "cursor-pointer",
+                    currentScale === 'weekly' && hasOverride(id) && "bg-accent"
+                  )}
+                >
+                  Semanal
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => setScaleOverride(id, 'monthly')}
+                  className={cn(
+                    "cursor-pointer",
+                    currentScale === 'monthly' && hasOverride(id) && "bg-accent"
+                  )}
+                >
+                  Mensal
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
         <div className="flex-1 min-h-[200px]">
           {chartContent}
         </div>
