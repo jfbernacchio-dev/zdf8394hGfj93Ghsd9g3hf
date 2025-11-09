@@ -245,9 +245,7 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
         description: 'Avaliação salva com sucesso!'
       });
 
-      if (!isMock) {
-        navigate(`/patients/${patientId}`);
-      }
+      navigate(`/patients/${patientId}`);
     } catch (error: any) {
       console.error('Erro ao salvar avaliação:', error);
       toast({
@@ -291,14 +289,14 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
         </div>
       </div>
 
-      <div className="grid gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* 1. CONSCIÊNCIA */}
         <Card>
-          <CardHeader>
-            <CardTitle>1. Consciência</CardTitle>
-            <CardDescription>Base para todas as demais funções</CardDescription>
+          <CardHeader className="p-4 pb-3">
+            <CardTitle className="text-lg">1. Consciência</CardTitle>
+            <CardDescription className="text-xs">Base para todas as demais funções</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="p-4 pt-0 space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <Label>Nível de consciência</Label>
@@ -422,11 +420,11 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
 
         {/* 2. ATENÇÃO E CONCENTRAÇÃO */}
         <Card>
-          <CardHeader>
-            <CardTitle>2. Atenção e Concentração</CardTitle>
-            <CardDescription>Capacidade de focar e sustentar a atenção</CardDescription>
+          <CardHeader className="p-4 pb-3">
+            <CardTitle className="text-lg">2. Atenção e Concentração</CardTitle>
+            <CardDescription className="text-xs">Capacidade de focar e sustentar a atenção</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="p-4 pt-0 space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <Label>Amplitude da atenção</Label>
@@ -487,11 +485,11 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
 
         {/* 3. SENSOPERCEPÇÃO */}
         <Card>
-          <CardHeader>
-            <CardTitle>3. Sensopercepção</CardTitle>
-            <CardDescription>Percepção sensorial e alterações perceptivas</CardDescription>
+          <CardHeader className="p-4 pb-3">
+            <CardTitle className="text-lg">3. Sensopercepção</CardTitle>
+            <CardDescription className="text-xs">Percepção sensorial e alterações perceptivas</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="p-4 pt-0 space-y-4">
             <div className="space-y-2">
               <Label>Percepção global</Label>
               <Select
@@ -592,11 +590,11 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
 
         {/* 4. MEMÓRIA */}
         <Card>
-          <CardHeader>
-            <CardTitle>3. Memória</CardTitle>
-            <CardDescription>Fixação, evocação e memória autobiográfica</CardDescription>
+          <CardHeader className="p-4 pb-3">
+            <CardTitle className="text-lg">3. Memória</CardTitle>
+            <CardDescription className="text-xs">Fixação, evocação e memória autobiográfica</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="p-4 pt-0 space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <Label>Fluxo de pensamento</Label>
@@ -696,11 +694,11 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
 
         {/* 5. PENSAMENTO */}
         <Card>
-          <CardHeader>
-            <CardTitle>5. Pensamento</CardTitle>
-            <CardDescription>Curso, forma e conteúdo do pensamento</CardDescription>
+          <CardHeader className="p-4 pb-3">
+            <CardTitle className="text-lg">5. Pensamento</CardTitle>
+            <CardDescription className="text-xs">Curso, forma e conteúdo do pensamento</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="p-4 pt-0 space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <Label>Curso do pensamento</Label>
@@ -817,11 +815,11 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
 
         {/* 6. LINGUAGEM */}
         <Card>
-          <CardHeader>
-            <CardTitle>6. Linguagem</CardTitle>
-            <CardDescription>Velocidade, articulação e coerência da fala</CardDescription>
+          <CardHeader className="p-4 pb-3">
+            <CardTitle className="text-lg">6. Linguagem</CardTitle>
+            <CardDescription className="text-xs">Velocidade, articulação e coerência da fala</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="p-4 pt-0 space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <Label>Velocidade da fala</Label>
@@ -873,11 +871,11 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
 
         {/* 7. HUMOR / AFETO */}
         <Card>
-          <CardHeader>
-            <CardTitle>4. Humor / Afeto</CardTitle>
-            <CardDescription>Polaridade afetiva e reatividade emocional</CardDescription>
+          <CardHeader className="p-4 pb-3">
+            <CardTitle className="text-lg">4. Humor / Afeto</CardTitle>
+            <CardDescription className="text-xs">Polaridade afetiva e reatividade emocional</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="p-4 pt-0 space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <Label>Polaridade afetiva principal</Label>
@@ -886,12 +884,12 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
               <Slider
                 value={[mood.polarity]}
                 onValueChange={(v) => setMood({ ...mood, polarity: v[0] })}
-                min={-10}
+                min={-100}
                 max={100}
                 step={1}
               />
               <p className="text-xs text-muted-foreground">
-                -10 (depressivo) | 0 (eutímico) | +100 (eufórico)
+                -100 (depressivo) | 0 (eutímico) | +100 (eufórico)
               </p>
             </div>
 
@@ -953,11 +951,11 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
 
         {/* 8. VONTADE */}
         <Card>
-          <CardHeader>
-            <CardTitle>5. Vontade</CardTitle>
-            <CardDescription>Energia volitiva e controle de impulsos</CardDescription>
+          <CardHeader className="p-4 pb-3">
+            <CardTitle className="text-lg">5. Vontade</CardTitle>
+            <CardDescription className="text-xs">Energia volitiva e controle de impulsos</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="p-4 pt-0 space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <Label>Energia volitiva</Label>
@@ -1018,11 +1016,11 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
 
         {/* 9. PSICOMOTRICIDADE */}
         <Card>
-          <CardHeader>
-            <CardTitle>9. Psicomotricidade</CardTitle>
-            <CardDescription>Atividade motora, tônus e expressividade</CardDescription>
+          <CardHeader className="p-4 pb-3">
+            <CardTitle className="text-lg">9. Psicomotricidade</CardTitle>
+            <CardDescription className="text-xs">Atividade motora, tônus e expressividade</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="p-4 pt-0 space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <Label>Atividade motora geral</Label>
@@ -1090,11 +1088,11 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
 
         {/* 10. ORIENTAÇÃO / JUÍZO / CRÍTICA */}
         <Card>
-          <CardHeader>
-            <CardTitle>10. Orientação / Juízo / Crítica</CardTitle>
-            <CardDescription>Orientação, juízo de realidade e insight</CardDescription>
+          <CardHeader className="p-4 pb-3">
+            <CardTitle className="text-lg">10. Orientação / Juízo / Crítica</CardTitle>
+            <CardDescription className="text-xs">Orientação, juízo de realidade e insight</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="p-4 pt-0 space-y-4">
             <div className="space-y-3">
               <Label>Orientação auto / alopsíquica</Label>
               <div className="grid grid-cols-2 gap-3">
@@ -1190,11 +1188,11 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
 
         {/* 11. INTELIGÊNCIA */}
         <Card>
-          <CardHeader>
-            <CardTitle>11. Inteligência</CardTitle>
-            <CardDescription>Raciocínio, aprendizagem e capacidade adaptativa</CardDescription>
+          <CardHeader className="p-4 pb-3">
+            <CardTitle className="text-lg">11. Inteligência</CardTitle>
+            <CardDescription className="text-xs">Raciocínio, aprendizagem e capacidade adaptativa</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="p-4 pt-0 space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <Label>Raciocínio abstrato</Label>
@@ -1256,11 +1254,11 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
 
         {/* 12. PERSONALIDADE / EU */}
         <Card>
-          <CardHeader>
-            <CardTitle>6. Personalidade / Eu</CardTitle>
-            <CardDescription>Coerência, estabilidade e traços predominantes</CardDescription>
+          <CardHeader className="p-4 pb-3">
+            <CardTitle className="text-lg">6. Personalidade / Eu</CardTitle>
+            <CardDescription className="text-xs">Coerência, estabilidade e traços predominantes</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="p-4 pt-0 space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <Label>Coerência do eu</Label>
