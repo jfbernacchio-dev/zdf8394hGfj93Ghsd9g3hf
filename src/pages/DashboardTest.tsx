@@ -490,9 +490,9 @@ const DashboardTest = () => {
             }
           });
           
-          const attended = monthSessions.filter(s => s.status === 'Comparecida').length;
+          const attended = monthSessions.filter(s => s.status === 'attended').length;
           const revenue = monthSessions
-            .filter(s => s.status === 'Comparecida' && s.paid === true)
+            .filter(s => s.status === 'attended' && s.paid === true)
             .reduce((sum, s) => sum + (Number(s.value) || 0), 0);
           const attendanceRate = monthSessions.length > 0 
             ? (attended / monthSessions.length) * 100 
@@ -553,7 +553,7 @@ const DashboardTest = () => {
                 const sessionDate = parseISO(s.date);
                 return sessionDate >= monthStart && 
                        sessionDate <= monthEnd && 
-                       s.status === 'Comparecida' && 
+                       s.status === 'attended' && 
                        s.paid === true;
               } catch {
                 return false;
@@ -598,10 +598,10 @@ const DashboardTest = () => {
 
       case 'chart-session-types': {
         const statusCounts = {
-          'Comparecida': sessions.filter(s => s.status === 'Comparecida').length,
-          'Faltou': sessions.filter(s => s.status === 'Faltou').length,
-          'Agendada': sessions.filter(s => s.status === 'Agendada').length,
-          'Cancelada': sessions.filter(s => s.status === 'Cancelada').length,
+          'Comparecida': sessions.filter(s => s.status === 'attended').length,
+          'Faltou': sessions.filter(s => s.status === 'missed').length,
+          'Agendada': sessions.filter(s => s.status === 'scheduled').length,
+          'Cancelada': sessions.filter(s => s.status === 'cancelled').length,
         };
         
         const pieData = Object.entries(statusCounts)
@@ -639,7 +639,7 @@ const DashboardTest = () => {
       }
 
       case 'chart-payment-status': {
-        const attendedSessions = sessions.filter(s => s.status === 'Comparecida');
+        const attendedSessions = sessions.filter(s => s.status === 'attended');
         const paymentCounts = {
           'Pago': attendedSessions.filter(s => s.paid === true).length,
           'Não Pago': attendedSessions.filter(s => s.paid === false || s.paid === null).length,
@@ -683,7 +683,7 @@ const DashboardTest = () => {
         // Group sessions by therapist
         const therapistSessionCount = new Map<string, number>();
         
-        sessions.filter(s => s.status === 'Comparecida').forEach(session => {
+        sessions.filter(s => s.status === 'attended').forEach(session => {
           const patient = patients.find(p => p.id === session.patient_id);
           if (patient) {
             const count = therapistSessionCount.get(patient.user_id) || 0;
@@ -742,8 +742,8 @@ const DashboardTest = () => {
             }
           });
           
-          const attended = weekSessions.filter(s => s.status === 'Comparecida').length;
-          const expected = weekSessions.filter(s => ['Comparecida', 'Faltou'].includes(s.status)).length;
+          const attended = weekSessions.filter(s => s.status === 'attended').length;
+          const expected = weekSessions.filter(s => ['attended', 'missed'].includes(s.status)).length;
           const rate = expected > 0 ? (attended / expected) * 100 : 0;
           
           weeksData.push({
@@ -778,7 +778,7 @@ const DashboardTest = () => {
         // Group revenue by therapist
         const therapistRevenue = new Map<string, number>();
         
-        sessions.filter(s => s.status === 'Comparecida' && s.paid === true).forEach(session => {
+        sessions.filter(s => s.status === 'attended' && s.paid === true).forEach(session => {
           const patient = patients.find(p => p.id === session.patient_id);
           if (patient) {
             const revenue = therapistRevenue.get(patient.user_id) || 0;
