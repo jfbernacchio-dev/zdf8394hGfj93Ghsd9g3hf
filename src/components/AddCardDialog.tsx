@@ -46,7 +46,7 @@ export const AddCardDialog = ({ open, onOpenChange, onAddCard, existingCardIds, 
                 </div>
               </TooltipTrigger>
               <TooltipContent side="left" className="max-w-xs">
-                <p className="text-sm">{card.description}</p>
+                <p className="text-sm">{card.detailedDescription || card.description}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
