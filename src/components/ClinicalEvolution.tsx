@@ -365,16 +365,23 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
 
   const getConsciousnessSummary = (data: any) => {
     const level = data.level || 0;
+    const field = data.field || 0;
+    const selfConsciousness = data.self_consciousness || 0;
     let text = '';
     let severity: Severity = 'normal';
 
-    if (level >= 70) {
-      text = 'Nível de consciência preservado, sem alterações significativas.';
-    } else if (level >= 40) {
-      text = 'Leve rebaixamento do nível de consciência.';
+    // Level: -100 (coma) | 0 (normal) | +100 (confusão)
+    if (Math.abs(level) <= 20) {
+      text = 'Nível de consciência preservado, lúcido e vígil.';
+    } else if (Math.abs(level) <= 50) {
+      text = level < 0 
+        ? 'Leve rebaixamento do nível de consciência (torpor leve).' 
+        : 'Leve alteração do nível de consciência (hipervigilante).';
       severity = 'moderate';
     } else {
-      text = 'Rebaixamento significativo do nível de consciência.';
+      text = level < 0 
+        ? 'Rebaixamento significativo do nível de consciência.' 
+        : 'Confusão mental presente.';
       severity = 'severe';
     }
 
@@ -383,7 +390,15 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
       severity = 'severe';
     }
 
-    return { text, severity, values: [{ label: 'Nível', value: level }] };
+    return { 
+      text, 
+      severity, 
+      values: [
+        { label: 'Nível', value: ((level + 100) / 2) },
+        { label: 'Campo', value: ((field + 100) / 2) },
+        { label: 'Auto-consciência', value: ((selfConsciousness + 100) / 2) }
+      ] 
+    };
   };
 
   const getOrientationSummary = (data: any) => {
@@ -449,14 +464,15 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
     let text = '';
     let severity: Severity = 'normal';
 
-    if (polarity < -30) {
-      text = 'Humor deprimido.';
-      severity = polarity < -60 ? 'severe' : 'moderate';
-    } else if (polarity > 30) {
-      text = 'Humor elevado.';
-      severity = polarity > 60 ? 'severe' : 'moderate';
-    } else {
+    // Polarity: -100 (depressivo) | 0 (eutímico) | +100 (eufórico)
+    if (Math.abs(polarity) <= 20) {
       text = 'Humor eutímico, sem alterações significativas.';
+    } else if (Math.abs(polarity) <= 60) {
+      text = polarity < 0 ? 'Humor deprimido.' : 'Humor elevado.';
+      severity = 'moderate';
+    } else {
+      text = polarity < 0 ? 'Humor severamente deprimido.' : 'Humor eufórico.';
+      severity = 'severe';
     }
 
     if (lability > 60) {
@@ -467,13 +483,28 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
     return {
       text,
       severity,
-      values: [{ label: 'Labilidade', value: lability }]
+      values: [
+        { label: 'Polaridade', value: ((polarity + 100) / 2) },
+        { label: 'Labilidade', value: lability }
+      ]
     };
   };
 
   const getThoughtSummary = (data: any) => {
-    let text = 'Pensamento sem alterações significativas.';
+    const course = data.course || 0;
+    let text = '';
     let severity: Severity = 'normal';
+
+    // Course: -100 (lentificação) | 0 (normal) | +100 (fuga de ideias)
+    if (Math.abs(course) <= 20) {
+      text = 'Pensamento com curso normal.';
+    } else if (Math.abs(course) <= 50) {
+      text = course < 0 ? 'Pensamento lentificado.' : 'Pensamento acelerado.';
+      severity = 'moderate';
+    } else {
+      text = course < 0 ? 'Pensamento muito lentificado.' : 'Fuga de ideias presente.';
+      severity = 'severe';
+    }
 
     const alterations = [];
     if (data.obsessive) alterations.push('obsessivo');
@@ -482,11 +513,15 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
     if (data.tangential) alterations.push('tangencial');
 
     if (alterations.length > 0) {
-      text = `Pensamento ${alterations.join(', ')}.`;
+      text += ` Conteúdo ${alterations.join(', ')}.`;
       severity = data.delusional || data.incoherent ? 'severe' : 'moderate';
     }
 
-    return { text, severity };
+    return { 
+      text, 
+      severity,
+      values: [{ label: 'Curso do Pensamento', value: ((course + 100) / 2) }]
+    };
   };
 
   const getLanguageSummary = (data: any) => {
@@ -494,17 +529,22 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
     let text = '';
     let severity: Severity = 'normal';
 
-    if (speechRate >= -20 && speechRate <= 20) {
+    // Speech rate: -100 (bradilalia) | 0 (normal) | +100 (taquilalia)
+    if (Math.abs(speechRate) <= 20) {
       text = 'Linguagem preservada, ritmo e articulação normais.';
     } else if (Math.abs(speechRate) <= 50) {
-      text = speechRate > 0 ? 'Fala acelerada.' : 'Fala lentificada.';
+      text = speechRate > 0 ? 'Fala acelerada (taquilalia leve).' : 'Fala lentificada (bradilalia leve).';
       severity = 'moderate';
     } else {
-      text = speechRate > 0 ? 'Fala muito acelerada.' : 'Fala muito lentificada.';
+      text = speechRate > 0 ? 'Fala muito acelerada (taquilalia severa).' : 'Fala muito lentificada (bradilalia severa).';
       severity = 'severe';
     }
 
-    return { text, severity };
+    return { 
+      text, 
+      severity,
+      values: [{ label: 'Velocidade da fala', value: ((speechRate + 100) / 2) }]
+    };
   };
 
   const getSensoperceptionSummary = (data: any) => {
@@ -560,40 +600,62 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
     let text = '';
     let severity: Severity = 'normal';
 
-    if (energy < 40) {
-      text = 'Energia volitiva reduzida.';
-      severity = 'moderate';
-    } else if (energy > 70) {
+    // Energy: -100 (abulia) | 0 (normal) | +100 (hiperbulia)
+    if (Math.abs(energy) <= 20) {
       text = 'Energia volitiva preservada.';
+    } else if (Math.abs(energy) <= 50) {
+      text = energy < 0 ? 'Energia volitiva reduzida (abulia leve).' : 'Energia volitiva aumentada (hiperbulia leve).';
+      severity = 'moderate';
     } else {
-      text = 'Energia volitiva moderada.';
-    }
-
-    if (impulse < 40) {
-      text += ' Dificuldade no controle de impulsos.';
+      text = energy < 0 ? 'Abulia significativa presente.' : 'Hiperbulia significativa presente.';
       severity = 'severe';
     }
 
-    return { text, severity, values: [{ label: 'Controle de Impulsos', value: impulse }] };
+    // Impulse: -100 (impulsivo) | 0 (equilibrado) | +100 (inibido)
+    if (Math.abs(impulse) > 50) {
+      text += impulse < 0 ? ' Impulsividade significativa.' : ' Inibição volitiva excessiva.';
+      severity = 'severe';
+    } else if (Math.abs(impulse) > 20) {
+      text += impulse < 0 ? ' Leve impulsividade.' : ' Leve inibição.';
+      if (severity === 'normal') severity = 'moderate';
+    }
+
+    return { 
+      text, 
+      severity, 
+      values: [
+        { label: 'Energia Volitiva', value: ((energy + 100) / 2) },
+        { label: 'Controle de Impulsos', value: ((impulse + 100) / 2) }
+      ] 
+    };
   };
 
   const getPsychomotorSummary = (data: any) => {
     const activity = data.motor_activity || 0;
+    const facialExpressiveness = data.facial_expressiveness || 50;
 
     let text = '';
     let severity: Severity = 'normal';
 
-    if (activity >= -20 && activity <= 20) {
+    // Activity: -100 (inibição) | 0 (normal) | +100 (agitação)
+    if (Math.abs(activity) <= 20) {
       text = 'Psicomotricidade preservada, sem alterações.';
     } else if (Math.abs(activity) <= 50) {
-      text = activity > 0 ? 'Leve agitação psicomotora.' : 'Leve lentificação psicomotora.';
+      text = activity > 0 ? 'Leve agitação psicomotora.' : 'Leve lentificação psicomotora (inibição).';
       severity = 'moderate';
     } else {
-      text = activity > 0 ? 'Agitação psicomotora significativa.' : 'Lentificação psicomotora significativa.';
+      text = activity > 0 ? 'Agitação psicomotora significativa.' : 'Lentificação psicomotora significativa (inibição severa).';
       severity = 'severe';
     }
 
-    return { text, severity };
+    return { 
+      text, 
+      severity,
+      values: [
+        { label: 'Atividade Motora', value: ((activity + 100) / 2) },
+        { label: 'Expressividade Facial', value: facialExpressiveness }
+      ]
+    };
   };
 
   const getAttentionSummary = (data: any) => {
