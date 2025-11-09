@@ -727,16 +727,10 @@ const DashboardTest = () => {
             </Card>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
-              {renderChart('chart-revenue-trend')}
-              {renderChart('chart-session-types')}
-              {renderChart('chart-therapist-distribution')}
-              {renderChart('chart-monthly-comparison')}
-              {renderChart('chart-payment-status')}
-              {renderChart('chart-attendance-weekly')}
-              {renderChart('chart-revenue-by-therapist')}
-              {renderChart('chart-patient-growth')}
-              {renderChart('chart-hourly-distribution')}
-              {renderChart('chart-cancellation-reasons')}
+              {visibleCards
+                .filter(id => id.startsWith('chart-'))
+                .map(id => renderChart(id))
+              }
             </div>
           )}
         </ResizableSection>
