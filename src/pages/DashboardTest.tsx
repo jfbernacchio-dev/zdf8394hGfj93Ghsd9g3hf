@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import { Users, Calendar, DollarSign, TrendingUp, AlertCircle, CheckCircle2, CalendarIcon, Settings, Save, RotateCcw, Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -1073,9 +1074,9 @@ const DashboardTest = () => {
 
       {/* Metrics Section - All Cards */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-foreground">Métricas</h2>
-          {isEditMode && (
+        {isEditMode && (
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-foreground">Métricas</h2>
             <Button
               onClick={() => setIsAddCardDialogOpen(true)}
               variant="outline"
@@ -1085,8 +1086,8 @@ const DashboardTest = () => {
               <Plus className="w-4 h-4" />
               Adicionar Card
             </Button>
-          )}
-        </div>
+          </div>
+        )}
         <ResizableSection
           id="metrics-section"
           isEditMode={isEditMode}
@@ -1168,11 +1169,14 @@ const DashboardTest = () => {
         </ResizableSection>
       </div>
 
+      {/* Separator between sections */}
+      <Separator className="my-8" />
+
       {/* Charts Section - For Visualizations */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-foreground">Gráficos e Visualizações</h2>
-          {isEditMode && (
+        {isEditMode && (
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-foreground">Gráficos e Visualizações</h2>
             <Button
               onClick={() => setIsAddChartDialogOpen(true)}
               variant="outline"
@@ -1182,8 +1186,8 @@ const DashboardTest = () => {
               <Plus className="w-4 h-4" />
               Adicionar Gráfico
             </Button>
-          )}
-        </div>
+          </div>
+        )}
         <ResizableSection
           id="charts-section"
           isEditMode={isEditMode}
