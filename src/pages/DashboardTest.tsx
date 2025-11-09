@@ -532,20 +532,23 @@ const DashboardTest = () => {
             }
           });
           
-          const attended = intervalSessions.filter(s => s.status === 'attended').length;
-          const revenue = intervalSessions
-            .filter(s => s.status === 'attended' && s.paid === true)
-            .reduce((sum, s) => sum + (Number(s.value) || 0), 0);
-          const attendanceRate = intervalSessions.length > 0 
-            ? (attended / intervalSessions.length) * 100 
-            : 0;
-          
-          chartData.push({
-            label: formatTimeLabel(intervalDate, currentScale!),
-            sessoes: attended,
-            faturamento: revenue / 100,
-            taxa: Math.round(attendanceRate),
-          });
+          // Só adiciona se houver sessões neste intervalo
+          if (intervalSessions.length > 0) {
+            const attended = intervalSessions.filter(s => s.status === 'attended').length;
+            const revenue = intervalSessions
+              .filter(s => s.status === 'attended' && s.paid === true)
+              .reduce((sum, s) => sum + (Number(s.value) || 0), 0);
+            const attendanceRate = intervalSessions.length > 0 
+              ? (attended / intervalSessions.length) * 100 
+              : 0;
+            
+            chartData.push({
+              label: formatTimeLabel(intervalDate, currentScale!),
+              sessoes: attended,
+              faturamento: revenue / 100,
+              taxa: Math.round(attendanceRate),
+            });
+          }
         });
         
         chartContent = chartData.length > 0 && chartData.some(d => d.sessoes > 0 || d.faturamento > 0) ? (
@@ -583,25 +586,28 @@ const DashboardTest = () => {
         intervals.forEach(intervalDate => {
           const { start: intervalStart, end: intervalEnd } = getIntervalBounds(intervalDate, currentScale!);
           
-          const revenue = sessions
-            .filter(s => {
-              if (!s.date) return false;
-              try {
-                const sessionDate = parseISO(s.date);
-                return sessionDate >= intervalStart && 
-                       sessionDate <= intervalEnd && 
-                       s.status === 'attended' && 
-                       s.paid === true;
-              } catch {
-                return false;
-              }
-            })
-            .reduce((sum, s) => sum + (Number(s.value) || 0), 0);
-          
-          chartData.push({
-            label: formatTimeLabel(intervalDate, currentScale!),
-            valor: revenue / 100,
+          const intervalSessions = sessions.filter(s => {
+            if (!s.date) return false;
+            try {
+              const sessionDate = parseISO(s.date);
+              return sessionDate >= intervalStart && 
+                     sessionDate <= intervalEnd && 
+                     s.status === 'attended' && 
+                     s.paid === true;
+            } catch {
+              return false;
+            }
           });
+          
+          // Só adiciona se houver sessões pagas neste intervalo
+          if (intervalSessions.length > 0) {
+            const revenue = intervalSessions.reduce((sum, s) => sum + (Number(s.value) || 0), 0);
+            
+            chartData.push({
+              label: formatTimeLabel(intervalDate, currentScale!),
+              valor: revenue / 100,
+            });
+          }
         });
         
         chartContent = chartData.length > 0 && chartData.some(d => d.valor > 0) ? (
@@ -772,14 +778,18 @@ const DashboardTest = () => {
             }
           });
           
-          const attended = intervalSessions.filter(s => s.status === 'attended').length;
           const expected = intervalSessions.filter(s => ['attended', 'missed'].includes(s.status)).length;
-          const rate = expected > 0 ? (attended / expected) * 100 : 0;
           
-          chartData.push({
-            label: formatTimeLabel(intervalDate, currentScale!),
-            taxa: Math.round(rate),
-          });
+          // Só adiciona se houver sessões esperadas neste intervalo
+          if (expected > 0) {
+            const attended = intervalSessions.filter(s => s.status === 'attended').length;
+            const rate = (attended / expected) * 100;
+            
+            chartData.push({
+              label: formatTimeLabel(intervalDate, currentScale!),
+              taxa: Math.round(rate),
+            });
+          }
         });
 
         chartContent = (
@@ -864,6 +874,7 @@ const DashboardTest = () => {
           } catch {}
         });
         
+        let previousCount = 0;
         intervals.forEach(intervalDate => {
           const { end: intervalEnd } = getIntervalBounds(intervalDate, currentScale!);
           
@@ -871,10 +882,14 @@ const DashboardTest = () => {
           const activePatients = Array.from(patientFirstSession.values())
             .filter(firstDate => firstDate <= intervalEnd).length;
           
-          chartData.push({
-            label: formatTimeLabel(intervalDate, currentScale!),
-            pacientes: activePatients,
-          });
+          // Só adiciona se houver mudança ou se for o primeiro ponto com dados
+          if (activePatients > 0 && (activePatients !== previousCount || chartData.length === 0)) {
+            chartData.push({
+              label: formatTimeLabel(intervalDate, currentScale!),
+              pacientes: activePatients,
+            });
+            previousCount = activePatients;
+          }
         });
 
         chartContent = (

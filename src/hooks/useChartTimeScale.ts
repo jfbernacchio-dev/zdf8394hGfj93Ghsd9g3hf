@@ -66,21 +66,31 @@ export const useChartTimeScale = ({ startDate, endDate }: UseChartTimeScaleProps
 };
 
 /**
- * Gera intervalos de tempo baseado na escala
+ * Gera intervalos de tempo baseado na escala, filtrando períodos sem dados e futuros
  */
 export const generateTimeIntervals = (
   startDate: Date,
   endDate: Date,
   scale: TimeScale
 ): Date[] => {
+  const now = new Date();
+  const effectiveEndDate = endDate > now ? now : endDate;
+  
+  let intervals: Date[];
+  
   switch (scale) {
     case 'daily':
-      return eachDayOfInterval({ start: startDate, end: endDate });
+      intervals = eachDayOfInterval({ start: startDate, end: effectiveEndDate });
+      break;
     case 'weekly':
-      return eachWeekOfInterval({ start: startDate, end: endDate }, { weekStartsOn: 0 });
+      intervals = eachWeekOfInterval({ start: startDate, end: effectiveEndDate }, { weekStartsOn: 0 });
+      break;
     case 'monthly':
-      return eachMonthOfInterval({ start: startDate, end: endDate });
+      intervals = eachMonthOfInterval({ start: startDate, end: effectiveEndDate });
+      break;
   }
+  
+  return intervals;
 };
 
 /**
@@ -90,8 +100,13 @@ export const formatTimeLabel = (date: Date, scale: TimeScale): string => {
   switch (scale) {
     case 'daily':
       return format(date, 'dd/MM', { locale: ptBR });
-    case 'weekly':
-      return format(date, "'S'w", { locale: ptBR }); // S1, S2, etc.
+    case 'weekly': {
+      // Calcula a semana do mês (1ª, 2ª, 3ª, etc)
+      const dayOfMonth = date.getDate();
+      const weekOfMonth = Math.ceil(dayOfMonth / 7);
+      const monthAbbr = format(date, 'MMM', { locale: ptBR });
+      return `${weekOfMonth}ª/${monthAbbr}`;
+    }
     case 'monthly':
       return format(date, 'MMM/yy', { locale: ptBR });
   }
