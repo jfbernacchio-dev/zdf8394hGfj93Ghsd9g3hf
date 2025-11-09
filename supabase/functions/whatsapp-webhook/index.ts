@@ -255,13 +255,16 @@ serve(async (req: Request): Promise<Response> => {
 
               console.log("Found patient:", patient.id, "for user:", patient.user_id);
 
-              // Find or create conversation (using normalized phone)
+              // Find or create conversation (using normalized phone and patient_id)
+              // Don't filter by user_id to allow any admin/therapist to receive responses
               let conversation;
               const { data: existingConv } = await supabase
                 .from("whatsapp_conversations")
                 .select("*")
                 .eq("phone_number", fromPhone)
-                .eq("user_id", patient.user_id)
+                .eq("patient_id", patient.id)
+                .order("last_message_at", { ascending: false })
+                .limit(1)
                 .maybeSingle();
 
               if (existingConv) {
