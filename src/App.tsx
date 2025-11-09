@@ -43,6 +43,7 @@ import BackupTests from "./pages/BackupTests";
 import ConsentForm from "./pages/ConsentForm";
 import WhatsAppChat from "./pages/WhatsAppChat";
 import WebsiteMetrics from "./pages/WebsiteMetrics";
+import ClinicalComplaintForm from "./pages/ClinicalComplaintForm";
 
 const queryClient = new QueryClient();
 
@@ -114,6 +115,8 @@ const App = () => (
             <Route path="/patients" element={<ProtectedRoute><Layout><Patients /></Layout></ProtectedRoute>} />
             <Route path="/patients/new" element={<ProtectedRoute><Layout><NewPatient /></Layout></ProtectedRoute>} />
             <Route path="/patients/:id/edit" element={<ProtectedRoute><Layout><EditPatient /></Layout></ProtectedRoute>} />
+            <Route path="/patients/:patientId/complaint/new" element={<ProtectedRoute><Layout><ClinicalComplaintForm /></Layout></ProtectedRoute>} />
+            <Route path="/patients/:patientId/complaint/:complaintId/edit" element={<ProtectedRoute><Layout><ClinicalComplaintForm /></Layout></ProtectedRoute>} />
             <Route path="/patients/:id" element={<ProtectedRoute><Layout><PatientDetail /></Layout></ProtectedRoute>} />
             <Route path="/patient-old/:id" element={<ProtectedRoute><Layout><PatientDetailOLD /></Layout></ProtectedRoute>} />
             <Route path="/therapists" element={<ProtectedRoute><Layout><TherapistManagement /></Layout></ProtectedRoute>} />
