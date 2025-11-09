@@ -507,6 +507,7 @@ const DashboardTest = () => {
         }
         
         console.log('Monthly comparison data:', monthsData);
+        console.log('Data details:', JSON.stringify(monthsData, null, 2));
         
         chartContent = monthsData.length > 0 && monthsData.some(d => d.sessoes > 0 || d.faturamento > 0) ? (
           <ResponsiveContainer width="100%" height="100%">
@@ -567,6 +568,7 @@ const DashboardTest = () => {
         }
         
         console.log('Revenue trend data:', monthsData);
+        console.log('Revenue details:', JSON.stringify(monthsData, null, 2));
         
         chartContent = monthsData.length > 0 && monthsData.some(d => d.valor > 0) ? (
           <ResponsiveContainer width="100%" height="100%">
