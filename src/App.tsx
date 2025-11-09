@@ -7,7 +7,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ThemeProvider } from "./components/ThemeProvider";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
-import DashboardTest from "./pages/DashboardTest";
+import DashboardOLD from "./pages/DashboardOLD";
 import Financial from "./pages/Financial";
 import Index from "./pages/Index";
 import TerapiaCognitivaComportamental from "./pages/TerapiaCognitivaComportamental";
@@ -19,7 +19,7 @@ import Patients from "./pages/Patients";
 import NewPatient from "./pages/NewPatient";
 import EditPatient from "./pages/EditPatient";
 import PatientDetail from "./pages/PatientDetail";
-import PatientDetailNew from "./pages/PatientDetailNew";
+import PatientDetailOLD from "./pages/PatientDetailOLD";
 import Schedule from "./pages/Schedule";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -103,7 +103,7 @@ const App = () => (
             
             {/* Sistema de Gestão */}
             <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
-            <Route path="/dashboard-test" element={<ProtectedRoute><Layout><DashboardTest /></Layout></ProtectedRoute>} />
+            <Route path="/dashboard-old" element={<ProtectedRoute><Layout><DashboardOLD /></Layout></ProtectedRoute>} />
             <Route path="/install" element={<Install />} />
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
@@ -115,7 +115,7 @@ const App = () => (
             <Route path="/patients/new" element={<ProtectedRoute><Layout><NewPatient /></Layout></ProtectedRoute>} />
             <Route path="/patients/:id/edit" element={<ProtectedRoute><Layout><EditPatient /></Layout></ProtectedRoute>} />
             <Route path="/patients/:id" element={<ProtectedRoute><Layout><PatientDetail /></Layout></ProtectedRoute>} />
-            <Route path="/patient-test/:id" element={<ProtectedRoute><Layout><PatientDetailNew /></Layout></ProtectedRoute>} />
+            <Route path="/patient-old/:id" element={<ProtectedRoute><Layout><PatientDetailOLD /></Layout></ProtectedRoute>} />
             <Route path="/therapists" element={<ProtectedRoute><Layout><TherapistManagement /></Layout></ProtectedRoute>} />
             <Route path="/therapists/:id" element={<ProtectedRoute><Layout><TherapistDetail /></Layout></ProtectedRoute>} />
             <Route path="/create-therapist" element={<ProtectedRoute><Layout><CreateTherapist /></Layout></ProtectedRoute>} />

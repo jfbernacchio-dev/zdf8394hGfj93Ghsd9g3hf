@@ -13,7 +13,12 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ArrowLeft, Plus, Calendar, DollarSign, Edit, FileText, Download, Trash2, Shield } from 'lucide-react';
+import { ArrowLeft, Plus, Calendar, DollarSign, Edit, FileText, Download, Trash2, Phone, MapPin, Mail, User, Clock, Tag, AlertCircle, ChevronDown, ChevronUp, StickyNote, X, TrendingUp, TrendingDown, Activity, CreditCard } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, startOfMonth, endOfMonth, isFuture } from 'date-fns';
@@ -26,8 +31,14 @@ import { PatientFiles } from '@/components/PatientFiles';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import IssueNFSeDialog from '@/components/IssueNFSeDialog';
 import { ConsentReminder } from '@/components/ConsentReminder';
+import { ResizableCard } from '@/components/ResizableCard';
+import { ResizableSection } from '@/components/ResizableSection';
+import { Settings, RotateCcw } from 'lucide-react';
+import { AddCardDialog } from '@/components/AddCardDialog';
+import { CardConfig, ALL_AVAILABLE_CARDS } from '@/types/cardTypes';
+import { DEFAULT_LAYOUT, resetToDefaultLayout } from '@/lib/defaultLayout';
 
-const PatientDetail = () => {
+const PatientDetailNew = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -46,14 +57,29 @@ const PatientDetail = () => {
   const [customEndDate, setCustomEndDate] = useState('');
   const [showScheduled, setShowScheduled] = useState(false);
   const [showUnpaid, setShowUnpaid] = useState(false);
-  // Helper to get Brazil date using native timezone conversion
+  const [complaint, setComplaint] = useState<any>(null);
+  const [complaintText, setComplaintText] = useState('');
+  const [isComplaintDialogOpen, setIsComplaintDialogOpen] = useState(false);
+  const [showFullHistory, setShowFullHistory] = useState(false);
+  const [sessionHistory, setSessionHistory] = useState<any[]>([]);
+  const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false);
+  const [noteText, setNoteText] = useState('');
+  const [noteType, setNoteType] = useState<'session' | 'general'>('session');
+  const [selectedSessionForNote, setSelectedSessionForNote] = useState<string | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [isExitEditDialogOpen, setIsExitEditDialogOpen] = useState(false);
+  const [tempSizes, setTempSizes] = useState<Record<string, { width: number; height: number; x: number; y: number }>>({});
+  const [tempSectionHeights, setTempSectionHeights] = useState<Record<string, number>>({});
+  const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
+  const [visibleCards, setVisibleCards] = useState<string[]>([]);
+  
   const getBrazilDate = () => {
     return new Date().toLocaleString('en-CA', { 
       timeZone: 'America/Sao_Paulo',
       year: 'numeric',
       month: '2-digit',
       day: '2-digit'
-    }).split(',')[0]; // Returns 'YYYY-MM-DD'
+    }).split(',')[0];
   };
 
   const [formData, setFormData] = useState({
@@ -67,9 +93,25 @@ const PatientDetail = () => {
   });
 
   useEffect(() => {
+    // Load visible cards from localStorage
+    const savedCards = localStorage.getItem('visible-cards');
+    if (savedCards) {
+      setVisibleCards(JSON.parse(savedCards));
+    } else {
+      // Use default layout
+      setVisibleCards(DEFAULT_LAYOUT.visibleCards);
+    }
+
+    // Set default section heights if not already set
+    Object.entries(DEFAULT_LAYOUT.sectionHeights).forEach(([id, height]) => {
+      const saved = localStorage.getItem(`section-height-${id}`);
+      if (!saved) {
+        localStorage.setItem(`section-height-${id}`, height.toString());
+      }
+    });
+
     loadData();
     
-    // Set up realtime subscription for sessions updates
     const channel = supabase
       .channel('patient-sessions-changes')
       .on(
@@ -81,7 +123,7 @@ const PatientDetail = () => {
           filter: `patient_id=eq.${id}`
         },
         () => {
-          loadData(); // Reload data when sessions change
+          loadData();
         }
       )
       .subscribe();
@@ -98,6 +140,8 @@ const PatientDetail = () => {
   const loadData = async () => {
     const { data: patientData } = await supabase.from('patients').select('*').eq('id', id).single();
     const { data: sessionsData } = await supabase.from('sessions').select('*').eq('patient_id', id).order('date', { ascending: false });
+    const { data: complaintData } = await supabase.from('patient_complaints').select('*').eq('patient_id', id).order('created_at', { ascending: false }).limit(1).maybeSingle();
+    const { data: historyData } = await supabase.from('session_history').select('*').eq('patient_id', id).order('changed_at', { ascending: false });
     
     if (user) {
       const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
@@ -106,9 +150,11 @@ const PatientDetail = () => {
     
     setPatient(patientData);
     setAllSessions(sessionsData || []);
+    setComplaint(complaintData);
+    setComplaintText(complaintData?.complaint_text || '');
+    setSessionHistory(historyData || []);
 
-    // Log admin access to patient data
-    await logAdminAccess('view_patient', undefined, id, 'Admin viewed patient details and sessions');
+    await logAdminAccess('view_patient', undefined, id, 'Admin viewed patient details (NEW UI)');
   };
 
   const filterSessions = () => {
@@ -117,7 +163,6 @@ const PatientDetail = () => {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
 
-    // Aplicar filtro de período
     let filtered = allSessions;
 
     if (period !== 'all') {
@@ -128,15 +173,12 @@ const PatientDetail = () => {
         start = new Date(customStartDate);
         end = new Date(customEndDate);
       } else if (period === 'lastMonth') {
-        // Último Mês: dia 01 ao 31 do mês anterior
         start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         end = new Date(now.getFullYear(), now.getMonth(), 0);
       } else if (period === 'last2Months') {
-        // Últimos 2 Meses: do dia 01 do mês anterior até o dia 31 do mês atual
         start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
       } else {
-        // Este Mês
         start = startOfMonth(now);
         end = endOfMonth(now);
       }
@@ -147,25 +189,21 @@ const PatientDetail = () => {
       });
     }
 
-    // Aplicar filtro "Mostrar A Pagar"
     if (showUnpaid) {
       filtered = filtered.filter(session => session.status === 'attended' && !session.paid);
     }
 
-    // Se "Mostrar Agendadas" está ativo, adicionar agendadas futuras (aditivo)
     if (showScheduled) {
       const scheduled = allSessions.filter(session => {
         const sessionDate = parseISO(session.date);
         return sessionDate > now && session.status === 'scheduled';
       });
       
-      // Combinar sessões do período com agendadas futuras (remover duplicatas)
       const sessionIds = new Set(filtered.map(s => s.id));
       const additionalScheduled = scheduled.filter(s => !sessionIds.has(s.id));
       filtered = [...filtered, ...additionalScheduled];
     }
 
-    // Ordenar por data decrescente (mais recentes/futuras no topo)
     filtered.sort((a, b) => {
       const dateA = parseISO(a.date);
       const dateB = parseISO(b.date);
@@ -218,11 +256,9 @@ const PatientDetail = () => {
     };
 
     if (editingSession) {
-      // Check if date or time changed to record in session_history
       const dateChanged = editingSession.date !== formData.date;
       const timeChanged = editingSession.time !== formData.time;
 
-      // If moved to a future date, automatically set status to scheduled
       const today = getBrazilDate();
       if (formData.date > today) {
         sessionData.status = 'scheduled';
@@ -238,7 +274,6 @@ const PatientDetail = () => {
         return;
       }
 
-      // If date or time changed, record in session_history for notification
       if (dateChanged || timeChanged) {
         const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
         
@@ -279,7 +314,6 @@ const PatientDetail = () => {
   const toggleStatus = async (session: any, checked: boolean) => {
     const { isBefore } = await import('date-fns');
     
-    // If session is scheduled (future), toggle between scheduled/unscheduled
     if (session.status === 'scheduled') {
       const newStatus = checked ? 'scheduled' : 'unscheduled';
       
@@ -287,7 +321,7 @@ const PatientDetail = () => {
         .from('sessions')
         .update({ 
           status: newStatus,
-          show_in_schedule: checked // Hide from schedule when unscheduled
+          show_in_schedule: checked
         })
         .eq('id', session.id);
 
@@ -306,7 +340,6 @@ const PatientDetail = () => {
       return;
     }
 
-    // If session is unscheduled, can only re-schedule it
     if (session.status === 'unscheduled') {
       if (checked) {
         const { error } = await supabase
@@ -333,7 +366,6 @@ const PatientDetail = () => {
       return;
     }
 
-    // For past sessions (attended/missed), prevent marking future sessions as attended
     if (checked && isBefore(new Date(), parseISO(session.date))) {
       toast({ 
         title: 'Não é possível marcar como compareceu', 
@@ -360,7 +392,6 @@ const PatientDetail = () => {
       return;
     }
     
-    // If marked as attended or missed, ensure 4 future sessions exist
     if (newStatus === 'attended' || newStatus === 'missed') {
       const { ensureFutureSessions } = await import('@/lib/sessionUtils');
       await ensureFutureSessions(session.patient_id, patient!, supabase, 4);
@@ -406,7 +437,6 @@ const PatientDetail = () => {
     let totalValue = 0;
 
     if (patient.monthly_price) {
-      // Agrupar sessões por mês
       const sessionsByMonth = unpaidSessions.reduce((acc, session) => {
         const monthYear = format(parseISO(session.date), 'MM/yyyy');
         if (!acc[monthYear]) {
@@ -500,7 +530,6 @@ Assinatura do Profissional`;
 
   const handleExportPatientData = async () => {
     try {
-      // Log admin access
       await logAdminAccess('export_patient_data', undefined, id, 'Admin exported patient data (LGPD compliance)');
 
       const { data, error } = await supabase.functions.invoke('export-patient-data', {
@@ -510,7 +539,6 @@ Assinatura do Profissional`;
       if (error) throw error;
 
       if (data.success) {
-        // Create downloadable JSON
         const dataStr = JSON.stringify(data.data, null, 2);
         const dataBlob = new Blob([dataStr], { type: 'application/json' });
         const url = URL.createObjectURL(dataBlob);
@@ -551,16 +579,13 @@ Assinatura do Profissional`;
     }
 
     try {
-      // Log admin access before deletion
       await logAdminAccess('delete_patient', undefined, id, `Admin permanently deleted patient: ${patient.name}`);
 
-      // Get all WhatsApp conversations for this patient
       const { data: conversations } = await supabase
         .from('whatsapp_conversations')
         .select('id')
         .eq('patient_id', id);
 
-      // Delete all WhatsApp messages from those conversations
       if (conversations && conversations.length > 0) {
         const conversationIds = conversations.map(c => c.id);
         await supabase
@@ -569,7 +594,6 @@ Assinatura do Profissional`;
           .in('conversation_id', conversationIds);
       }
 
-      // Delete all related data (sessions, files, WhatsApp, etc.)
       await supabase.from('sessions').delete().eq('patient_id', id);
       await supabase.from('session_history').delete().eq('patient_id', id);
       await supabase.from('patient_files').delete().eq('patient_id', id);
@@ -577,7 +601,6 @@ Assinatura do Profissional`;
       await supabase.from('consent_submissions').delete().eq('patient_id', id);
       await supabase.from('whatsapp_conversations').delete().eq('patient_id', id);
 
-      // Finally delete the patient
       const { error } = await supabase
         .from('patients')
         .delete()
@@ -601,6 +624,334 @@ Assinatura do Profissional`;
     }
   };
 
+  const handleSaveComplaint = async () => {
+    if (!complaintText.trim()) {
+      toast({
+        title: 'Erro',
+        description: 'Digite uma queixa clínica',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const nextReviewDate = new Date();
+      nextReviewDate.setMonth(nextReviewDate.getMonth() + 3);
+
+      if (complaint) {
+        // Update existing
+        const { error } = await supabase
+          .from('patient_complaints')
+          .update({
+            complaint_text: complaintText,
+            next_review_date: nextReviewDate.toISOString().split('T')[0],
+            dismissed_at: null,
+          })
+          .eq('id', complaint.id);
+
+        if (error) throw error;
+      } else {
+        // Create new
+        const { error } = await supabase
+          .from('patient_complaints')
+          .insert({
+            patient_id: id,
+            complaint_text: complaintText,
+            next_review_date: nextReviewDate.toISOString().split('T')[0],
+          });
+
+        if (error) throw error;
+      }
+
+      toast({ title: 'Queixa clínica salva!' });
+      setIsComplaintDialogOpen(false);
+      loadData();
+    } catch (error: any) {
+      console.error('Error saving complaint:', error);
+      toast({
+        title: 'Erro ao salvar',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDismissComplaint = async () => {
+    if (!complaint) return;
+
+    try {
+      const nextReviewDate = new Date();
+      nextReviewDate.setMonth(nextReviewDate.getMonth() + 3);
+
+      const { error } = await supabase
+        .from('patient_complaints')
+        .update({
+          dismissed_at: new Date().toISOString(),
+          next_review_date: nextReviewDate.toISOString().split('T')[0],
+        })
+        .eq('id', complaint.id);
+
+      if (error) throw error;
+
+      toast({ title: 'Revisão adiada por 3 meses' });
+      loadData();
+    } catch (error: any) {
+      console.error('Error dismissing complaint:', error);
+      toast({
+        title: 'Erro',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleSaveNote = async () => {
+    if (!noteText.trim()) {
+      toast({
+        title: 'Erro',
+        description: 'Digite o conteúdo da nota',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      if (noteType === 'session' && selectedSessionForNote) {
+        // Save as individual file for specific session
+        const fileName = `nota_clinica_${format(new Date(), 'yyyy-MM-dd_HHmmss')}.txt`;
+        const fileBlob = new Blob([noteText], { type: 'text/plain' });
+        const filePath = `${user?.id}/${id}/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('patient_files')
+          .upload(filePath, fileBlob);
+
+        if (uploadError) throw uploadError;
+
+        // Link to patient_files
+        const { error: dbError } = await supabase
+          .from('patient_files')
+          .insert({
+            patient_id: id,
+            file_name: fileName,
+            file_path: filePath,
+            file_type: 'text/plain',
+            category: 'clinical_notes',
+            is_clinical: true,
+            uploaded_by: user?.id,
+          });
+
+        if (dbError) throw dbError;
+
+        // Also update session notes field
+        const { error: sessionError } = await supabase
+          .from('sessions')
+          .update({ notes: noteText })
+          .eq('id', selectedSessionForNote);
+
+        if (sessionError) throw sessionError;
+
+        toast({ title: 'Nota clínica salva e anexada à sessão!' });
+      } else {
+        // Save/append to general patient notes file
+        const fileName = 'notas_gerais_paciente.txt';
+        const filePath = `${user?.id}/${id}/${fileName}`;
+
+        // Try to get existing file
+        const { data: existingFiles } = await supabase.storage
+          .from('patient_files')
+          .list(`${user?.id}/${id}`, {
+            search: 'notas_gerais_paciente.txt'
+          });
+
+        let newContent = noteText;
+
+        if (existingFiles && existingFiles.length > 0) {
+          // Download existing content
+          const { data: existingData } = await supabase.storage
+            .from('patient_files')
+            .download(filePath);
+
+          if (existingData) {
+            const existingText = await existingData.text();
+            newContent = `${existingText}\n\n--- ${format(new Date(), 'dd/MM/yyyy HH:mm')} ---\n${noteText}`;
+          }
+
+          // Delete old file
+          await supabase.storage
+            .from('patient_files')
+            .remove([filePath]);
+        } else {
+          newContent = `--- ${format(new Date(), 'dd/MM/yyyy HH:mm')} ---\n${noteText}`;
+        }
+
+        // Upload new/updated file
+        const fileBlob = new Blob([newContent], { type: 'text/plain' });
+        const { error: uploadError } = await supabase.storage
+          .from('patient_files')
+          .upload(filePath, fileBlob);
+
+        if (uploadError) throw uploadError;
+
+        // Check if record exists in patient_files
+        const { data: existingRecord } = await supabase
+          .from('patient_files')
+          .select('id')
+          .eq('patient_id', id)
+          .eq('file_name', fileName)
+          .maybeSingle();
+
+        if (!existingRecord) {
+          // Create new record
+          const { error: dbError } = await supabase
+            .from('patient_files')
+            .insert({
+              patient_id: id,
+              file_name: fileName,
+              file_path: filePath,
+              file_type: 'text/plain',
+              category: 'clinical_notes',
+              is_clinical: true,
+              uploaded_by: user?.id,
+            });
+
+          if (dbError) throw dbError;
+        }
+
+        toast({ title: 'Nota geral adicionada ao arquivo do paciente!' });
+      }
+
+      setIsNoteDialogOpen(false);
+      setNoteText('');
+      setSelectedSessionForNote(null);
+      loadData();
+    } catch (error: any) {
+      console.error('Error saving note:', error);
+      toast({
+        title: 'Erro ao salvar nota',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleEnterEditMode = () => {
+    setTempSizes({});
+    setTempSectionHeights({});
+    setIsEditMode(true);
+  };
+
+  const handleExitEditMode = () => {
+    setIsExitEditDialogOpen(true);
+  };
+
+  const handleTempSizeChange = (id: string, size: { width: number; height: number; x: number; y: number }) => {
+    setTempSizes(prev => ({ ...prev, [id]: size }));
+  };
+
+  const handleTempSectionHeightChange = (id: string, height: number) => {
+    setTempSectionHeights(prev => ({ ...prev, [id]: height }));
+  };
+
+  const handleSaveChanges = () => {
+    // Save all temp sizes to localStorage
+    Object.entries(tempSizes).forEach(([id, size]) => {
+      localStorage.setItem(`card-size-${id}`, JSON.stringify(size));
+    });
+    
+    // Save all section heights to localStorage
+    Object.entries(tempSectionHeights).forEach(([id, height]) => {
+      localStorage.setItem(`section-height-${id}`, height.toString());
+    });
+    
+    // Save visible cards
+    localStorage.setItem('visible-cards', JSON.stringify(visibleCards));
+    
+    setIsExitEditDialogOpen(false);
+    setIsEditMode(false);
+    setTempSizes({});
+    setTempSectionHeights({});
+    toast({ title: 'Layout salvo com sucesso!' });
+    
+    // Force reload to apply saved sizes
+    setTimeout(() => window.location.reload(), 300);
+  };
+
+  const handleCancelChanges = () => {
+    // Discard all temp sizes and card changes
+    setTempSizes({});
+    setTempSectionHeights({});
+    setIsExitEditDialogOpen(false);
+    setIsEditMode(false);
+    
+    // Reload visible cards from localStorage
+    const savedCards = localStorage.getItem('visible-cards');
+    if (savedCards) {
+      setVisibleCards(JSON.parse(savedCards));
+    }
+    
+    toast({ title: 'Alterações descartadas' });
+  };
+
+  const handleRestoreDefault = () => {
+    resetToDefaultLayout();
+    toast({ title: 'Layout restaurado para o padrão!' });
+    setTimeout(() => window.location.reload(), 500);
+  };
+
+  const handleAddCard = (cardConfig: CardConfig) => {
+    if (!visibleCards.includes(cardConfig.id)) {
+      setVisibleCards([...visibleCards, cardConfig.id]);
+      toast({ 
+        title: 'Card adicionado!', 
+        description: `${cardConfig.name} foi adicionado ao layout.` 
+      });
+    }
+  };
+
+  const handleRemoveCard = (cardId: string) => {
+    setVisibleCards(visibleCards.filter(id => id !== cardId));
+    
+    // Also remove from tempSizes
+    const newTempSizes = { ...tempSizes };
+    delete newTempSizes[cardId];
+    setTempSizes(newTempSizes);
+    
+    toast({ title: 'Card removido do layout' });
+  };
+
+  const isCardVisible = (cardId: string) => visibleCards.includes(cardId);
+
+  // Helper to render functional cards with remove button in edit mode
+  const renderFunctionalCard = (cardId: string, content: React.ReactNode, config?: { width?: number; height?: number; className?: string; colSpan?: string }) => {
+    if (!isCardVisible(cardId)) return null;
+
+    return (
+      <ResizableCard
+        key={cardId}
+        id={cardId}
+        isEditMode={isEditMode}
+        defaultWidth={config?.width || 350}
+        defaultHeight={config?.height || 220}
+        tempSize={tempSizes[cardId]}
+        onTempSizeChange={handleTempSizeChange}
+        allCardSizes={tempSizes}
+        className={cn("p-6 relative", config?.className)}
+      >
+        {isEditMode && (
+          <Button
+            variant="destructive"
+            size="icon"
+            className="absolute top-2 right-2 h-6 w-6 z-50"
+            onClick={() => handleRemoveCard(cardId)}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+        {content}
+      </ResizableCard>
+    );
+  };
 
   if (!patient) {
     return (
@@ -611,151 +962,572 @@ Assinatura do Profissional`;
   }
 
   const now = new Date();
-  const pastSessions = sessions.filter(s => !isFuture(parseISO(s.date)));
-  const totalSessions = pastSessions.length;
-  const attendedSessions = pastSessions.filter(s => s.status === 'attended').length;
-  const attendedPercentage = totalSessions > 0 ? ((attendedSessions / totalSessions) * 100).toFixed(1) : '0';
-  const futureSessions = sessions.filter(s => isFuture(parseISO(s.date)));
-  const unpaidSessions = sessions.filter(s => s.status === 'attended' && !s.paid);
-  const totalValue = sessions.filter(s => s.status === 'attended').reduce((sum, s) => sum + Number(s.value || 0), 0);
+  const monthStart = startOfMonth(now);
+  const monthEnd = endOfMonth(now);
+  
+  // Stats do mês atual
+  const monthSessions = allSessions.filter(s => {
+    const sessionDate = parseISO(s.date);
+    return sessionDate >= monthStart && sessionDate <= monthEnd;
+  });
+  const totalMonthSessions = monthSessions.length;
+  const attendedMonthSessions = monthSessions.filter(s => s.status === 'attended').length;
+  const scheduledMonthSessions = monthSessions.filter(s => s.status === 'scheduled' && isFuture(parseISO(s.date))).length;
+  const unpaidMonthSessions = monthSessions.filter(s => s.status === 'attended' && !s.paid).length;
+  const nfseIssuedSessions = allSessions.filter(s => s.status === 'nfse_issued').length;
+  
+  // Additional stats for new cards
+  const totalAllSessions = allSessions.length;
+  const revenueMonth = monthSessions.reduce((sum, s) => sum + Number(s.value || 0), 0);
+  const paidMonth = monthSessions.filter(s => s.paid).reduce((sum, s) => sum + Number(s.value || 0), 0);
+  const missedMonthSessions = monthSessions.filter(s => s.status === 'missed').length;
+  const attendanceRate = totalMonthSessions > 0 
+    ? Math.round((attendedMonthSessions / totalMonthSessions) * 100) 
+    : 0;
+  const unscheduledMonthSessions = monthSessions.filter(s => s.status === 'unscheduled').length;
+  
+  const futureSessions = allSessions.filter(s => isFuture(parseISO(s.date)) && s.status === 'scheduled');
+  const nextSession = futureSessions.length > 0 ? futureSessions[futureSessions.length - 1] : null;
+  const recentSessions = allSessions.filter(s => s.notes).slice(0, 5);
+  
+  // Check if complaint needs review
+  const needsComplaintReview = complaint && !complaint.dismissed_at && 
+    new Date(complaint.next_review_date) <= now;
+
+  // Render helper for stat cards
+  const renderStatCard = (cardId: string) => {
+    if (!isCardVisible(cardId)) return null;
+
+    const statConfigs: Record<string, { label: string; value: number | string; sublabel: string; color?: string }> = {
+      'stat-total': { label: 'Total no Mês', value: totalMonthSessions, sublabel: 'sessões', color: 'text-foreground' },
+      'stat-attended': { label: 'Comparecidas', value: attendedMonthSessions, sublabel: 'no mês', color: 'text-accent' },
+      'stat-scheduled': { label: 'Agendadas', value: scheduledMonthSessions, sublabel: 'no mês', color: 'text-blue-500' },
+      'stat-unpaid': { label: 'A Pagar', value: unpaidMonthSessions, sublabel: 'no mês', color: 'text-orange-500' },
+      'stat-nfse': { label: 'A Receber', value: nfseIssuedSessions, sublabel: 'NFSe emitida', color: 'text-emerald-500' },
+      'stat-total-all': { label: 'Total Geral', value: totalAllSessions, sublabel: 'todas sessões', color: 'text-primary' },
+      'stat-revenue-month': { label: 'Faturado', value: formatBrazilianCurrency(revenueMonth), sublabel: 'no mês', color: 'text-green-600' },
+      'stat-paid-month': { label: 'Recebido', value: formatBrazilianCurrency(paidMonth), sublabel: 'no mês', color: 'text-green-500' },
+      'stat-missed-month': { label: 'Faltas', value: missedMonthSessions, sublabel: 'no mês', color: 'text-red-500' },
+      'stat-attendance-rate': { label: 'Taxa', value: `${attendanceRate}%`, sublabel: 'comparecimento', color: 'text-blue-600' },
+      'stat-unscheduled-month': { label: 'Desmarcadas', value: unscheduledMonthSessions, sublabel: 'no mês', color: 'text-gray-500' },
+    };
+
+    const config = statConfigs[cardId];
+    if (!config) return null;
+
+    return (
+      <ResizableCard 
+        key={cardId}
+        id={cardId}
+        isEditMode={isEditMode}
+        defaultWidth={200}
+        defaultHeight={120}
+        tempSize={tempSizes[cardId]}
+        onTempSizeChange={handleTempSizeChange}
+        allCardSizes={tempSizes}
+        className="p-4 relative"
+      >
+        {isEditMode && (
+          <Button
+            variant="destructive"
+            size="icon"
+            className="absolute top-2 right-2 h-6 w-6 z-50"
+            onClick={() => handleRemoveCard(cardId)}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+        <div className="flex flex-col">
+          <p className="text-sm text-muted-foreground mb-1">{config.label}</p>
+          <p className={cn("text-3xl font-bold", config.color)}>{config.value}</p>
+          <p className="text-xs text-muted-foreground mt-1">{config.sublabel}</p>
+        </div>
+      </ResizableCard>
+    );
+  };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/patients')}
-          className="mb-6"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Voltar
-        </Button>
-
-        <Card className="p-8 mb-6 shadow-[var(--shadow-card)] border-border">
-          <div className="flex items-center justify-between mb-6">
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <div className="border-b bg-card">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold text-2xl">
-                {patient.name.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <div className="flex items-center gap-3">
-                  <h1 className="text-2xl font-bold text-foreground">{patient.name}</h1>
-                  {patient.status === 'inactive' && (
-                    <span className="px-3 py-1 bg-destructive/10 text-destructive/70 text-sm font-medium rounded-md">
-                      Ficha Encerrada
-                    </span>
-                  )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/patients')}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Voltar
+              </Button>
+              <Separator orientation="vertical" className="h-6" />
+              <div className="flex items-center gap-3">
+                <Avatar className="w-12 h-12">
+                  <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-primary-foreground font-semibold text-lg">
+                    {patient.name.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-xl font-bold text-foreground">{patient.name}</h1>
+                    {patient.status === 'inactive' && (
+                      <Badge variant="destructive" className="text-xs">Ficha Encerrada</Badge>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground">{patient.email || 'Email não informado'}</p>
                 </div>
-                <p className="text-muted-foreground">{patient.email || 'Email não informado'}</p>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
+              {isEditMode && (
+                <Button
+                  onClick={handleRestoreDefault}
+                  variant="outline"
+                  size="sm"
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Restaurar Padrão
+                </Button>
+              )}
               <Button
-                variant="outline"
+                onClick={isEditMode ? handleExitEditMode : handleEnterEditMode}
+                variant={isEditMode ? "default" : "outline"}
+                size="sm"
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                {isEditMode ? 'Salvar Layout' : 'Editar Layout'}
+              </Button>
+              <Button
                 onClick={() => navigate(`/patients/${id}/edit`)}
+                variant="outline"
               >
                 <Edit className="w-4 h-4 mr-2" />
                 Editar
               </Button>
-              <Button
-                variant="outline"
-                onClick={handleExportPatientData}
-                title="Exportar dados do paciente (LGPD)"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Exportar Dados
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={handleDeletePatient}
-                title="Excluir permanentemente todos os dados (LGPD)"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Excluir Definitivamente
-              </Button>
             </div>
           </div>
+        </div>
+      </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="flex items-center gap-3">
-              <Calendar className="w-5 h-5 text-primary" />
-              <div>
-                <p className="text-sm text-muted-foreground">Total de Sessões</p>
-                <p className="text-xl font-semibold text-foreground">{totalSessions}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Calendar className="w-5 h-5 text-accent" />
-              <div>
-                <p className="text-sm text-muted-foreground">Sessões Comparecidas</p>
-                <p className="text-xl font-semibold text-foreground">{attendedSessions} <span className="text-sm text-muted-foreground">({attendedPercentage}%)</span></p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Calendar className="w-5 h-5 text-blue-500" />
-              <div>
-                <p className="text-sm text-muted-foreground">Sessões Agendadas</p>
-                <p className="text-xl font-semibold text-foreground">{futureSessions.length}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <DollarSign className="w-5 h-5 text-success" />
-              <div className="flex-1">
-                <p className="text-sm text-muted-foreground">
-                  {patient.monthly_price ? 'Meses em Aberto' : 'Sessões em Aberto'}
-                </p>
-                <p className="text-xl font-semibold text-foreground">
-                  {patient.monthly_price ? (() => {
-                    // Group unpaid sessions by month for monthly pricing
-                    const sessionsByMonth = unpaidSessions.reduce((acc, session) => {
-                      const monthYear = format(parseISO(session.date), 'MM/yyyy');
-                      if (!acc[monthYear]) {
-                        acc[monthYear] = [];
-                      }
-                      acc[monthYear].push(session);
-                      return acc;
-                    }, {} as Record<string, any[]>);
-                    const monthsCount = Object.keys(sessionsByMonth).length;
-                    const totalValue = monthsCount * Number(patient.session_value);
-                    return (
-                      <>
-                        {monthsCount}
-                        {' '}
-                        <span className="text-sm text-muted-foreground">
-                          ({formatBrazilianCurrency(totalValue)} - {unpaidSessions.length} {unpaidSessions.length === 1 ? 'sessão' : 'sessões'})
-                        </span>
-                      </>
-                    );
-                  })() : (() => {
-                    const totalValue = unpaidSessions.reduce((sum, s) => sum + Number(s.value || 0), 0);
-                    return (
-                      <>
-                        {unpaidSessions.length}
-                        {' '}
-                        <span className="text-sm text-muted-foreground">
-                          ({formatBrazilianCurrency(totalValue)})
-                        </span>
-                      </>
-                    );
-                  })()}
-                </p>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        {/* Card de alerta de termo de consentimento pendente (individual) */}
+      {/* Main Content */}
+      <div className="container mx-auto px-6 py-6">
         <div className="mb-6">
           <ConsentReminder patientId={id} />
         </div>
 
-        <Tabs defaultValue="sessions" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="sessions">Sessões</TabsTrigger>
-            <TabsTrigger value="files">Arquivos</TabsTrigger>
-            <TabsTrigger value="info">Informações</TabsTrigger>
-          </TabsList>
+        {/* Monthly Stats at Top - Always Visible */}
+        <div className="mb-4">
+          {isEditMode && (
+            <div className="flex justify-end mb-4">
+              <Button
+                onClick={() => setIsAddCardDialogOpen(true)}
+                size="sm"
+                variant="outline"
+                className="gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Adicionar Card
+              </Button>
+            </div>
+          )}
+          <ResizableSection
+            id="stats-section"
+            isEditMode={isEditMode}
+            defaultHeight={200}
+            tempHeight={tempSectionHeights['stats-section']}
+            onTempHeightChange={handleTempSectionHeightChange}
+          >
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              {['stat-total', 'stat-attended', 'stat-scheduled', 'stat-unpaid', 'stat-nfse',
+                'stat-total-all', 'stat-revenue-month', 'stat-paid-month', 'stat-missed-month',
+                'stat-attendance-rate', 'stat-unscheduled-month'].map(cardId => renderStatCard(cardId))}
+            </div>
+          </ResizableSection>
+        </div>
 
-          <TabsContent value="sessions" className="space-y-4 mt-4">
+        <Tabs defaultValue="overview" className="w-full">
+          {/* Tabs Menu and New Note Button aligned */}
+          <div className="flex items-center justify-between mb-6">
+            <TabsList>
+              <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+              <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
+              <TabsTrigger value="billing">Faturamento</TabsTrigger>
+              <TabsTrigger value="files">Arquivos</TabsTrigger>
+            </TabsList>
+            <Button 
+              onClick={() => setIsNoteDialogOpen(true)} 
+              variant="outline" 
+              size="sm"
+              className="gap-2 text-muted-foreground hover:text-foreground"
+            >
+              <StickyNote className="w-4 h-4" />
+              Nova Nota
+            </Button>
+          </div>
+
+           {/* Overview Tab */}
+           <TabsContent value="overview" className="space-y-6">
+             {isEditMode && (
+               <div className="flex justify-end mb-4">
+                 <Button
+                   onClick={() => setIsAddCardDialogOpen(true)}
+                   size="sm"
+                   variant="outline"
+                   className="gap-2"
+                 >
+                   <Plus className="w-4 h-4" />
+                   Adicionar Card
+                 </Button>
+               </div>
+             )}
+
+              {/* Functional Cards Section */}
+              <ResizableSection
+                id="functional-section"
+                isEditMode={isEditMode}
+                defaultHeight={510}
+                tempHeight={tempSectionHeights['functional-section']}
+                onTempHeightChange={handleTempSectionHeightChange}
+              >
+               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                 {nextSession && isCardVisible('next-appointment') && renderFunctionalCard(
+                 'next-appointment',
+                 <div className="flex flex-col">
+                   <p className="text-sm font-medium text-muted-foreground mb-2">Próximo Agendamento</p>
+                   <div className="flex items-center gap-2 mb-1">
+                     <Calendar className="w-5 h-5 text-primary" />
+                     <p className="text-xl font-bold text-foreground">
+                       {format(parseISO(nextSession.date), "EEE, dd 'de' MMM", { locale: ptBR })}
+                     </p>
+                   </div>
+                   <div className="flex items-center gap-2 text-muted-foreground">
+                     <Clock className="w-4 h-4" />
+                     <p className="text-base">{nextSession.time || 'Horário não definido'}</p>
+                   </div>
+                   <Badge variant="secondary" className="bg-primary/10 text-primary mt-3 self-start">Agendada</Badge>
+                 </div>,
+                 { className: 'bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20' }
+               )}
+
+               {isCardVisible('contact-info') && renderFunctionalCard(
+                 'contact-info',
+                 <>
+                   <h3 className="font-semibold text-lg mb-4">Informações de Contato</h3>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                     {patient.phone && (
+                       <div className="flex items-start gap-3">
+                         <Phone className="w-4 h-4 text-muted-foreground mt-1" />
+                         <div>
+                           <p className="text-sm text-muted-foreground">Telefone</p>
+                           <p className="font-medium">{patient.phone}</p>
+                         </div>
+                       </div>
+                     )}
+                     {patient.email && (
+                       <div className="flex items-start gap-3">
+                         <Mail className="w-4 h-4 text-muted-foreground mt-1" />
+                         <div>
+                           <p className="text-sm text-muted-foreground">Email</p>
+                           <p className="font-medium text-sm">{patient.email}</p>
+                         </div>
+                       </div>
+                     )}
+                     {patient.address && (
+                       <div className="flex items-start gap-3">
+                         <MapPin className="w-4 h-4 text-muted-foreground mt-1" />
+                         <div>
+                           <p className="text-sm text-muted-foreground">Endereço</p>
+                           <p className="font-medium text-sm">{patient.address}</p>
+                         </div>
+                       </div>
+                     )}
+                     {patient.cpf && (
+                       <div className="flex items-start gap-3">
+                         <User className="w-4 h-4 text-muted-foreground mt-1" />
+                         <div>
+                           <p className="text-sm text-muted-foreground">CPF</p>
+                           <p className="font-medium">{patient.cpf}</p>
+                         </div>
+                       </div>
+                     )}
+                   </div>
+                 </>
+               )}
+
+               {isCardVisible('clinical-complaint') && renderFunctionalCard(
+                 'clinical-complaint',
+                 <>
+                   <div className="flex items-center justify-between mb-4">
+                     <h3 className="font-semibold text-lg flex items-center gap-2">
+                       <FileText className="w-5 h-5 text-primary" />
+                       Queixa Clínica
+                     </h3>
+                     <Button 
+                       onClick={() => setIsComplaintDialogOpen(true)} 
+                       size="sm"
+                       variant="ghost"
+                     >
+                       <Edit className="w-4 h-4" />
+                     </Button>
+                   </div>
+                   {needsComplaintReview && (
+                     <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex items-start gap-2">
+                       <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5" />
+                       <div className="flex-1">
+                         <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                           Atualização necessária
+                         </p>
+                         <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                           Revisar queixa clínica
+                         </p>
+                       </div>
+                     </div>
+                   )}
+                   <div className="text-sm text-muted-foreground">
+                     {complaint?.complaint_text || 'Nenhuma queixa registrada'}
+                   </div>
+                  </>
+                  )}
+
+                   {isCardVisible('clinical-info') && renderFunctionalCard(
+                 'clinical-info',
+                 <>
+                   <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                     <Tag className="w-5 h-5 text-primary" />
+                     Informações Clínicas
+                   </h3>
+                   <div className="space-y-3">
+                     <div className="flex items-center justify-between py-2 border-b">
+                       <span className="text-muted-foreground">Profissional</span>
+                       <span className="font-medium">{userProfile?.full_name || 'Não definido'}</span>
+                     </div>
+                     <div className="flex items-center justify-between py-2 border-b">
+                       <span className="text-muted-foreground">Valor da Sessão</span>
+                       <span className="font-medium">{formatBrazilianCurrency(patient.session_value)}</span>
+                     </div>
+                     <div className="flex items-center justify-between py-2 border-b">
+                       <span className="text-muted-foreground">Modalidade</span>
+                       <Badge variant="outline">{patient.monthly_price ? 'Mensal' : 'Por Sessão'}</Badge>
+                     </div>
+                     <div className="flex items-center justify-between py-2">
+                       <span className="text-muted-foreground">Horário Padrão</span>
+                       <span className="font-medium">{patient.session_time || 'Não definido'}</span>
+                     </div>
+                   </div>
+                 </>,
+                 { width: 700, height: 280, className: 'lg:col-span-2' }
+                )}
+
+                  {isCardVisible('history') && renderFunctionalCard(
+                   'history',
+                   <>
+                     <div className="flex items-center justify-between mb-4">
+                       <h3 className="font-semibold text-lg">Histórico</h3>
+                     </div>
+                     <div className={cn("space-y-3", !showFullHistory && "max-h-[200px] overflow-hidden relative")}>
+                       {sessionHistory.length > 0 ? (
+                         sessionHistory.slice(0, showFullHistory ? undefined : 3).map((history) => (
+                           <div 
+                             key={history.id}
+                             className="p-3 rounded-lg border bg-card text-xs"
+                           >
+                             <p className="text-muted-foreground">
+                               {format(new Date(history.changed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                             </p>
+                             <p className="mt-1">
+                               <span className="line-through text-muted-foreground">
+                                 {history.old_day} {history.old_time}
+                               </span>
+                               {' → '}
+                               <span className="font-medium">
+                                 {history.new_day} {history.new_time}
+                               </span>
+                             </p>
+                           </div>
+                         ))
+                       ) : (
+                         <p className="text-sm text-muted-foreground text-center py-4">
+                           Nenhuma alteração registrada
+                         </p>
+                       )}
+                       {!showFullHistory && sessionHistory.length > 3 && (
+                         <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-card to-transparent" />
+                       )}
+                     </div>
+                     {sessionHistory.length > 3 && (
+                       <Button
+                         variant="ghost"
+                         size="sm"
+                         onClick={() => setShowFullHistory(!showFullHistory)}
+                         className="w-full mt-2 text-xs"
+                       >
+                         {showFullHistory ? (
+                           <>
+                             <ChevronUp className="w-3 h-3 mr-1" />
+                             Mostrar menos
+                           </>
+                         ) : (
+                           <>
+                             <ChevronDown className="w-3 h-3 mr-1" />
+                             Mostrar mais
+                           </>
+                         )}
+                       </Button>
+                     )}
+                   </>,
+                   { width: 350, height: 280 }
+                 )}
+
+                 {/* Recent Notes Card */}
+                 {isCardVisible('recent-notes') && renderFunctionalCard(
+                   'recent-notes',
+                   <>
+                     <h3 className="font-semibold text-lg mb-4">Últimas Notas</h3>
+                     <ScrollArea className="h-[200px]">
+                       <div className="space-y-3">
+                         {recentSessions.length > 0 ? (
+                           recentSessions.map((session) => (
+                             <div key={session.id} className="p-3 rounded-lg border bg-card text-xs">
+                               <p className="text-muted-foreground mb-1">
+                                 {format(parseISO(session.date), 'dd/MM/yyyy')}
+                               </p>
+                               <p className="text-sm">{session.notes}</p>
+                             </div>
+                           ))
+                         ) : (
+                           <p className="text-sm text-muted-foreground text-center py-4">
+                             Nenhuma nota registrada
+                           </p>
+                         )}
+                       </div>
+                     </ScrollArea>
+                   </>,
+                   { width: 350, height: 300 }
+                 )}
+
+                 {/* Quick Actions Card */}
+                 {isCardVisible('quick-actions') && renderFunctionalCard(
+                   'quick-actions',
+                   <>
+                     <h3 className="font-semibold text-lg mb-4">Ações Rápidas</h3>
+                     <div className="space-y-2">
+                       <Button 
+                         onClick={openNewSessionDialog} 
+                         className="w-full justify-start gap-2"
+                         variant="outline"
+                       >
+                         <Plus className="w-4 h-4" />
+                         Nova Sessão
+                       </Button>
+                       <Button 
+                         onClick={() => setIsNoteDialogOpen(true)} 
+                         className="w-full justify-start gap-2"
+                         variant="outline"
+                       >
+                         <StickyNote className="w-4 h-4" />
+                         Nova Nota
+                       </Button>
+                       <Button 
+                         onClick={generateInvoice} 
+                         className="w-full justify-start gap-2"
+                         variant="outline"
+                       >
+                         <DollarSign className="w-4 h-4" />
+                         Gerar Recibo
+                       </Button>
+                       <Button 
+                         onClick={handleExportPatientData} 
+                         className="w-full justify-start gap-2"
+                         variant="outline"
+                       >
+                         <Download className="w-4 h-4" />
+                         Exportar Dados
+                       </Button>
+                     </div>
+                   </>,
+                   { width: 350, height: 280 }
+                 )}
+
+                 {/* Payment Summary Card */}
+                 {isCardVisible('payment-summary') && renderFunctionalCard(
+                   'payment-summary',
+                   <>
+                     <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                       <CreditCard className="w-5 h-5 text-primary" />
+                       Resumo de Pagamentos
+                     </h3>
+                     <div className="space-y-3">
+                       <div className="flex justify-between items-center py-2 border-b">
+                         <span className="text-sm text-muted-foreground">Total Faturado</span>
+                         <span className="font-semibold text-green-600">
+                           {formatBrazilianCurrency(revenueMonth)}
+                         </span>
+                       </div>
+                       <div className="flex justify-between items-center py-2 border-b">
+                         <span className="text-sm text-muted-foreground">Já Recebido</span>
+                         <span className="font-semibold text-green-500">
+                           {formatBrazilianCurrency(paidMonth)}
+                         </span>
+                       </div>
+                       <div className="flex justify-between items-center py-2">
+                         <span className="text-sm text-muted-foreground">Pendente</span>
+                         <span className="font-semibold text-orange-500">
+                           {formatBrazilianCurrency(revenueMonth - paidMonth)}
+                         </span>
+                       </div>
+                       <div className="mt-4 pt-2 border-t">
+                         <p className="text-xs text-muted-foreground">
+                           {unpaidMonthSessions} sessão(ões) não paga(s)
+                         </p>
+                       </div>
+                     </div>
+                   </>,
+                   { width: 350, height: 250 }
+                 )}
+
+                 {/* Session Frequency Card */}
+                 {isCardVisible('session-frequency') && renderFunctionalCard(
+                   'session-frequency',
+                   <>
+                     <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                       <Activity className="w-5 h-5 text-primary" />
+                       Frequência de Sessões
+                     </h3>
+                     <div className="space-y-3">
+                       <div className="flex justify-between items-center">
+                         <span className="text-sm text-muted-foreground">Dia padrão</span>
+                         <Badge variant="outline">{patient.session_day || 'Não definido'}</Badge>
+                       </div>
+                       <div className="flex justify-between items-center">
+                         <span className="text-sm text-muted-foreground">Horário padrão</span>
+                         <Badge variant="outline">{patient.session_time || 'Não definido'}</Badge>
+                       </div>
+                       <div className="mt-4 pt-3 border-t">
+                         <div className="flex items-center gap-2 mb-2">
+                           {attendanceRate >= 80 ? (
+                             <TrendingUp className="w-4 h-4 text-green-500" />
+                           ) : (
+                             <TrendingDown className="w-4 h-4 text-orange-500" />
+                           )}
+                           <span className="text-sm font-medium">
+                             {attendanceRate >= 80 ? 'Frequência excelente' : 'Atenção à frequência'}
+                           </span>
+                         </div>
+                         <p className="text-xs text-muted-foreground">
+                           Taxa de {attendanceRate}% de comparecimento
+                         </p>
+                       </div>
+                     </div>
+                     </>,
+                       { width: 350, height: 250 }
+                    )}
+                </div>
+              </ResizableSection>
+           </TabsContent>
+
+          {/* Appointments Tab */}
+          <TabsContent value="appointments" className="space-y-4">
             <Card className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
@@ -841,162 +1613,166 @@ Assinatura do Profissional`;
 
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold text-foreground">Histórico de Sessões</h2>
-              <div className="flex gap-2">
-                {patient.no_nfse ? (
-                  // Pacientes sem NFSe: recibo de fechamento
-                  <Button onClick={generateInvoice} variant="outline">
-                    <FileText className="w-4 h-4 mr-2" />
-                    Fazer Fechamento
-                  </Button>
-                ) : (
-                  // Pacientes com NFSe (mensais ou por sessão): usar NFSe
-                  <IssueNFSeDialog 
-                    patientId={id!} 
-                    patientName={patient.name}
-                  />
-                )}
-                <Button onClick={openNewSessionDialog}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nova Sessão
-                </Button>
-              </div>
+              <Button onClick={openNewSessionDialog}>
+                <Plus className="w-4 h-4 mr-2" />
+                Nova Sessão
+              </Button>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               {sessions.map(session => (
-                <Card key={session.id} className="p-4">
-                  <div className="flex justify-between items-center">
+                <Card key={session.id} className="p-4 hover:bg-accent/5 transition-colors">
+                  <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-semibold">{format(parseISO(session.date), 'dd/MM/yyyy')}</p>
+                      <div className="flex items-center gap-3 mb-2">
+                        <p className="font-semibold text-lg">{format(parseISO(session.date), 'dd/MM/yyyy')}</p>
+                        <Badge 
+                          variant={
+                            session.status === 'attended' ? 'default' :
+                            session.status === 'missed' ? 'destructive' :
+                            session.status === 'unscheduled' ? 'secondary' :
+                            'outline'
+                          }
+                          className="text-xs"
+                        >
+                          {session.status === 'attended' ? 'Compareceu' : 
+                           session.status === 'missed' ? 'Não Compareceu' :
+                           session.status === 'unscheduled' ? 'Desmarcada' : 'Agendada'}
+                        </Badge>
                         {!session.show_in_schedule && (
-                          <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded">
+                          <Badge variant="outline" className="text-xs">
                             Oculta da agenda
-                          </span>
+                          </Badge>
                         )}
                       </div>
-                      <p className={`text-sm ${
-                        session.status === 'attended' ? 'text-green-600 dark:text-green-400' :
-                        session.status === 'missed' ? 'text-red-600 dark:text-red-400' :
-                        session.status === 'unscheduled' ? 'text-gray-600 dark:text-gray-400' :
-                        'text-blue-600 dark:text-blue-400'
-                      }`}>
-                        {session.status === 'attended' ? 'Compareceu' : 
-                         session.status === 'missed' ? 'Não Compareceu' :
-                         session.status === 'unscheduled' ? 'Desmarcada' : 'Agendada'}
-                      </p>
-                      {session.notes && <p className="text-sm mt-1 text-muted-foreground">{session.notes}</p>}
+                      {session.notes && (
+                        <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                          {session.notes}
+                        </p>
+                      )}
                     </div>
-                      <div className="flex items-center gap-4">
-                       <div className="text-right">
-                         {patient.monthly_price ? (
-                           <p className="font-semibold">Valor Mensal ({formatBrazilianCurrency(patient.session_value)})</p>
-                         ) : (
-                           <p className="font-semibold">{formatBrazilianCurrency(session.value)}</p>
-                         )}
-                         {session.status === 'missed' ? (
-                           <p className="text-xs text-muted-foreground">Sem Cobrança</p>
-                         ) : session.paid ? (
-                           <p className="text-xs text-green-600 dark:text-green-400">Pago</p>
-                         ) : (
-                           <p className="text-xs text-orange-600 dark:text-orange-400">A pagar</p>
-                         )}
-                       </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <p className="font-semibold">
+                          {patient.monthly_price ? 
+                            `Valor Mensal (${formatBrazilianCurrency(patient.session_value)})` : 
+                            formatBrazilianCurrency(session.value)
+                          }
+                        </p>
+                        {session.status === 'missed' ? (
+                          <p className="text-xs text-muted-foreground">Sem Cobrança</p>
+                        ) : session.paid ? (
+                          <Badge variant="outline" className="text-xs bg-green-500/10 text-green-600 border-green-500/20">Pago</Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs bg-orange-500/10 text-orange-600 border-orange-500/20">A pagar</Badge>
+                        )}
+                      </div>
                       <div className="flex items-center gap-2">
-                        <Label htmlFor={`status-${session.id}`} className="text-sm cursor-pointer">
-                          {session.status === 'scheduled' || session.status === 'unscheduled' 
-                            ? (session.status === 'scheduled' ? 'Agendada' : 'Desmarcada')
-                            : (session.status === 'attended' ? 'Compareceu' : 'Faltou')}
-                        </Label>
                         <Switch
                           id={`status-${session.id}`}
                           checked={session.status === 'attended' || session.status === 'scheduled'}
                           onCheckedChange={(checked) => toggleStatus(session, checked)}
                         />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openEditDialog(session)}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => openEditDialog(session)}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => deleteSession(session.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
                     </div>
                   </div>
                 </Card>
               ))}
-
-              {sessions.length === 0 && (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground">Nenhuma sessão registrada</p>
-                </div>
-              )}
             </div>
           </TabsContent>
 
-          <TabsContent value="files" className="mt-4">
-            <PatientFiles patientId={id!} />
-          </TabsContent>
+          {/* Billing Tab */}
+          <TabsContent value="billing" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-semibold">Faturamento</h2>
+              {patient.no_nfse ? (
+                <Button onClick={generateInvoice} variant="outline">
+                  <FileText className="w-4 h-4 mr-2" />
+                  Fazer Fechamento
+                </Button>
+              ) : (
+                <IssueNFSeDialog 
+                  patientId={id!} 
+                  patientName={patient.name}
+                />
+              )}
+            </div>
 
-          <TabsContent value="info" className="mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card className="p-6">
+                <p className="text-sm text-muted-foreground mb-2">Sessões em Aberto</p>
+                <p className="text-3xl font-bold">{allSessions.filter(s => s.status === 'attended' && !s.paid).length}</p>
+              </Card>
+              <Card className="p-6">
+                <p className="text-sm text-muted-foreground mb-2">Valor Total em Aberto</p>
+                <p className="text-3xl font-bold">
+                  {formatBrazilianCurrency(
+                    patient.monthly_price ? 
+                      allSessions.filter(s => s.status === 'attended' && !s.paid).reduce((acc, session) => {
+                        const monthYear = format(parseISO(session.date), 'MM/yyyy');
+                        return acc;
+                      }, 0) * Number(patient.session_value) :
+                      allSessions.filter(s => s.status === 'attended' && !s.paid).reduce((sum, s) => sum + Number(s.value || 0), 0)
+                  )}
+                </p>
+              </Card>
+              <Card className="p-6">
+                <p className="text-sm text-muted-foreground mb-2">Total Faturado</p>
+                <p className="text-3xl font-bold">
+                  {formatBrazilianCurrency(
+                    sessions.filter(s => s.paid).reduce((sum, s) => sum + Number(s.value || 0), 0)
+                  )}
+                </p>
+              </Card>
+            </div>
+
             <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Informações do Paciente</h3>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-sm text-muted-foreground">Nome Completo</p>
-                  <p className="font-medium">{patient.name}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Email</p>
-                  <p className="font-medium">{patient.email || 'Não informado'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Telefone</p>
-                  <p className="font-medium">{patient.phone || 'Não informado'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">CPF</p>
-                  <p className="font-medium">{patient.cpf}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Data de Nascimento</p>
-                  <p className="font-medium">{patient.birth_date ? format(parseISO(patient.birth_date), 'dd/MM/yyyy') : 'Não informada'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Frequência</p>
-                  <p className="font-medium">{patient.frequency === 'weekly' ? 'Semanal' : 'Quinzenal'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Dia da Sessão</p>
-                  <p className="font-medium">{patient.session_day || 'Não definido'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Horário da Sessão</p>
-                  <p className="font-medium">{patient.session_time || 'Não definido'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">{patient.monthly_price ? 'Valor Mensal' : 'Valor da Sessão'}</p>
-                  <p className="font-medium">{formatBrazilianCurrency(patient.session_value)}</p>
-                </div>
+              <h3 className="font-semibold mb-4">Sessões Não Pagas</h3>
+              <div className="space-y-2">
+                {allSessions.filter(s => s.status === 'attended' && !s.paid).length > 0 ? (
+                  allSessions.filter(s => s.status === 'attended' && !s.paid).map(session => (
+                    <div key={session.id} className="flex justify-between items-center py-3 border-b last:border-0">
+                      <div>
+                        <p className="font-medium">{format(parseISO(session.date), 'dd/MM/yyyy')}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {session.time || 'Horário não definido'}
+                        </p>
+                      </div>
+                      <p className="font-semibold">{formatBrazilianCurrency(session.value)}</p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center text-muted-foreground py-8">
+                    Não há sessões pendentes de pagamento
+                  </p>
+                )}
               </div>
             </Card>
           </TabsContent>
-        </Tabs>
 
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{editingSession ? 'Editar Sessão' : 'Nova Sessão'}</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
+          {/* Files Tab */}
+          <TabsContent value="files">
+            <PatientFiles patientId={id!} />
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      {/* Session Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{editingSession ? 'Editar Sessão' : 'Nova Sessão'}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
                 <Label>Data</Label>
                 <Input
                   type="date"
@@ -1005,8 +1781,7 @@ Assinatura do Profissional`;
                   required
                 />
               </div>
-
-              <div>
+              <div className="space-y-2">
                 <Label>Horário</Label>
                 <Input
                   type="time"
@@ -1014,9 +1789,36 @@ Assinatura do Profissional`;
                   onChange={(e) => setFormData({ ...formData, time: e.target.value })}
                 />
               </div>
+            </div>
 
-              <div>
-                <Label>Valor (R$)</Label>
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="scheduled">Agendada</SelectItem>
+                  <SelectItem value="attended">Compareceu</SelectItem>
+                  <SelectItem value="missed">Não Compareceu</SelectItem>
+                  <SelectItem value="unscheduled">Desmarcada</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Notas da Sessão</Label>
+              <Textarea
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                placeholder="Registre observações sobre a sessão..."
+                rows={6}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Valor</Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -1025,88 +1827,205 @@ Assinatura do Profissional`;
                   required
                 />
               </div>
-
-              <div>
-                <Label>Observações</Label>
-                <Textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  rows={3}
-                />
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
+              <div className="flex items-center space-x-2 pt-8">
+                <Switch
                   id="paid"
                   checked={formData.paid}
-                  onChange={(e) => setFormData({ ...formData, paid: e.target.checked })}
-                  className="h-4 w-4"
+                  onCheckedChange={(checked) => setFormData({ ...formData, paid: checked })}
                 />
-                <Label htmlFor="paid">Pago</Label>
+                <Label htmlFor="paid">Sessão Paga</Label>
               </div>
+            </div>
 
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="showInSchedule"
-                  checked={formData.showInSchedule}
-                  onChange={(e) => setFormData({ ...formData, showInSchedule: e.target.checked })}
-                  className="h-4 w-4"
-                />
-                <Label htmlFor="showInSchedule">Mostrar na Agenda</Label>
-              </div>
-
-              {editingSession && (
-                <Button 
-                  type="button" 
-                  variant="destructive" 
-                  onClick={() => deleteSession(editingSession.id)} 
-                  className="w-full"
-                >
-                  Excluir Sessão
-                </Button>
-              )}
-
-              <Button type="submit" className="w-full">
-                {editingSession ? 'Atualizar' : 'Criar'} Sessão
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={isInvoiceDialogOpen} onOpenChange={setIsInvoiceDialogOpen}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Fechamento de Sessões</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <Textarea
-                value={invoiceText}
-                readOnly
-                rows={15}
-                className="font-mono text-sm"
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="showInSchedule"
+                checked={formData.showInSchedule}
+                onCheckedChange={(checked) => setFormData({ ...formData, showInSchedule: checked })}
               />
+              <Label htmlFor="showInSchedule">Mostrar na Agenda</Label>
+            </div>
+
+            <div className="flex justify-between pt-4">
+              <div>
+                {editingSession && (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={() => deleteSession(editingSession.id)}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Excluir
+                  </Button>
+                )}
+              </div>
               <div className="flex gap-2">
-                <Button onClick={markSessionsAsPaid} className="flex-1">
-                  Dar Baixa nas Sessões
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  Cancelar
                 </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    navigator.clipboard.writeText(invoiceText);
-                    toast({ title: 'Texto copiado!' });
-                  }}
-                  className="flex-1"
-                >
-                  Copiar Texto
+                <Button type="submit">
+                  {editingSession ? 'Salvar' : 'Criar'}
                 </Button>
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-    );
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invoice Dialog */}
+      <Dialog open={isInvoiceDialogOpen} onOpenChange={setIsInvoiceDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Fechamento de Sessões</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Textarea
+              value={invoiceText}
+              readOnly
+              rows={20}
+              className="font-mono text-sm"
+            />
+            <div className="flex justify-between">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  navigator.clipboard.writeText(invoiceText);
+                  toast({ title: 'Copiado para área de transferência!' });
+                }}
+              >
+                Copiar Texto
+              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setIsInvoiceDialogOpen(false)}>
+                  Fechar
+                </Button>
+                <Button onClick={markSessionsAsPaid}>
+                  Marcar como Pagas
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Complaint Dialog */}
+      <Dialog open={isComplaintDialogOpen} onOpenChange={setIsComplaintDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Queixa Clínica</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Textarea
+              value={complaintText}
+              onChange={(e) => setComplaintText(e.target.value)}
+              placeholder="Descreva a razão pela qual o paciente buscou terapia..."
+              rows={8}
+            />
+            <div className="flex justify-between">
+              {needsComplaintReview && (
+                <Button variant="outline" onClick={handleDismissComplaint}>
+                  Ignorar (3 meses)
+                </Button>
+              )}
+              <div className="flex gap-2 ml-auto">
+                <Button variant="outline" onClick={() => setIsComplaintDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleSaveComplaint}>Salvar</Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Note Dialog */}
+      <Dialog open={isNoteDialogOpen} onOpenChange={setIsNoteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nova Nota Clínica</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Tipo de Nota</Label>
+              <Select value={noteType} onValueChange={(val: 'session' | 'general') => setNoteType(val)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="general">Nota Geral do Paciente</SelectItem>
+                  <SelectItem value="session">Nota de Sessão Específica</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {noteType === 'session' && (
+              <div className="space-y-2">
+                <Label>Selecione a Sessão</Label>
+                <Select value={selectedSessionForNote || ''} onValueChange={setSelectedSessionForNote}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Escolha uma sessão" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allSessions.slice(0, 20).map((session) => (
+                      <SelectItem key={session.id} value={session.id}>
+                        {format(parseISO(session.date), "dd/MM/yyyy", { locale: ptBR })} - {session.time || 'Sem horário'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label>Conteúdo da Nota</Label>
+              <Textarea
+                value={noteText}
+                onChange={(e) => setNoteText(e.target.value)}
+                placeholder="Digite o conteúdo da nota clínica..."
+                rows={10}
+              />
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsNoteDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSaveNote}>Salvar Nota</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Exit Edit Mode Confirmation Dialog */}
+      <AlertDialog open={isExitEditDialogOpen} onOpenChange={setIsExitEditDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Salvar alterações no layout?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você fez alterações no tamanho dos cards. Deseja salvar essas mudanças ou descartá-las?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelChanges}>
+              Cancelar (descartar mudanças)
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleSaveChanges}>
+              Salvar alterações
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Add Card Dialog */}
+      <AddCardDialog
+        open={isAddCardDialogOpen}
+        onOpenChange={setIsAddCardDialogOpen}
+        onAddCard={handleAddCard}
+        onRemoveCard={handleRemoveCard}
+        existingCardIds={visibleCards}
+      />
+    </div>
+  );
 };
 
-export default PatientDetail;
+export default PatientDetailNew;
