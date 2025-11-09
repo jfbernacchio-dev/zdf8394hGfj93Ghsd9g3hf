@@ -4,11 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { format, parseISO, startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import { format, parseISO, startOfMonth, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CheckCircle2, FileText, Paperclip, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
+import { Progress } from '@/components/ui/progress';
+import { SessionFileUpload } from './SessionFileUpload';
 
 interface ClinicalEvolutionProps {
   patientId: string;
@@ -43,9 +45,12 @@ interface SessionEvaluation {
   created_at: string;
 }
 
+type Severity = 'normal' | 'moderate' | 'severe';
+
 export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [evaluation, setEvaluation] = useState<SessionEvaluation | null>(null);
   const [period, setPeriod] = useState('all');
   const [loading, setLoading] = useState(true);
@@ -57,8 +62,10 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
   useEffect(() => {
     if (selectedSessionId) {
       loadEvaluation(selectedSessionId);
+      const session = sessions.find(s => s.id === selectedSessionId);
+      setSelectedSession(session || null);
     }
-  }, [selectedSessionId]);
+  }, [selectedSessionId, sessions]);
 
   const loadSessions = async () => {
     setLoading(true);
@@ -69,7 +76,6 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
       .eq('patient_id', patientId)
       .order('date', { ascending: true });
 
-    // Apply period filter
     if (period !== 'all') {
       const now = new Date();
       let startDate: Date;
@@ -99,7 +105,6 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
       return;
     }
 
-    // Check which sessions have evaluations
     const sessionIds = sessionsData?.map(s => s.id) || [];
     const { data: evaluationsData } = await supabase
       .from('session_evaluations')
@@ -108,7 +113,6 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
 
     const evaluationSessionIds = new Set(evaluationsData?.map(e => e.session_id) || []);
 
-    // Check which sessions have files
     const { data: filesData } = await supabase
       .from('patient_files')
       .select('id, file_name')
@@ -127,7 +131,6 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
 
     setSessions(enrichedSessions);
 
-    // Select the last session with evaluation by default
     const lastEvaluatedSession = enrichedSessions
       .filter(s => s.has_evaluation)
       .pop();
@@ -174,40 +177,408 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
     return colors[status] || 'bg-muted';
   };
 
-  const renderEvaluationCard = (title: string, data: any, fields: { label: string; key: string; type?: string }[]) => {
+  const getSeverityColor = (severity: Severity) => {
+    switch (severity) {
+      case 'normal':
+        return 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800';
+      case 'moderate':
+        return 'bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800';
+      case 'severe':
+        return 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800';
+    }
+  };
+
+  const getProgressColor = (value: number) => {
+    if (value >= 70) return 'bg-green-500';
+    if (value >= 40) return 'bg-yellow-500';
+    return 'bg-red-500';
+  };
+
+  const generateSummary = (evaluation: SessionEvaluation): string => {
+    const summaryParts: string[] = [];
+
+    // Consciousness
+    if (evaluation.consciousness_data?.level < 40) {
+      summaryParts.push('rebaixamento do nível de consciência');
+    }
+
+    // Orientation
+    const orientation = evaluation.orientation_data;
+    if (!orientation?.time || !orientation?.space || !orientation?.person) {
+      summaryParts.push('desorientação parcial');
+    }
+
+    // Mood
+    const mood = evaluation.mood_data;
+    if (mood?.polarity < -30) {
+      summaryParts.push('humor deprimido');
+    } else if (mood?.polarity > 30) {
+      summaryParts.push('humor elevado');
+    }
+
+    // Thought
+    const thought = evaluation.thought_data;
+    if (thought?.obsessive || thought?.delusional) {
+      summaryParts.push('alterações do pensamento');
+    }
+
+    // Memory
+    const memory = evaluation.memory_data;
+    if (memory?.fixation < 50 || memory?.recall < 50) {
+      summaryParts.push('prejuízo de memória');
+    }
+
+    // Attention
+    const attention = evaluation.attention_data;
+    if (attention?.concentration < 50 || attention?.distractibility) {
+      summaryParts.push('déficit de atenção');
+    }
+
+    if (summaryParts.length === 0) {
+      return 'Paciente não apresenta alterações significativas nas funções psíquicas avaliadas. Exame mental dentro dos padrões esperados.';
+    }
+
+    return `Paciente apresenta ${summaryParts.join(', ')}. Demais funções psíquicas preservadas.`;
+  };
+
+  const renderEvaluationCard = (
+    title: string,
+    data: any,
+    getSummary: (data: any) => { text: string; severity: Severity; values?: { label: string; value: number }[] }
+  ) => {
     if (!data) return null;
 
+    const { text, severity, values } = getSummary(data);
+
     return (
-      <Card className="h-full">
+      <Card className={cn("h-full", getSeverityColor(severity))}>
         <CardHeader className="p-4 pb-3">
           <CardTitle className="text-base font-semibold">{title}</CardTitle>
         </CardHeader>
         <CardContent className="p-4 pt-0 space-y-3">
-          {fields.map((field) => {
-            const value = data[field.key];
-            if (value === undefined || value === null) return null;
-
-            let displayValue: string;
-            if (typeof value === 'boolean') {
-              displayValue = value ? 'Sim' : 'Não';
-            } else if (typeof value === 'number') {
-              displayValue = value.toString();
-            } else if (Array.isArray(value)) {
-              displayValue = value.join(', ');
-            } else {
-              displayValue = value;
-            }
-
-            return (
-              <div key={field.key} className="space-y-1">
-                <p className="text-xs text-muted-foreground font-medium">{field.label}</p>
-                <p className="text-sm">{displayValue}</p>
-              </div>
-            );
-          })}
+          <p className="text-sm">{text}</p>
+          {values && values.length > 0 && (
+            <div className="space-y-2">
+              {values.map((item) => (
+                <div key={item.label} className="space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">{item.label}</span>
+                    <span className="font-medium">{item.value}%</span>
+                  </div>
+                  <div className="relative h-2 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={cn("h-full transition-all", getProgressColor(item.value))}
+                      style={{ width: `${item.value}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     );
+  };
+
+  const getConsciousnessSummary = (data: any) => {
+    const level = data.level || 0;
+    let text = '';
+    let severity: Severity = 'normal';
+
+    if (level >= 70) {
+      text = 'Nível de consciência preservado, sem alterações significativas.';
+    } else if (level >= 40) {
+      text = 'Leve rebaixamento do nível de consciência.';
+      severity = 'moderate';
+    } else {
+      text = 'Rebaixamento significativo do nível de consciência.';
+      severity = 'severe';
+    }
+
+    if (data.depersonalization || data.derealization) {
+      text += ' Presença de fenômenos dissociativos.';
+      severity = 'severe';
+    }
+
+    return { text, severity, values: [{ label: 'Nível', value: level }] };
+  };
+
+  const getOrientationSummary = (data: any) => {
+    const oriented = [data.time, data.space, data.person, data.situation].filter(Boolean).length;
+    let text = '';
+    let severity: Severity = 'normal';
+
+    if (oriented === 4) {
+      text = 'Paciente orientado em tempo, espaço, pessoa e situação.';
+    } else if (oriented >= 2) {
+      text = 'Orientação parcialmente preservada.';
+      severity = 'moderate';
+    } else {
+      text = 'Desorientação significativa.';
+      severity = 'severe';
+    }
+
+    const insight = data.insight || 0;
+    return {
+      text,
+      severity,
+      values: [{ label: 'Insight', value: insight }]
+    };
+  };
+
+  const getMemorySummary = (data: any) => {
+    const fixation = data.fixation || 0;
+    const recall = data.recall || 0;
+    const avg = (fixation + recall) / 2;
+
+    let text = '';
+    let severity: Severity = 'normal';
+
+    if (avg >= 70) {
+      text = 'Memória preservada, sem prejuízos significativos.';
+    } else if (avg >= 40) {
+      text = 'Prejuízo leve a moderado de memória.';
+      severity = 'moderate';
+    } else {
+      text = 'Prejuízo significativo de memória.';
+      severity = 'severe';
+    }
+
+    if (data.amnesia) {
+      text += ' Presença de amnésia.';
+      severity = 'severe';
+    }
+
+    return {
+      text,
+      severity,
+      values: [
+        { label: 'Fixação', value: fixation },
+        { label: 'Evocação', value: recall }
+      ]
+    };
+  };
+
+  const getMoodSummary = (data: any) => {
+    const polarity = data.polarity || 0;
+    const lability = data.lability || 0;
+
+    let text = '';
+    let severity: Severity = 'normal';
+
+    if (polarity < -30) {
+      text = 'Humor deprimido.';
+      severity = polarity < -60 ? 'severe' : 'moderate';
+    } else if (polarity > 30) {
+      text = 'Humor elevado.';
+      severity = polarity > 60 ? 'severe' : 'moderate';
+    } else {
+      text = 'Humor eutímico, sem alterações significativas.';
+    }
+
+    if (lability > 60) {
+      text += ' Labilidade emocional presente.';
+      severity = 'moderate';
+    }
+
+    return {
+      text,
+      severity,
+      values: [{ label: 'Labilidade', value: lability }]
+    };
+  };
+
+  const getThoughtSummary = (data: any) => {
+    let text = 'Pensamento sem alterações significativas.';
+    let severity: Severity = 'normal';
+
+    const alterations = [];
+    if (data.obsessive) alterations.push('obsessivo');
+    if (data.delusional) alterations.push('delirante');
+    if (data.incoherent) alterations.push('incoerente');
+    if (data.tangential) alterations.push('tangencial');
+
+    if (alterations.length > 0) {
+      text = `Pensamento ${alterations.join(', ')}.`;
+      severity = data.delusional || data.incoherent ? 'severe' : 'moderate';
+    }
+
+    return { text, severity };
+  };
+
+  const getLanguageSummary = (data: any) => {
+    const speechRate = data.speech_rate || 0;
+    let text = '';
+    let severity: Severity = 'normal';
+
+    if (speechRate >= -20 && speechRate <= 20) {
+      text = 'Linguagem preservada, ritmo e articulação normais.';
+    } else if (Math.abs(speechRate) <= 50) {
+      text = speechRate > 0 ? 'Fala acelerada.' : 'Fala lentificada.';
+      severity = 'moderate';
+    } else {
+      text = speechRate > 0 ? 'Fala muito acelerada.' : 'Fala muito lentificada.';
+      severity = 'severe';
+    }
+
+    return { text, severity };
+  };
+
+  const getSensoperceptionSummary = (data: any) => {
+    let text = 'Sensopercepção preservada.';
+    let severity: Severity = 'normal';
+
+    const hallucinations = [];
+    if (data.auditory) hallucinations.push('auditivas');
+    if (data.visual) hallucinations.push('visuais');
+    if (data.tactile) hallucinations.push('táteis');
+    if (data.olfactory) hallucinations.push('olfativas');
+
+    if (hallucinations.length > 0) {
+      text = `Presença de alucinações ${hallucinations.join(', ')}.`;
+      severity = 'severe';
+    }
+
+    return { text, severity };
+  };
+
+  const getIntelligenceSummary = (data: any) => {
+    const learning = data.learning_capacity || 0;
+    const reasoning = data.abstract_reasoning || 0;
+    const avg = (learning + reasoning) / 2;
+
+    let text = '';
+    let severity: Severity = 'normal';
+
+    if (avg >= 70) {
+      text = 'Funções intelectuais preservadas.';
+    } else if (avg >= 40) {
+      text = 'Leve prejuízo das funções intelectuais.';
+      severity = 'moderate';
+    } else {
+      text = 'Prejuízo significativo das funções intelectuais.';
+      severity = 'severe';
+    }
+
+    return {
+      text,
+      severity,
+      values: [
+        { label: 'Aprendizagem', value: learning },
+        { label: 'Raciocínio Abstrato', value: reasoning }
+      ]
+    };
+  };
+
+  const getWillSummary = (data: any) => {
+    const energy = data.volitional_energy || 0;
+    const impulse = data.impulse_control || 0;
+
+    let text = '';
+    let severity: Severity = 'normal';
+
+    if (energy < 40) {
+      text = 'Energia volitiva reduzida.';
+      severity = 'moderate';
+    } else if (energy > 70) {
+      text = 'Energia volitiva preservada.';
+    } else {
+      text = 'Energia volitiva moderada.';
+    }
+
+    if (impulse < 40) {
+      text += ' Dificuldade no controle de impulsos.';
+      severity = 'severe';
+    }
+
+    return { text, severity, values: [{ label: 'Controle de Impulsos', value: impulse }] };
+  };
+
+  const getPsychomotorSummary = (data: any) => {
+    const activity = data.motor_activity || 0;
+
+    let text = '';
+    let severity: Severity = 'normal';
+
+    if (activity >= -20 && activity <= 20) {
+      text = 'Psicomotricidade preservada, sem alterações.';
+    } else if (Math.abs(activity) <= 50) {
+      text = activity > 0 ? 'Leve agitação psicomotora.' : 'Leve lentificação psicomotora.';
+      severity = 'moderate';
+    } else {
+      text = activity > 0 ? 'Agitação psicomotora significativa.' : 'Lentificação psicomotora significativa.';
+      severity = 'severe';
+    }
+
+    return { text, severity };
+  };
+
+  const getAttentionSummary = (data: any) => {
+    const range = data.range || 0;
+    const concentration = data.concentration || 0;
+    const avg = (range + concentration) / 2;
+
+    let text = '';
+    let severity: Severity = 'normal';
+
+    if (avg >= 70) {
+      text = 'Atenção e concentração preservadas.';
+    } else if (avg >= 40) {
+      text = 'Leve déficit de atenção e concentração.';
+      severity = 'moderate';
+    } else {
+      text = 'Déficit significativo de atenção e concentração.';
+      severity = 'severe';
+    }
+
+    if (data.distractibility) {
+      text += ' Distraibilidade presente.';
+      severity = 'moderate';
+    }
+
+    return {
+      text,
+      severity,
+      values: [
+        { label: 'Amplitude', value: range },
+        { label: 'Concentração', value: concentration }
+      ]
+    };
+  };
+
+  const getPersonalitySummary = (data: any) => {
+    const coherence = data.self_coherence || 0;
+    const stability = data.affective_stability || 0;
+
+    let text = '';
+    let severity: Severity = 'normal';
+
+    const traits = [];
+    if (data.anxious) traits.push('ansioso');
+    if (data.avoidant) traits.push('evitativo');
+    if (data.obsessive) traits.push('obsessivo');
+    if (data.borderline) traits.push('borderline');
+
+    if (coherence >= 70 && stability >= 70 && traits.length === 0) {
+      text = 'Personalidade estável, sem traços disfuncionais.';
+    } else if (coherence >= 40 && stability >= 40) {
+      text = traits.length > 0 
+        ? `Traços de personalidade ${traits.join(', ')}.`
+        : 'Estabilidade emocional moderada.';
+      severity = 'moderate';
+    } else {
+      text = 'Instabilidade significativa da personalidade.';
+      severity = 'severe';
+    }
+
+    return {
+      text,
+      severity,
+      values: [
+        { label: 'Coerência do Self', value: coherence },
+        { label: 'Estabilidade Afetiva', value: stability }
+      ]
+    };
   };
 
   return (
@@ -316,116 +687,43 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
 
               <Separator />
 
+              {/* Summary */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Resumo Clínico</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm leading-relaxed">{generateSummary(evaluation)}</p>
+                </CardContent>
+              </Card>
+
+              {/* File Upload */}
+              {selectedSession && (
+                <div className="flex justify-end">
+                  <SessionFileUpload
+                    sessionId={selectedSession.id}
+                    sessionDate={selectedSession.date}
+                    patientId={patientId}
+                    onUploadComplete={loadSessions}
+                  />
+                </div>
+              )}
+
+              <Separator />
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {renderEvaluationCard('1. Consciência', evaluation.consciousness_data, [
-                  { label: 'Nível', key: 'level' },
-                  { label: 'Campo', key: 'field' },
-                  { label: 'Autoconsciência', key: 'self_consciousness' },
-                  { label: 'Despersonalização', key: 'depersonalization', type: 'boolean' },
-                  { label: 'Desrealização', key: 'derealization', type: 'boolean' },
-                  { label: 'Observações', key: 'notes' }
-                ])}
-
-                {renderEvaluationCard('2. Orientação', evaluation.orientation_data, [
-                  { label: 'Tempo', key: 'time', type: 'boolean' },
-                  { label: 'Espaço', key: 'space', type: 'boolean' },
-                  { label: 'Pessoa', key: 'person', type: 'boolean' },
-                  { label: 'Situação', key: 'situation', type: 'boolean' },
-                  { label: 'Insight', key: 'insight' },
-                  { label: 'Juízo de Realidade', key: 'reality_judgment' },
-                  { label: 'Comentários', key: 'comments' }
-                ])}
-
-                {renderEvaluationCard('3. Memória', evaluation.memory_data, [
-                  { label: 'Fixação', key: 'fixation' },
-                  { label: 'Evocação', key: 'recall' },
-                  { label: 'Auditiva', key: 'auditory', type: 'boolean' },
-                  { label: 'Amnésia', key: 'amnesia', type: 'boolean' },
-                  { label: 'Paramnésia', key: 'paramnesia', type: 'boolean' },
-                  { label: 'Hipermnésia', key: 'hypermnesia', type: 'boolean' },
-                  { label: 'Fobias', key: 'phobias', type: 'boolean' },
-                  { label: 'Notas', key: 'notes' }
-                ])}
-
-                {renderEvaluationCard('4. Humor / Afeto', evaluation.mood_data, [
-                  { label: 'Polaridade', key: 'polarity' },
-                  { label: 'Labilidade', key: 'lability' },
-                  { label: 'Adequação', key: 'adequacy' },
-                  { label: 'Responsividade Emocional', key: 'emotional_responsiveness', type: 'boolean' },
-                  { label: 'Notas', key: 'notes' }
-                ])}
-
-                {renderEvaluationCard('5. Pensamento', evaluation.thought_data, [
-                  { label: 'Curso', key: 'course' },
-                  { label: 'Obsessivo', key: 'obsessive', type: 'boolean' },
-                  { label: 'Delirante', key: 'delusional', type: 'boolean' },
-                  { label: 'Incoerente', key: 'incoherent', type: 'boolean' },
-                  { label: 'Supervalorizado', key: 'overvalued', type: 'boolean' },
-                  { label: 'Tangencial', key: 'tangential', type: 'boolean' },
-                  { label: 'Circunstancial', key: 'circumstantial', type: 'boolean' },
-                  { label: 'Dissociado', key: 'dissociated', type: 'boolean' },
-                  { label: 'Descrição', key: 'description' }
-                ])}
-
-                {renderEvaluationCard('6. Linguagem', evaluation.language_data, [
-                  { label: 'Velocidade da Fala', key: 'speech_rate' },
-                  { label: 'Articulação', key: 'articulation' },
-                  { label: 'Observações', key: 'observations' }
-                ])}
-
-                {renderEvaluationCard('7. Sensopercepção', evaluation.sensoperception_data, [
-                  { label: 'Percepção Global', key: 'global_perception' },
-                  { label: 'Auditiva', key: 'auditory', type: 'boolean' },
-                  { label: 'Visual', key: 'visual', type: 'boolean' },
-                  { label: 'Tátil', key: 'tactile', type: 'boolean' },
-                  { label: 'Olfativa', key: 'olfactory', type: 'boolean' },
-                  { label: 'Cinestésica', key: 'kinesthetic', type: 'boolean' },
-                  { label: 'Mista', key: 'mixed', type: 'boolean' },
-                  { label: 'Descrição', key: 'description' }
-                ])}
-
-                {renderEvaluationCard('8. Inteligência', evaluation.intelligence_data, [
-                  { label: 'Capacidade de Aprendizagem', key: 'learning_capacity' },
-                  { label: 'Raciocínio Abstrato', key: 'abstract_reasoning' },
-                  { label: 'Capacidade Adaptativa', key: 'adaptive_capacity' },
-                  { label: 'Expressividade Facial', key: 'facial_expressivity' },
-                  { label: 'Notas', key: 'notes' }
-                ])}
-
-                {renderEvaluationCard('9. Vontade', evaluation.will_data, [
-                  { label: 'Energia Volitiva', key: 'volitional_energy' },
-                  { label: 'Controle de Impulsos', key: 'impulse_control' },
-                  { label: 'Ambivalência', key: 'ambivalence', type: 'boolean' },
-                  { label: 'Observações', key: 'observations' }
-                ])}
-
-                {renderEvaluationCard('10. Psicomotricidade', evaluation.psychomotor_data, [
-                  { label: 'Atividade Motora', key: 'motor_activity' },
-                  { label: 'Tom e Gestos', key: 'tone_gestures' },
-                  { label: 'Expressividade Facial', key: 'facial_expressiveness' },
-                  { label: 'Notas', key: 'notes' }
-                ])}
-
-                {renderEvaluationCard('11. Atenção', evaluation.attention_data, [
-                  { label: 'Amplitude', key: 'range' },
-                  { label: 'Concentração', key: 'concentration' },
-                  { label: 'Distraibilidade', key: 'distractibility', type: 'boolean' },
-                  { label: 'Notas', key: 'notes' }
-                ])}
-
-                {renderEvaluationCard('12. Personalidade', evaluation.personality_data, [
-                  { label: 'Coerência do Self', key: 'self_coherence' },
-                  { label: 'Limites do Self', key: 'self_boundaries' },
-                  { label: 'Estabilidade Afetiva', key: 'affective_stability' },
-                  { label: 'Ansioso', key: 'anxious', type: 'boolean' },
-                  { label: 'Evitativo', key: 'avoidant', type: 'boolean' },
-                  { label: 'Obsessivo', key: 'obsessive', type: 'boolean' },
-                  { label: 'Antissocial', key: 'antisocial', type: 'boolean' },
-                  { label: 'Borderline', key: 'borderline', type: 'boolean' },
-                  { label: 'Histriônico', key: 'histrionic', type: 'boolean' },
-                  { label: 'Narcisista', key: 'narcissistic', type: 'boolean' },
-                  { label: 'Observações', key: 'observations' }
-                ])}
+                {renderEvaluationCard('1. Consciência', evaluation.consciousness_data, getConsciousnessSummary)}
+                {renderEvaluationCard('2. Orientação', evaluation.orientation_data, getOrientationSummary)}
+                {renderEvaluationCard('3. Memória', evaluation.memory_data, getMemorySummary)}
+                {renderEvaluationCard('4. Humor / Afeto', evaluation.mood_data, getMoodSummary)}
+                {renderEvaluationCard('5. Pensamento', evaluation.thought_data, getThoughtSummary)}
+                {renderEvaluationCard('6. Linguagem', evaluation.language_data, getLanguageSummary)}
+                {renderEvaluationCard('7. Sensopercepção', evaluation.sensoperception_data, getSensoperceptionSummary)}
+                {renderEvaluationCard('8. Inteligência', evaluation.intelligence_data, getIntelligenceSummary)}
+                {renderEvaluationCard('9. Vontade', evaluation.will_data, getWillSummary)}
+                {renderEvaluationCard('10. Psicomotricidade', evaluation.psychomotor_data, getPsychomotorSummary)}
+                {renderEvaluationCard('11. Atenção', evaluation.attention_data, getAttentionSummary)}
+                {renderEvaluationCard('12. Personalidade', evaluation.personality_data, getPersonalitySummary)}
               </div>
             </div>
           </ScrollArea>
