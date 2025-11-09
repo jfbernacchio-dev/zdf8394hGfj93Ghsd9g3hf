@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { parseISO, format, eachMonthOfInterval } from 'date-fns';
+import { parseISO, format, eachMonthOfInterval, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { NotificationPrompt } from '@/components/NotificationPrompt';
 import { ComplianceReminder } from '@/components/ComplianceReminder';
@@ -22,6 +22,7 @@ import { DEFAULT_DASHBOARD_LAYOUT, resetToDefaultDashboardLayout } from '@/lib/d
 import { toast } from 'sonner';
 import { AddCardDialog } from '@/components/AddCardDialog';
 import { CardConfig, AVAILABLE_DASHBOARD_CHARTS } from '@/types/cardTypes';
+import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const DashboardTest = () => {
   const { user } = useAuth();
@@ -461,6 +462,206 @@ const DashboardTest = () => {
     const chartConfig = [...AVAILABLE_DASHBOARD_CHARTS].find(c => c.id === id);
     if (!chartConfig) return null;
 
+    let chartContent;
+    const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--muted))'];
+
+    switch (id) {
+      case 'chart-monthly-comparison': {
+        // Get last 6 months data
+        const monthsData = [];
+        const now = new Date();
+        
+        for (let i = 5; i >= 0; i--) {
+          const monthDate = subMonths(now, i);
+          const monthStart = startOfMonth(monthDate);
+          const monthEnd = endOfMonth(monthDate);
+          
+          const monthSessions = sessions.filter(s => {
+            const sessionDate = parseISO(s.session_date);
+            return sessionDate >= monthStart && sessionDate <= monthEnd;
+          });
+          
+          const attended = monthSessions.filter(s => s.status === 'Comparecida').length;
+          const revenue = monthSessions
+            .filter(s => s.status === 'Comparecida' && s.payment_status === 'Pago')
+            .reduce((sum, s) => sum + (s.price || 0), 0);
+          const attendanceRate = monthSessions.length > 0 
+            ? (attended / monthSessions.length) * 100 
+            : 0;
+          
+          monthsData.push({
+            month: format(monthDate, 'MMM', { locale: ptBR }),
+            sessoes: attended,
+            faturamento: revenue / 100, // Convert to display value
+            taxa: Math.round(attendanceRate),
+          });
+        }
+        
+        chartContent = (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={monthsData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="month" stroke="hsl(var(--foreground))" />
+              <YAxis yAxisId="left" stroke="hsl(var(--foreground))" />
+              <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--foreground))" />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'hsl(var(--background))', 
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '6px'
+                }}
+              />
+              <Legend />
+              <Bar yAxisId="left" dataKey="sessoes" fill={COLORS[0]} name="Sessões" />
+              <Bar yAxisId="left" dataKey="faturamento" fill={COLORS[1]} name="Faturamento (R$)" />
+              <Bar yAxisId="right" dataKey="taxa" fill={COLORS[2]} name="Taxa (%)" />
+            </BarChart>
+          </ResponsiveContainer>
+        );
+        break;
+      }
+
+      case 'chart-revenue-trend': {
+        const monthsData = [];
+        const now = new Date();
+        
+        for (let i = 11; i >= 0; i--) {
+          const monthDate = subMonths(now, i);
+          const monthStart = startOfMonth(monthDate);
+          const monthEnd = endOfMonth(monthDate);
+          
+          const revenue = sessions
+            .filter(s => {
+              const sessionDate = parseISO(s.session_date);
+              return sessionDate >= monthStart && 
+                     sessionDate <= monthEnd && 
+                     s.status === 'Comparecida' && 
+                     s.payment_status === 'Pago';
+            })
+            .reduce((sum, s) => sum + (s.price || 0), 0);
+          
+          monthsData.push({
+            month: format(monthDate, 'MMM/yy', { locale: ptBR }),
+            valor: revenue / 100,
+          });
+        }
+        
+        chartContent = (
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={monthsData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="month" stroke="hsl(var(--foreground))" />
+              <YAxis stroke="hsl(var(--foreground))" />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'hsl(var(--background))', 
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '6px'
+                }}
+                formatter={(value) => `R$ ${Number(value).toFixed(2)}`}
+              />
+              <Legend />
+              <Line type="monotone" dataKey="valor" stroke={COLORS[0]} strokeWidth={2} name="Faturamento (R$)" />
+            </LineChart>
+          </ResponsiveContainer>
+        );
+        break;
+      }
+
+      case 'chart-session-types': {
+        const statusCounts = {
+          'Comparecida': sessions.filter(s => s.status === 'Comparecida').length,
+          'Faltou': sessions.filter(s => s.status === 'Faltou').length,
+          'Agendada': sessions.filter(s => s.status === 'Agendada').length,
+          'Cancelada': sessions.filter(s => s.status === 'Cancelada').length,
+        };
+        
+        const pieData = Object.entries(statusCounts)
+          .filter(([_, value]) => value > 0)
+          .map(([name, value]) => ({ name, value }));
+        
+        chartContent = (
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={pieData}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                outerRadius={120}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                {pieData.map((_, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'hsl(var(--background))', 
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '6px'
+                }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        );
+        break;
+      }
+
+      case 'chart-payment-status': {
+        const paymentCounts = {
+          'Pago': sessions.filter(s => s.status === 'Comparecida' && s.payment_status === 'Pago').length,
+          'Pendente': sessions.filter(s => s.status === 'Comparecida' && s.payment_status === 'Pendente').length,
+          'Não Pago': sessions.filter(s => s.status === 'Comparecida' && s.payment_status === 'Não Pago').length,
+        };
+        
+        const pieData = Object.entries(paymentCounts)
+          .filter(([_, value]) => value > 0)
+          .map(([name, value]) => ({ name, value }));
+        
+        chartContent = (
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={pieData}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                outerRadius={120}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                {pieData.map((_, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'hsl(var(--background))', 
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '6px'
+                }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        );
+        break;
+      }
+
+      default:
+        chartContent = (
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-sm text-muted-foreground text-center px-4">
+              Gráfico em desenvolvimento<br/>
+              <span className="text-xs">{chartConfig.detailedDescription?.substring(0, 100)}...</span>
+            </p>
+          </div>
+        );
+    }
+
     return (
       <Card
         key={id}
@@ -471,11 +672,8 @@ const DashboardTest = () => {
       >
         <h3 className="text-lg font-semibold text-foreground mb-2">{chartConfig.name}</h3>
         <p className="text-sm text-muted-foreground mb-4">{chartConfig.description}</p>
-        <div className="flex-1 flex items-center justify-center border border-dashed border-border rounded-lg bg-muted/20 min-h-[300px]">
-          <p className="text-sm text-muted-foreground text-center px-4">
-            Gráfico em desenvolvimento<br/>
-            <span className="text-xs">{chartConfig.detailedDescription?.substring(0, 100)}...</span>
-          </p>
+        <div className="flex-1 min-h-[300px]">
+          {chartContent}
         </div>
       </Card>
     );
