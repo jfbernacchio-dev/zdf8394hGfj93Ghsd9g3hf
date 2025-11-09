@@ -92,12 +92,35 @@ const DashboardTest = () => {
       start = new Date(now);
       start.setDate(now.getDate() - 7);
       end = now;
+    } else if (period === 'thisWeek') {
+      // Esta Semana (domingo a sábado)
+      const dayOfWeek = now.getDay();
+      start = new Date(now);
+      start.setDate(now.getDate() - dayOfWeek);
+      start.setHours(0, 0, 0, 0);
+      end = now;
     } else if (period === 'lastMonth') {
       start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       end = new Date(now.getFullYear(), now.getMonth(), 0);
     } else if (period === 'last2Months') {
       start = new Date(now.getFullYear(), now.getMonth() - 2, 1);
       end = now;
+    } else if (period === 'q1') {
+      // Q1: Janeiro a Março
+      start = new Date(now.getFullYear(), 0, 1);
+      end = new Date(now.getFullYear(), 2, 31);
+    } else if (period === 'q2') {
+      // Q2: Abril a Junho
+      start = new Date(now.getFullYear(), 3, 1);
+      end = new Date(now.getFullYear(), 5, 30);
+    } else if (period === 'q3') {
+      // Q3: Julho a Setembro
+      start = new Date(now.getFullYear(), 6, 1);
+      end = new Date(now.getFullYear(), 8, 30);
+    } else if (period === 'q4') {
+      // Q4: Outubro a Dezembro
+      start = new Date(now.getFullYear(), 9, 1);
+      end = new Date(now.getFullYear(), 11, 31);
     } else if (period === 'year') {
       start = new Date(now.getFullYear(), 0, 1);
       end = now;
@@ -1001,8 +1024,13 @@ const DashboardTest = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="month">Este Mês</SelectItem>
+                <SelectItem value="thisWeek">Esta Semana</SelectItem>
                 <SelectItem value="lastMonth">Último Mês</SelectItem>
                 <SelectItem value="last2Months">Últimos 2 Meses</SelectItem>
+                <SelectItem value="q1">Q1 (Jan-Mar)</SelectItem>
+                <SelectItem value="q2">Q2 (Abr-Jun)</SelectItem>
+                <SelectItem value="q3">Q3 (Jul-Set)</SelectItem>
+                <SelectItem value="q4">Q4 (Out-Dez)</SelectItem>
                 <SelectItem value="custom">Personalizado</SelectItem>
                 <SelectItem value="all">Todo Período</SelectItem>
               </SelectContent>
