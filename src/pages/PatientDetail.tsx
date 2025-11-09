@@ -38,6 +38,7 @@ import { Settings, RotateCcw } from 'lucide-react';
 import { AddCardDialog } from '@/components/AddCardDialog';
 import { CardConfig, ALL_AVAILABLE_CARDS } from '@/types/cardTypes';
 import { DEFAULT_LAYOUT, resetToDefaultLayout } from '@/lib/defaultLayout';
+import { ClinicalEvolution } from '@/components/ClinicalEvolution';
 
 const PatientDetailNew = () => {
   const { id } = useParams();
@@ -1159,6 +1160,7 @@ Assinatura do Profissional`;
           <div className="flex items-center justify-between mb-6">
             <TabsList>
               <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+              <TabsTrigger value="evolution">Evolução Clínica</TabsTrigger>
               <TabsTrigger value="complaint">Queixa Clínica</TabsTrigger>
               <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
               <TabsTrigger value="billing">Faturamento</TabsTrigger>
@@ -1769,6 +1771,11 @@ Assinatura do Profissional`;
           {/* Clinical Complaint Tab */}
           <TabsContent value="complaint" className="space-y-6">
             <ClinicalComplaintSummary patientId={id!} />
+          </TabsContent>
+
+          {/* Clinical Evolution Tab */}
+          <TabsContent value="evolution" className="space-y-6">
+            <ClinicalEvolution patientId={id!} />
           </TabsContent>
 
           {/* Files Tab */}
