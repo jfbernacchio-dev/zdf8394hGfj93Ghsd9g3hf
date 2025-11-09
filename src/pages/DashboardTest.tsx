@@ -467,12 +467,10 @@ const DashboardTest = () => {
 
     switch (id) {
       case 'chart-monthly-comparison': {
-        // Get last 6 months data
         const monthsData = [];
-        const now = new Date();
+        const months = eachMonthOfInterval({ start, end });
         
-        for (let i = 5; i >= 0; i--) {
-          const monthDate = subMonths(now, i);
+        months.forEach(monthDate => {
           const monthStart = startOfMonth(monthDate);
           const monthEnd = endOfMonth(monthDate);
           
@@ -495,12 +493,12 @@ const DashboardTest = () => {
             : 0;
           
           monthsData.push({
-            month: format(monthDate, 'MMM', { locale: ptBR }),
+            month: format(monthDate, 'MMM/yy', { locale: ptBR }),
             sessoes: attended,
             faturamento: revenue / 100,
             taxa: Math.round(attendanceRate),
           });
-        }
+        });
         
         chartContent = monthsData.length > 0 && monthsData.some(d => d.sessoes > 0 || d.faturamento > 0) ? (
           <ResponsiveContainer width="100%" height="100%">
@@ -532,10 +530,9 @@ const DashboardTest = () => {
 
       case 'chart-revenue-trend': {
         const monthsData = [];
-        const now = new Date();
+        const months = eachMonthOfInterval({ start, end });
         
-        for (let i = 11; i >= 0; i--) {
-          const monthDate = subMonths(now, i);
+        months.forEach(monthDate => {
           const monthStart = startOfMonth(monthDate);
           const monthEnd = endOfMonth(monthDate);
           
@@ -558,7 +555,7 @@ const DashboardTest = () => {
             month: format(monthDate, 'MMM/yy', { locale: ptBR }),
             valor: revenue / 100,
           });
-        }
+        });
         
         chartContent = monthsData.length > 0 && monthsData.some(d => d.valor > 0) ? (
           <ResponsiveContainer width="100%" height="100%">
@@ -588,10 +585,10 @@ const DashboardTest = () => {
 
       case 'chart-session-types': {
         const statusCounts = {
-          'Comparecida': sessions.filter(s => s.status === 'attended').length,
-          'Faltou': sessions.filter(s => s.status === 'missed').length,
-          'Agendada': sessions.filter(s => s.status === 'scheduled').length,
-          'Cancelada': sessions.filter(s => s.status === 'cancelled').length,
+          'Comparecida': periodSessions.filter(s => s.status === 'attended').length,
+          'Faltou': periodSessions.filter(s => s.status === 'missed').length,
+          'Agendada': periodSessions.filter(s => s.status === 'scheduled').length,
+          'Cancelada': periodSessions.filter(s => s.status === 'cancelled').length,
         };
         
         const pieData = Object.entries(statusCounts)
@@ -629,10 +626,10 @@ const DashboardTest = () => {
       }
 
       case 'chart-payment-status': {
-        const attendedSessions = sessions.filter(s => s.status === 'attended');
+        const attendedPeriodSessions = periodSessions.filter(s => s.status === 'attended');
         const paymentCounts = {
-          'Pago': attendedSessions.filter(s => s.paid === true).length,
-          'Não Pago': attendedSessions.filter(s => s.paid === false || s.paid === null).length,
+          'Pago': attendedPeriodSessions.filter(s => s.paid === true).length,
+          'Não Pago': attendedPeriodSessions.filter(s => s.paid === false || s.paid === null).length,
         };
         
         const pieData = Object.entries(paymentCounts)
@@ -673,7 +670,7 @@ const DashboardTest = () => {
         // Group sessions by therapist
         const therapistSessionCount = new Map<string, number>();
         
-        sessions.filter(s => s.status === 'attended').forEach(session => {
+        periodSessions.filter(s => s.status === 'attended').forEach(session => {
           const patient = patients.find(p => p.id === session.patient_id);
           if (patient) {
             const count = therapistSessionCount.get(patient.user_id) || 0;
@@ -712,21 +709,22 @@ const DashboardTest = () => {
       }
 
       case 'chart-attendance-weekly': {
-        // Get last 12 weeks data
+        // Calculate weeks in period
+        const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+        const numWeeks = Math.max(1, Math.ceil(daysDiff / 7));
         const weeksData = [];
-        const now = new Date();
         
-        for (let i = 11; i >= 0; i--) {
-          const weekStart = new Date(now);
-          weekStart.setDate(now.getDate() - (i * 7));
-          const weekEnd = new Date(weekStart);
-          weekEnd.setDate(weekStart.getDate() + 6);
+        for (let i = numWeeks - 1; i >= 0; i--) {
+          const weekEnd = new Date(end);
+          weekEnd.setDate(end.getDate() - (i * 7));
+          const weekStart = new Date(weekEnd);
+          weekStart.setDate(weekEnd.getDate() - 6);
           
           const weekSessions = sessions.filter(s => {
             if (!s.date) return false;
             try {
               const sessionDate = parseISO(s.date);
-              return sessionDate >= weekStart && sessionDate <= weekEnd;
+              return sessionDate >= weekStart && sessionDate <= weekEnd && sessionDate <= end;
             } catch {
               return false;
             }
@@ -737,7 +735,7 @@ const DashboardTest = () => {
           const rate = expected > 0 ? (attended / expected) * 100 : 0;
           
           weeksData.push({
-            semana: `S${12 - i}`,
+            semana: `S${numWeeks - i}`,
             taxa: Math.round(rate),
           });
         }
@@ -768,7 +766,7 @@ const DashboardTest = () => {
         // Group revenue by therapist
         const therapistRevenue = new Map<string, number>();
         
-        sessions.filter(s => s.status === 'attended' && s.paid === true).forEach(session => {
+        periodSessions.filter(s => s.status === 'attended' && s.paid === true).forEach(session => {
           const patient = patients.find(p => p.id === session.patient_id);
           if (patient) {
             const revenue = therapistRevenue.get(patient.user_id) || 0;
@@ -808,9 +806,8 @@ const DashboardTest = () => {
       }
 
       case 'chart-patient-growth': {
-        // Count unique patients per month over last 12 months
         const monthsData = [];
-        const now = new Date();
+        const months = eachMonthOfInterval({ start, end });
         const patientFirstSession = new Map<string, Date>();
         
         // Find first session date for each patient
@@ -825,8 +822,7 @@ const DashboardTest = () => {
           } catch {}
         });
         
-        for (let i = 11; i >= 0; i--) {
-          const monthDate = subMonths(now, i);
+        months.forEach(monthDate => {
           const monthEnd = endOfMonth(monthDate);
           
           // Count patients with first session up to this month
@@ -837,7 +833,7 @@ const DashboardTest = () => {
             month: format(monthDate, 'MMM/yy', { locale: ptBR }),
             pacientes: activePatients,
           });
-        }
+        });
 
         chartContent = (
           <ResponsiveContainer width="100%" height="100%">
@@ -864,7 +860,7 @@ const DashboardTest = () => {
         // Count sessions by hour
         const hourCounts = new Map<number, number>();
         
-        sessions.forEach(s => {
+        periodSessions.forEach(s => {
           if (!s.time) return;
           try {
             const [hour] = s.time.split(':').map(Number);
