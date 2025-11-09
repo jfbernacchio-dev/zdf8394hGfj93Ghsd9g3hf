@@ -100,6 +100,10 @@ const DashboardTest = () => {
     } else if (period === 'year') {
       start = new Date(now.getFullYear(), 0, 1);
       end = now;
+    } else if (period === 'all' || period === 'allTime') {
+      // Todo período: desde a primeira sessão até hoje
+      start = new Date('2020-01-01'); // Data bem antiga para pegar todo histórico
+      end = now;
     } else {
       start = new Date(now.getFullYear(), now.getMonth(), 1);
       end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -1068,7 +1072,7 @@ const DashboardTest = () => {
       </Card>
 
       {/* Metrics Section - All Cards */}
-      <div className="mb-8">
+      <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-foreground">Métricas</h2>
           {isEditMode && (
@@ -1165,7 +1169,7 @@ const DashboardTest = () => {
       </div>
 
       {/* Charts Section - For Visualizations */}
-      <div className="mb-8">
+      <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-foreground">Gráficos e Visualizações</h2>
           {isEditMode && (
