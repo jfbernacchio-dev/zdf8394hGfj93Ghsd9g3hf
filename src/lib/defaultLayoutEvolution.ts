@@ -38,8 +38,8 @@ export const resetToDefaultEvolutionLayout = () => {
   // Clear all existing customizations
   const keys = Object.keys(localStorage);
   keys.forEach(key => {
-    if (key.startsWith('evolution-card-size-') || 
-        key.startsWith('evolution-section-height-') || 
+    if (key.startsWith('card-size-chart-') || 
+        key.startsWith('section-height-evolution-charts-section') || 
         key === 'evolution-visible-cards') {
       localStorage.removeItem(key);
     }
@@ -50,11 +50,11 @@ export const resetToDefaultEvolutionLayout = () => {
   
   // Set default section heights
   Object.entries(DEFAULT_EVOLUTION_LAYOUT.sectionHeights).forEach(([id, height]) => {
-    localStorage.setItem(`evolution-section-height-${id}`, height.toString());
+    localStorage.setItem(`section-height-${id}`, height.toString());
   });
   
   // Set default card sizes
   Object.entries(DEFAULT_EVOLUTION_LAYOUT.cardSizes).forEach(([id, size]) => {
-    localStorage.setItem(`evolution-card-size-${id}`, JSON.stringify(size));
+    localStorage.setItem(`card-size-${id}`, JSON.stringify(size));
   });
 };

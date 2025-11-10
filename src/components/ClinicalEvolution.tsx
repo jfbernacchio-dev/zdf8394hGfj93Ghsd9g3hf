@@ -1838,10 +1838,10 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
     if (isEditMode) {
       // Save changes when exiting edit mode
       Object.entries(tempSectionHeights).forEach(([id, height]) => {
-        localStorage.setItem(`evolution-section-height-${id}`, height.toString());
+        localStorage.setItem(`section-height-${id}`, height.toString());
       });
       Object.entries(tempCardSizes).forEach(([id, size]) => {
-        localStorage.setItem(`evolution-card-size-${id}`, JSON.stringify(size));
+        localStorage.setItem(`card-size-${id}`, JSON.stringify(size));
       });
       localStorage.setItem('evolution-visible-cards', JSON.stringify(visibleCards));
       
