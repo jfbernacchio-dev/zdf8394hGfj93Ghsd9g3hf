@@ -370,10 +370,10 @@ const DashboardTest = () => {
     const success = await saveUserLayout(newLayout);
     
     if (success) {
-      setTempCardSizes({});
-      setTempSectionHeights({});
-      setIsEditMode(false);
-      toast.success('Layout salvo e sincronizado!');
+      toast.success('Layout salvo! Recarregando...');
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
     } else {
       toast.error('Erro ao salvar layout. Verifique sua conexão.');
     }
