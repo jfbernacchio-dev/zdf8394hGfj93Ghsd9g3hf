@@ -243,102 +243,256 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
   const generateSummary = (evaluation: SessionEvaluation): string => {
     const summaryParts: string[] = [];
 
-    // 1. Consciousness
+    // 1. CONSCIÊNCIA (escalas bipolares: -100 a +100, onde 0 = normal)
     const consciousness = evaluation.consciousness_data;
-    if (consciousness?.level < 40) {
-      summaryParts.push('rebaixamento do nível de consciência');
-    } else if (consciousness?.depersonalization || consciousness?.derealization) {
+    const level = consciousness?.level || 0;
+    const field = consciousness?.field || 0;
+    const selfConsciousness = consciousness?.self_consciousness || 0;
+    
+    // Nível: -100 (coma) | 0 (lúcido) | +100 (confusão)
+    if (level < -50) {
+      summaryParts.push('rebaixamento significativo do nível de consciência');
+    } else if (level < -20) {
+      summaryParts.push('leve rebaixamento do nível de consciência (torpor)');
+    } else if (level > 50) {
+      summaryParts.push('confusão mental');
+    } else if (level > 20) {
+      summaryParts.push('hipervigilância');
+    }
+    
+    // Campo: -100 (estreitado) | 0 (normal) | +100 (caótico)
+    if (field < -50) {
+      summaryParts.push('estreitamento significativo do campo de consciência');
+    } else if (field > 50) {
+      summaryParts.push('expansão caótica do campo de consciência');
+    }
+    
+    // Auto-consciência: -100 (alienado) | 0 (normal) | +100 (obsessivo)
+    if (selfConsciousness < -50) {
+      summaryParts.push('alienação do eu');
+    } else if (selfConsciousness > 50) {
+      summaryParts.push('hiperautoconciência (obsessivo)');
+    }
+    
+    // Fenômenos dissociativos
+    if (consciousness?.depersonalization || consciousness?.derealization) {
       summaryParts.push('fenômenos dissociativos');
     }
 
-    // 2. Orientation
+    // 2. ORIENTAÇÃO
     const orientation = evaluation.orientation_data;
     const orientedCount = [orientation?.time, orientation?.space, orientation?.person, orientation?.situation].filter(Boolean).length;
-    if (orientedCount < 4) {
+    if (orientedCount < 2) {
+      summaryParts.push('desorientação significativa');
+    } else if (orientedCount < 4) {
       summaryParts.push('desorientação parcial');
     }
+    
+    // Insight (0-100, quanto maior melhor)
+    const insight = orientation?.insight || 80;
+    if (insight < 40) {
+      summaryParts.push('insight significativamente prejudicado');
+    } else if (insight < 60) {
+      summaryParts.push('insight parcialmente prejudicado');
+    }
 
-    // 3. Memory
+    // 3. ATENÇÃO E CONCENTRAÇÃO (escalas 0-100, quanto maior melhor)
+    const attention = evaluation.attention_data;
+    const attentionRange = attention?.range || 80;
+    const concentration = attention?.concentration || 80;
+    const attentionAvg = (attentionRange + concentration) / 2;
+    
+    if (attentionAvg < 40 || attention?.distractibility) {
+      summaryParts.push('déficit significativo de atenção e concentração');
+    } else if (attentionAvg < 60) {
+      summaryParts.push('leve déficit de atenção');
+    }
+
+    // 4. MEMÓRIA (escalas 0-100, quanto maior melhor)
     const memory = evaluation.memory_data;
-    const memoryAvg = ((memory?.fixation || 0) + (memory?.recall || 0)) / 2;
-    if (memoryAvg < 50) {
-      summaryParts.push('prejuízo de memória');
+    const fixation = memory?.fixation || 80;
+    const recall = memory?.recall || 80;
+    const memoryAvg = (fixation + recall) / 2;
+    
+    if (memoryAvg < 40) {
+      summaryParts.push('prejuízo significativo de memória');
+    } else if (memoryAvg < 60) {
+      summaryParts.push('leve prejuízo de memória');
+    }
+    
+    if (memory?.amnesia) {
+      summaryParts.push('presença de amnésia');
+    }
+    if (memory?.hypermnesia) {
+      summaryParts.push('hipermnésia');
+    }
+    if (memory?.paramnesia) {
+      summaryParts.push('paramnésia');
     }
 
-    // 4. Mood
-    const mood = evaluation.mood_data;
-    if (mood?.polarity < -30) {
-      summaryParts.push('humor deprimido');
-    } else if (mood?.polarity > 30) {
-      summaryParts.push('humor elevado');
-    }
-    if (mood?.lability > 60) {
-      summaryParts.push('labilidade emocional');
-    }
-
-    // 5. Thought
+    // 5. PENSAMENTO
     const thought = evaluation.thought_data;
+    const course = thought?.course || 0;
+    
+    // Curso: -100 (lentificado) | 0 (normal) | +100 (fuga de ideias)
+    if (course < -50) {
+      summaryParts.push('pensamento muito lentificado');
+    } else if (course < -20) {
+      summaryParts.push('pensamento lentificado');
+    } else if (course > 50) {
+      summaryParts.push('fuga de ideias');
+    } else if (course > 20) {
+      summaryParts.push('pensamento acelerado');
+    }
+    
+    // Alterações de conteúdo
     const thoughtAlterations = [];
     if (thought?.obsessive) thoughtAlterations.push('obsessivo');
     if (thought?.delusional) thoughtAlterations.push('delirante');
     if (thought?.incoherent) thoughtAlterations.push('incoerente');
     if (thought?.tangential) thoughtAlterations.push('tangencial');
+    if (thought?.circumstantial) thoughtAlterations.push('circunstancial');
+    if (thought?.dissociated) thoughtAlterations.push('dissociado');
+    if (thought?.overvalued) thoughtAlterations.push('ideias supervalorizadas');
+    
     if (thoughtAlterations.length > 0) {
-      summaryParts.push(`pensamento ${thoughtAlterations.join(', ')}`);
+      summaryParts.push(`pensamento com conteúdo ${thoughtAlterations.join(', ')}`);
     }
 
-    // 6. Language
+    // 6. LINGUAGEM
     const language = evaluation.language_data;
     const speechRate = language?.speech_rate || 0;
-    if (Math.abs(speechRate) > 50) {
-      summaryParts.push(speechRate > 0 ? 'fala muito acelerada' : 'fala muito lentificada');
-    } else if (Math.abs(speechRate) > 20) {
-      summaryParts.push(speechRate > 0 ? 'fala acelerada' : 'fala lentificada');
+    
+    // -100 (bradilalia) | 0 (normal) | +100 (taquilalia)
+    if (speechRate < -50) {
+      summaryParts.push('fala muito lentificada (bradilalia severa)');
+    } else if (speechRate < -20) {
+      summaryParts.push('fala lentificada (bradilalia)');
+    } else if (speechRate > 50) {
+      summaryParts.push('fala muito acelerada (taquilalia severa)');
+    } else if (speechRate > 20) {
+      summaryParts.push('fala acelerada (taquilalia)');
+    }
+    
+    if (language?.articulation && language.articulation !== 'normal') {
+      const articulationMap: Record<string, string> = {
+        'vague': 'discurso vago',
+        'echolalia': 'ecolalia',
+        'mutism': 'mutismo',
+        'neologisms': 'neologismos'
+      };
+      summaryParts.push(articulationMap[language.articulation] || language.articulation);
     }
 
-    // 7. Sensoperception
+    // 7. SENSOPERCEPÇÃO
     const senso = evaluation.sensoperception_data;
     const hallucinations = [];
     if (senso?.auditory) hallucinations.push('auditivas');
     if (senso?.visual) hallucinations.push('visuais');
     if (senso?.tactile) hallucinations.push('táteis');
     if (senso?.olfactory) hallucinations.push('olfativas');
+    if (senso?.kinesthetic) hallucinations.push('cinestésicas');
+    if (senso?.mixed) hallucinations.push('mistas');
+    
     if (hallucinations.length > 0) {
       summaryParts.push(`alucinações ${hallucinations.join(', ')}`);
     }
 
-    // 8. Intelligence
-    const intel = evaluation.intelligence_data;
-    const intelAvg = ((intel?.learning_capacity || 0) + (intel?.abstract_reasoning || 0)) / 2;
-    if (intelAvg < 50) {
-      summaryParts.push('prejuízo das funções intelectuais');
+    // 8. HUMOR / AFETIVIDADE
+    const mood = evaluation.mood_data;
+    const polarity = mood?.polarity || 0;
+    const lability = mood?.lability || 50;
+    
+    // Polaridade: -100 (depressivo) | 0 (eutímico) | +100 (eufórico)
+    if (polarity < -60) {
+      summaryParts.push('humor severamente deprimido');
+    } else if (polarity < -30) {
+      summaryParts.push('humor deprimido');
+    } else if (polarity > 60) {
+      summaryParts.push('humor eufórico');
+    } else if (polarity > 30) {
+      summaryParts.push('humor elevado');
+    }
+    
+    // Labilidade (0-100, quanto maior pior)
+    if (lability > 70) {
+      summaryParts.push('labilidade emocional significativa');
+    } else if (lability > 60) {
+      summaryParts.push('labilidade emocional');
     }
 
-    // 9. Will
+    // 9. VONTADE
     const will = evaluation.will_data;
-    if (will?.volitional_energy < 40) {
+    const volitionalEnergy = will?.volitional_energy || 0;
+    const impulseControl = will?.impulse_control || 0;
+    
+    // Energia: -100 (abulia) | 0 (normal) | +100 (hiperbulia)
+    if (volitionalEnergy < -50) {
+      summaryParts.push('abulia significativa');
+    } else if (volitionalEnergy < -20) {
       summaryParts.push('energia volitiva reduzida');
+    } else if (volitionalEnergy > 50) {
+      summaryParts.push('hiperbulia significativa');
+    } else if (volitionalEnergy > 20) {
+      summaryParts.push('energia volitiva aumentada');
     }
-    if (will?.impulse_control < 40) {
-      summaryParts.push('dificuldade no controle de impulsos');
+    
+    // Controle de impulsos: -100 (impulsivo) | 0 (equilibrado) | +100 (inibido)
+    if (impulseControl < -50) {
+      summaryParts.push('impulsividade significativa');
+    } else if (impulseControl < -20) {
+      summaryParts.push('leve impulsividade');
+    } else if (impulseControl > 50) {
+      summaryParts.push('inibição volitiva excessiva');
+    } else if (impulseControl > 20) {
+      summaryParts.push('leve inibição volitiva');
+    }
+    
+    if (will?.ambivalence) {
+      summaryParts.push('ambivalência presente');
     }
 
-    // 10. Psychomotor
+    // 10. PSICOMOTRICIDADE
     const psycho = evaluation.psychomotor_data;
     const motorActivity = psycho?.motor_activity || 0;
-    if (Math.abs(motorActivity) > 50) {
-      summaryParts.push(motorActivity > 0 ? 'agitação psicomotora' : 'lentificação psicomotora');
+    const facialExpressiveness = psycho?.facial_expressiveness || 50;
+    
+    // Atividade: -100 (inibição) | 0 (normal) | +100 (agitação)
+    if (motorActivity < -50) {
+      summaryParts.push('lentificação psicomotora significativa (inibição severa)');
+    } else if (motorActivity < -20) {
+      summaryParts.push('leve lentificação psicomotora');
+    } else if (motorActivity > 50) {
+      summaryParts.push('agitação psicomotora significativa');
+    } else if (motorActivity > 20) {
+      summaryParts.push('leve agitação psicomotora');
+    }
+    
+    // Expressividade facial (0-100, quanto maior melhor)
+    if (facialExpressiveness < 30) {
+      summaryParts.push('expressividade facial significativamente reduzida');
+    } else if (facialExpressiveness < 40) {
+      summaryParts.push('expressividade facial reduzida');
     }
 
-    // 11. Attention
-    const attention = evaluation.attention_data;
-    const attentionAvg = ((attention?.range || 0) + (attention?.concentration || 0)) / 2;
-    if (attentionAvg < 50 || attention?.distractibility) {
-      summaryParts.push('déficit de atenção');
+    // 11. INTELIGÊNCIA
+    const intel = evaluation.intelligence_data;
+    const learning = intel?.learning_capacity || 80;
+    const reasoning = intel?.abstract_reasoning || 80;
+    const facialExpressivity = intel?.facial_expressivity || 50;
+    const intelAvg = (learning + reasoning) / 2;
+    
+    if (intelAvg < 40) {
+      summaryParts.push('prejuízo significativo das funções intelectuais');
+    } else if (intelAvg < 60) {
+      summaryParts.push('leve prejuízo das funções intelectuais');
     }
 
-    // 12. Personality
+    // 12. PERSONALIDADE
     const personality = evaluation.personality_data;
+    const selfCoherence = personality?.self_coherence || 80;
+    const affectiveStability = personality?.affective_stability || 80;
+    
     const traits = [];
     if (personality?.anxious) traits.push('ansioso');
     if (personality?.avoidant) traits.push('evitativo');
@@ -346,18 +500,23 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
     if (personality?.borderline) traits.push('borderline');
     if (personality?.antisocial) traits.push('antissocial');
     if (personality?.narcissistic) traits.push('narcisista');
+    if (personality?.histrionic) traits.push('histriônico');
+    
     if (traits.length > 0) {
       summaryParts.push(`traços de personalidade ${traits.join(', ')}`);
     }
-    if ((personality?.self_coherence || 0) < 40 || (personality?.affective_stability || 0) < 40) {
-      summaryParts.push('instabilidade da personalidade');
+    
+    if (selfCoherence < 40 || affectiveStability < 40) {
+      summaryParts.push('instabilidade significativa da personalidade');
+    } else if (selfCoherence < 60 || affectiveStability < 60) {
+      summaryParts.push('leve instabilidade da personalidade');
     }
 
     if (summaryParts.length === 0) {
-      return 'Paciente não apresenta alterações significativas nas funções psíquicas avaliadas. Exame mental dentro dos padrões esperados.';
+      return 'Paciente não apresenta alterações significativas nas funções psíquicas avaliadas. Exame mental dentro dos padrões esperados para a normalidade.';
     }
 
-    return `Paciente apresenta ${summaryParts.join(', ')}. ${summaryParts.length < 6 ? 'Demais funções psíquicas preservadas.' : ''}`;
+    return `Paciente apresenta ${summaryParts.join('; ')}. ${summaryParts.length < 6 ? 'Demais funções psíquicas preservadas.' : ''}`;
   };
 
   const renderEvaluationCard = (
