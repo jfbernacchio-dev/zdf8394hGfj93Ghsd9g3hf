@@ -16,10 +16,9 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 interface SessionEvaluationFormProps {
   sessionId?: string;
   patientId?: string;
-  isMock?: boolean;
 }
 
-export default function SessionEvaluationForm({ sessionId: propSessionId, patientId: propPatientId, isMock = false }: SessionEvaluationFormProps) {
+export default function SessionEvaluationForm({ sessionId: propSessionId, patientId: propPatientId }: SessionEvaluationFormProps) {
   const { sessionId: paramSessionId, patientId: paramPatientId } = useParams();
   const sessionId = propSessionId || paramSessionId;
   const patientId = propPatientId || paramPatientId;
@@ -146,7 +145,7 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
   });
 
   useEffect(() => {
-    if (sessionId && !isMock) {
+    if (sessionId) {
       validateAndLoadSession();
     }
   }, [sessionId, user]);
@@ -357,7 +356,7 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
         <Button
           variant="outline"
           size="icon"
-          onClick={() => navigate(isMock ? '/sessions/mock' : `/patients/${patientId}`)}
+          onClick={() => navigate(`/patients/${patientId}`)}
         >
           <ArrowLeft className="w-4 h-4" />
         </Button>
@@ -1470,7 +1469,7 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
         <div className="container mx-auto max-w-6xl flex justify-end gap-4">
           <Button
             variant="outline"
-            onClick={() => navigate(isMock ? '/sessions/mock' : `/patients/${patientId}`)}
+            onClick={() => navigate(`/patients/${patientId}`)}
           >
             Cancelar
           </Button>
