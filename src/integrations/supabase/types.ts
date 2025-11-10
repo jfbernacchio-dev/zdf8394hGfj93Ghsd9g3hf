@@ -14,6 +14,35 @@ export type Database = {
   }
   public: {
     Tables: {
+      active_profile_state: {
+        Row: {
+          active_profile_id: string | null
+          created_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_profile_id?: string | null
+          created_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_profile_id?: string | null
+          created_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "active_profile_state_active_profile_id_fkey"
+            columns: ["active_profile_id"]
+            isOneToOne: false
+            referencedRelation: "layout_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_access_log: {
         Row: {
           access_reason: string | null
@@ -484,6 +513,60 @@ export type Database = {
           session_ids?: string[]
           total_sessions?: number
           total_value?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      layout_backups: {
+        Row: {
+          created_at: string | null
+          id: string
+          layout_config: Json
+          layout_type: string
+          user_id: string
+          version: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          layout_config: Json
+          layout_type: string
+          user_id: string
+          version?: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          layout_config?: Json
+          layout_type?: string
+          user_id?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      layout_profiles: {
+        Row: {
+          created_at: string | null
+          id: string
+          layout_configs: Json
+          profile_name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          layout_configs: Json
+          profile_name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          layout_configs?: Json
+          profile_name?: string
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
@@ -1077,12 +1160,15 @@ export type Database = {
         Row: {
           birth_date: string
           break_time: number | null
+          clinical_approach: string | null
           cpf: string
           created_at: string
           created_by: string | null
           crp: string
           full_name: string
           id: string
+          phone: string | null
+          send_nfse_to_therapist: boolean | null
           slot_duration: number | null
           updated_at: string
           work_days: number[] | null
@@ -1092,12 +1178,15 @@ export type Database = {
         Insert: {
           birth_date: string
           break_time?: number | null
+          clinical_approach?: string | null
           cpf: string
           created_at?: string
           created_by?: string | null
           crp: string
           full_name: string
           id: string
+          phone?: string | null
+          send_nfse_to_therapist?: boolean | null
           slot_duration?: number | null
           updated_at?: string
           work_days?: number[] | null
@@ -1107,12 +1196,15 @@ export type Database = {
         Update: {
           birth_date?: string
           break_time?: number | null
+          clinical_approach?: string | null
           cpf?: string
           created_at?: string
           created_by?: string | null
           crp?: string
           full_name?: string
           id?: string
+          phone?: string | null
+          send_nfse_to_therapist?: boolean | null
           slot_duration?: number | null
           updated_at?: string
           work_days?: number[] | null
