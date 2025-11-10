@@ -35,12 +35,7 @@ export async function loadLayout(
   userId: string,
   layoutType: LayoutType
 ): Promise<LayoutConfig | null> {
-  console.log('[loadLayout] ===== LOAD LAYOUT START =====');
-  console.log('[loadLayout] userId:', userId);
-  console.log('[loadLayout] layoutType:', layoutType);
-  
   try {
-    console.log('[loadLayout] Querying database...');
     const { data, error } = await supabase
       .from('user_layout_preferences')
       .select('*')
@@ -48,14 +43,9 @@ export async function loadLayout(
       .eq('layout_type', layoutType)
       .single();
 
-    console.log('[loadLayout] Query completed');
-    console.log('[loadLayout] error:', error);
-    console.log('[loadLayout] data:', data);
-
     if (error) {
       if (error.code === 'PGRST116') {
         // No layout found, return null
-        console.log('[loadLayout] No layout found (PGRST116), returning null');
         return null;
       }
       console.error('[loadLayout] Database error:', error);
@@ -63,23 +53,15 @@ export async function loadLayout(
     }
 
     if (data) {
-      console.log('[loadLayout] Layout found! Version:', data.version);
-      console.log('[loadLayout] Layout config keys:', Object.keys(data.layout_config));
-      console.log('[loadLayout] Full layout config:', JSON.stringify(data.layout_config, null, 2));
-      
       // Update localStorage cache
       const cacheKey = `layout_${layoutType}`;
       localStorage.setItem(cacheKey, JSON.stringify(data.layout_config));
       localStorage.setItem(`${cacheKey}_synced_at`, new Date().toISOString());
       localStorage.setItem(`${cacheKey}_version`, data.version.toString());
       
-      console.log('[loadLayout] Updated localStorage cache');
-      console.log('[loadLayout] ===== LOAD LAYOUT END (SUCCESS) =====');
       return data.layout_config as unknown as LayoutConfig;
     }
 
-    console.log('[loadLayout] No data, returning null');
-    console.log('[loadLayout] ===== LOAD LAYOUT END (NO DATA) =====');
     return null;
   } catch (error) {
     console.error('[loadLayout] Error loading layout from DB:', error);
@@ -87,23 +69,15 @@ export async function loadLayout(
     // Fallback to localStorage cache if DB fails
     const cacheKey = `layout_${layoutType}`;
     const cached = localStorage.getItem(cacheKey);
-    console.log('[loadLayout] Checking localStorage fallback. Cached:', !!cached);
     
     if (cached) {
       try {
-        const parsed = JSON.parse(cached) as LayoutConfig;
-        console.log('[loadLayout] Using localStorage fallback');
-        console.log('[loadLayout] ===== LOAD LAYOUT END (CACHE FALLBACK) =====');
-        return parsed;
+        return JSON.parse(cached) as LayoutConfig;
       } catch {
-        console.log('[loadLayout] Failed to parse cached layout');
-        console.log('[loadLayout] ===== LOAD LAYOUT END (CACHE PARSE ERROR) =====');
         return null;
       }
     }
     
-    console.log('[loadLayout] No cache available');
-    console.log('[loadLayout] ===== LOAD LAYOUT END (ERROR, NO CACHE) =====');
     return null;
   }
 }
@@ -115,13 +89,13 @@ export async function saveLayout(
   userId: string,
   layoutType: LayoutType,
   config: LayoutConfig,
-  updateActiveProfileToo: boolean = false
+  updateActiveProfileToo: boolean = false,
+  currentLayoutForBackup?: LayoutConfig | null
 ): Promise<boolean> {
   try {
-    // Create backup before saving
-    const currentLayout = await loadLayout(userId, layoutType);
-    if (currentLayout) {
-      await createBackup(userId, layoutType, currentLayout);
+    // Create backup using the provided current layout (avoid race condition)
+    if (currentLayoutForBackup) {
+      await createBackup(userId, layoutType, currentLayoutForBackup);
     }
 
     // Get current version
@@ -166,7 +140,7 @@ export async function saveLayout(
 
     return true;
   } catch (error) {
-    console.error('Error saving layout to DB:', error);
+    console.error('[saveLayout] Error saving layout to DB:', error);
     
     // If offline, save to localStorage with pending sync flag
     const cacheKey = `layout_${layoutType}`;

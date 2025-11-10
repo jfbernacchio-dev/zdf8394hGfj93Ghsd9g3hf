@@ -28,12 +28,8 @@ export function SaveLayoutDialog({
   const [updateProfile, setUpdateProfile] = useState(true);
 
   const handleConfirm = () => {
-    console.log('[SaveLayoutDialog] handleConfirm called with updateProfile:', updateProfile);
-    console.log('[SaveLayoutDialog] Calling onConfirm callback...');
     onConfirm(updateProfile);
-    console.log('[SaveLayoutDialog] onConfirm callback completed, closing dialog...');
     onOpenChange(false);
-    console.log('[SaveLayoutDialog] Dialog closed');
   };
 
   return (

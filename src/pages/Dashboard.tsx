@@ -392,72 +392,42 @@ const DashboardTest = () => {
       return;
     }
 
-    console.log('[Dashboard] Preparing to save layout');
-    console.log('[Dashboard] Temp sizes:', tempCardSizes);
-    console.log('[Dashboard] Temp heights:', tempSectionHeights);
-
     const newLayout = {
       visibleCards,
       cardSizes: { ...layout.cardSizes, ...tempCardSizes },
       sectionHeights: { ...layout.sectionHeights, ...tempSectionHeights }
     };
     
-    console.log('[Dashboard] New layout to save:', newLayout);
-    
     setPendingSave(newLayout);
     setShowSaveDialog(true);
   };
 
   const handleConfirmSave = async (updateActiveProfile: boolean) => {
-    console.log('[Dashboard] ========== handleConfirmSave START ==========');
-    console.log('[Dashboard] pendingSave:', pendingSave);
-    console.log('[Dashboard] updateActiveProfile:', updateActiveProfile);
-    console.log('[Dashboard] isEditMode:', isEditMode);
-    console.log('[Dashboard] Current tempCardSizes:', tempCardSizes);
-    
-    if (!pendingSave) {
-      console.log('[Dashboard] NO PENDING SAVE! Aborting...');
-      return;
-    }
-    
-    console.log('[Dashboard] Saving layout with updateActiveProfile:', updateActiveProfile);
-    console.log('[Dashboard] Active profile:', activeProfileId, activeProfileName);
+    if (!pendingSave) return;
     
     try {
-      console.log('[Dashboard] About to call saveUserLayout...');
-      console.log('[Dashboard] saveUserLayout function:', typeof saveUserLayout, saveUserLayout);
-      
       const success = await saveUserLayout(pendingSave, updateActiveProfile);
       
-      console.log('[Dashboard] saveUserLayout returned! Result:', success);
-      
       if (success) {
-        console.log('[Dashboard] Save successful! Cleaning up edit state...');
         // CRITICAL: Exit edit mode and clear temp states BEFORE reload
         setIsEditMode(false);
         setTempCardSizes({});
         setTempSectionHeights({});
         setPendingSave(null);
         
-        console.log('[Dashboard] Edit state cleaned, showing toast...');
         toast.success('Layout salvo e sincronizado!');
         
-        console.log('[Dashboard] Toast shown, waiting 100ms before reload...');
         // Small delay to ensure state updates are flushed
         setTimeout(() => {
-          console.log('[Dashboard] Reloading now...');
           window.location.reload();
         }, 100);
       } else {
-        console.log('[Dashboard] Save FAILED! Showing error toast...');
         toast.error('Erro ao salvar layout. Verifique sua conexão.');
       }
     } catch (error) {
-      console.error('[Dashboard] EXCEPTION caught in handleConfirmSave:', error);
+      console.error('[Dashboard] Error in handleConfirmSave:', error);
       toast.error('Erro inesperado ao salvar layout');
     }
-    
-    console.log('[Dashboard] ========== handleConfirmSave END ==========');
   };
 
   const handleCancelEdit = () => {
