@@ -5,10 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft } from 'lucide-react';
+import { LayoutTemplateManager } from '@/components/LayoutTemplateManager';
 
 const WEEKDAYS = [
   { value: 0, label: 'Domingo' },
@@ -177,6 +179,19 @@ const ProfileEdit = () => {
               <p className="text-sm text-muted-foreground mt-1">
                 Tempo de intervalo entre atendimentos para recomposição. Este tempo não é contabilizado na taxa de ocupação.
               </p>
+            </div>
+
+            <Separator className="my-6" />
+
+            {/* Layout Templates */}
+            <div className="space-y-4">
+              <div>
+                <Label className="text-base font-semibold">Templates de Layout</Label>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Exporte seus layouts personalizados ou importe templates compartilhados por outros terapeutas
+                </p>
+              </div>
+              <LayoutTemplateManager />
             </div>
 
             <div className="flex gap-3 pt-4">

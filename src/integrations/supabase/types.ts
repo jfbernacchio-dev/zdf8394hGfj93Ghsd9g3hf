@@ -1473,6 +1473,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_layout_preferences: {
+        Row: {
+          created_at: string
+          id: string
+          layout_config: Json
+          layout_type: string
+          updated_at: string
+          user_id: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          layout_config?: Json
+          layout_type: string
+          updated_at?: string
+          user_id: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          layout_config?: Json
+          layout_type?: string
+          updated_at?: string
+          user_id?: string
+          version?: number
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
