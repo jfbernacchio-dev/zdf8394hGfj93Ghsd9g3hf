@@ -10,7 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft } from 'lucide-react';
-import { LayoutTemplateManager } from '@/components/LayoutTemplateManager';
+import { LayoutManager } from '@/components/LayoutManager';
 
 const WEEKDAYS = [
   { value: 0, label: 'Domingo' },
@@ -183,15 +183,15 @@ const ProfileEdit = () => {
 
             <Separator className="my-6" />
 
-            {/* Layout Templates */}
+            {/* Layout Management */}
             <div className="space-y-4">
               <div>
-                <Label className="text-base font-semibold">Templates de Layout</Label>
+                <Label className="text-base font-semibold">Gerenciar Layouts</Label>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Exporte seus layouts personalizados ou importe templates compartilhados por outros terapeutas
+                  Gerencie seus profiles salvos e backups automáticos
                 </p>
               </div>
-              <LayoutTemplateManager />
+              <LayoutManager />
             </div>
 
             <div className="flex gap-3 pt-4">

@@ -5,6 +5,7 @@ import {
   saveLayout,
   subscribeToLayoutUpdates,
   syncPendingLayouts,
+  createBackup,
   LayoutType,
   LayoutConfig,
 } from '@/lib/layoutSync';
@@ -74,6 +75,12 @@ export function useLayoutSync(layoutType: LayoutType, defaultLayout: LayoutConfi
 
       setIsSyncing(true);
       try {
+        // Create backup before saving
+        const currentLayout = await loadLayout(user.id, layoutType);
+        if (currentLayout) {
+          await createBackup(user.id, layoutType, currentLayout);
+        }
+
         const success = await saveLayout(user.id, layoutType, newLayout);
         if (success) {
           setLayout(newLayout);

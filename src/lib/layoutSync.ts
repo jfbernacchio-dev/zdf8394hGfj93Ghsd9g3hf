@@ -273,6 +273,314 @@ export async function importLayoutTemplate(
   }
 }
 
+// ============================================================================
+// BACKUP MANAGEMENT
+// ============================================================================
+
+export interface LayoutBackup {
+  id: string;
+  user_id: string;
+  layout_type: LayoutType;
+  layout_config: LayoutConfig;
+  created_at: string;
+  version: number;
+}
+
+export async function createBackup(
+  userId: string,
+  layoutType: LayoutType,
+  config: LayoutConfig
+): Promise<boolean> {
+  try {
+    // Get current backup count
+    const { data: backups, error: countError } = await supabase
+      .from('layout_backups')
+      .select('id, created_at, version')
+      .eq('user_id', userId)
+      .eq('layout_type', layoutType)
+      .order('created_at', { ascending: false });
+
+    if (countError) throw countError;
+
+    // If we have 5 or more backups, delete the oldest ones
+    if (backups && backups.length >= 5) {
+      const toDelete = backups.slice(4).map(b => b.id);
+      await supabase
+        .from('layout_backups')
+        .delete()
+        .in('id', toDelete);
+    }
+
+    // Get next version number
+    const nextVersion = backups && backups.length > 0 
+      ? Math.max(...backups.map(b => b.version || 0)) + 1 
+      : 1;
+
+    // Insert new backup
+    const { error } = await supabase
+      .from('layout_backups')
+      .insert({
+        user_id: userId,
+        layout_type: layoutType,
+        layout_config: config as any,
+        version: nextVersion
+      });
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error creating backup:', error);
+    return false;
+  }
+}
+
+export async function getBackups(
+  userId: string,
+  layoutType: LayoutType
+): Promise<LayoutBackup[]> {
+  try {
+    const { data, error } = await supabase
+      .from('layout_backups')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('layout_type', layoutType)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return (data || []) as unknown as LayoutBackup[];
+  } catch (error) {
+    console.error('Error fetching backups:', error);
+    return [];
+  }
+}
+
+export async function restoreBackup(
+  userId: string,
+  backupId: string
+): Promise<LayoutConfig | null> {
+  try {
+    const { data, error } = await supabase
+      .from('layout_backups')
+      .select('layout_config, layout_type')
+      .eq('id', backupId)
+      .eq('user_id', userId)
+      .single();
+
+    if (error) throw error;
+    if (!data) return null;
+
+    // Save as current layout
+    await saveLayout(userId, data.layout_type as LayoutType, data.layout_config as unknown as LayoutConfig);
+    
+    return data.layout_config as unknown as LayoutConfig;
+  } catch (error) {
+    console.error('Error restoring backup:', error);
+    return null;
+  }
+}
+
+// ============================================================================
+// PROFILE MANAGEMENT
+// ============================================================================
+
+export interface LayoutProfile {
+  id: string;
+  user_id: string;
+  layout_type: LayoutType;
+  profile_name: string;
+  layout_config: LayoutConfig;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function getProfiles(
+  userId: string,
+  layoutType: LayoutType
+): Promise<LayoutProfile[]> {
+  try {
+    const { data, error } = await supabase
+      .from('layout_profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('layout_type', layoutType)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return (data || []) as unknown as LayoutProfile[];
+  } catch (error) {
+    console.error('Error fetching profiles:', error);
+    return [];
+  }
+}
+
+export async function saveProfile(
+  userId: string,
+  layoutType: LayoutType,
+  profileName: string,
+  config: LayoutConfig
+): Promise<boolean> {
+  try {
+    // Check if user already has 5 profiles
+    const { data: existing, error: countError } = await supabase
+      .from('layout_profiles')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('layout_type', layoutType);
+
+    if (countError) throw countError;
+
+    if (existing && existing.length >= 5) {
+      throw new Error('Você já possui 5 profiles. Exclua um antes de criar outro.');
+    }
+
+    const { error } = await supabase
+      .from('layout_profiles')
+      .insert({
+        user_id: userId,
+        layout_type: layoutType,
+        profile_name: profileName,
+        layout_config: config as any
+      });
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error saving profile:', error);
+    throw error;
+  }
+}
+
+export async function loadProfile(
+  userId: string,
+  profileId: string
+): Promise<LayoutConfig | null> {
+  try {
+    const { data, error } = await supabase
+      .from('layout_profiles')
+      .select('layout_config, layout_type')
+      .eq('id', profileId)
+      .eq('user_id', userId)
+      .single();
+
+    if (error) throw error;
+    if (!data) return null;
+
+    // Create backup before loading profile
+    const currentLayout = await loadLayout(userId, data.layout_type as LayoutType);
+    if (currentLayout) {
+      await createBackup(userId, data.layout_type as LayoutType, currentLayout);
+    }
+
+    // Save as current layout
+    await saveLayout(userId, data.layout_type as LayoutType, data.layout_config as unknown as LayoutConfig);
+    
+    return data.layout_config as unknown as LayoutConfig;
+  } catch (error) {
+    console.error('Error loading profile:', error);
+    return null;
+  }
+}
+
+export async function deleteProfile(
+  userId: string,
+  profileId: string
+): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('layout_profiles')
+      .delete()
+      .eq('id', profileId)
+      .eq('user_id', userId);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error deleting profile:', error);
+    return false;
+  }
+}
+
+export async function duplicateProfile(
+  userId: string,
+  profileId: string
+): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from('layout_profiles')
+      .select('*')
+      .eq('id', profileId)
+      .eq('user_id', userId)
+      .single();
+
+    if (error) throw error;
+    if (!data) return false;
+
+    // Check if user already has 5 profiles
+    const { data: existing, error: countError } = await supabase
+      .from('layout_profiles')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('layout_type', data.layout_type);
+
+    if (countError) throw countError;
+
+    if (existing && existing.length >= 5) {
+      throw new Error('Você já possui 5 profiles. Exclua um antes de duplicar.');
+    }
+
+    const { error: insertError } = await supabase
+      .from('layout_profiles')
+      .insert({
+        user_id: userId,
+        layout_type: data.layout_type,
+        profile_name: `${data.profile_name} (cópia)`,
+        layout_config: data.layout_config
+      });
+
+    if (insertError) throw insertError;
+    return true;
+  } catch (error) {
+    console.error('Error duplicating profile:', error);
+    throw error;
+  }
+}
+
+export async function exportProfile(
+  userId: string,
+  profileId: string
+): Promise<Blob> {
+  try {
+    const { data, error } = await supabase
+      .from('layout_profiles')
+      .select('*')
+      .eq('id', profileId)
+      .eq('user_id', userId)
+      .single();
+
+    if (error) throw error;
+    if (!data) throw new Error('Profile não encontrado');
+
+    const template: LayoutTemplate = {
+      name: data.profile_name,
+      description: `Profile exportado em ${new Date().toLocaleDateString('pt-BR')}`,
+      layout_type: data.layout_type as LayoutType,
+      layout_config: data.layout_config as unknown as LayoutConfig,
+      version: 5,
+      exported_at: new Date().toISOString(),
+      exported_by: userId
+    };
+
+    const blob = new Blob([JSON.stringify(template, null, 2)], {
+      type: 'application/json'
+    });
+
+    return blob;
+  } catch (error) {
+    console.error('Error exporting profile:', error);
+    throw error;
+  }
+}
+
 /**
  * Reset layout to default
  */
@@ -281,6 +589,13 @@ export async function resetLayoutToDefault(
   layoutType: LayoutType
 ): Promise<boolean> {
   try {
+    // Create backup before resetting
+    const currentLayout = await loadLayout(userId, layoutType);
+    if (currentLayout) {
+      await createBackup(userId, layoutType, currentLayout);
+    }
+
+    // Delete from database
     const { error } = await supabase
       .from('user_layout_preferences')
       .delete()
