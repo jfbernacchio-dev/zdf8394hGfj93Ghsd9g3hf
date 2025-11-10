@@ -57,13 +57,13 @@ export const ResizableSection = ({
       }
       
       setSavedHeight(newHeight);
+      // Salva DURANTE o movimento
+      saveToLocalStorage(newHeight);
     };
 
     const handleMouseUp = () => {
       setIsResizing(false);
       setResizeDirection(null);
-      // Salva no localStorage quando termina o resize
-      saveToLocalStorage(savedHeight);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };

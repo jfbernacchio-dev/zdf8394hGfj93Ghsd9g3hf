@@ -63,12 +63,12 @@ export const ResizableCard = ({
         y: startPosY + deltaY 
       };
       setSavedSize(newSize);
+      // Salva DURANTE o movimento
+      saveToLocalStorage(newSize);
     };
 
     const handleDragEnd = () => {
       setIsDragging(false);
-      // Salva no localStorage quando termina o drag
-      saveToLocalStorage(savedSize);
       document.removeEventListener('mousemove', handleDragMove);
       document.removeEventListener('mouseup', handleDragEnd);
     };
@@ -156,14 +156,15 @@ export const ResizableCard = ({
           break;
       }
       
-      setSavedSize({ width: newWidth, height: newHeight, x: newX, y: newY });
+      const newSize = { width: newWidth, height: newHeight, x: newX, y: newY };
+      setSavedSize(newSize);
+      // Salva DURANTE o movimento
+      saveToLocalStorage(newSize);
     };
 
     const handleMouseUp = () => {
       setIsResizing(false);
       setResizeDirection(null);
-      // Salva no localStorage quando termina o resize
-      saveToLocalStorage(savedSize);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };

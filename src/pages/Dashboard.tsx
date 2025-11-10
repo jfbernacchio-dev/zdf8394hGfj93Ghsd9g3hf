@@ -397,6 +397,7 @@ const DashboardTest = () => {
         if (stored) {
           try {
             cardSizes[cardId] = JSON.parse(stored);
+            console.log(`[captureCurrentLayout] Card ${cardId}:`, JSON.parse(stored));
           } catch (e) {
             console.error(`Error parsing card size for ${cardId}:`, e);
           }
@@ -407,6 +408,7 @@ const DashboardTest = () => {
         if (stored) {
           try {
             sectionHeights[sectionId] = parseInt(stored);
+            console.log(`[captureCurrentLayout] Section ${sectionId}:`, parseInt(stored));
           } catch (e) {
             console.error(`Error parsing section height for ${sectionId}:`, e);
           }
@@ -414,6 +416,7 @@ const DashboardTest = () => {
       }
     }
 
+    console.log('[captureCurrentLayout] TOTAL captured:', { cardSizes, sectionHeights });
     return { cardSizes, sectionHeights };
   };
 
@@ -432,11 +435,15 @@ const DashboardTest = () => {
     // SNAPSHOT COMPLETO: captura TUDO que está no localStorage agora
     const { cardSizes, sectionHeights } = captureCurrentLayout();
 
+    console.log('[handleSaveLayout] Captured layout:', { cardSizes, sectionHeights, visibleCards });
+
     const newLayout = {
       visibleCards,
       cardSizes,
       sectionHeights
     };
+    
+    console.log('[handleSaveLayout] Final layout to save:', newLayout);
     
     setPendingSave(newLayout);
     setShowSaveDialog(true);
