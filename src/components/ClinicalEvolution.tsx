@@ -7,7 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format, parseISO, startOfMonth, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CheckCircle2, FileText, Paperclip, Calendar, Edit, Loader2 } from 'lucide-react';
+import { CheckCircle2, FileText, Paperclip, Calendar, Edit, Loader2, ClipboardPlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
@@ -113,6 +113,7 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
       .from('sessions')
       .select('*')
       .eq('patient_id', patientId)
+      .eq('status', 'attended') // Apenas sessões que compareceram
       .order('date', { ascending: true });
 
     if (period !== 'all') {
@@ -1185,7 +1186,7 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
                             {session.time && (
                               <span className="text-xs text-muted-foreground">{session.time}</span>
                             )}
-                            {session.has_evaluation && (
+                            {session.has_evaluation ? (
                               <Button
                                 size="icon"
                                 variant="ghost"
@@ -1194,8 +1195,22 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
                                   e.stopPropagation();
                                   navigate(`/patients/${patientId}/sessions/${session.id}/evaluation`);
                                 }}
+                                title="Editar Avaliação"
                               >
                                 <Edit className="w-3 h-3" />
+                              </Button>
+                            ) : (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/patients/${patientId}/sessions/${session.id}/evaluation`);
+                                }}
+                                title="Adicionar Avaliação"
+                              >
+                                <ClipboardPlus className="w-3 h-3" />
                               </Button>
                             )}
                           </div>
@@ -1243,8 +1258,15 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
               </Card>
             ) : !evaluation ? (
               <Card className="h-full flex items-center justify-center">
-                <CardContent className="text-center p-8">
+                <CardContent className="text-center p-8 space-y-4">
                   <p className="text-muted-foreground">Esta sessão não possui avaliação registrada</p>
+                  <Button
+                    onClick={() => navigate(`/patients/${patientId}/sessions/${selectedSessionId}/evaluation`)}
+                    className="mx-auto"
+                  >
+                    <ClipboardPlus className="w-4 h-4 mr-2" />
+                    Adicionar Avaliação
+                  </Button>
                 </CardContent>
               </Card>
             ) : (

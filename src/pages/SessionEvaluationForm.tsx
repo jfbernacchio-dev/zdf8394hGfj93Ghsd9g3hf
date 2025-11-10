@@ -9,8 +9,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, ArrowLeft } from 'lucide-react';
+import { Loader2, Save, ArrowLeft, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface SessionEvaluationFormProps {
   sessionId?: string;
@@ -28,6 +29,7 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   // Estados para cada grupo de funções psíquicas
   const [consciousness, setConsciousness] = useState({
@@ -145,13 +147,68 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
 
   useEffect(() => {
     if (sessionId && !isMock) {
-      loadExistingEvaluation();
+      validateAndLoadSession();
     }
-  }, [sessionId]);
+  }, [sessionId, user]);
+
+  const validateAndLoadSession = async () => {
+    if (!user) return;
+    
+    try {
+      setLoading(true);
+      
+      // Buscar a sessão com informações do paciente
+      const { data: sessionData, error: sessionError } = await supabase
+        .from('sessions')
+        .select(`
+          *,
+          patients!inner(user_id, name)
+        `)
+        .eq('id', sessionId)
+        .maybeSingle();
+
+      if (sessionError) throw sessionError;
+      
+      if (!sessionData) {
+        setValidationError('Sessão não encontrada.');
+        return;
+      }
+
+      // Validar que o terapeuta é o dono do paciente
+      if (sessionData.patients.user_id !== user.id) {
+        setValidationError('Você não tem permissão para avaliar esta sessão.');
+        return;
+      }
+
+      // Validar que a sessão tem status "attended"
+      if (sessionData.status !== 'attended') {
+        setValidationError('Apenas sessões com status "Compareceu" podem ser avaliadas.');
+        return;
+      }
+
+      // Validar que a data da sessão já passou
+      const sessionDate = new Date(sessionData.date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      if (sessionDate > today) {
+        setValidationError('Não é possível avaliar sessões futuras.');
+        return;
+      }
+
+      // Se passou em todas as validações, carregar avaliação existente
+      await loadExistingEvaluation();
+      
+    } catch (error: any) {
+      console.error('Erro ao validar sessão:', error);
+      setValidationError('Erro ao carregar informações da sessão.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadExistingEvaluation = async () => {
     try {
-      setLoading(true);
       const { data, error } = await supabase
         .from('session_evaluations')
         .select('*')
@@ -181,8 +238,6 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
         description: 'Não foi possível carregar a avaliação existente',
         variant: 'destructive'
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -269,6 +324,29 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (validationError) {
+    return (
+      <div className="container mx-auto py-8 px-4 max-w-4xl">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Erro de Validação</AlertTitle>
+          <AlertDescription className="mt-2">
+            {validationError}
+          </AlertDescription>
+        </Alert>
+        <div className="mt-6">
+          <Button
+            variant="outline"
+            onClick={() => navigate(patientId ? `/patients/${patientId}` : '/patients')}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Voltar
+          </Button>
+        </div>
       </div>
     );
   }
