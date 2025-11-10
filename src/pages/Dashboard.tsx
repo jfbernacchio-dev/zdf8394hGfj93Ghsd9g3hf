@@ -423,20 +423,29 @@ const DashboardTest = () => {
     console.log('[Dashboard] Saving layout with updateActiveProfile:', updateActiveProfile);
     console.log('[Dashboard] Active profile:', activeProfileId, activeProfileName);
     
-    const success = await saveUserLayout(pendingSave, updateActiveProfile);
-    
-    console.log('[Dashboard] Save result:', success);
-    
-    if (success) {
-      console.log('[Dashboard] Save successful! Showing toast...');
-      toast.success('Layout salvo e sincronizado!');
-      console.log('[Dashboard] Toast shown, calling window.location.reload()...');
-      window.location.reload();
-      console.log('[Dashboard] window.location.reload() called (this should NOT appear)');
-    } else {
-      console.log('[Dashboard] Save FAILED! Showing error toast...');
-      toast.error('Erro ao salvar layout. Verifique sua conexão.');
+    try {
+      console.log('[Dashboard] About to call saveUserLayout...');
+      console.log('[Dashboard] saveUserLayout function:', typeof saveUserLayout, saveUserLayout);
+      
+      const success = await saveUserLayout(pendingSave, updateActiveProfile);
+      
+      console.log('[Dashboard] saveUserLayout returned! Result:', success);
+      
+      if (success) {
+        console.log('[Dashboard] Save successful! Showing toast...');
+        toast.success('Layout salvo e sincronizado!');
+        console.log('[Dashboard] Toast shown, calling window.location.reload()...');
+        window.location.reload();
+        console.log('[Dashboard] window.location.reload() called (this should NOT appear)');
+      } else {
+        console.log('[Dashboard] Save FAILED! Showing error toast...');
+        toast.error('Erro ao salvar layout. Verifique sua conexão.');
+      }
+    } catch (error) {
+      console.error('[Dashboard] EXCEPTION caught in handleConfirmSave:', error);
+      toast.error('Erro inesperado ao salvar layout');
     }
+    
     console.log('[Dashboard] ========== handleConfirmSave END ==========');
   };
 
