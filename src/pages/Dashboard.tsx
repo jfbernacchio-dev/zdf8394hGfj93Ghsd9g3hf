@@ -45,6 +45,7 @@ const DashboardTest = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [tempCardSizes, setTempCardSizes] = useState<Record<string, { width: number; height: number; x: number; y: number }>>({});
   const [tempSectionHeights, setTempSectionHeights] = useState<Record<string, number>>({});
+  const [initialLayoutSnapshot, setInitialLayoutSnapshot] = useState<{ cardSizes: any; sectionHeights: any } | null>(null);
 
   // Layout sync
   const { layout, saveUserLayout, isLoading: isLayoutLoading, isSyncing } = useLayoutSync('dashboard', DEFAULT_DASHBOARD_LAYOUT, isEditMode);
@@ -392,11 +393,22 @@ const DashboardTest = () => {
       return;
     }
 
+    // Use snapshot from when edit mode started, not current layout state
+    const baseCardSizes = initialLayoutSnapshot?.cardSizes || layout.cardSizes;
+    const baseSectionHeights = initialLayoutSnapshot?.sectionHeights || layout.sectionHeights;
+
     const newLayout = {
       visibleCards,
-      cardSizes: { ...layout.cardSizes, ...tempCardSizes },
-      sectionHeights: { ...layout.sectionHeights, ...tempSectionHeights }
+      cardSizes: { ...baseCardSizes, ...tempCardSizes },
+      sectionHeights: { ...baseSectionHeights, ...tempSectionHeights }
     };
+    
+    console.log('[Dashboard] Saving with snapshot:', {
+      hasSnapshot: !!initialLayoutSnapshot,
+      tempCardSizes,
+      tempSectionHeights,
+      finalLayout: newLayout
+    });
     
     setPendingSave(newLayout);
     setShowSaveDialog(true);
@@ -409,10 +421,11 @@ const DashboardTest = () => {
       const success = await saveUserLayout(pendingSave, updateActiveProfile);
       
       if (success) {
-        // CRITICAL: Exit edit mode and clear temp states BEFORE reload
+        // CRITICAL: Exit edit mode and clear ALL temp states BEFORE reload
         setIsEditMode(false);
         setTempCardSizes({});
         setTempSectionHeights({});
+        setInitialLayoutSnapshot(null);
         setPendingSave(null);
         
         toast.success('Layout salvo e sincronizado!');
@@ -433,6 +446,7 @@ const DashboardTest = () => {
   const handleCancelEdit = () => {
     setTempCardSizes({});
     setTempSectionHeights({});
+    setInitialLayoutSnapshot(null);
     setIsEditMode(false);
     setVisibleCards(layout.visibleCards);
   };
@@ -1199,7 +1213,18 @@ const DashboardTest = () => {
         
         <div className="flex gap-2">
           {!isEditMode ? (
-            <Button onClick={() => setIsEditMode(true)} variant="outline" size="sm">
+            <Button 
+              onClick={() => {
+                // Save a snapshot of current layout when entering edit mode
+                setInitialLayoutSnapshot({
+                  cardSizes: { ...layout.cardSizes },
+                  sectionHeights: { ...layout.sectionHeights }
+                });
+                setIsEditMode(true);
+              }} 
+              variant="outline" 
+              size="sm"
+            >
               <Settings className="w-4 h-4 mr-2" />
               Editar Layout
             </Button>
