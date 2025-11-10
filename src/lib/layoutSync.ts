@@ -107,7 +107,9 @@ export async function saveLayout(
         layout_config: config as any,
         version: newVersion,
         updated_at: new Date().toISOString(),
-      } as any);
+      } as any, {
+        onConflict: 'user_id,layout_type'
+      });
 
     if (error) throw error;
 
