@@ -386,23 +386,20 @@ export async function restoreBackup(
 export interface LayoutProfile {
   id: string;
   user_id: string;
-  layout_type: LayoutType;
   profile_name: string;
-  layout_config: LayoutConfig;
+  layout_configs: Record<LayoutType, LayoutConfig>;
   created_at: string;
   updated_at: string;
 }
 
 export async function getProfiles(
-  userId: string,
-  layoutType: LayoutType
+  userId: string
 ): Promise<LayoutProfile[]> {
   try {
     const { data, error } = await supabase
       .from('layout_profiles')
       .select('*')
       .eq('user_id', userId)
-      .eq('layout_type', layoutType)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -415,17 +412,14 @@ export async function getProfiles(
 
 export async function saveProfile(
   userId: string,
-  layoutType: LayoutType,
-  profileName: string,
-  config: LayoutConfig
+  profileName: string
 ): Promise<boolean> {
   try {
     // Check if user already has 5 profiles
     const { data: existing, error: countError } = await supabase
       .from('layout_profiles')
       .select('id')
-      .eq('user_id', userId)
-      .eq('layout_type', layoutType);
+      .eq('user_id', userId);
 
     if (countError) throw countError;
 
@@ -433,13 +427,23 @@ export async function saveProfile(
       throw new Error('Você já possui 5 profiles. Exclua um antes de criar outro.');
     }
 
+    // Load ALL current layouts
+    const layoutTypes: LayoutType[] = ['dashboard', 'patient-detail', 'evolution'];
+    const allLayouts: Record<string, LayoutConfig> = {};
+    
+    for (const layoutType of layoutTypes) {
+      const layout = await loadLayout(userId, layoutType);
+      if (layout) {
+        allLayouts[layoutType] = layout;
+      }
+    }
+
     const { error } = await supabase
       .from('layout_profiles')
       .insert({
         user_id: userId,
-        layout_type: layoutType,
         profile_name: profileName,
-        layout_config: config as any
+        layout_configs: allLayouts as any
       });
 
     if (error) throw error;
@@ -453,31 +457,40 @@ export async function saveProfile(
 export async function loadProfile(
   userId: string,
   profileId: string
-): Promise<LayoutConfig | null> {
+): Promise<boolean> {
   try {
     const { data, error } = await supabase
       .from('layout_profiles')
-      .select('layout_config, layout_type')
+      .select('layout_configs')
       .eq('id', profileId)
       .eq('user_id', userId)
       .single();
 
     if (error) throw error;
-    if (!data) return null;
+    if (!data) return false;
 
-    // Create backup before loading profile
-    const currentLayout = await loadLayout(userId, data.layout_type as LayoutType);
-    if (currentLayout) {
-      await createBackup(userId, data.layout_type as LayoutType, currentLayout);
+    const layoutConfigs = data.layout_configs as unknown as Record<string, LayoutConfig>;
+    const layoutTypes: LayoutType[] = ['dashboard', 'patient-detail', 'evolution'];
+
+    // Create backups for ALL current layouts before loading profile
+    for (const layoutType of layoutTypes) {
+      const currentLayout = await loadLayout(userId, layoutType);
+      if (currentLayout) {
+        await createBackup(userId, layoutType, currentLayout);
+      }
     }
 
-    // Save as current layout
-    await saveLayout(userId, data.layout_type as LayoutType, data.layout_config as unknown as LayoutConfig);
+    // Load ALL layouts from profile
+    for (const layoutType of layoutTypes) {
+      if (layoutConfigs[layoutType]) {
+        await saveLayout(userId, layoutType, layoutConfigs[layoutType]);
+      }
+    }
     
-    return data.layout_config as unknown as LayoutConfig;
+    return true;
   } catch (error) {
     console.error('Error loading profile:', error);
-    return null;
+    return false;
   }
 }
 
@@ -519,8 +532,7 @@ export async function duplicateProfile(
     const { data: existing, error: countError } = await supabase
       .from('layout_profiles')
       .select('id')
-      .eq('user_id', userId)
-      .eq('layout_type', data.layout_type);
+      .eq('user_id', userId);
 
     if (countError) throw countError;
 
@@ -532,9 +544,8 @@ export async function duplicateProfile(
       .from('layout_profiles')
       .insert({
         user_id: userId,
-        layout_type: data.layout_type,
         profile_name: `${data.profile_name} (cópia)`,
-        layout_config: data.layout_config
+        layout_configs: data.layout_configs
       });
 
     if (insertError) throw insertError;
@@ -560,17 +571,16 @@ export async function exportProfile(
     if (error) throw error;
     if (!data) throw new Error('Profile não encontrado');
 
-    const template: LayoutTemplate = {
+    const exportData = {
       name: data.profile_name,
       description: `Profile exportado em ${new Date().toLocaleDateString('pt-BR')}`,
-      layout_type: data.layout_type as LayoutType,
-      layout_config: data.layout_config as unknown as LayoutConfig,
+      layout_configs: data.layout_configs,
       version: 5,
       exported_at: new Date().toISOString(),
       exported_by: userId
     };
 
-    const blob = new Blob([JSON.stringify(template, null, 2)], {
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
       type: 'application/json'
     });
 

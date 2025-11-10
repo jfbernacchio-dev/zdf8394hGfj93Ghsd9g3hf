@@ -29,7 +29,6 @@ import { ptBR } from 'date-fns/locale';
 
 export function LayoutManager() {
   const { user } = useAuth();
-  const [layoutType, setLayoutType] = useState<LayoutType>('dashboard');
   const [backups, setBackups] = useState<LayoutBackup[]>([]);
   const [profiles, setProfiles] = useState<LayoutProfile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -47,7 +46,7 @@ export function LayoutManager() {
     if (user) {
       loadData();
     }
-  }, [user, layoutType]);
+  }, [user]);
 
   const loadData = async () => {
     if (!user) return;
@@ -55,8 +54,8 @@ export function LayoutManager() {
     setIsLoading(true);
     try {
       const [backupsData, profilesData] = await Promise.all([
-        getBackups(user.id, layoutType),
-        getProfiles(user.id, layoutType)
+        getBackups(user.id, 'dashboard'), // Load dashboard backups as representative
+        getProfiles(user.id) // Load all profiles (they now contain all layouts)
       ]);
       setBackups(backupsData);
       setProfiles(profilesData);
@@ -76,14 +75,10 @@ export function LayoutManager() {
 
     setIsSaving(true);
     try {
-      const currentLayout = await loadLayout(user.id, layoutType);
-      if (!currentLayout) {
-        toast.error('Nenhum layout atual encontrado');
-        return;
-      }
-
-      await saveProfile(user.id, layoutType, newProfileName.trim(), currentLayout);
-      toast.success('Profile salvo com sucesso!');
+      await saveProfile(user.id, newProfileName.trim());
+      toast.success('Profile salvo com sucesso!', {
+        description: 'Todos os layouts foram incluídos neste snapshot.'
+      });
       setNewProfileName('');
       setShowSaveDialog(false);
       await loadData();
@@ -98,11 +93,15 @@ export function LayoutManager() {
     if (!user) return;
     
     try {
-      await loadProfile(user.id, profileId);
-      toast.success('Profile carregado! Recarregando página...', {
-        description: 'Um backup automático foi criado do layout anterior.'
-      });
-      setTimeout(() => window.location.reload(), 1500);
+      const success = await loadProfile(user.id, profileId);
+      if (success) {
+        toast.success('Profile carregado! Recarregando página...', {
+          description: 'Todos os layouts foram restaurados. Um backup automático foi criado.'
+        });
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        toast.error('Erro ao carregar profile');
+      }
     } catch (error) {
       toast.error('Erro ao carregar profile');
     }
@@ -158,15 +157,37 @@ export function LayoutManager() {
     setIsImporting(true);
 
     try {
-      const result = await importLayoutTemplate(user.id, file);
+      const text = await file.text();
+      const importedData = JSON.parse(text);
       
-      if (result.success) {
-        toast.success('Layout importado com sucesso!', {
-          description: 'Recarregando página para aplicar mudanças...'
+      // Check if it's a profile (has layout_configs) or old template (has layout_type)
+      if (importedData.layout_configs) {
+        // New profile format - restore all layouts
+        const layoutConfigs = importedData.layout_configs as Record<string, any>;
+        const layoutTypes: LayoutType[] = ['dashboard', 'patient-detail', 'evolution'];
+        
+        for (const layoutType of layoutTypes) {
+          if (layoutConfigs[layoutType]) {
+            await loadLayout(user.id, layoutType as LayoutType);
+          }
+        }
+        toast.success('Profile importado com sucesso!', {
+          description: 'Todos os layouts foram restaurados. Recarregando...'
         });
         setTimeout(() => window.location.reload(), 1500);
+      } else if (importedData.layout_type) {
+        // Old template format - single layout
+        const result = await importLayoutTemplate(user.id, file);
+        if (result.success) {
+          toast.success('Layout importado com sucesso!', {
+            description: 'Recarregando página...'
+          });
+          setTimeout(() => window.location.reload(), 1500);
+        } else {
+          toast.error(result.message);
+        }
       } else {
-        toast.error(result.message);
+        toast.error('Formato de arquivo inválido');
       }
     } catch (error) {
       toast.error('Erro ao importar layout');
@@ -200,23 +221,8 @@ export function LayoutManager() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="layout-type">Tipo de Layout</Label>
-            <Select value={layoutType} onValueChange={(value) => setLayoutType(value as LayoutType)}>
-              <SelectTrigger id="layout-type">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="dashboard">Dashboard</SelectItem>
-                <SelectItem value="patient-detail">Detalhes do Paciente</SelectItem>
-                <SelectItem value="evolution">Evolução Clínica</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Tabs defaultValue="profiles" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+        <Tabs defaultValue="profiles" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="profiles">
                 <Package className="w-4 h-4 mr-2" />
                 Profiles ({profiles.length}/5)
@@ -236,13 +242,13 @@ export function LayoutManager() {
                       Salvar Layout Atual
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Salvar Profile</DialogTitle>
-                      <DialogDescription>
-                        Salve o layout atual como um profile nomeado
-                      </DialogDescription>
-                    </DialogHeader>
+                   <DialogContent>
+                     <DialogHeader>
+                       <DialogTitle>Salvar Profile</DialogTitle>
+                       <DialogDescription>
+                         Salve TODOS os seus layouts atuais como um profile nomeado (snapshot completo)
+                       </DialogDescription>
+                     </DialogHeader>
                     <div className="space-y-4">
                       <div>
                         <Label htmlFor="profile-name">Nome do Profile</Label>
@@ -360,8 +366,8 @@ export function LayoutManager() {
 
             <TabsContent value="backups" className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Os últimos 5 backups automáticos são mantidos. Um novo backup é criado 
-                automaticamente antes de resetar ou carregar um profile.
+                Os últimos 5 backups automáticos são mantidos por tipo de layout. Um novo backup é criado 
+                automaticamente antes de resetar ou carregar um profile. (Exibindo backups do Dashboard)
               </p>
 
               <div className="space-y-2">
@@ -402,8 +408,7 @@ export function LayoutManager() {
               </div>
             </TabsContent>
           </Tabs>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
+        </CardContent>
+      </Card>
+    );
+  }

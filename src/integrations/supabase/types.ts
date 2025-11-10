@@ -519,8 +519,7 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
-          layout_config: Json
-          layout_type: string
+          layout_configs: Json
           profile_name: string
           updated_at: string | null
           user_id: string
@@ -528,8 +527,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
-          layout_config: Json
-          layout_type: string
+          layout_configs: Json
           profile_name: string
           updated_at?: string | null
           user_id: string
@@ -537,8 +535,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
-          layout_config?: Json
-          layout_type?: string
+          layout_configs?: Json
           profile_name?: string
           updated_at?: string | null
           user_id?: string
