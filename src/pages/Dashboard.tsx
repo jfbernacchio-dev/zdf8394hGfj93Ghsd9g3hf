@@ -1227,28 +1227,7 @@ const DashboardTest = () => {
         <div className="flex gap-2">
           {!isEditMode ? (
             <Button 
-              onClick={() => {
-                // Resetar posições x,y de todos os cards para 0 ao entrar no modo de edição
-                for (let i = 0; i < localStorage.length; i++) {
-                  const key = localStorage.key(i);
-                  if (key?.startsWith('card-size-')) {
-                    const stored = localStorage.getItem(key);
-                    if (stored) {
-                      try {
-                        const cardSize = JSON.parse(stored);
-                        // Resetar apenas x e y, manter width e height
-                        cardSize.x = 0;
-                        cardSize.y = 0;
-                        localStorage.setItem(key, JSON.stringify(cardSize));
-                      } catch (e) {
-                        console.error('Error resetting card position:', e);
-                      }
-                    }
-                  }
-                }
-                console.log('[Edit Mode] Reset all card positions to (0,0)');
-                setIsEditMode(true);
-              }} 
+              onClick={() => setIsEditMode(true)} 
               variant="outline" 
               size="sm"
             >

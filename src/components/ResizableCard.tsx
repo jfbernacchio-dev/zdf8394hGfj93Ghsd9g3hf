@@ -182,8 +182,13 @@ export const ResizableCard = ({
       style={{ 
         width: `${savedSize.width}px`,
         height: `${savedSize.height}px`,
-        transform: `translate(${savedSize.x}px, ${savedSize.y}px)`,
-        position: isEditMode ? 'absolute' : 'relative'
+        // Só aplicar transform e position absolute quando estiver em modo de edição
+        ...(isEditMode ? {
+          transform: `translate(${savedSize.x}px, ${savedSize.y}px)`,
+          position: 'absolute' as const
+        } : {
+          position: 'relative' as const
+        })
       }}
     >
       {/* Drag handle (top center) */}
