@@ -447,8 +447,7 @@ const DashboardTest = () => {
 
   const getSavedCardSize = useCallback((id: string) => {
     if (tempCardSizes[id]) return tempCardSizes[id];
-    const savedSize = layout.cardSizes[id] || DEFAULT_DASHBOARD_LAYOUT.cardSizes[id];
-    return savedSize;
+    return layout.cardSizes[id] || DEFAULT_DASHBOARD_LAYOUT.cardSizes[id];
   }, [tempCardSizes, layout.cardSizes]);
 
   const getSavedSectionHeight = useCallback((id: string) => {
@@ -457,12 +456,11 @@ const DashboardTest = () => {
   }, [tempSectionHeights, layout.sectionHeights]);
 
   const allCardSizes = useMemo(() => {
-    console.log('🎯 Calculando allCardSizes com layout.cardSizes:', layout.cardSizes);
     return Object.keys(DEFAULT_DASHBOARD_LAYOUT.cardSizes).reduce((acc, id) => {
       acc[id] = getSavedCardSize(id);
       return acc;
     }, {} as Record<string, { width: number; height: number; x: number; y: number }>);
-  }, [getSavedCardSize, layout.cardSizes]);
+  }, [getSavedCardSize]);
 
   const renderCard = (
     id: string,
@@ -1143,45 +1141,37 @@ const DashboardTest = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Loading state - Aguardando carregar layout do banco */}
-      {isLayoutLoading ? (
-        <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          <p className="text-muted-foreground">Carregando layout personalizado...</p>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Dashboard Test</h1>
+          <p className="text-muted-foreground">Layout customizável - Versão de teste</p>
         </div>
-      ) : (
-        <>
-          <div className="mb-8 flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground mb-2">Dashboard Test</h1>
-              <p className="text-muted-foreground">Layout customizável - Versão de teste</p>
-            </div>
-            
-            <div className="flex gap-2">
-              {!isEditMode ? (
-                <Button onClick={() => setIsEditMode(true)} variant="outline" size="sm">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Editar Layout
-                </Button>
-              ) : (
-                <>
-                  <Button onClick={handleResetLayout} variant="outline" size="sm">
-                    <RotateCcw className="w-4 h-4 mr-2" />
-                    Restaurar Padrão
-                  </Button>
-                  <Button onClick={handleCancelEdit} variant="outline" size="sm">
-                    Cancelar
-                  </Button>
-                  <Button onClick={handleSaveLayout} size="sm">
-                    <Save className="w-4 h-4 mr-2" />
-                    Salvar Layout
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
+        
+        <div className="flex gap-2">
+          {!isEditMode ? (
+            <Button onClick={() => setIsEditMode(true)} variant="outline" size="sm">
+              <Settings className="w-4 h-4 mr-2" />
+              Editar Layout
+            </Button>
+          ) : (
+            <>
+              <Button onClick={handleResetLayout} variant="outline" size="sm">
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Restaurar Padrão
+              </Button>
+              <Button onClick={handleCancelEdit} variant="outline" size="sm">
+                Cancelar
+              </Button>
+              <Button onClick={handleSaveLayout} size="sm">
+                <Save className="w-4 h-4 mr-2" />
+                Salvar Layout
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
 
-          <ComplianceReminder />
+      <ComplianceReminder />
 
       <Card className="p-6 mb-6 shadow-[var(--shadow-card)] border-border">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1480,8 +1470,6 @@ const DashboardTest = () => {
       </Dialog>
 
       <NotificationPrompt />
-        </>
-      )}
     </div>
   );
 };
