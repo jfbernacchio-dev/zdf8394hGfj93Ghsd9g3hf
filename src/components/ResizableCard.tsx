@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { GripHorizontal, Move } from 'lucide-react';
+import { GripVertical, X } from 'lucide-react';
 
 interface ResizableCardProps {
   id: string;
@@ -10,9 +10,6 @@ interface ResizableCardProps {
   isEditMode: boolean;
   defaultWidth?: number;
   defaultHeight?: number;
-  tempSize?: { width: number; height: number; x: number; y: number } | null;
-  onTempSizeChange?: (id: string, size: { width: number; height: number; x: number; y: number }) => void;
-  allCardSizes?: Record<string, { width: number; height: number; x: number; y: number }>;
 }
 
 type ResizeDirection = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
@@ -22,17 +19,13 @@ export const ResizableCard = ({
   children, 
   className, 
   isEditMode,
-  defaultWidth = 300,
-  defaultHeight = 200,
-  tempSize,
-  onTempSizeChange,
-  allCardSizes = {}
+  defaultWidth = 280,
+  defaultHeight = 160,
 }: ResizableCardProps) => {
   const [savedSize, setSavedSize] = useState({ width: defaultWidth, height: defaultHeight, x: 0, y: 0 });
-  const [isResizing, setIsResizing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
   const [resizeDirection, setResizeDirection] = useState<ResizeDirection | null>(null);
-  const [alignmentGuides, setAlignmentGuides] = useState<{ x: number[], y: number[] }>({ x: [], y: [] });
 
   // Load saved size from localStorage on mount
   useEffect(() => {
@@ -43,30 +36,9 @@ export const ResizableCard = ({
     }
   }, [id]);
 
-  // Use tempSize if in edit mode and available, otherwise use savedSize
-  const currentSize = isEditMode && tempSize ? tempSize : savedSize;
-
-  const SNAP_THRESHOLD = 10; // pixels
-
-  const checkAlignment = (newWidth: number, newHeight: number) => {
-    const guides = { x: [] as number[], y: [] as number[] };
-    
-    // Check against other cards
-    Object.entries(allCardSizes).forEach(([otherId, otherSize]) => {
-      if (otherId === id) return;
-      
-      // Check horizontal alignment (width/right edge)
-      if (Math.abs(newWidth - otherSize.width) < SNAP_THRESHOLD) {
-        guides.x.push(otherSize.width);
-      }
-      
-      // Check vertical alignment (height/bottom edge)
-      if (Math.abs(newHeight - otherSize.height) < SNAP_THRESHOLD) {
-        guides.y.push(otherSize.height);
-      }
-    });
-    
-    setAlignmentGuides(guides);
+  // Salva no localStorage
+  const saveToLocalStorage = (size: { width: number; height: number; x: number; y: number }) => {
+    localStorage.setItem(`card-size-${id}`, JSON.stringify(size));
   };
 
   const handleDragStart = (e: React.MouseEvent) => {
@@ -78,28 +50,25 @@ export const ResizableCard = ({
     
     const startX = e.clientX;
     const startY = e.clientY;
-    const startPosX = currentSize.x;
-    const startPosY = currentSize.y;
+    const startPosX = savedSize.x;
+    const startPosY = savedSize.y;
 
     const handleDragMove = (moveEvent: MouseEvent) => {
       const deltaX = moveEvent.clientX - startX;
       const deltaY = moveEvent.clientY - startY;
       
-      const newX = startPosX + deltaX;
-      const newY = startPosY + deltaY;
-      
-      if (onTempSizeChange) {
-        onTempSizeChange(id, { 
-          width: currentSize.width, 
-          height: currentSize.height, 
-          x: newX, 
-          y: newY 
-        });
-      }
+      const newSize = { 
+        ...savedSize,
+        x: startPosX + deltaX, 
+        y: startPosY + deltaY 
+      };
+      setSavedSize(newSize);
     };
 
     const handleDragEnd = () => {
       setIsDragging(false);
+      // Salva no localStorage quando termina o drag
+      saveToLocalStorage(savedSize);
       document.removeEventListener('mousemove', handleDragMove);
       document.removeEventListener('mouseup', handleDragEnd);
     };
@@ -118,10 +87,10 @@ export const ResizableCard = ({
     
     const startX = e.clientX;
     const startY = e.clientY;
-    const startWidth = currentSize.width;
-    const startHeight = currentSize.height;
-    const startPosX = currentSize.x;
-    const startPosY = currentSize.y;
+    const startWidth = savedSize.width;
+    const startHeight = savedSize.height;
+    const startPosX = savedSize.x;
+    const startPosY = savedSize.y;
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
       const deltaX = moveEvent.clientX - startX;
@@ -132,7 +101,6 @@ export const ResizableCard = ({
       let newX = startPosX;
       let newY = startPosY;
       
-      // Handle different resize directions
       switch (direction) {
         case 'e': // East (right)
           newWidth = Math.max(150, startWidth + deltaX);
@@ -188,17 +156,14 @@ export const ResizableCard = ({
           break;
       }
       
-      checkAlignment(newWidth, newHeight);
-      
-      if (onTempSizeChange) {
-        onTempSizeChange(id, { width: newWidth, height: newHeight, x: newX, y: newY });
-      }
+      setSavedSize({ width: newWidth, height: newHeight, x: newX, y: newY });
     };
 
     const handleMouseUp = () => {
       setIsResizing(false);
       setResizeDirection(null);
-      setAlignmentGuides({ x: [], y: [] });
+      // Salva no localStorage quando termina o resize
+      saveToLocalStorage(savedSize);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
@@ -211,144 +176,88 @@ export const ResizableCard = ({
     <div 
       className={cn(
         "relative group",
-        (isResizing || isDragging) && "cursor-move"
+        isEditMode && "border-2 border-dashed border-primary/30 rounded-lg"
       )}
       style={{ 
-        width: `${currentSize.width}px`,
-        height: `${currentSize.height}px`,
-        minWidth: '150px',
-        minHeight: '60px',
-        transform: `translate(${currentSize.x}px, ${currentSize.y}px)`
+        width: `${savedSize.width}px`,
+        height: `${savedSize.height}px`,
+        transform: `translate(${savedSize.x}px, ${savedSize.y}px)`,
+        position: isEditMode ? 'absolute' : 'relative'
       }}
     >
-      <Card 
-        className={cn(
-          className,
-          "h-full w-full overflow-auto",
-          isEditMode && "ring-2 ring-primary/30 ring-offset-2"
-        )}
-      >
-        {children}
-      </Card>
-
-      {/* Drag handle - shown at top center */}
+      {/* Drag handle (top center) */}
       {isEditMode && (
         <div
           className={cn(
             "absolute -top-3 left-1/2 -translate-x-1/2 cursor-move",
-            "bg-primary hover:bg-primary/90 rounded-full p-2",
+            "bg-primary hover:bg-primary/90 rounded-full p-2 flex items-center justify-center",
             "opacity-0 group-hover:opacity-100 transition-opacity z-20",
+            "shadow-lg",
             isDragging && "opacity-100"
           )}
           onMouseDown={handleDragStart}
           title="Arrastar card"
         >
-          <Move className="w-4 h-4 text-primary-foreground" />
+          <GripVertical className="w-4 h-4 text-primary-foreground" />
         </div>
       )}
 
-      {/* Drag handle - shown at bottom center */}
-      {isEditMode && (
-        <div
-          className={cn(
-            "absolute -bottom-3 left-1/2 -translate-x-1/2 cursor-move",
-            "bg-primary hover:bg-primary/90 rounded-full p-2",
-            "opacity-0 group-hover:opacity-100 transition-opacity z-20",
-            isDragging && "opacity-100"
-          )}
-          onMouseDown={handleDragStart}
-          title="Arrastar card"
-        >
-          <Move className="w-4 h-4 text-primary-foreground" />
-        </div>
-      )}
+      {/* Content */}
+      <Card className={cn("h-full w-full overflow-hidden", className)}>
+        {children}
+      </Card>
 
-      {/* Alignment guides */}
-      {isEditMode && alignmentGuides.x.map((x, i) => (
-        <div
-          key={`x-guide-${i}`}
-          className="absolute top-0 bottom-0 w-0.5 bg-blue-500 z-50 pointer-events-none"
-          style={{ left: `${x}px` }}
-        />
-      ))}
-      {isEditMode && alignmentGuides.y.map((y, i) => (
-        <div
-          key={`y-guide-${i}`}
-          className="absolute left-0 right-0 h-0.5 bg-blue-500 z-50 pointer-events-none"
-          style={{ top: `${y}px` }}
-        />
-      ))}
-
-      {/* Resize handles */}
+      {/* Resize handles - Corners */}
       {isEditMode && (
         <>
-          {/* Corner handles */}
+          {/* Top-left */}
           <div
             className={cn(
-              "absolute top-0 left-0 w-4 h-4 cursor-nwse-resize",
-              "bg-primary/80 hover:bg-primary rounded-br-lg -translate-x-1/2 -translate-y-1/2",
+              "absolute top-0 left-0 w-4 h-4 -translate-x-1/2 -translate-y-1/2 cursor-nwse-resize",
+              "bg-primary hover:bg-primary/90 rounded-full",
               "opacity-0 group-hover:opacity-100 transition-opacity z-10",
               isResizing && resizeDirection === 'nw' && "opacity-100"
             )}
             onMouseDown={(e) => handleMouseDown(e, 'nw')}
           />
           
+          {/* Top-right */}
           <div
             className={cn(
-              "absolute top-0 right-0 w-4 h-4 cursor-nesw-resize",
-              "bg-primary/80 hover:bg-primary rounded-bl-lg translate-x-1/2 -translate-y-1/2",
+              "absolute top-0 right-0 w-4 h-4 translate-x-1/2 -translate-y-1/2 cursor-nesw-resize",
+              "bg-primary hover:bg-primary/90 rounded-full",
               "opacity-0 group-hover:opacity-100 transition-opacity z-10",
               isResizing && resizeDirection === 'ne' && "opacity-100"
             )}
             onMouseDown={(e) => handleMouseDown(e, 'ne')}
           />
           
+          {/* Bottom-left */}
           <div
             className={cn(
-              "absolute bottom-0 left-0 w-4 h-4 cursor-nesw-resize",
-              "bg-primary/80 hover:bg-primary rounded-tr-lg -translate-x-1/2 translate-y-1/2",
+              "absolute bottom-0 left-0 w-4 h-4 -translate-x-1/2 translate-y-1/2 cursor-nesw-resize",
+              "bg-primary hover:bg-primary/90 rounded-full",
               "opacity-0 group-hover:opacity-100 transition-opacity z-10",
               isResizing && resizeDirection === 'sw' && "opacity-100"
             )}
             onMouseDown={(e) => handleMouseDown(e, 'sw')}
           />
           
+          {/* Bottom-right */}
           <div
             className={cn(
-              "absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize",
-              "bg-primary/80 hover:bg-primary rounded-tl-lg translate-x-1/2 translate-y-1/2",
-              "flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10",
+              "absolute bottom-0 right-0 w-4 h-4 translate-x-1/2 translate-y-1/2 cursor-nwse-resize",
+              "bg-primary hover:bg-primary/90 rounded-full",
+              "opacity-0 group-hover:opacity-100 transition-opacity z-10",
               isResizing && resizeDirection === 'se' && "opacity-100"
             )}
             onMouseDown={(e) => handleMouseDown(e, 'se')}
-          >
-            <GripHorizontal className="w-3 h-3 text-primary-foreground rotate-45" />
-          </div>
+          />
 
-          {/* Edge handles */}
+          {/* Edges */}
           <div
             className={cn(
-              "absolute top-0 left-1/2 h-2 w-16 -translate-x-1/2 -translate-y-1/2 cursor-ns-resize",
-              "bg-primary/60 hover:bg-primary rounded",
-              "opacity-0 group-hover:opacity-100 transition-opacity z-10",
-              isResizing && resizeDirection === 'n' && "opacity-100"
-            )}
-            onMouseDown={(e) => handleMouseDown(e, 'n')}
-          />
-          
-          <div
-            className={cn(
-              "absolute bottom-0 left-1/2 h-2 w-16 -translate-x-1/2 translate-y-1/2 cursor-ns-resize",
-              "bg-primary/60 hover:bg-primary rounded",
-              "opacity-0 group-hover:opacity-100 transition-opacity z-10",
-              isResizing && resizeDirection === 's' && "opacity-100"
-            )}
-            onMouseDown={(e) => handleMouseDown(e, 's')}
-          />
-          
-          <div
-            className={cn(
-              "absolute left-0 top-1/2 w-2 h-16 -translate-y-1/2 -translate-x-1/2 cursor-ew-resize",
+              "absolute top-1/2 left-0 w-2 h-16 -translate-y-1/2 -translate-x-1/2 cursor-ew-resize",
               "bg-primary/60 hover:bg-primary rounded",
               "opacity-0 group-hover:opacity-100 transition-opacity z-10",
               isResizing && resizeDirection === 'w' && "opacity-100"
@@ -365,7 +274,34 @@ export const ResizableCard = ({
             )}
             onMouseDown={(e) => handleMouseDown(e, 'e')}
           />
+
+          <div
+            className={cn(
+              "absolute top-0 left-1/2 w-16 h-2 -translate-x-1/2 -translate-y-1/2 cursor-ns-resize",
+              "bg-primary/60 hover:bg-primary rounded",
+              "opacity-0 group-hover:opacity-100 transition-opacity z-10",
+              isResizing && resizeDirection === 'n' && "opacity-100"
+            )}
+            onMouseDown={(e) => handleMouseDown(e, 'n')}
+          />
+          
+          <div
+            className={cn(
+              "absolute bottom-0 left-1/2 w-16 h-2 -translate-x-1/2 translate-y-1/2 cursor-ns-resize",
+              "bg-primary/60 hover:bg-primary rounded",
+              "opacity-0 group-hover:opacity-100 transition-opacity z-10",
+              isResizing && resizeDirection === 's' && "opacity-100"
+            )}
+            onMouseDown={(e) => handleMouseDown(e, 's')}
+          />
         </>
+      )}
+
+      {/* Size indicator */}
+      {isEditMode && (isDragging || isResizing) && (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-primary-foreground px-3 py-1 rounded-md shadow-lg text-sm font-medium z-30 pointer-events-none">
+          {Math.round(savedSize.width)} × {Math.round(savedSize.height)}
+        </div>
       )}
     </div>
   );

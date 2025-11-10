@@ -1035,9 +1035,6 @@ Assinatura do Profissional`;
         isEditMode={isEditMode}
         defaultWidth={config?.width || 350}
         defaultHeight={config?.height || 220}
-        tempSize={tempSizes[cardId]}
-        onTempSizeChange={handleTempSizeChange}
-        allCardSizes={tempSizes}
         className={cn("p-6 relative", config?.className)}
       >
         {isEditMode && (
@@ -1124,9 +1121,6 @@ Assinatura do Profissional`;
         isEditMode={isEditMode}
         defaultWidth={200}
         defaultHeight={120}
-        tempSize={tempSizes[cardId]}
-        onTempSizeChange={handleTempSizeChange}
-        allCardSizes={tempSizes}
         className="p-4 relative"
       >
         {isEditMode && (
@@ -1244,8 +1238,6 @@ Assinatura do Profissional`;
             id="stats-section"
             isEditMode={isEditMode}
             defaultHeight={200}
-            tempHeight={tempSectionHeights['stats-section']}
-            onTempHeightChange={handleTempSectionHeightChange}
           >
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               {['stat-total', 'stat-attended', 'stat-scheduled', 'stat-unpaid', 'stat-nfse',
@@ -1298,8 +1290,6 @@ Assinatura do Profissional`;
                 id="functional-section"
                 isEditMode={isEditMode}
                 defaultHeight={510}
-                tempHeight={tempSectionHeights['functional-section']}
-                onTempHeightChange={handleTempSectionHeightChange}
               >
                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                  {nextSession && isCardVisible('next-appointment') && renderFunctionalCard(

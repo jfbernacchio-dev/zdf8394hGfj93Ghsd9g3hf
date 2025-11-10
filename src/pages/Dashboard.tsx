@@ -43,9 +43,6 @@ const DashboardTest = () => {
 
   // Edit mode state (declared before useLayoutSync)
   const [isEditMode, setIsEditMode] = useState(false);
-  const [tempCardSizes, setTempCardSizes] = useState<Record<string, { width: number; height: number; x: number; y: number }>>({});
-  const [tempSectionHeights, setTempSectionHeights] = useState<Record<string, number>>({});
-  const [initialLayoutSnapshot, setInitialLayoutSnapshot] = useState<{ cardSizes: any; sectionHeights: any } | null>(null);
 
   // Layout sync
   const { layout, saveUserLayout, isLoading: isLayoutLoading, isSyncing } = useLayoutSync('dashboard', DEFAULT_DASHBOARD_LAYOUT, isEditMode);
@@ -386,6 +383,40 @@ const DashboardTest = () => {
     return [];
   };
 
+  // Função para capturar SNAPSHOT COMPLETO do layout atual
+  const captureCurrentLayout = () => {
+    const cardSizes: Record<string, { width: number; height: number; x: number; y: number }> = {};
+    const sectionHeights: Record<string, number> = {};
+
+    // Escanear TODOS os cards no localStorage
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith('card-size-')) {
+        const cardId = key.replace('card-size-', '');
+        const stored = localStorage.getItem(key);
+        if (stored) {
+          try {
+            cardSizes[cardId] = JSON.parse(stored);
+          } catch (e) {
+            console.error(`Error parsing card size for ${cardId}:`, e);
+          }
+        }
+      } else if (key?.startsWith('section-height-')) {
+        const sectionId = key.replace('section-height-', '');
+        const stored = localStorage.getItem(key);
+        if (stored) {
+          try {
+            sectionHeights[sectionId] = parseInt(stored);
+          } catch (e) {
+            console.error(`Error parsing section height for ${sectionId}:`, e);
+          }
+        }
+      }
+    }
+
+    return { cardSizes, sectionHeights };
+  };
+
   const handleSaveLayout = async () => {
     // Check if user has active profile
     if (!activeProfileId) {
@@ -393,22 +424,19 @@ const DashboardTest = () => {
       return;
     }
 
-    // Use snapshot from when edit mode started, not current layout state
-    const baseCardSizes = initialLayoutSnapshot?.cardSizes || layout.cardSizes;
-    const baseSectionHeights = initialLayoutSnapshot?.sectionHeights || layout.sectionHeights;
+    if (!visibleCards || visibleCards.length === 0) {
+      toast.error('Configure pelo menos um card visível antes de salvar');
+      return;
+    }
+
+    // SNAPSHOT COMPLETO: captura TUDO que está no localStorage agora
+    const { cardSizes, sectionHeights } = captureCurrentLayout();
 
     const newLayout = {
       visibleCards,
-      cardSizes: { ...baseCardSizes, ...tempCardSizes },
-      sectionHeights: { ...baseSectionHeights, ...tempSectionHeights }
+      cardSizes,
+      sectionHeights
     };
-    
-    console.log('[Dashboard] Saving with snapshot:', {
-      hasSnapshot: !!initialLayoutSnapshot,
-      tempCardSizes,
-      tempSectionHeights,
-      finalLayout: newLayout
-    });
     
     setPendingSave(newLayout);
     setShowSaveDialog(true);
@@ -421,16 +449,11 @@ const DashboardTest = () => {
       const success = await saveUserLayout(pendingSave, updateActiveProfile);
       
       if (success) {
-        // CRITICAL: Exit edit mode and clear ALL temp states BEFORE reload
         setIsEditMode(false);
-        setTempCardSizes({});
-        setTempSectionHeights({});
-        setInitialLayoutSnapshot(null);
         setPendingSave(null);
         
         toast.success('Layout salvo e sincronizado!');
         
-        // Small delay to ensure state updates are flushed
         setTimeout(() => {
           window.location.reload();
         }, 100);
@@ -444,9 +467,6 @@ const DashboardTest = () => {
   };
 
   const handleCancelEdit = () => {
-    setTempCardSizes({});
-    setTempSectionHeights({});
-    setInitialLayoutSnapshot(null);
     setIsEditMode(false);
     setVisibleCards(layout.visibleCards);
   };
@@ -456,22 +476,12 @@ const DashboardTest = () => {
     
     const success = await resetLayoutToDefault(user.id, 'dashboard');
     if (success) {
-      setTempCardSizes({});
-      setTempSectionHeights({});
       setVisibleCards(DEFAULT_DASHBOARD_LAYOUT.visibleCards);
       toast.success('Layout restaurado para o padrão!');
       setTimeout(() => window.location.reload(), 300);
     } else {
       toast.error('Erro ao resetar layout.');
     }
-  };
-
-  const handleTempCardSizeChange = (id: string, size: { width: number; height: number; x: number; y: number }) => {
-    setTempCardSizes(prev => ({ ...prev, [id]: size }));
-  };
-
-  const handleTempSectionHeightChange = (id: string, height: number) => {
-    setTempSectionHeights(prev => ({ ...prev, [id]: height }));
   };
 
   const handleAddCard = async (card: CardConfig) => {
@@ -512,19 +522,12 @@ const DashboardTest = () => {
   };
 
   const getSavedCardSize = (id: string) => {
-    if (tempCardSizes[id]) return tempCardSizes[id];
     return layout.cardSizes[id] || DEFAULT_DASHBOARD_LAYOUT.cardSizes[id];
   };
 
   const getSavedSectionHeight = (id: string) => {
-    if (tempSectionHeights[id]) return tempSectionHeights[id];
     return layout.sectionHeights[id] || DEFAULT_DASHBOARD_LAYOUT.sectionHeights[id] || 400;
   };
-
-  const allCardSizes = Object.keys(DEFAULT_DASHBOARD_LAYOUT.cardSizes).reduce((acc, id) => {
-    acc[id] = getSavedCardSize(id);
-    return acc;
-  }, {} as Record<string, { width: number; height: number; x: number; y: number }>);
 
   const renderCard = (
     id: string,
@@ -560,9 +563,6 @@ const DashboardTest = () => {
         isEditMode={isEditMode}
         defaultWidth={getSavedCardSize(id)?.width || 280}
         defaultHeight={getSavedCardSize(id)?.height || 160}
-        tempSize={tempCardSizes[id]}
-        onTempSizeChange={handleTempCardSizeChange}
-        allCardSizes={allCardSizes}
       >
         <div onClick={onClick}>
           {CardContent}
@@ -1189,14 +1189,6 @@ const DashboardTest = () => {
         isEditMode={isEditMode}
         defaultWidth={chartConfig.defaultWidth || 600}
         defaultHeight={chartConfig.defaultHeight || 400}
-        tempSize={tempCardSizes[id]}
-        onTempSizeChange={(cardId, newSize) => {
-          setTempCardSizes(prev => ({
-            ...prev,
-            [cardId]: newSize
-          }));
-        }}
-        allCardSizes={isEditMode ? tempCardSizes : allCardSizes}
       >
         {ChartContent}
       </ResizableCard>
@@ -1214,14 +1206,7 @@ const DashboardTest = () => {
         <div className="flex gap-2">
           {!isEditMode ? (
             <Button 
-              onClick={() => {
-                // Save a snapshot of current layout when entering edit mode
-                setInitialLayoutSnapshot({
-                  cardSizes: { ...layout.cardSizes },
-                  sectionHeights: { ...layout.sectionHeights }
-                });
-                setIsEditMode(true);
-              }} 
+              onClick={() => setIsEditMode(true)} 
               variant="outline" 
               size="sm"
             >
@@ -1354,8 +1339,6 @@ const DashboardTest = () => {
           id="metrics-section"
           isEditMode={isEditMode}
           defaultHeight={getSavedSectionHeight('metrics-section')}
-          tempHeight={tempSectionHeights['metrics-section']}
-          onTempHeightChange={handleTempSectionHeightChange}
         >
           <div className="relative h-full">
             {renderCard(
@@ -1454,8 +1437,6 @@ const DashboardTest = () => {
           id="charts-section"
           isEditMode={isEditMode}
           defaultHeight={getSavedSectionHeight('charts-section')}
-          tempHeight={tempSectionHeights['charts-section']}
-          onTempHeightChange={handleTempSectionHeightChange}
         >
           {visibleCards.filter(id => id.startsWith('chart-')).length === 0 ? (
             <Card className="p-8 text-center border-dashed">

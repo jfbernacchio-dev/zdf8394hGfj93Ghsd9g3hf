@@ -2135,8 +2135,6 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
         id="evolution-charts-section"
         isEditMode={isEditMode}
         defaultHeight={DEFAULT_EVOLUTION_LAYOUT.sectionHeights['evolution-charts-section']}
-        tempHeight={tempSectionHeights['evolution-charts-section']}
-        onTempHeightChange={(id, height) => setTempSectionHeights(prev => ({ ...prev, [id]: height }))}
         className="relative"
       >
         <div className="relative w-full h-full">
@@ -2149,9 +2147,6 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
                 isEditMode={isEditMode}
                 defaultWidth={DEFAULT_EVOLUTION_LAYOUT.cardSizes[chart.id]?.width || 590}
                 defaultHeight={DEFAULT_EVOLUTION_LAYOUT.cardSizes[chart.id]?.height || 320}
-                tempSize={tempCardSizes[chart.id]}
-                onTempSizeChange={(id, size) => setTempCardSizes(prev => ({ ...prev, [id]: size }))}
-                allCardSizes={tempCardSizes}
                 className={cn(!isEditMode && "static")}
               >
                 <Card className="h-full w-full">
