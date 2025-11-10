@@ -70,6 +70,15 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
   const [loading, setLoading] = useState(true);
   const [clinicalNotes, setClinicalNotes] = useState('');
   const [savingNotes, setSavingNotes] = useState(false);
+  const [activeSubTab, setActiveSubTab] = useState(() => {
+    // Check sessionStorage for sub-tab redirect after layout save/cancel
+    const returnToSubTab = sessionStorage.getItem('returnToSubTab');
+    if (returnToSubTab) {
+      sessionStorage.removeItem('returnToSubTab');
+      return returnToSubTab;
+    }
+    return 'sessions';
+  });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -1139,7 +1148,7 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
   };
 
   return (
-    <Tabs defaultValue="sessions" className="w-full">
+    <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full">
       <TabsList className="mb-4">
         <TabsTrigger value="sessions">Avaliação de Sessões</TabsTrigger>
         <TabsTrigger value="evolution">Evolução do Paciente</TabsTrigger>
@@ -1860,6 +1869,10 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
     setIsEditMode(false);
     setShowSaveDialog(false);
     
+    // Save tab state to redirect after reload
+    sessionStorage.setItem('returnToTab', 'evolution');
+    sessionStorage.setItem('returnToSubTab', 'evolution');
+    
     toast({
       title: "Layout salvo",
       description: "Recarregando página para aplicar alterações...",
@@ -1876,6 +1889,10 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
     setTempCardSizes({});
     setIsEditMode(false);
     setShowSaveDialog(false);
+    
+    // Save tab state to redirect after reload
+    sessionStorage.setItem('returnToTab', 'evolution');
+    sessionStorage.setItem('returnToSubTab', 'evolution');
     
     // Reload to discard changes
     window.location.reload();

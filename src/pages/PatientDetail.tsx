@@ -146,6 +146,15 @@ const PatientDetailNew = () => {
     }
   }, [location, navigate]);
 
+  // Check sessionStorage for tab redirect after layout save/cancel
+  useEffect(() => {
+    const returnToTab = sessionStorage.getItem('returnToTab');
+    if (returnToTab) {
+      setActiveTab(returnToTab);
+      sessionStorage.removeItem('returnToTab');
+    }
+  }, []);
+
   useEffect(() => {
     filterSessions();
   }, [period, customStartDate, customEndDate, allSessions, showScheduled, showUnpaid]);
