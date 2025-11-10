@@ -51,6 +51,7 @@ const DashboardTest = () => {
   // Add card dialog state
   const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
   const [isAddChartDialogOpen, setIsAddChartDialogOpen] = useState(false);
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -1162,7 +1163,7 @@ const DashboardTest = () => {
               <Button onClick={handleCancelEdit} variant="outline" size="sm">
                 Cancelar
               </Button>
-              <Button onClick={handleSaveLayout} size="sm">
+              <Button onClick={() => setIsSaveDialogOpen(true)} size="sm">
                 <Save className="w-4 h-4 mr-2" />
                 Salvar Layout
               </Button>
@@ -1465,6 +1466,38 @@ const DashboardTest = () => {
                 </TableRow>
               </TableBody>
             </Table>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Save Layout Confirmation Dialog */}
+      <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Salvar alterações no layout?</DialogTitle>
+            <DialogDescription>
+              Você tem alterações não salvas no layout do dashboard. Deseja salvar estas alterações?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 justify-end mt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsSaveDialogOpen(false);
+                handleCancelEdit();
+              }}
+            >
+              Descartar Alterações
+            </Button>
+            <Button
+              onClick={() => {
+                setIsSaveDialogOpen(false);
+                handleSaveLayout();
+              }}
+            >
+              <Save className="w-4 h-4 mr-2" />
+              Salvar Layout
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
