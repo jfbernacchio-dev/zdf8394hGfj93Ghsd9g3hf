@@ -85,25 +85,41 @@ export async function saveLayout(
   config: LayoutConfig
 ): Promise<boolean> {
   try {
-    // Get current version
+    // Get current layout with ID
     const { data: current } = await supabase
       .from('user_layout_preferences')
-      .select('version')
+      .select('id, version')
       .eq('user_id', userId)
       .eq('layout_type', layoutType)
       .maybeSingle();
 
     const newVersion = (current?.version || 0) + 1;
 
-    const { error } = await supabase
-      .from('user_layout_preferences')
-      .upsert({
-        user_id: userId,
-        layout_type: layoutType,
-        layout_config: config as any,
-        version: newVersion,
-        updated_at: new Date().toISOString(),
-      } as any);
+    let error;
+    
+    if (current?.id) {
+      // Update existing layout
+      const updateResult = await supabase
+        .from('user_layout_preferences')
+        .update({
+          layout_config: config as any,
+          version: newVersion,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', current.id);
+      error = updateResult.error;
+    } else {
+      // Insert new layout
+      const insertResult = await supabase
+        .from('user_layout_preferences')
+        .insert({
+          user_id: userId,
+          layout_type: layoutType,
+          layout_config: config as any,
+          version: newVersion,
+        } as any);
+      error = insertResult.error;
+    }
 
     if (error) throw error;
 
