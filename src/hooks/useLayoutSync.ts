@@ -6,6 +6,8 @@ import {
   subscribeToLayoutUpdates,
   syncPendingLayouts,
   createBackup,
+  getActiveProfileId,
+  loadProfile,
   LayoutType,
   LayoutConfig,
 } from '@/lib/layoutSync';
@@ -17,7 +19,7 @@ export function useLayoutSync(layoutType: LayoutType, defaultLayout: LayoutConfi
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // Load layout on mount
+  // Load layout on mount - with auto-load of active profile
   useEffect(() => {
     if (!user) return;
 
@@ -26,6 +28,12 @@ export function useLayoutSync(layoutType: LayoutType, defaultLayout: LayoutConfi
       try {
         // Sync any pending layouts first
         await syncPendingLayouts(user.id);
+
+        // Check if there's an active profile and load it
+        const activeProfileId = await getActiveProfileId(user.id);
+        if (activeProfileId) {
+          await loadProfile(user.id, activeProfileId);
+        }
 
         // Load from DB
         const savedLayout = await loadLayout(user.id, layoutType);

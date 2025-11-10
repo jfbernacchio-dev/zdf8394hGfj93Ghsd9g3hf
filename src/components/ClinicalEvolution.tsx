@@ -26,7 +26,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Checkbox } from '@/components/ui/checkbox';
 import { DEFAULT_EVOLUTION_LAYOUT } from '@/lib/defaultLayoutEvolution';
 import { useLayoutSync } from '@/hooks/useLayoutSync';
-import { resetLayoutToDefault } from '@/lib/layoutSync';
+import { resetLayoutToDefault, getActiveProfileId, getProfiles, LayoutProfile } from '@/lib/layoutSync';
+import { RequireActiveProfileDialog } from './RequireActiveProfileDialog';
+import { SaveLayoutDialog } from './SaveLayoutDialog';
 
 interface ClinicalEvolutionProps {
   patientId: string;
@@ -1406,6 +1408,14 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
   const [tempCardSizes, setTempCardSizes] = useState<Record<string, { width: number; height: number; x: number; y: number }>>({});
   const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
+  
+  // Active profile state
+  const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
+  const [activeProfileName, setActiveProfileName] = useState<string>('');
+  const [showProfileRequiredDialog, setShowProfileRequiredDialog] = useState(false);
+  const [showSaveLayoutDialog, setShowSaveLayoutDialog] = useState(false);
+  const [pendingSave, setPendingSave] = useState<any>(null);
+  
   const { toast } = useToast();
 
   // Update visible cards when layout changes
@@ -1414,6 +1424,22 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
       setVisibleCards(layout.visibleCards);
     }
   }, [layout, isLayoutLoading]);
+
+  // Load active profile
+  useEffect(() => {
+    if (user) {
+      getActiveProfileId(user.id).then(async (profileId) => {
+        setActiveProfileId(profileId);
+        if (profileId) {
+          const profiles = await getProfiles(user.id);
+          const active = profiles.find((p: LayoutProfile) => p.id === profileId);
+          if (active) {
+            setActiveProfileName(active.profile_name);
+          }
+        }
+      });
+    }
+  }, [user]);
 
   useEffect(() => {
     loadEvaluations();
@@ -1858,19 +1884,34 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
   };
 
   const handleSaveLayout = async () => {
+    // Check if user has active profile
+    if (!activeProfileId) {
+      setShowProfileRequiredDialog(true);
+      setShowSaveDialog(false);
+      return;
+    }
+
     const newLayout = {
       visibleCards,
       cardSizes: { ...layout.cardSizes, ...tempCardSizes },
       sectionHeights: { ...layout.sectionHeights, ...tempSectionHeights }
     };
     
-    const success = await saveUserLayout(newLayout);
+    setPendingSave(newLayout);
+    setShowSaveDialog(false);
+    setShowSaveLayoutDialog(true);
+  };
+
+  const handleConfirmSave = async (updateActiveProfile: boolean) => {
+    if (!pendingSave) return;
+    
+    const success = await saveUserLayout(pendingSave, updateActiveProfile);
     
     if (success) {
       setTempSectionHeights({});
       setTempCardSizes({});
       setIsEditMode(false);
-      setShowSaveDialog(false);
+      setPendingSave(null);
       
       sessionStorage.setItem('returnToTab', 'evolution');
       sessionStorage.setItem('returnToSubTab', 'evolution');
@@ -2134,6 +2175,18 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <RequireActiveProfileDialog 
+        open={showProfileRequiredDialog}
+        onOpenChange={setShowProfileRequiredDialog}
+      />
+
+      <SaveLayoutDialog
+        open={showSaveLayoutDialog}
+        onOpenChange={setShowSaveLayoutDialog}
+        onConfirm={handleConfirmSave}
+        activeProfileName={activeProfileName}
+      />
     </div>
   );
 }
