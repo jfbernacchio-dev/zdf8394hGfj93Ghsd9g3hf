@@ -470,11 +470,18 @@ const DashboardTest = () => {
   }, [tempSectionHeights, layout.sectionHeights]);
 
   const allCardSizes = useMemo(() => {
-    return Object.keys(DEFAULT_DASHBOARD_LAYOUT.cardSizes).reduce((acc, id) => {
+    console.log('🎯 Calculando allCardSizes');
+    console.log('🎯 tempCardSizes:', tempCardSizes);
+    console.log('🎯 layout.cardSizes:', layout.cardSizes);
+    
+    const result = Object.keys(DEFAULT_DASHBOARD_LAYOUT.cardSizes).reduce((acc, id) => {
       acc[id] = getSavedCardSize(id);
       return acc;
     }, {} as Record<string, { width: number; height: number; x: number; y: number }>);
-  }, [getSavedCardSize]);
+    
+    console.log('🎯 allCardSizes calculado:', result);
+    return result;
+  }, [getSavedCardSize, tempCardSizes, layout.cardSizes]);
 
   const renderCard = (
     id: string,
