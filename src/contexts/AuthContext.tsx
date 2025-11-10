@@ -15,9 +15,6 @@ interface Profile {
   work_end_time?: string;
   slot_duration?: number;
   break_time?: number;
-  phone?: string;
-  send_nfse_to_therapist?: boolean;
-  clinical_approach?: string;
 }
 
 interface AuthContextType {

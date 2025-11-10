@@ -37,9 +37,8 @@ import { ResizableSection } from '@/components/ResizableSection';
 import { Settings, RotateCcw } from 'lucide-react';
 import { AddCardDialog } from '@/components/AddCardDialog';
 import { CardConfig, ALL_AVAILABLE_CARDS } from '@/types/cardTypes';
-import { DEFAULT_LAYOUT } from '@/lib/defaultLayout';
+import { DEFAULT_LAYOUT, resetToDefaultLayout } from '@/lib/defaultLayout';
 import { ClinicalEvolution } from '@/components/ClinicalEvolution';
-import { useLayoutStorage } from '@/hooks/useLayoutStorage';
 
 const PatientDetailNew = () => {
   const { id } = useParams();
@@ -71,15 +70,12 @@ const PatientDetailNew = () => {
   const [noteText, setNoteText] = useState('');
   const [noteType, setNoteType] = useState<'session' | 'general'>('session');
   const [selectedSessionForNote, setSelectedSessionForNote] = useState<string | null>(null);
-  // Layout storage
-  const { layout, saveLayout, resetLayout, isLoaded } = useLayoutStorage('patient_detail', DEFAULT_LAYOUT);
-  const [visibleCards, setVisibleCards] = useState<string[]>(DEFAULT_LAYOUT.visibleCards);
-
   const [isEditMode, setIsEditMode] = useState(false);
   const [isExitEditDialogOpen, setIsExitEditDialogOpen] = useState(false);
   const [tempSizes, setTempSizes] = useState<Record<string, { width: number; height: number; x: number; y: number }>>({});
   const [tempSectionHeights, setTempSectionHeights] = useState<Record<string, number>>({});
   const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
+  const [visibleCards, setVisibleCards] = useState<string[]>([]);
   
   const getBrazilDate = () => {
     return new Date().toLocaleString('en-CA', { 
@@ -100,14 +96,24 @@ const PatientDetailNew = () => {
     showInSchedule: true
   });
 
-  // Update visible cards when layout changes
   useEffect(() => {
-    if (isLoaded) {
-      setVisibleCards(layout.visibleCards);
+    // Load visible cards from localStorage
+    const savedCards = localStorage.getItem('visible-cards');
+    if (savedCards) {
+      setVisibleCards(JSON.parse(savedCards));
+    } else {
+      // Use default layout
+      setVisibleCards(DEFAULT_LAYOUT.visibleCards);
     }
-  }, [layout, isLoaded]);
 
-  useEffect(() => {
+    // Set default section heights if not already set
+    Object.entries(DEFAULT_LAYOUT.sectionHeights).forEach(([id, height]) => {
+      const saved = localStorage.getItem(`section-height-${id}`);
+      if (!saved) {
+        localStorage.setItem(`section-height-${id}`, height.toString());
+      }
+    });
+
     loadData();
     
     const channel = supabase
@@ -870,71 +876,54 @@ Assinatura do Profissional`;
   };
 
   const handleSaveChanges = () => {
-    const newLayout = {
-      visibleCards,
-      cardOrder: layout.cardOrder,
-      cardSizes: { ...layout.cardSizes, ...tempSizes },
-      sectionHeights: { ...layout.sectionHeights, ...tempSectionHeights }
-    };
+    // Save all temp sizes to localStorage
+    Object.entries(tempSizes).forEach(([id, size]) => {
+      localStorage.setItem(`card-size-${id}`, JSON.stringify(size));
+    });
     
-    const success = saveLayout(newLayout);
+    // Save all section heights to localStorage
+    Object.entries(tempSectionHeights).forEach(([id, height]) => {
+      localStorage.setItem(`section-height-${id}`, height.toString());
+    });
     
-    if (success) {
-      setIsExitEditDialogOpen(false);
-      setIsEditMode(false);
-      setTempSizes({});
-      setTempSectionHeights({});
-      toast({ title: 'Layout salvo! Recarregando...' });
-      setTimeout(() => window.location.reload(), 500);
-    } else {
-      toast({ title: 'Erro ao salvar layout', description: 'Verifique sua conexão.', variant: 'destructive' });
-    }
+    // Save visible cards
+    localStorage.setItem('visible-cards', JSON.stringify(visibleCards));
+    
+    setIsExitEditDialogOpen(false);
+    setIsEditMode(false);
+    setTempSizes({});
+    setTempSectionHeights({});
+    toast({ title: 'Layout salvo com sucesso!' });
+    
+    // Force reload to apply saved sizes
+    setTimeout(() => window.location.reload(), 300);
   };
 
   const handleCancelChanges = () => {
+    // Discard all temp sizes and card changes
     setTempSizes({});
     setTempSectionHeights({});
     setIsExitEditDialogOpen(false);
     setIsEditMode(false);
-    setVisibleCards(layout.visibleCards);
+    
+    // Reload visible cards from localStorage
+    const savedCards = localStorage.getItem('visible-cards');
+    if (savedCards) {
+      setVisibleCards(JSON.parse(savedCards));
+    }
+    
     toast({ title: 'Alterações descartadas' });
   };
 
   const handleRestoreDefault = () => {
-    if (!user) return;
-    
-    const success = resetLayout();
-    if (success) {
-      setVisibleCards(DEFAULT_LAYOUT.visibleCards);
-      setTempSizes({});
-      setTempSectionHeights({});
-      setIsEditMode(false);
-      toast({ title: 'Layout restaurado!' });
-    } else {
-      toast({ title: 'Erro ao resetar layout', variant: 'destructive' });
-    }
+    resetToDefaultLayout();
+    toast({ title: 'Layout restaurado para o padrão!' });
+    setTimeout(() => window.location.reload(), 500);
   };
 
-  const handleAddCard = async (cardConfig: CardConfig) => {
+  const handleAddCard = (cardConfig: CardConfig) => {
     if (!visibleCards.includes(cardConfig.id)) {
-      const newVisibleCards = [...visibleCards, cardConfig.id];
-      setVisibleCards(newVisibleCards);
-      
-      const defaultSize = {
-        width: cardConfig.defaultWidth || 400,
-        height: cardConfig.defaultHeight || 300,
-        x: 0,
-        y: 0,
-      };
-      
-      const newLayout = {
-        visibleCards: newVisibleCards,
-        cardOrder: layout.cardOrder,
-        cardSizes: { ...layout.cardSizes, [cardConfig.id]: defaultSize },
-        sectionHeights: layout.sectionHeights
-      };
-      
-      saveLayout(newLayout);
+      setVisibleCards([...visibleCards, cardConfig.id]);
       toast({ 
         title: 'Card adicionado!', 
         description: `${cardConfig.name} foi adicionado ao layout.` 
@@ -942,35 +931,15 @@ Assinatura do Profissional`;
     }
   };
 
-  const handleRemoveCard = async (cardId: string) => {
-    const newVisibleCards = visibleCards.filter(id => id !== cardId);
-    setVisibleCards(newVisibleCards);
+  const handleRemoveCard = (cardId: string) => {
+    setVisibleCards(visibleCards.filter(id => id !== cardId));
     
+    // Also remove from tempSizes
     const newTempSizes = { ...tempSizes };
     delete newTempSizes[cardId];
     setTempSizes(newTempSizes);
     
-    const { [cardId]: removed, ...remainingCardSizes } = layout.cardSizes;
-    
-    const newLayout = {
-      visibleCards: newVisibleCards,
-      cardOrder: layout.cardOrder,
-      cardSizes: remainingCardSizes,
-      sectionHeights: layout.sectionHeights
-    };
-    
-    saveLayout(newLayout);
     toast({ title: 'Card removido do layout' });
-  };
-
-  const getSavedCardSize = (id: string) => {
-    if (tempSizes[id]) return tempSizes[id];
-    return layout.cardSizes[id] || DEFAULT_LAYOUT.cardSizes[id];
-  };
-
-  const getSavedSectionHeight = (id: string) => {
-    if (tempSectionHeights[id]) return tempSectionHeights[id];
-    return layout.sectionHeights[id] || DEFAULT_LAYOUT.sectionHeights[id] || 400;
   };
 
   const isCardVisible = (cardId: string) => visibleCards.includes(cardId);

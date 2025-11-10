@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -19,14 +19,13 @@ import { ComplianceReminder } from '@/components/ComplianceReminder';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import { ResizableCard } from '@/components/ResizableCard';
 import { ResizableSection } from '@/components/ResizableSection';
-import { DEFAULT_DASHBOARD_LAYOUT } from '@/lib/defaultLayoutDashboard';
+import { DEFAULT_DASHBOARD_LAYOUT, resetToDefaultDashboardLayout } from '@/lib/defaultLayoutDashboard';
 import { toast } from 'sonner';
 import { AddCardDialog } from '@/components/AddCardDialog';
 import { CardConfig, AVAILABLE_DASHBOARD_CHARTS } from '@/types/cardTypes';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useChartTimeScale, generateTimeIntervals, formatTimeLabel, getIntervalBounds, getScaleLabel, TimeScale } from '@/hooks/useChartTimeScale';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { useLayoutStorage } from '@/hooks/useLayoutStorage';
 
 const DashboardTest = () => {
   const { user } = useAuth();
@@ -38,12 +37,9 @@ const DashboardTest = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState<'expected' | 'actual' | 'unpaid' | null>(null);
 
-  // Layout storage (localStorage only)
-  const { layout, saveLayout, resetLayout, isLoaded } = useLayoutStorage('dashboard', DEFAULT_DASHBOARD_LAYOUT);
-  const [visibleCards, setVisibleCards] = useState<string[]>(DEFAULT_DASHBOARD_LAYOUT.visibleCards);
-
   // Edit mode state
   const [isEditMode, setIsEditMode] = useState(false);
+  const [visibleCards, setVisibleCards] = useState<string[]>([]);
   const [tempCardSizes, setTempCardSizes] = useState<Record<string, { width: number; height: number; x: number; y: number }>>({});
   const [tempSectionHeights, setTempSectionHeights] = useState<Record<string, number>>({});
   
@@ -54,15 +50,9 @@ const DashboardTest = () => {
   useEffect(() => {
     if (user) {
       loadData();
+      loadLayout();
     }
   }, [user]);
-
-  // Update visible cards when layout changes
-  useEffect(() => {
-    if (isLoaded) {
-      setVisibleCards(layout.visibleCards);
-    }
-  }, [layout, isLoaded]);
 
   const loadData = async () => {
     const { data: patientsData } = await supabase
@@ -82,6 +72,15 @@ const DashboardTest = () => {
 
     setPatients(patientsData || []);
     setSessions(sessionsData || []);
+  };
+
+  const loadLayout = () => {
+    const savedCards = localStorage.getItem('dashboard-visible-cards');
+    if (savedCards) {
+      setVisibleCards(JSON.parse(savedCards));
+    } else {
+      setVisibleCards(DEFAULT_DASHBOARD_LAYOUT.visibleCards);
+    }
   };
 
   const getDateRange = () => {
@@ -360,56 +359,43 @@ const DashboardTest = () => {
   };
 
   const handleSaveLayout = () => {
-    console.log('🔍 DEBUG - handleSaveLayout chamado');
-    console.log('🔍 tempCardSizes:', tempCardSizes);
-    console.log('🔍 tempSectionHeights:', tempSectionHeights);
-    console.log('🔍 visibleCards:', visibleCards);
-    console.log('🔍 layout atual:', layout);
+    // Save visible cards
+    localStorage.setItem('dashboard-visible-cards', JSON.stringify(visibleCards));
     
-    const newLayout = {
-      visibleCards,
-      cardOrder: layout.cardOrder,
-      cardSizes: { ...layout.cardSizes, ...tempCardSizes },
-      sectionHeights: { ...layout.sectionHeights, ...tempSectionHeights }
-    };
+    // Save temp sizes to localStorage with the correct key that ResizableCard uses
+    Object.entries(tempCardSizes).forEach(([id, size]) => {
+      localStorage.setItem(`card-size-${id}`, JSON.stringify(size));
+    });
     
-    console.log('🔍 newLayout a ser salvo:', newLayout);
+    // Save temp section heights
+    Object.entries(tempSectionHeights).forEach(([id, height]) => {
+      localStorage.setItem(`section-height-${id}`, height.toString());
+    });
     
-    const success = saveLayout(newLayout);
+    // Clear temp state
+    setTempCardSizes({});
+    setTempSectionHeights({});
+    setIsEditMode(false);
     
-    console.log('🔍 Resultado do save:', success);
+    toast.success('Layout salvo com sucesso!');
     
-    if (success) {
-      toast.success('Layout salvo! Recarregando...');
-      setTempCardSizes({});
-      setTempSectionHeights({});
-      setIsEditMode(false);
-      setTimeout(() => window.location.reload(), 500);
-    } else {
-      toast.error('Erro ao salvar layout');
-    }
+    // Force reload to apply saved sizes
+    setTimeout(() => window.location.reload(), 300);
   };
 
   const handleCancelEdit = () => {
     setTempCardSizes({});
     setTempSectionHeights({});
     setIsEditMode(false);
-    setVisibleCards(layout.visibleCards);
+    loadLayout();
   };
 
   const handleResetLayout = () => {
-    if (!user) return;
-    
-    const success = resetLayout();
-    if (success) {
-      setTempCardSizes({});
-      setTempSectionHeights({});
-      setVisibleCards(DEFAULT_DASHBOARD_LAYOUT.visibleCards);
-      setIsEditMode(false);
-      toast.success('Layout restaurado!');
-    } else {
-      toast.error('Erro ao resetar layout');
-    }
+    resetToDefaultDashboardLayout();
+    setTempCardSizes({});
+    setTempSectionHeights({});
+    loadLayout();
+    toast.success('Layout restaurado para o padrão!');
   };
 
   const handleTempCardSizeChange = (id: string, size: { width: number; height: number; x: number; y: number }) => {
@@ -423,65 +409,46 @@ const DashboardTest = () => {
   const handleAddCard = (card: CardConfig) => {
     const newVisibleCards = [...visibleCards, card.id];
     setVisibleCards(newVisibleCards);
+    localStorage.setItem('dashboard-visible-cards', JSON.stringify(newVisibleCards));
     
+    // Set default size for the new card
     const defaultSize = {
       width: card.defaultWidth || 280,
       height: card.defaultHeight || 160,
       x: 0,
       y: 0,
     };
+    localStorage.setItem(`card-size-${card.id}`, JSON.stringify(defaultSize));
     
-    const newLayout = {
-      visibleCards: newVisibleCards,
-      cardOrder: layout.cardOrder,
-      cardSizes: { ...layout.cardSizes, [card.id]: defaultSize },
-      sectionHeights: layout.sectionHeights
-    };
-    
-    saveLayout(newLayout);
     toast.success(`Card "${card.name}" adicionado!`);
   };
 
   const handleRemoveCard = (cardId: string) => {
     const newVisibleCards = visibleCards.filter(id => id !== cardId);
     setVisibleCards(newVisibleCards);
-    
-    const { [cardId]: removed, ...remainingCardSizes } = layout.cardSizes;
-    
-    const newLayout = {
-      visibleCards: newVisibleCards,
-      cardOrder: layout.cardOrder,
-      cardSizes: remainingCardSizes,
-      sectionHeights: layout.sectionHeights
-    };
-    
-    saveLayout(newLayout);
+    localStorage.setItem('dashboard-visible-cards', JSON.stringify(newVisibleCards));
+    localStorage.removeItem(`card-size-${cardId}`);
     toast.success('Card removido!');
   };
 
-  const getSavedCardSize = useCallback((id: string) => {
+  const getSavedCardSize = (id: string) => {
     if (tempCardSizes[id]) return tempCardSizes[id];
-    return layout.cardSizes[id] || DEFAULT_DASHBOARD_LAYOUT.cardSizes[id];
-  }, [tempCardSizes, layout.cardSizes]);
+    const saved = localStorage.getItem(`card-size-${id}`);
+    if (saved) return JSON.parse(saved);
+    return DEFAULT_DASHBOARD_LAYOUT.cardSizes[id];
+  };
 
-  const getSavedSectionHeight = useCallback((id: string) => {
+  const getSavedSectionHeight = (id: string) => {
     if (tempSectionHeights[id]) return tempSectionHeights[id];
-    return layout.sectionHeights[id] || DEFAULT_DASHBOARD_LAYOUT.sectionHeights[id] || 400;
-  }, [tempSectionHeights, layout.sectionHeights]);
+    const saved = localStorage.getItem(`section-height-${id}`);
+    if (saved) return parseInt(saved);
+    return DEFAULT_DASHBOARD_LAYOUT.sectionHeights[id] || 400;
+  };
 
-  const allCardSizes = useMemo(() => {
-    console.log('🎯 Calculando allCardSizes');
-    console.log('🎯 tempCardSizes:', tempCardSizes);
-    console.log('🎯 layout.cardSizes:', layout.cardSizes);
-    
-    const result = Object.keys(DEFAULT_DASHBOARD_LAYOUT.cardSizes).reduce((acc, id) => {
-      acc[id] = getSavedCardSize(id);
-      return acc;
-    }, {} as Record<string, { width: number; height: number; x: number; y: number }>);
-    
-    console.log('🎯 allCardSizes calculado:', result);
-    return result;
-  }, [getSavedCardSize, tempCardSizes, layout.cardSizes]);
+  const allCardSizes = Object.keys(DEFAULT_DASHBOARD_LAYOUT.cardSizes).reduce((acc, id) => {
+    acc[id] = getSavedCardSize(id);
+    return acc;
+  }, {} as Record<string, { width: number; height: number; x: number; y: number }>);
 
   const renderCard = (
     id: string,
@@ -1159,18 +1126,6 @@ const DashboardTest = () => {
       </ResizableCard>
     );
   };
-
-  // Block rendering until layout is loaded from localStorage
-  if (!isLoaded) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          <p className="text-muted-foreground">Carregando layout...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="container mx-auto px-4 py-8">
