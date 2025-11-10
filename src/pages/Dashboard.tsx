@@ -458,12 +458,7 @@ const DashboardTest = () => {
       if (success) {
         setIsEditMode(false);
         setPendingSave(null);
-        
-        toast.success('Layout salvo e sincronizado!');
-        
-        setTimeout(() => {
-          window.location.reload();
-        }, 100);
+        toast.success('Layout salvo com sucesso!');
       } else {
         toast.error('Erro ao salvar layout. Verifique sua conexão.');
       }
