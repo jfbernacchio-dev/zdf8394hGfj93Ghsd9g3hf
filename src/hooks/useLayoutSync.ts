@@ -29,14 +29,13 @@ export function useLayoutSync(layoutType: LayoutType, defaultLayout: LayoutConfi
         // Load from DB
         const savedLayout = await loadLayout(user.id, layoutType);
         if (savedLayout) {
-          console.log('✅ Layout carregado do banco:', savedLayout);
           setLayout(savedLayout);
         } else {
-          console.log('⚠️ Nenhum layout salvo, usando default');
+          // Use default layout if none exists
           setLayout(defaultLayout);
         }
       } catch (error) {
-        console.error('❌ Error loading layout:', error);
+        console.error('Error loading layout:', error);
         setLayout(defaultLayout);
       } finally {
         setIsLoading(false);
@@ -44,7 +43,7 @@ export function useLayoutSync(layoutType: LayoutType, defaultLayout: LayoutConfi
     };
 
     loadUserLayout();
-  }, [user, layoutType, defaultLayout]);
+  }, [user, layoutType]);
 
   // Subscribe to realtime updates
   useEffect(() => {
