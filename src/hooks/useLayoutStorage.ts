@@ -46,9 +46,16 @@ export function useLayoutStorage(layoutType: LayoutType, defaultLayout: LayoutCo
         return false;
       }
 
-      console.log('💾 Salvando layout...', newLayout);
+      console.log('💾 [useLayoutStorage] Salvando layout...', {
+        userId: user.id,
+        layoutType,
+        newLayout,
+      });
+      
       saveLayoutToLocalStorage(user.id, layoutType, newLayout);
       setLayout(newLayout);
+      
+      console.log('✅ [useLayoutStorage] Layout salvo e estado atualizado');
       return true;
     },
     [user, layoutType]

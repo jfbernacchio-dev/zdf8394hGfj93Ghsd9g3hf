@@ -360,6 +360,12 @@ const DashboardTest = () => {
   };
 
   const handleSaveLayout = () => {
+    console.log('🔍 DEBUG - handleSaveLayout chamado');
+    console.log('🔍 tempCardSizes:', tempCardSizes);
+    console.log('🔍 tempSectionHeights:', tempSectionHeights);
+    console.log('🔍 visibleCards:', visibleCards);
+    console.log('🔍 layout atual:', layout);
+    
     const newLayout = {
       visibleCards,
       cardOrder: layout.cardOrder,
@@ -367,7 +373,11 @@ const DashboardTest = () => {
       sectionHeights: { ...layout.sectionHeights, ...tempSectionHeights }
     };
     
+    console.log('🔍 newLayout a ser salvo:', newLayout);
+    
     const success = saveLayout(newLayout);
+    
+    console.log('🔍 Resultado do save:', success);
     
     if (success) {
       toast.success('Layout salvo! Recarregando...');
