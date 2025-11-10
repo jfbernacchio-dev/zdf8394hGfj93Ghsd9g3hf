@@ -409,7 +409,16 @@ const DashboardTest = () => {
   };
 
   const handleConfirmSave = async (updateActiveProfile: boolean) => {
-    if (!pendingSave) return;
+    console.log('[Dashboard] ========== handleConfirmSave START ==========');
+    console.log('[Dashboard] pendingSave:', pendingSave);
+    console.log('[Dashboard] updateActiveProfile:', updateActiveProfile);
+    console.log('[Dashboard] isEditMode:', isEditMode);
+    console.log('[Dashboard] Current tempCardSizes:', tempCardSizes);
+    
+    if (!pendingSave) {
+      console.log('[Dashboard] NO PENDING SAVE! Aborting...');
+      return;
+    }
     
     console.log('[Dashboard] Saving layout with updateActiveProfile:', updateActiveProfile);
     console.log('[Dashboard] Active profile:', activeProfileId, activeProfileName);
@@ -419,12 +428,16 @@ const DashboardTest = () => {
     console.log('[Dashboard] Save result:', success);
     
     if (success) {
+      console.log('[Dashboard] Save successful! Showing toast...');
       toast.success('Layout salvo e sincronizado!');
-      // Don't reset states - just reload immediately to avoid visual glitch
+      console.log('[Dashboard] Toast shown, calling window.location.reload()...');
       window.location.reload();
+      console.log('[Dashboard] window.location.reload() called (this should NOT appear)');
     } else {
+      console.log('[Dashboard] Save FAILED! Showing error toast...');
       toast.error('Erro ao salvar layout. Verifique sua conexão.');
     }
+    console.log('[Dashboard] ========== handleConfirmSave END ==========');
   };
 
   const handleCancelEdit = () => {

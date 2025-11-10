@@ -98,19 +98,33 @@ export function useLayoutSync(
   // Save layout function
   const saveUserLayout = useCallback(
     async (newLayout: LayoutConfig, updateActiveProfile: boolean = false) => {
-      if (!user) return false;
+      console.log('[useLayoutSync] saveUserLayout called');
+      console.log('[useLayoutSync] newLayout:', newLayout);
+      console.log('[useLayoutSync] updateActiveProfile:', updateActiveProfile);
+      
+      if (!user) {
+        console.log('[useLayoutSync] No user, returning false');
+        return false;
+      }
 
       setIsSyncing(true);
+      console.log('[useLayoutSync] setIsSyncing(true) - starting save...');
+      
       try {
         const success = await saveLayout(user.id, layoutType, newLayout, updateActiveProfile);
+        console.log('[useLayoutSync] saveLayout returned:', success);
+        
         if (success) {
+          console.log('[useLayoutSync] Setting layout state...');
           setLayout(newLayout);
+          console.log('[useLayoutSync] Layout state updated');
         }
         return success;
       } catch (error) {
-        console.error('Error saving layout:', error);
+        console.error('[useLayoutSync] Error saving layout:', error);
         return false;
       } finally {
+        console.log('[useLayoutSync] setIsSyncing(false) - save process ended');
         setIsSyncing(false);
       }
     },
