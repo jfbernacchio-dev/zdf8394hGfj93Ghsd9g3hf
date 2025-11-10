@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -445,20 +445,22 @@ const DashboardTest = () => {
     toast.success('Card removido!');
   };
 
-  const getSavedCardSize = (id: string) => {
+  const getSavedCardSize = useCallback((id: string) => {
     if (tempCardSizes[id]) return tempCardSizes[id];
     return layout.cardSizes[id] || DEFAULT_DASHBOARD_LAYOUT.cardSizes[id];
-  };
+  }, [tempCardSizes, layout.cardSizes]);
 
-  const getSavedSectionHeight = (id: string) => {
+  const getSavedSectionHeight = useCallback((id: string) => {
     if (tempSectionHeights[id]) return tempSectionHeights[id];
     return layout.sectionHeights[id] || DEFAULT_DASHBOARD_LAYOUT.sectionHeights[id] || 400;
-  };
+  }, [tempSectionHeights, layout.sectionHeights]);
 
-  const allCardSizes = Object.keys(DEFAULT_DASHBOARD_LAYOUT.cardSizes).reduce((acc, id) => {
-    acc[id] = getSavedCardSize(id);
-    return acc;
-  }, {} as Record<string, { width: number; height: number; x: number; y: number }>);
+  const allCardSizes = useMemo(() => {
+    return Object.keys(DEFAULT_DASHBOARD_LAYOUT.cardSizes).reduce((acc, id) => {
+      acc[id] = getSavedCardSize(id);
+      return acc;
+    }, {} as Record<string, { width: number; height: number; x: number; y: number }>);
+  }, [getSavedCardSize]);
 
   const renderCard = (
     id: string,
