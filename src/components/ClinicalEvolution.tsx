@@ -21,6 +21,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Legend, ReferenceLine, Pi
 import { ResizableCard } from './ResizableCard';
 import { ResizableSection } from './ResizableSection';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DEFAULT_EVOLUTION_LAYOUT, resetToDefaultEvolutionLayout } from '@/lib/defaultLayoutEvolution';
 
@@ -1389,6 +1390,7 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
   const [tempSectionHeights, setTempSectionHeights] = useState<Record<string, number>>({});
   const [tempCardSizes, setTempCardSizes] = useState<Record<string, { width: number; height: number; x: number; y: number }>>({});
   const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
   const { toast } = useToast();
 
   // Load visible cards from localStorage
@@ -1836,24 +1838,47 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
 
   const handleToggleEditMode = () => {
     if (isEditMode) {
-      // Save changes when exiting edit mode
-      Object.entries(tempSectionHeights).forEach(([id, height]) => {
-        localStorage.setItem(`section-height-${id}`, height.toString());
-      });
-      Object.entries(tempCardSizes).forEach(([id, size]) => {
-        localStorage.setItem(`card-size-${id}`, JSON.stringify(size));
-      });
-      localStorage.setItem('evolution-visible-cards', JSON.stringify(visibleCards));
-      
-      setTempSectionHeights({});
-      setTempCardSizes({});
-      
-      toast({
-        title: "Layout salvo",
-        description: "As alterações foram salvas com sucesso.",
-      });
+      // Show confirmation dialog before saving
+      setShowSaveDialog(true);
+    } else {
+      setIsEditMode(true);
     }
-    setIsEditMode(!isEditMode);
+  };
+
+  const handleSaveLayout = () => {
+    // Save changes
+    Object.entries(tempSectionHeights).forEach(([id, height]) => {
+      localStorage.setItem(`section-height-${id}`, height.toString());
+    });
+    Object.entries(tempCardSizes).forEach(([id, size]) => {
+      localStorage.setItem(`card-size-${id}`, JSON.stringify(size));
+    });
+    localStorage.setItem('evolution-visible-cards', JSON.stringify(visibleCards));
+    
+    setTempSectionHeights({});
+    setTempCardSizes({});
+    setIsEditMode(false);
+    setShowSaveDialog(false);
+    
+    toast({
+      title: "Layout salvo",
+      description: "Recarregando página para aplicar alterações...",
+    });
+
+    // Hard refresh after short delay
+    setTimeout(() => {
+      window.location.reload();
+    }, 500);
+  };
+
+  const handleCancelLayout = () => {
+    setTempSectionHeights({});
+    setTempCardSizes({});
+    setIsEditMode(false);
+    setShowSaveDialog(false);
+    
+    // Reload to discard changes
+    window.location.reload();
   };
 
   const handleResetLayout = () => {
@@ -2041,6 +2066,26 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
             ))}
         </div>
       </ResizableSection>
+
+      <AlertDialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Salvar alterações no layout?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja salvar as configurações atuais do layout ou cancelar as alterações? 
+              A página será recarregada após sua escolha.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelLayout}>
+              Cancelar alterações
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleSaveLayout}>
+              Salvar configurações
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
