@@ -370,10 +370,11 @@ const DashboardTest = () => {
     const success = saveLayout(newLayout);
     
     if (success) {
-      toast.success('Layout salvo!');
+      toast.success('Layout salvo! Recarregando...');
       setTempCardSizes({});
       setTempSectionHeights({});
       setIsEditMode(false);
+      setTimeout(() => window.location.reload(), 500);
     } else {
       toast.error('Erro ao salvar layout');
     }

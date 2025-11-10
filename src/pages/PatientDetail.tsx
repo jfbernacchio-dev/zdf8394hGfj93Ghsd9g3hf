@@ -884,7 +884,8 @@ Assinatura do Profissional`;
       setIsEditMode(false);
       setTempSizes({});
       setTempSectionHeights({});
-      toast({ title: 'Layout salvo!' });
+      toast({ title: 'Layout salvo! Recarregando...' });
+      setTimeout(() => window.location.reload(), 500);
     } else {
       toast({ title: 'Erro ao salvar layout', description: 'Verifique sua conexão.', variant: 'destructive' });
     }

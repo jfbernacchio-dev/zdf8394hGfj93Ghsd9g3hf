@@ -1876,10 +1876,10 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
       sessionStorage.setItem('returnToSubTab', 'evolution');
       
       toast({
-        title: "Layout salvo e sincronizado!",
-        description: "Recarregando página para aplicar alterações...",
+        title: "Layout salvo!",
+        description: "Recarregando página...",
       });
-
+      
       setTimeout(() => window.location.reload(), 500);
     } else {
       toast({
