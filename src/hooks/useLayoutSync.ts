@@ -12,7 +12,7 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 
 export function useLayoutSync(layoutType: LayoutType, defaultLayout: LayoutConfig) {
   const { user } = useAuth();
-  const [layout, setLayout] = useState<LayoutConfig>(defaultLayout);
+  const [layout, setLayout] = useState<LayoutConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -90,10 +90,10 @@ export function useLayoutSync(layoutType: LayoutType, defaultLayout: LayoutConfi
   );
 
   return {
-    layout,
+    layout: layout || defaultLayout,
     setLayout,
     saveUserLayout,
-    isLoading,
+    isLoading: isLoading || layout === null,
     isSyncing,
   };
 }
