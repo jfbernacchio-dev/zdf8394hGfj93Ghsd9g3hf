@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format, parseISO, startOfMonth, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CheckCircle2, FileText, Paperclip, Calendar, Edit } from 'lucide-react';
+import { CheckCircle2, FileText, Paperclip, Calendar, Edit, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
@@ -16,6 +16,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Legend, ReferenceLine, PieChart, Pie, Cell, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 
 interface ClinicalEvolutionProps {
   patientId: string;
@@ -1335,9 +1337,252 @@ interface PatientEvolutionMetricsProps {
   setPeriod: (period: string) => void;
 }
 
+interface EvaluationData {
+  session_id: string;
+  session_date: string;
+  consciousness_data: any;
+  orientation_data: any;
+  memory_data: any;
+  mood_data: any;
+  thought_data: any;
+  language_data: any;
+  sensoperception_data: any;
+  intelligence_data: any;
+  will_data: any;
+  psychomotor_data: any;
+  attention_data: any;
+  personality_data: any;
+}
+
 function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolutionMetricsProps) {
+  const [evaluations, setEvaluations] = useState<EvaluationData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadEvaluations();
+  }, [patientId, period]);
+
+  const loadEvaluations = async () => {
+    setLoading(true);
+    
+    let query = supabase
+      .from('session_evaluations')
+      .select(`
+        *,
+        sessions!inner(date, patient_id)
+      `)
+      .eq('sessions.patient_id', patientId)
+      .order('sessions(date)', { ascending: true });
+
+    if (period !== 'all') {
+      const now = new Date();
+      let startDate: Date;
+
+      switch (period) {
+        case 'last_month':
+          startDate = startOfMonth(subMonths(now, 1));
+          break;
+        case 'last_3_months':
+          startDate = startOfMonth(subMonths(now, 3));
+          break;
+        case 'last_year':
+          startDate = startOfMonth(subMonths(now, 12));
+          break;
+        default:
+          startDate = new Date(0);
+      }
+
+      query = query.gte('sessions.date', startDate.toISOString().split('T')[0]);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Error loading evaluations:', error);
+      setLoading(false);
+      return;
+    }
+
+    const formattedData = data?.map((item: any) => ({
+      session_id: item.session_id,
+      session_date: item.sessions?.date || '',
+      consciousness_data: item.consciousness_data,
+      orientation_data: item.orientation_data,
+      memory_data: item.memory_data,
+      mood_data: item.mood_data,
+      thought_data: item.thought_data,
+      language_data: item.language_data,
+      sensoperception_data: item.sensoperception_data,
+      intelligence_data: item.intelligence_data,
+      will_data: item.will_data,
+      psychomotor_data: item.psychomotor_data,
+      attention_data: item.attention_data,
+      personality_data: item.personality_data,
+    })) || [];
+
+    setEvaluations(formattedData);
+    setLoading(false);
+  };
+
+  // Preparar dados para gráfico de Consciência (linha temporal)
+  const consciousnessData = evaluations.map(ev => ({
+    date: format(new Date(ev.session_date), 'dd/MM', { locale: ptBR }),
+    nivel: ev.consciousness_data?.level || 0,
+    campo: ev.consciousness_data?.field || 0,
+  }));
+
+  // Preparar dados para Orientação (pizza - tipos de alteração do juízo)
+  const orientationIssues = evaluations.reduce((acc, ev) => {
+    const data = ev.orientation_data;
+    if (!data?.time) acc.temporal = (acc.temporal || 0) + 1;
+    if (!data?.space) acc.espacial = (acc.espacial || 0) + 1;
+    if (!data?.person) acc.pessoal = (acc.pessoal || 0) + 1;
+    if (!data?.situation) acc.situacional = (acc.situacional || 0) + 1;
+    if (data?.reality_judgment !== 'intact') acc.juizo_realidade = (acc.juizo_realidade || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const orientationPieData = Object.keys(orientationIssues).length > 0
+    ? Object.entries(orientationIssues).map(([name, value]) => ({
+        name: name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        value
+      }))
+    : [{ name: 'Sem Sintomas', value: 100 }];
+
+  // Preparar dados para Memória (radar)
+  const memoryRadarData = evaluations.length > 0 ? [{
+    function: 'Fixação',
+    value: evaluations.reduce((sum, ev) => sum + (ev.memory_data?.fixation || 80), 0) / evaluations.length,
+  }, {
+    function: 'Evocação',
+    value: evaluations.reduce((sum, ev) => sum + (ev.memory_data?.recall || 80), 0) / evaluations.length,
+  }, {
+    function: 'Autobiográfica',
+    value: evaluations.reduce((sum, ev) => {
+      const hasAmnesia = ev.memory_data?.amnesia ? -20 : 0;
+      const hasHypermnesia = ev.memory_data?.hypermnesia ? 20 : 0;
+      return sum + (80 + hasAmnesia + hasHypermnesia);
+    }, 0) / evaluations.length,
+  }] : [];
+
+  // Preparar dados para Humor (linha polarizada)
+  const moodData = evaluations.map(ev => ({
+    date: format(new Date(ev.session_date), 'dd/MM', { locale: ptBR }),
+    humor: ev.mood_data?.polarity || 0,
+  }));
+
+  // Preparar dados para Pensamento (linha de curso)
+  const thoughtData = evaluations.map(ev => ({
+    date: format(new Date(ev.session_date), 'dd/MM', { locale: ptBR }),
+    curso: ev.thought_data?.course || 0,
+  }));
+
+  // Preparar dados para Linguagem (linha de ritmo)
+  const languageData = evaluations.map(ev => ({
+    date: format(new Date(ev.session_date), 'dd/MM', { locale: ptBR }),
+    ritmo: ev.language_data?.speech_rate || 0,
+  }));
+
+  // Preparar dados para Sensopercepção (pizza)
+  const sensoperceptionIssues = evaluations.reduce((acc, ev) => {
+    const data = ev.sensoperception_data;
+    if (data?.auditory) acc.auditiva = (acc.auditiva || 0) + 1;
+    if (data?.visual) acc.visual = (acc.visual || 0) + 1;
+    if (data?.tactile) acc.tatil = (acc.tatil || 0) + 1;
+    if (data?.olfactory) acc.olfativa = (acc.olfativa || 0) + 1;
+    if (data?.kinesthetic) acc.cinestesica = (acc.cinestesica || 0) + 1;
+    if (data?.mixed) acc.mista = (acc.mista || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const sensoperceptionPieData = Object.keys(sensoperceptionIssues).length > 0
+    ? Object.entries(sensoperceptionIssues).map(([name, value]) => ({
+        name: name.charAt(0).toUpperCase() + name.slice(1),
+        value
+      }))
+    : [{ name: 'Sem Sintomas', value: 100 }];
+
+  // Preparar dados para Inteligência (radar)
+  const intelligenceRadarData = evaluations.length > 0 ? [{
+    function: 'Raciocínio Abstrato',
+    value: evaluations.reduce((sum, ev) => sum + (ev.intelligence_data?.abstract_reasoning || 80), 0) / evaluations.length,
+  }, {
+    function: 'Capacidade de Aprendizado',
+    value: evaluations.reduce((sum, ev) => sum + (ev.intelligence_data?.learning_capacity || 80), 0) / evaluations.length,
+  }, {
+    function: 'Adaptação',
+    value: evaluations.reduce((sum, ev) => {
+      const capacity = ev.intelligence_data?.adaptive_capacity;
+      return sum + (capacity === 'normal' ? 80 : capacity === 'above' ? 95 : 50);
+    }, 0) / evaluations.length,
+  }] : [];
+
+  // Preparar dados para Vontade (duas linhas)
+  const willData = evaluations.map(ev => ({
+    date: format(new Date(ev.session_date), 'dd/MM', { locale: ptBR }),
+    energia: ev.will_data?.volitional_energy || 0,
+    controle: ev.will_data?.impulse_control || 0,
+  }));
+
+  // Preparar dados para Psicomotricidade (linha de tônus)
+  const psychomotorData = evaluations.map(ev => ({
+    date: format(new Date(ev.session_date), 'dd/MM', { locale: ptBR }),
+    tonus: ev.psychomotor_data?.motor_activity || 0,
+  }));
+
+  // Preparar dados para Atenção (linha)
+  const attentionData = evaluations.map(ev => ({
+    date: format(new Date(ev.session_date), 'dd/MM', { locale: ptBR }),
+    atencao: ev.attention_data?.range || 80,
+  }));
+
+  // Preparar dados para Personalidade (duas linhas)
+  const personalityData = evaluations.map(ev => ({
+    date: format(new Date(ev.session_date), 'dd/MM', { locale: ptBR }),
+    coerencia: ev.personality_data?.self_coherence || 80,
+    estabilidade: ev.personality_data?.affective_stability || 80,
+  }));
+
+  const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (evaluations.length === 0) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">Evolução do Paciente</h3>
+          <Select value={period} onValueChange={setPeriod}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Período" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              <SelectItem value="last_month">Último Mês</SelectItem>
+              <SelectItem value="last_3_months">Últimos 3 Meses</SelectItem>
+              <SelectItem value="last_year">Último Ano</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <Card>
+          <CardContent className="p-8 text-center">
+            <p className="text-muted-foreground">
+              Nenhuma avaliação encontrada no período selecionado.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Evolução do Paciente</h3>
         <Select value={period} onValueChange={setPeriod}>
@@ -1353,13 +1598,285 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
         </Select>
       </div>
 
-      <Card>
-        <CardContent className="p-8 text-center">
-          <p className="text-muted-foreground">
-            Área reservada para gráficos e métricas de evolução do paciente ao longo do tempo.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* 1. Consciência */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">1. Consciência</CardTitle>
+            <CardDescription>Nível e Campo de Consciência</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={{
+              nivel: { label: "Nível", color: "hsl(var(--chart-1))" },
+              campo: { label: "Campo", color: "hsl(var(--chart-2))" },
+            }} className="h-[200px]">
+              <LineChart data={consciousnessData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis domain={[-100, 100]} />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Legend />
+                <Line type="monotone" dataKey="nivel" stroke="hsl(var(--chart-1))" name="Nível" />
+                <Line type="monotone" dataKey="campo" stroke="hsl(var(--chart-2))" name="Campo" />
+              </LineChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        {/* 2. Orientação */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">2. Orientação</CardTitle>
+            <CardDescription>Tipos de Alteração do Juízo de Realidade</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={{}} className="h-[200px]">
+              <PieChart>
+                <Pie
+                  data={orientationPieData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={(entry) => entry.name}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {orientationPieData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <ChartTooltip />
+              </PieChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        {/* 3. Memória */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">3. Memória</CardTitle>
+            <CardDescription>Desempenho Médio por Tipo</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={{}} className="h-[200px]">
+              <RadarChart data={memoryRadarData}>
+                <PolarGrid />
+                <PolarAngleAxis dataKey="function" />
+                <PolarRadiusAxis domain={[0, 100]} />
+                <Radar name="Memória" dataKey="value" stroke="hsl(var(--chart-1))" fill="hsl(var(--chart-1))" fillOpacity={0.6} />
+                <ChartTooltip />
+              </RadarChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        {/* 4. Humor / Afeto */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">4. Humor / Afeto</CardTitle>
+            <CardDescription>Polaridade do Humor por Sessão</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={{
+              humor: { label: "Humor", color: "hsl(var(--chart-3))" },
+            }} className="h-[200px]">
+              <LineChart data={moodData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis domain={[-100, 100]} />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Line type="monotone" dataKey="humor" stroke="hsl(var(--chart-3))" name="Humor" />
+                <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
+              </LineChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        {/* 5. Pensamento */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">5. Pensamento</CardTitle>
+            <CardDescription>Curso do Pensamento</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={{
+              curso: { label: "Curso", color: "hsl(var(--chart-4))" },
+            }} className="h-[200px]">
+              <LineChart data={thoughtData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis domain={[-100, 100]} />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Line type="monotone" dataKey="curso" stroke="hsl(var(--chart-4))" name="Curso" />
+                <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
+              </LineChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        {/* 6. Linguagem */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">6. Linguagem</CardTitle>
+            <CardDescription>Ritmo de Fala (Velocidade)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={{
+              ritmo: { label: "Ritmo", color: "hsl(var(--chart-5))" },
+            }} className="h-[200px]">
+              <LineChart data={languageData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis domain={[-100, 100]} />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Line type="monotone" dataKey="ritmo" stroke="hsl(var(--chart-5))" name="Ritmo" />
+                <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
+              </LineChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        {/* 7. Sensopercepção */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">7. Sensopercepção</CardTitle>
+            <CardDescription>Tipos de Alteração no Período</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={{}} className="h-[200px]">
+              <PieChart>
+                <Pie
+                  data={sensoperceptionPieData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={(entry) => entry.name}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {sensoperceptionPieData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <ChartTooltip />
+              </PieChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        {/* 8. Inteligência */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">8. Inteligência</CardTitle>
+            <CardDescription>Desempenho Cognitivo Médio</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={{}} className="h-[200px]">
+              <RadarChart data={intelligenceRadarData}>
+                <PolarGrid />
+                <PolarAngleAxis dataKey="function" />
+                <PolarRadiusAxis domain={[0, 100]} />
+                <Radar name="Inteligência" dataKey="value" stroke="hsl(var(--chart-2))" fill="hsl(var(--chart-2))" fillOpacity={0.6} />
+                <ChartTooltip />
+              </RadarChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        {/* 9. Vontade */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">9. Vontade</CardTitle>
+            <CardDescription>Energia Volitiva e Controle de Impulsos</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={{
+              energia: { label: "Energia", color: "hsl(var(--chart-1))" },
+              controle: { label: "Controle", color: "hsl(var(--chart-3))" },
+            }} className="h-[200px]">
+              <LineChart data={willData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis domain={[-100, 100]} />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Legend />
+                <Line type="monotone" dataKey="energia" stroke="hsl(var(--chart-1))" name="Energia Volitiva" />
+                <Line type="monotone" dataKey="controle" stroke="hsl(var(--chart-3))" name="Controle de Impulsos" />
+                <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
+              </LineChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        {/* 10. Psicomotricidade */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">10. Psicomotricidade</CardTitle>
+            <CardDescription>Tônus Psicomotor</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={{
+              tonus: { label: "Tônus", color: "hsl(var(--chart-4))" },
+            }} className="h-[200px]">
+              <LineChart data={psychomotorData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis domain={[-100, 100]} />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Line type="monotone" dataKey="tonus" stroke="hsl(var(--chart-4))" name="Tônus" />
+                <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
+              </LineChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        {/* 11. Atenção */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">11. Atenção</CardTitle>
+            <CardDescription>Amplitude da Atenção</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={{
+              atencao: { label: "Atenção", color: "hsl(var(--chart-5))" },
+            }} className="h-[200px]">
+              <LineChart data={attentionData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis domain={[0, 100]} />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Line type="monotone" dataKey="atencao" stroke="hsl(var(--chart-5))" name="Atenção" />
+              </LineChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        {/* 12. Personalidade */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">12. Personalidade</CardTitle>
+            <CardDescription>Coerência do Self e Estabilidade Afetiva</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={{
+              coerencia: { label: "Coerência", color: "hsl(var(--chart-1))" },
+              estabilidade: { label: "Estabilidade", color: "hsl(var(--chart-2))" },
+            }} className="h-[200px]">
+              <LineChart data={personalityData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis domain={[0, 100]} />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Legend />
+                <Line type="monotone" dataKey="coerencia" stroke="hsl(var(--chart-1))" name="Coerência do Self" />
+                <Line type="monotone" dataKey="estabilidade" stroke="hsl(var(--chart-2))" name="Estabilidade Afetiva" />
+              </LineChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
