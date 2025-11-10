@@ -39,8 +39,7 @@ import { AddCardDialog } from '@/components/AddCardDialog';
 import { CardConfig, ALL_AVAILABLE_CARDS } from '@/types/cardTypes';
 import { DEFAULT_LAYOUT } from '@/lib/defaultLayout';
 import { ClinicalEvolution } from '@/components/ClinicalEvolution';
-import { useLayoutSync } from '@/hooks/useLayoutSync';
-import { resetLayoutToDefault } from '@/lib/layoutSync';
+import { useLayoutStorage } from '@/hooks/useLayoutStorage';
 
 const PatientDetailNew = () => {
   const { id } = useParams();
@@ -72,8 +71,8 @@ const PatientDetailNew = () => {
   const [noteText, setNoteText] = useState('');
   const [noteType, setNoteType] = useState<'session' | 'general'>('session');
   const [selectedSessionForNote, setSelectedSessionForNote] = useState<string | null>(null);
-  // Layout sync
-  const { layout, saveUserLayout, isLoading: isLayoutLoading, isSyncing } = useLayoutSync('patient-detail', DEFAULT_LAYOUT);
+  // Layout storage
+  const { layout, saveLayout, resetLayout, isLoaded } = useLayoutStorage('patient_detail', DEFAULT_LAYOUT);
   const [visibleCards, setVisibleCards] = useState<string[]>(DEFAULT_LAYOUT.visibleCards);
 
   const [isEditMode, setIsEditMode] = useState(false);
@@ -103,10 +102,10 @@ const PatientDetailNew = () => {
 
   // Update visible cards when layout changes
   useEffect(() => {
-    if (!isLayoutLoading) {
+    if (isLoaded) {
       setVisibleCards(layout.visibleCards);
     }
-  }, [layout, isLayoutLoading]);
+  }, [layout, isLoaded]);
 
   useEffect(() => {
     loadData();
@@ -870,22 +869,22 @@ Assinatura do Profissional`;
     setTempSectionHeights(prev => ({ ...prev, [id]: height }));
   };
 
-  const handleSaveChanges = async () => {
+  const handleSaveChanges = () => {
     const newLayout = {
       visibleCards,
+      cardOrder: layout.cardOrder,
       cardSizes: { ...layout.cardSizes, ...tempSizes },
       sectionHeights: { ...layout.sectionHeights, ...tempSectionHeights }
     };
     
-    const success = await saveUserLayout(newLayout);
+    const success = saveLayout(newLayout);
     
     if (success) {
       setIsExitEditDialogOpen(false);
       setIsEditMode(false);
       setTempSizes({});
       setTempSectionHeights({});
-      toast({ title: 'Layout salvo e sincronizado!' });
-      setTimeout(() => window.location.reload(), 300);
+      toast({ title: 'Layout salvo!' });
     } else {
       toast({ title: 'Erro ao salvar layout', description: 'Verifique sua conexão.', variant: 'destructive' });
     }
@@ -900,14 +899,16 @@ Assinatura do Profissional`;
     toast({ title: 'Alterações descartadas' });
   };
 
-  const handleRestoreDefault = async () => {
+  const handleRestoreDefault = () => {
     if (!user) return;
     
-    const success = await resetLayoutToDefault(user.id, 'patient-detail');
+    const success = resetLayout();
     if (success) {
       setVisibleCards(DEFAULT_LAYOUT.visibleCards);
-      toast({ title: 'Layout restaurado para o padrão!' });
-      setTimeout(() => window.location.reload(), 300);
+      setTempSizes({});
+      setTempSectionHeights({});
+      setIsEditMode(false);
+      toast({ title: 'Layout restaurado!' });
     } else {
       toast({ title: 'Erro ao resetar layout', variant: 'destructive' });
     }
@@ -927,11 +928,12 @@ Assinatura do Profissional`;
       
       const newLayout = {
         visibleCards: newVisibleCards,
+        cardOrder: layout.cardOrder,
         cardSizes: { ...layout.cardSizes, [cardConfig.id]: defaultSize },
         sectionHeights: layout.sectionHeights
       };
       
-      await saveUserLayout(newLayout);
+      saveLayout(newLayout);
       toast({ 
         title: 'Card adicionado!', 
         description: `${cardConfig.name} foi adicionado ao layout.` 
@@ -951,11 +953,12 @@ Assinatura do Profissional`;
     
     const newLayout = {
       visibleCards: newVisibleCards,
+      cardOrder: layout.cardOrder,
       cardSizes: remainingCardSizes,
       sectionHeights: layout.sectionHeights
     };
     
-    await saveUserLayout(newLayout);
+    saveLayout(newLayout);
     toast({ title: 'Card removido do layout' });
   };
 

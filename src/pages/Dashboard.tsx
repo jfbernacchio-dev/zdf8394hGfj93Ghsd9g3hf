@@ -26,8 +26,7 @@ import { CardConfig, AVAILABLE_DASHBOARD_CHARTS } from '@/types/cardTypes';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useChartTimeScale, generateTimeIntervals, formatTimeLabel, getIntervalBounds, getScaleLabel, TimeScale } from '@/hooks/useChartTimeScale';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
-import { useLayoutSync } from '@/hooks/useLayoutSync';
-import { resetLayoutToDefault } from '@/lib/layoutSync';
+import { useLayoutStorage } from '@/hooks/useLayoutStorage';
 
 const DashboardTest = () => {
   const { user } = useAuth();
@@ -39,8 +38,8 @@ const DashboardTest = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState<'expected' | 'actual' | 'unpaid' | null>(null);
 
-  // Layout sync
-  const { layout, saveUserLayout, isLoading: isLayoutLoading, isSyncing } = useLayoutSync('dashboard', DEFAULT_DASHBOARD_LAYOUT);
+  // Layout storage (localStorage only)
+  const { layout, saveLayout, resetLayout, isLoaded } = useLayoutStorage('dashboard', DEFAULT_DASHBOARD_LAYOUT);
   const [visibleCards, setVisibleCards] = useState<string[]>(DEFAULT_DASHBOARD_LAYOUT.visibleCards);
 
   // Edit mode state
@@ -60,10 +59,10 @@ const DashboardTest = () => {
 
   // Update visible cards when layout changes
   useEffect(() => {
-    if (!isLayoutLoading) {
+    if (isLoaded) {
       setVisibleCards(layout.visibleCards);
     }
-  }, [layout, isLayoutLoading]);
+  }, [layout, isLoaded]);
 
   const loadData = async () => {
     const { data: patientsData } = await supabase
@@ -360,22 +359,23 @@ const DashboardTest = () => {
     return [];
   };
 
-  const handleSaveLayout = async () => {
+  const handleSaveLayout = () => {
     const newLayout = {
       visibleCards,
+      cardOrder: layout.cardOrder,
       cardSizes: { ...layout.cardSizes, ...tempCardSizes },
       sectionHeights: { ...layout.sectionHeights, ...tempSectionHeights }
     };
     
-    const success = await saveUserLayout(newLayout);
+    const success = saveLayout(newLayout);
     
     if (success) {
-      toast.success('Layout salvo! Recarregando...');
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
+      toast.success('Layout salvo!');
+      setTempCardSizes({});
+      setTempSectionHeights({});
+      setIsEditMode(false);
     } else {
-      toast.error('Erro ao salvar layout. Verifique sua conexão.');
+      toast.error('Erro ao salvar layout');
     }
   };
 
@@ -386,17 +386,18 @@ const DashboardTest = () => {
     setVisibleCards(layout.visibleCards);
   };
 
-  const handleResetLayout = async () => {
+  const handleResetLayout = () => {
     if (!user) return;
     
-    const success = await resetLayoutToDefault(user.id, 'dashboard');
+    const success = resetLayout();
     if (success) {
       setTempCardSizes({});
       setTempSectionHeights({});
       setVisibleCards(DEFAULT_DASHBOARD_LAYOUT.visibleCards);
-      toast.success('Layout restaurado para o padrão!');
+      setIsEditMode(false);
+      toast.success('Layout restaurado!');
     } else {
-      toast.error('Erro ao resetar layout.');
+      toast.error('Erro ao resetar layout');
     }
   };
 
@@ -408,7 +409,7 @@ const DashboardTest = () => {
     setTempSectionHeights(prev => ({ ...prev, [id]: height }));
   };
 
-  const handleAddCard = async (card: CardConfig) => {
+  const handleAddCard = (card: CardConfig) => {
     const newVisibleCards = [...visibleCards, card.id];
     setVisibleCards(newVisibleCards);
     
@@ -421,15 +422,16 @@ const DashboardTest = () => {
     
     const newLayout = {
       visibleCards: newVisibleCards,
+      cardOrder: layout.cardOrder,
       cardSizes: { ...layout.cardSizes, [card.id]: defaultSize },
       sectionHeights: layout.sectionHeights
     };
     
-    await saveUserLayout(newLayout);
+    saveLayout(newLayout);
     toast.success(`Card "${card.name}" adicionado!`);
   };
 
-  const handleRemoveCard = async (cardId: string) => {
+  const handleRemoveCard = (cardId: string) => {
     const newVisibleCards = visibleCards.filter(id => id !== cardId);
     setVisibleCards(newVisibleCards);
     
@@ -437,11 +439,12 @@ const DashboardTest = () => {
     
     const newLayout = {
       visibleCards: newVisibleCards,
+      cardOrder: layout.cardOrder,
       cardSizes: remainingCardSizes,
       sectionHeights: layout.sectionHeights
     };
     
-    await saveUserLayout(newLayout);
+    saveLayout(newLayout);
     toast.success('Card removido!');
   };
 
@@ -1139,13 +1142,13 @@ const DashboardTest = () => {
     );
   };
 
-  // Block rendering until layout is loaded from database
-  if (isLayoutLoading) {
+  // Block rendering until layout is loaded from localStorage
+  if (!isLoaded) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          <p className="text-muted-foreground">Carregando layout personalizado...</p>
+          <p className="text-muted-foreground">Carregando layout...</p>
         </div>
       </div>
     );

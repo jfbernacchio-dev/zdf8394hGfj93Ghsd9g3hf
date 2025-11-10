@@ -26,7 +26,7 @@ import {
   exportLayoutTemplate,
   importLayoutTemplate,
   LayoutType,
-} from '@/lib/layoutSync';
+} from '@/lib/layoutTemplate';
 
 export function LayoutTemplateManager() {
   const { user } = useAuth();

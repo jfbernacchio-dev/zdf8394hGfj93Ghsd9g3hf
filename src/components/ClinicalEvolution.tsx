@@ -25,8 +25,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DEFAULT_EVOLUTION_LAYOUT } from '@/lib/defaultLayoutEvolution';
-import { useLayoutSync } from '@/hooks/useLayoutSync';
-import { resetLayoutToDefault } from '@/lib/layoutSync';
+import { useLayoutStorage } from '@/hooks/useLayoutStorage';
 
 interface ClinicalEvolutionProps {
   patientId: string;
@@ -1396,7 +1395,7 @@ interface EvaluationData {
 
 function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolutionMetricsProps) {
   const { user } = useAuth();
-  const { layout, saveUserLayout, isLoading: isLayoutLoading, isSyncing } = useLayoutSync('evolution', DEFAULT_EVOLUTION_LAYOUT);
+  const { layout, saveLayout, resetLayout, isLoaded } = useLayoutStorage('evolution', DEFAULT_EVOLUTION_LAYOUT);
   
   const [evaluations, setEvaluations] = useState<EvaluationData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1410,10 +1409,10 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
 
   // Update visible cards when layout changes
   useEffect(() => {
-    if (!isLayoutLoading) {
+    if (isLoaded) {
       setVisibleCards(layout.visibleCards);
     }
-  }, [layout, isLayoutLoading]);
+  }, [layout, isLoaded]);
 
   useEffect(() => {
     loadEvaluations();
@@ -1857,14 +1856,15 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
     }
   };
 
-  const handleSaveLayout = async () => {
+  const handleSaveLayout = () => {
     const newLayout = {
       visibleCards,
+      cardOrder: layout.cardOrder,
       cardSizes: { ...layout.cardSizes, ...tempCardSizes },
       sectionHeights: { ...layout.sectionHeights, ...tempSectionHeights }
     };
     
-    const success = await saveUserLayout(newLayout);
+    const success = saveLayout(newLayout);
     
     if (success) {
       setTempSectionHeights({});
@@ -1903,10 +1903,10 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
     window.location.reload();
   };
 
-  const handleResetLayout = async () => {
+  const handleResetLayout = () => {
     if (!user) return;
     
-    const success = await resetLayoutToDefault(user.id, 'evolution');
+    const success = resetLayout();
     if (success) {
       setVisibleCards(DEFAULT_EVOLUTION_LAYOUT.visibleCards);
       setTempSectionHeights({});
@@ -1936,11 +1936,12 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
     
     const newLayout = {
       visibleCards: newVisibleCards,
+      cardOrder: layout.cardOrder,
       cardSizes: layout.cardSizes,
       sectionHeights: layout.sectionHeights
     };
     
-    await saveUserLayout(newLayout);
+    saveLayout(newLayout);
   };
 
   const getSavedCardSize = (id: string) => {

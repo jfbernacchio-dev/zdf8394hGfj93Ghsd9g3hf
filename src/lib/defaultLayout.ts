@@ -16,6 +16,18 @@ export const DEFAULT_LAYOUT = {
     'clinical-info',
     'history',
   ],
+  cardOrder: [
+    'stat-total',
+    'stat-attended',
+    'stat-scheduled',
+    'stat-unpaid',
+    'stat-nfse',
+    'next-appointment',
+    'contact-info',
+    'clinical-complaint',
+    'clinical-info',
+    'history',
+  ],
   cardSizes: {
     'history': { width: 430, height: 160, x: 458, y: -7 },
     'contact-info': { width: 647, height: 220, x: -211, y: 0 },
