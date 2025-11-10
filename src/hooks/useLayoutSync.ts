@@ -13,7 +13,11 @@ import {
 } from '@/lib/layoutSync';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
-export function useLayoutSync(layoutType: LayoutType, defaultLayout: LayoutConfig) {
+export function useLayoutSync(
+  layoutType: LayoutType, 
+  defaultLayout: LayoutConfig,
+  isEditMode: boolean = false
+) {
   const { user } = useAuth();
   const [layout, setLayout] = useState<LayoutConfig>(defaultLayout);
   const [isLoading, setIsLoading] = useState(true);
@@ -72,8 +76,13 @@ export function useLayoutSync(layoutType: LayoutType, defaultLayout: LayoutConfi
 
     const setupRealtimeSubscription = () => {
       channel = subscribeToLayoutUpdates(user.id, layoutType, (newConfig) => {
-        console.log('Realtime layout update received:', layoutType);
-        setLayout(newConfig);
+        // CRITICAL: Only update if NOT in edit mode to prevent losing temp changes
+        if (!isEditMode) {
+          console.log('[Realtime] Applying update for:', layoutType);
+          setLayout(newConfig);
+        } else {
+          console.log('[Realtime] Blocked update during edit mode for:', layoutType);
+        }
       });
     };
 
@@ -84,7 +93,7 @@ export function useLayoutSync(layoutType: LayoutType, defaultLayout: LayoutConfi
         channel.unsubscribe();
       }
     };
-  }, [user, layoutType]);
+  }, [user, layoutType, isEditMode]); // Add isEditMode dependency
 
   // Save layout function
   const saveUserLayout = useCallback(

@@ -74,8 +74,15 @@ const PatientDetailNew = () => {
   const [noteText, setNoteText] = useState('');
   const [noteType, setNoteType] = useState<'session' | 'general'>('session');
   const [selectedSessionForNote, setSelectedSessionForNote] = useState<string | null>(null);
+  
+  // Edit mode state (declared before useLayoutSync)
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [tempSizes, setTempSizes] = useState<Record<string, { width: number; height: number; x: number; y: number }>>({});
+  const [tempSectionHeights, setTempSectionHeights] = useState<Record<string, number>>({});
+  const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
+  
   // Layout sync
-  const { layout, saveUserLayout, isLoading: isLayoutLoading, isSyncing } = useLayoutSync('patient-detail', DEFAULT_LAYOUT);
+  const { layout, saveUserLayout, isLoading: isLayoutLoading, isSyncing } = useLayoutSync('patient-detail', DEFAULT_LAYOUT, isEditMode);
   const [visibleCards, setVisibleCards] = useState<string[]>(DEFAULT_LAYOUT.visibleCards);
 
   // Active profile state
@@ -84,11 +91,6 @@ const PatientDetailNew = () => {
   const [showProfileRequiredDialog, setShowProfileRequiredDialog] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [pendingSave, setPendingSave] = useState<any>(null);
-
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [tempSizes, setTempSizes] = useState<Record<string, { width: number; height: number; x: number; y: number }>>({});
-  const [tempSectionHeights, setTempSectionHeights] = useState<Record<string, number>>({});
-  const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
   
   const getBrazilDate = () => {
     return new Date().toLocaleString('en-CA', { 

@@ -1398,15 +1398,19 @@ interface EvaluationData {
 
 function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolutionMetricsProps) {
   const { user } = useAuth();
-  const { layout, saveUserLayout, isLoading: isLayoutLoading, isSyncing } = useLayoutSync('evolution', DEFAULT_EVOLUTION_LAYOUT);
   
   const [evaluations, setEvaluations] = useState<EvaluationData[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Edit mode state (declared before useLayoutSync)
   const [isEditMode, setIsEditMode] = useState(false);
   const [visibleCards, setVisibleCards] = useState<string[]>(DEFAULT_EVOLUTION_LAYOUT.visibleCards);
   const [tempSectionHeights, setTempSectionHeights] = useState<Record<string, number>>({});
   const [tempCardSizes, setTempCardSizes] = useState<Record<string, { width: number; height: number; x: number; y: number }>>({});
   const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
+  
+  // Layout sync
+  const { layout, saveUserLayout, isLoading: isLayoutLoading, isSyncing } = useLayoutSync('evolution', DEFAULT_EVOLUTION_LAYOUT, isEditMode);
   
   // Active profile state
   const [activeProfileId, setActiveProfileId] = useState<string | null>(null);

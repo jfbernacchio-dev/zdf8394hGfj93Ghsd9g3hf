@@ -41,8 +41,13 @@ const DashboardTest = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState<'expected' | 'actual' | 'unpaid' | null>(null);
 
+  // Edit mode state (declared before useLayoutSync)
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [tempCardSizes, setTempCardSizes] = useState<Record<string, { width: number; height: number; x: number; y: number }>>({});
+  const [tempSectionHeights, setTempSectionHeights] = useState<Record<string, number>>({});
+
   // Layout sync
-  const { layout, saveUserLayout, isLoading: isLayoutLoading, isSyncing } = useLayoutSync('dashboard', DEFAULT_DASHBOARD_LAYOUT);
+  const { layout, saveUserLayout, isLoading: isLayoutLoading, isSyncing } = useLayoutSync('dashboard', DEFAULT_DASHBOARD_LAYOUT, isEditMode);
   const [visibleCards, setVisibleCards] = useState<string[]>(DEFAULT_DASHBOARD_LAYOUT.visibleCards);
 
   // Active profile state
@@ -51,11 +56,6 @@ const DashboardTest = () => {
   const [showProfileRequiredDialog, setShowProfileRequiredDialog] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [pendingSave, setPendingSave] = useState<any>(null);
-
-  // Edit mode state
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [tempCardSizes, setTempCardSizes] = useState<Record<string, { width: number; height: number; x: number; y: number }>>({});
-  const [tempSectionHeights, setTempSectionHeights] = useState<Record<string, number>>({});
   
   // Add card dialog state
   const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
@@ -392,11 +392,17 @@ const DashboardTest = () => {
       return;
     }
 
+    console.log('[Dashboard] Preparing to save layout');
+    console.log('[Dashboard] Temp sizes:', tempCardSizes);
+    console.log('[Dashboard] Temp heights:', tempSectionHeights);
+
     const newLayout = {
       visibleCards,
       cardSizes: { ...layout.cardSizes, ...tempCardSizes },
       sectionHeights: { ...layout.sectionHeights, ...tempSectionHeights }
     };
+    
+    console.log('[Dashboard] New layout to save:', newLayout);
     
     setPendingSave(newLayout);
     setShowSaveDialog(true);
