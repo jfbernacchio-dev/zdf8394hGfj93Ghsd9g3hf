@@ -29,19 +29,29 @@ export function useLayoutSync(layoutType: LayoutType, defaultLayout: LayoutConfi
         // Sync any pending layouts first
         await syncPendingLayouts(user.id);
 
-        // Check if there's an active profile and load it
-        const activeProfileId = await getActiveProfileId(user.id);
-        if (activeProfileId) {
-          await loadProfile(user.id, activeProfileId);
-        }
-
-        // Load from DB
+        // Check if user already has a saved layout
         const savedLayout = await loadLayout(user.id, layoutType);
+        
         if (savedLayout) {
+          // User has saved layouts, use them
           setLayout(savedLayout);
         } else {
-          // Use default layout if none exists
-          setLayout(defaultLayout);
+          // First time user - check if there's an active profile to load
+          const activeProfileId = await getActiveProfileId(user.id);
+          if (activeProfileId) {
+            // Load the active profile (this will populate user_layout_preferences)
+            await loadProfile(user.id, activeProfileId);
+            // Now load the newly populated layout
+            const profileLayout = await loadLayout(user.id, layoutType);
+            if (profileLayout) {
+              setLayout(profileLayout);
+            } else {
+              setLayout(defaultLayout);
+            }
+          } else {
+            // No profile, use default
+            setLayout(defaultLayout);
+          }
         }
       } catch (error) {
         console.error('Error loading layout:', error);
@@ -83,12 +93,6 @@ export function useLayoutSync(layoutType: LayoutType, defaultLayout: LayoutConfi
 
       setIsSyncing(true);
       try {
-        // Create backup before saving
-        const currentLayout = await loadLayout(user.id, layoutType);
-        if (currentLayout) {
-          await createBackup(user.id, layoutType, currentLayout);
-        }
-
         const success = await saveLayout(user.id, layoutType, newLayout, updateActiveProfile);
         if (success) {
           setLayout(newLayout);

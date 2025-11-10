@@ -915,7 +915,12 @@ Assinatura do Profissional`;
   const handleConfirmSave = async (updateActiveProfile: boolean) => {
     if (!pendingSave) return;
     
+    console.log('[PatientDetail] Saving layout with updateActiveProfile:', updateActiveProfile);
+    console.log('[PatientDetail] Active profile:', activeProfileId, activeProfileName);
+    
     const success = await saveUserLayout(pendingSave, updateActiveProfile);
+    
+    console.log('[PatientDetail] Save result:', success);
     
     if (success) {
       setIsExitEditDialogOpen(false);

@@ -90,6 +90,12 @@ export async function saveLayout(
   updateActiveProfileToo: boolean = false
 ): Promise<boolean> {
   try {
+    // Create backup before saving
+    const currentLayout = await loadLayout(userId, layoutType);
+    if (currentLayout) {
+      await createBackup(userId, layoutType, currentLayout);
+    }
+
     // Get current version
     const { data: current } = await supabase
       .from('user_layout_preferences')
@@ -122,6 +128,13 @@ export async function saveLayout(
     
     // Remove pending sync flag if exists
     localStorage.removeItem(`${cacheKey}_pending_sync`);
+
+    // Update active profile if requested
+    if (updateActiveProfileToo) {
+      console.log('[saveLayout] Updating active profile...');
+      const profileUpdateSuccess = await updateActiveProfile(userId);
+      console.log('[saveLayout] Profile update result:', profileUpdateSuccess);
+    }
 
     return true;
   } catch (error) {
@@ -478,8 +491,11 @@ export async function updateActiveProfile(userId: string): Promise<boolean> {
   try {
     const activeProfileId = await getActiveProfileId(userId);
     if (!activeProfileId) {
+      console.log('[updateActiveProfile] No active profile found');
       return false;
     }
+
+    console.log('[updateActiveProfile] Updating profile:', activeProfileId);
 
     // Load ALL current layouts
     const layoutTypes: LayoutType[] = ['dashboard', 'patient-detail', 'evolution'];
@@ -492,6 +508,8 @@ export async function updateActiveProfile(userId: string): Promise<boolean> {
       }
     }
 
+    console.log('[updateActiveProfile] Layouts to update:', Object.keys(allLayouts));
+
     // Update the profile
     const { error } = await supabase
       .from('layout_profiles')
@@ -503,9 +521,11 @@ export async function updateActiveProfile(userId: string): Promise<boolean> {
       .eq('user_id', userId);
 
     if (error) throw error;
+    
+    console.log('[updateActiveProfile] Profile updated successfully');
     return true;
   } catch (error) {
-    console.error('Error updating active profile:', error);
+    console.error('[updateActiveProfile] Error:', error);
     return false;
   }
 }

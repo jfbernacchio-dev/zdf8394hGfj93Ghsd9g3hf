@@ -1905,7 +1905,12 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
   const handleConfirmSave = async (updateActiveProfile: boolean) => {
     if (!pendingSave) return;
     
+    console.log('[Evolution] Saving layout with updateActiveProfile:', updateActiveProfile);
+    console.log('[Evolution] Active profile:', activeProfileId, activeProfileName);
+    
     const success = await saveUserLayout(pendingSave, updateActiveProfile);
+    
+    console.log('[Evolution] Save result:', success);
     
     if (success) {
       setTempSectionHeights({});

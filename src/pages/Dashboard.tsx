@@ -406,7 +406,12 @@ const DashboardTest = () => {
   const handleConfirmSave = async (updateActiveProfile: boolean) => {
     if (!pendingSave) return;
     
+    console.log('[Dashboard] Saving layout with updateActiveProfile:', updateActiveProfile);
+    console.log('[Dashboard] Active profile:', activeProfileId, activeProfileName);
+    
     const success = await saveUserLayout(pendingSave, updateActiveProfile);
+    
+    console.log('[Dashboard] Save result:', success);
     
     if (success) {
       setTempCardSizes({});
