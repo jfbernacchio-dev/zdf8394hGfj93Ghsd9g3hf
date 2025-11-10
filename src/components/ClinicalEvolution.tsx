@@ -1407,7 +1407,6 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
   const [tempSectionHeights, setTempSectionHeights] = useState<Record<string, number>>({});
   const [tempCardSizes, setTempCardSizes] = useState<Record<string, { width: number; height: number; x: number; y: number }>>({});
   const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
-  const [showSaveDialog, setShowSaveDialog] = useState(false);
   
   // Active profile state
   const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
@@ -1876,8 +1875,8 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
 
   const handleToggleEditMode = () => {
     if (isEditMode) {
-      // Show confirmation dialog before saving
-      setShowSaveDialog(true);
+      // Call save directly
+      handleSaveLayout();
     } else {
       setIsEditMode(true);
     }
@@ -1887,7 +1886,6 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
     // Check if user has active profile
     if (!activeProfileId) {
       setShowProfileRequiredDialog(true);
-      setShowSaveDialog(false);
       return;
     }
 
@@ -1898,7 +1896,6 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
     };
     
     setPendingSave(newLayout);
-    setShowSaveDialog(false);
     setShowSaveLayoutDialog(true);
   };
 
@@ -1940,7 +1937,6 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
     setTempSectionHeights({});
     setTempCardSizes({});
     setIsEditMode(false);
-    setShowSaveDialog(false);
     setVisibleCards(layout.visibleCards);
     
     sessionStorage.setItem('returnToTab', 'evolution');
@@ -2160,26 +2156,6 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
             ))}
         </div>
       </ResizableSection>
-
-      <AlertDialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Salvar alterações no layout?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Deseja salvar as configurações atuais do layout ou cancelar as alterações? 
-              A página será recarregada após sua escolha.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleCancelLayout}>
-              Cancelar alterações
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={handleSaveLayout}>
-              Salvar configurações
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       <RequireActiveProfileDialog 
         open={showProfileRequiredDialog}

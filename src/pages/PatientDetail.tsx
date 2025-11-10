@@ -86,7 +86,6 @@ const PatientDetailNew = () => {
   const [pendingSave, setPendingSave] = useState<any>(null);
 
   const [isEditMode, setIsEditMode] = useState(false);
-  const [isExitEditDialogOpen, setIsExitEditDialogOpen] = useState(false);
   const [tempSizes, setTempSizes] = useState<Record<string, { width: number; height: number; x: number; y: number }>>({});
   const [tempSectionHeights, setTempSectionHeights] = useState<Record<string, number>>({});
   const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
@@ -884,7 +883,7 @@ Assinatura do Profissional`;
   };
 
   const handleExitEditMode = () => {
-    setIsExitEditDialogOpen(true);
+    handleSaveChanges();
   };
 
   const handleTempSizeChange = (id: string, size: { width: number; height: number; x: number; y: number }) => {
@@ -923,7 +922,6 @@ Assinatura do Profissional`;
     console.log('[PatientDetail] Save result:', success);
     
     if (success) {
-      setIsExitEditDialogOpen(false);
       setIsEditMode(false);
       setTempSizes({});
       setTempSectionHeights({});
@@ -938,7 +936,6 @@ Assinatura do Profissional`;
   const handleCancelChanges = () => {
     setTempSizes({});
     setTempSectionHeights({});
-    setIsExitEditDialogOpen(false);
     setIsEditMode(false);
     setVisibleCards(layout.visibleCards);
     toast({ title: 'Alterações descartadas' });
@@ -2107,26 +2104,6 @@ Assinatura do Profissional`;
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Exit Edit Mode Confirmation Dialog */}
-      <AlertDialog open={isExitEditDialogOpen} onOpenChange={setIsExitEditDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Salvar alterações no layout?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Você fez alterações no tamanho dos cards. Deseja salvar essas mudanças ou descartá-las?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleCancelChanges}>
-              Cancelar (descartar mudanças)
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={handleSaveChanges}>
-              Salvar alterações
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Add Card Dialog */}
       <AddCardDialog
