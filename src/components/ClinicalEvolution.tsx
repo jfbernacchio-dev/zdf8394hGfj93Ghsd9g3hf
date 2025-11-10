@@ -77,6 +77,33 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
     }
   }, [selectedSessionId, sessions]);
 
+  // Subscribe to real-time updates for session evaluations
+  useEffect(() => {
+    if (!selectedSessionId) return;
+
+    const channel = supabase
+      .channel(`session-eval-${selectedSessionId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'session_evaluations',
+          filter: `session_id=eq.${selectedSessionId}`
+        },
+        (payload) => {
+          console.log('Evaluation updated:', payload);
+          // Reload the evaluation when it changes
+          loadEvaluation(selectedSessionId);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedSessionId]);
+
   const loadSessions = async () => {
     setLoading(true);
     
