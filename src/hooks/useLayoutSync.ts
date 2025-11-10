@@ -25,42 +25,66 @@ export function useLayoutSync(
 
   // Load layout on mount - with auto-load of active profile
   useEffect(() => {
-    if (!user) return;
+    console.log('[useLayoutSync] Mount effect triggered');
+    console.log('[useLayoutSync] user:', user?.id);
+    console.log('[useLayoutSync] layoutType:', layoutType);
+    console.log('[useLayoutSync] isEditMode:', isEditMode);
+    
+    if (!user) {
+      console.log('[useLayoutSync] No user, skipping load');
+      return;
+    }
 
     const loadUserLayout = async () => {
+      console.log('[useLayoutSync] Starting loadUserLayout...');
       setIsLoading(true);
       try {
         // Sync any pending layouts first
+        console.log('[useLayoutSync] Syncing pending layouts...');
         await syncPendingLayouts(user.id);
 
         // Check if user already has a saved layout
+        console.log('[useLayoutSync] Loading saved layout...');
         const savedLayout = await loadLayout(user.id, layoutType);
+        console.log('[useLayoutSync] Saved layout from DB:', savedLayout);
         
         if (savedLayout) {
           // User has saved layouts, use them
+          console.log('[useLayoutSync] Found saved layout, applying it');
           setLayout(savedLayout);
         } else {
+          console.log('[useLayoutSync] No saved layout, checking active profile...');
           // First time user - check if there's an active profile to load
           const activeProfileId = await getActiveProfileId(user.id);
+          console.log('[useLayoutSync] Active profile ID:', activeProfileId);
+          
           if (activeProfileId) {
+            console.log('[useLayoutSync] Loading active profile...');
             // Load the active profile (this will populate user_layout_preferences)
             await loadProfile(user.id, activeProfileId);
             // Now load the newly populated layout
             const profileLayout = await loadLayout(user.id, layoutType);
+            console.log('[useLayoutSync] Profile layout loaded:', profileLayout);
+            
             if (profileLayout) {
+              console.log('[useLayoutSync] Applying profile layout');
               setLayout(profileLayout);
             } else {
+              console.log('[useLayoutSync] No profile layout, using default');
               setLayout(defaultLayout);
             }
           } else {
             // No profile, use default
+            console.log('[useLayoutSync] No active profile, using default layout');
             setLayout(defaultLayout);
           }
         }
       } catch (error) {
-        console.error('Error loading layout:', error);
+        console.error('[useLayoutSync] Error loading layout:', error);
+        console.log('[useLayoutSync] Using default layout due to error');
         setLayout(defaultLayout);
       } finally {
+        console.log('[useLayoutSync] Load completed, setIsLoading(false)');
         setIsLoading(false);
       }
     };

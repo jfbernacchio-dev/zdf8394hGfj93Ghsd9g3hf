@@ -35,7 +35,12 @@ export async function loadLayout(
   userId: string,
   layoutType: LayoutType
 ): Promise<LayoutConfig | null> {
+  console.log('[loadLayout] ===== LOAD LAYOUT START =====');
+  console.log('[loadLayout] userId:', userId);
+  console.log('[loadLayout] layoutType:', layoutType);
+  
   try {
+    console.log('[loadLayout] Querying database...');
     const { data, error } = await supabase
       .from('user_layout_preferences')
       .select('*')
@@ -43,39 +48,62 @@ export async function loadLayout(
       .eq('layout_type', layoutType)
       .single();
 
+    console.log('[loadLayout] Query completed');
+    console.log('[loadLayout] error:', error);
+    console.log('[loadLayout] data:', data);
+
     if (error) {
       if (error.code === 'PGRST116') {
         // No layout found, return null
+        console.log('[loadLayout] No layout found (PGRST116), returning null');
         return null;
       }
+      console.error('[loadLayout] Database error:', error);
       throw error;
     }
 
     if (data) {
+      console.log('[loadLayout] Layout found! Version:', data.version);
+      console.log('[loadLayout] Layout config keys:', Object.keys(data.layout_config));
+      console.log('[loadLayout] Full layout config:', JSON.stringify(data.layout_config, null, 2));
+      
       // Update localStorage cache
       const cacheKey = `layout_${layoutType}`;
       localStorage.setItem(cacheKey, JSON.stringify(data.layout_config));
       localStorage.setItem(`${cacheKey}_synced_at`, new Date().toISOString());
       localStorage.setItem(`${cacheKey}_version`, data.version.toString());
       
+      console.log('[loadLayout] Updated localStorage cache');
+      console.log('[loadLayout] ===== LOAD LAYOUT END (SUCCESS) =====');
       return data.layout_config as unknown as LayoutConfig;
     }
 
+    console.log('[loadLayout] No data, returning null');
+    console.log('[loadLayout] ===== LOAD LAYOUT END (NO DATA) =====');
     return null;
   } catch (error) {
-    console.error('Error loading layout from DB:', error);
+    console.error('[loadLayout] Error loading layout from DB:', error);
     
     // Fallback to localStorage cache if DB fails
     const cacheKey = `layout_${layoutType}`;
     const cached = localStorage.getItem(cacheKey);
+    console.log('[loadLayout] Checking localStorage fallback. Cached:', !!cached);
+    
     if (cached) {
       try {
-        return JSON.parse(cached) as LayoutConfig;
+        const parsed = JSON.parse(cached) as LayoutConfig;
+        console.log('[loadLayout] Using localStorage fallback');
+        console.log('[loadLayout] ===== LOAD LAYOUT END (CACHE FALLBACK) =====');
+        return parsed;
       } catch {
+        console.log('[loadLayout] Failed to parse cached layout');
+        console.log('[loadLayout] ===== LOAD LAYOUT END (CACHE PARSE ERROR) =====');
         return null;
       }
     }
     
+    console.log('[loadLayout] No cache available');
+    console.log('[loadLayout] ===== LOAD LAYOUT END (ERROR, NO CACHE) =====');
     return null;
   }
 }
