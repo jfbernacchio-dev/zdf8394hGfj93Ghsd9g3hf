@@ -488,60 +488,6 @@ export type Database = {
         }
         Relationships: []
       }
-      layout_backups: {
-        Row: {
-          created_at: string | null
-          id: string
-          layout_config: Json
-          layout_type: string
-          user_id: string
-          version: number
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          layout_config: Json
-          layout_type: string
-          user_id: string
-          version?: number
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          layout_config?: Json
-          layout_type?: string
-          user_id?: string
-          version?: number
-        }
-        Relationships: []
-      }
-      layout_profiles: {
-        Row: {
-          created_at: string | null
-          id: string
-          layout_configs: Json
-          profile_name: string
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          layout_configs: Json
-          profile_name: string
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          layout_configs?: Json
-          profile_name?: string
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
       log_reviews: {
         Row: {
           actions_taken: string | null
