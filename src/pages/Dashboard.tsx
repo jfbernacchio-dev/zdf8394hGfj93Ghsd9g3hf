@@ -483,20 +483,6 @@ const DashboardTest = () => {
     
     const success = await resetLayoutToDefault(user.id, 'dashboard');
     if (success) {
-      // CRÍTICO: Limpar TODO o localStorage relacionado ao layout
-      const keysToRemove: string[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key?.startsWith('card-size-') || key?.startsWith('section-height-')) {
-          keysToRemove.push(key);
-        }
-      }
-      
-      // Remove as chaves
-      keysToRemove.forEach(key => localStorage.removeItem(key));
-      
-      console.log('[handleResetLayout] Cleaned localStorage keys:', keysToRemove);
-      
       setVisibleCards(DEFAULT_DASHBOARD_LAYOUT.visibleCards);
       toast.success('Layout restaurado para o padrão!');
       setTimeout(() => window.location.reload(), 300);
