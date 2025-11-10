@@ -924,9 +924,22 @@ Assinatura do Profissional`;
     console.log('[PatientDetail] Save result:', success);
     
     if (success) {
+      console.log('[PatientDetail] Save successful! Cleaning up edit state...');
+      // CRITICAL: Exit edit mode and clear temp states BEFORE reload
+      setIsEditMode(false);
+      setTempSizes({});
+      setTempSectionHeights({});
+      setPendingSave(null);
+      
+      console.log('[PatientDetail] Edit state cleaned, showing toast...');
       toast({ title: 'Layout salvo e sincronizado!' });
-      // Don't reset states - just reload immediately to avoid visual glitch
-      window.location.reload();
+      
+      console.log('[PatientDetail] Toast shown, waiting 100ms before reload...');
+      // Small delay to ensure state updates are flushed
+      setTimeout(() => {
+        console.log('[PatientDetail] Reloading now...');
+        window.location.reload();
+      }, 100);
     } else {
       toast({ title: 'Erro ao salvar layout', description: 'Verifique sua conexão.', variant: 'destructive' });
     }

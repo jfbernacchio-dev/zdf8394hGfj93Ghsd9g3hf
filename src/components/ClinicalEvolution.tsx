@@ -1914,16 +1914,27 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
     console.log('[Evolution] Save result:', success);
     
     if (success) {
+      console.log('[ClinicalEvolution] Save successful! Cleaning up edit state...');
+      // CRITICAL: Exit edit mode and clear temp states BEFORE reload
+      setIsEditMode(false);
+      setTempSectionHeights({});
+      setTempCardSizes({});
+      
       sessionStorage.setItem('returnToTab', 'evolution');
       sessionStorage.setItem('returnToSubTab', 'evolution');
       
+      console.log('[ClinicalEvolution] Edit state cleaned, showing toast...');
       toast({
         title: "Layout salvo e sincronizado!",
         description: "Recarregando página para aplicar alterações...",
       });
 
-      // Don't reset states - just reload immediately to avoid visual glitch
-      window.location.reload();
+      console.log('[ClinicalEvolution] Toast shown, waiting 100ms before reload...');
+      // Small delay to ensure state updates are flushed
+      setTimeout(() => {
+        console.log('[ClinicalEvolution] Reloading now...');
+        window.location.reload();
+      }, 100);
     } else {
       toast({
         title: "Erro ao salvar layout",

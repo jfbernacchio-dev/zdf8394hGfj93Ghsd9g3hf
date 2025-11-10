@@ -432,11 +432,22 @@ const DashboardTest = () => {
       console.log('[Dashboard] saveUserLayout returned! Result:', success);
       
       if (success) {
-        console.log('[Dashboard] Save successful! Showing toast...');
+        console.log('[Dashboard] Save successful! Cleaning up edit state...');
+        // CRITICAL: Exit edit mode and clear temp states BEFORE reload
+        setIsEditMode(false);
+        setTempCardSizes({});
+        setTempSectionHeights({});
+        setPendingSave(null);
+        
+        console.log('[Dashboard] Edit state cleaned, showing toast...');
         toast.success('Layout salvo e sincronizado!');
-        console.log('[Dashboard] Toast shown, calling window.location.reload()...');
-        window.location.reload();
-        console.log('[Dashboard] window.location.reload() called (this should NOT appear)');
+        
+        console.log('[Dashboard] Toast shown, waiting 100ms before reload...');
+        // Small delay to ensure state updates are flushed
+        setTimeout(() => {
+          console.log('[Dashboard] Reloading now...');
+          window.location.reload();
+        }, 100);
       } else {
         console.log('[Dashboard] Save FAILED! Showing error toast...');
         toast.error('Erro ao salvar layout. Verifique sua conexão.');
