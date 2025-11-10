@@ -413,12 +413,9 @@ const DashboardTest = () => {
     console.log('[Dashboard] Save result:', success);
     
     if (success) {
-      setTempCardSizes({});
-      setTempSectionHeights({});
-      setIsEditMode(false);
-      setPendingSave(null);
       toast.success('Layout salvo e sincronizado!');
-      setTimeout(() => window.location.reload(), 300);
+      // Don't reset states - just reload immediately to avoid visual glitch
+      window.location.reload();
     } else {
       toast.error('Erro ao salvar layout. Verifique sua conexão.');
     }

@@ -1910,11 +1910,6 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
     console.log('[Evolution] Save result:', success);
     
     if (success) {
-      setTempSectionHeights({});
-      setTempCardSizes({});
-      setIsEditMode(false);
-      setPendingSave(null);
-      
       sessionStorage.setItem('returnToTab', 'evolution');
       sessionStorage.setItem('returnToSubTab', 'evolution');
       
@@ -1923,7 +1918,8 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
         description: "Recarregando página para aplicar alterações...",
       });
 
-      setTimeout(() => window.location.reload(), 500);
+      // Don't reset states - just reload immediately to avoid visual glitch
+      window.location.reload();
     } else {
       toast({
         title: "Erro ao salvar layout",

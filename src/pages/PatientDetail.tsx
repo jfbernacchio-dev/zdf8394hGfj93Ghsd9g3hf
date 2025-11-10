@@ -922,12 +922,9 @@ Assinatura do Profissional`;
     console.log('[PatientDetail] Save result:', success);
     
     if (success) {
-      setIsEditMode(false);
-      setTempSizes({});
-      setTempSectionHeights({});
-      setPendingSave(null);
       toast({ title: 'Layout salvo e sincronizado!' });
-      setTimeout(() => window.location.reload(), 300);
+      // Don't reset states - just reload immediately to avoid visual glitch
+      window.location.reload();
     } else {
       toast({ title: 'Erro ao salvar layout', description: 'Verifique sua conexão.', variant: 'destructive' });
     }
