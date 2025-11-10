@@ -40,9 +40,7 @@ import { CardConfig, ALL_AVAILABLE_CARDS } from '@/types/cardTypes';
 import { DEFAULT_LAYOUT } from '@/lib/defaultLayout';
 import { ClinicalEvolution } from '@/components/ClinicalEvolution';
 import { useLayoutSync } from '@/hooks/useLayoutSync';
-import { resetLayoutToDefault, getActiveProfileId, getProfiles, LayoutProfile } from '@/lib/layoutSync';
-import { RequireActiveProfileDialog } from '@/components/RequireActiveProfileDialog';
-import { SaveLayoutDialog } from '@/components/SaveLayoutDialog';
+import { resetLayoutToDefault } from '@/lib/layoutSync';
 
 const PatientDetailNew = () => {
   const { id } = useParams();
@@ -74,23 +72,15 @@ const PatientDetailNew = () => {
   const [noteText, setNoteText] = useState('');
   const [noteType, setNoteType] = useState<'session' | 'general'>('session');
   const [selectedSessionForNote, setSelectedSessionForNote] = useState<string | null>(null);
-  
-  // Edit mode state (declared before useLayoutSync)
+  // Layout sync
+  const { layout, saveUserLayout, isLoading: isLayoutLoading, isSyncing } = useLayoutSync('patient-detail', DEFAULT_LAYOUT);
+  const [visibleCards, setVisibleCards] = useState<string[]>(DEFAULT_LAYOUT.visibleCards);
+
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isExitEditDialogOpen, setIsExitEditDialogOpen] = useState(false);
   const [tempSizes, setTempSizes] = useState<Record<string, { width: number; height: number; x: number; y: number }>>({});
   const [tempSectionHeights, setTempSectionHeights] = useState<Record<string, number>>({});
   const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
-  
-  // Layout sync
-  const { layout, saveUserLayout, isLoading: isLayoutLoading, isSyncing } = useLayoutSync('patient-detail', DEFAULT_LAYOUT, isEditMode);
-  const [visibleCards, setVisibleCards] = useState<string[]>(DEFAULT_LAYOUT.visibleCards);
-
-  // Active profile state
-  const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
-  const [activeProfileName, setActiveProfileName] = useState<string>('');
-  const [showProfileRequiredDialog, setShowProfileRequiredDialog] = useState(false);
-  const [showSaveDialog, setShowSaveDialog] = useState(false);
-  const [pendingSave, setPendingSave] = useState<any>(null);
   
   const getBrazilDate = () => {
     return new Date().toLocaleString('en-CA', { 
@@ -117,22 +107,6 @@ const PatientDetailNew = () => {
       setVisibleCards(layout.visibleCards);
     }
   }, [layout, isLayoutLoading]);
-
-  // Load active profile
-  useEffect(() => {
-    if (user) {
-      getActiveProfileId(user.id).then(async (profileId) => {
-        setActiveProfileId(profileId);
-        if (profileId) {
-          const profiles = await getProfiles(user.id);
-          const active = profiles.find((p: LayoutProfile) => p.id === profileId);
-          if (active) {
-            setActiveProfileName(active.profile_name);
-          }
-        }
-      });
-    }
-  }, [user]);
 
   useEffect(() => {
     loadData();
@@ -885,7 +859,7 @@ Assinatura do Profissional`;
   };
 
   const handleExitEditMode = () => {
-    handleSaveChanges();
+    setIsExitEditDialogOpen(true);
   };
 
   const handleTempSizeChange = (id: string, size: { width: number; height: number; x: number; y: number }) => {
@@ -897,49 +871,21 @@ Assinatura do Profissional`;
   };
 
   const handleSaveChanges = async () => {
-    // Check if user has active profile
-    if (!activeProfileId) {
-      setShowProfileRequiredDialog(true);
-      return;
-    }
-
     const newLayout = {
       visibleCards,
       cardSizes: { ...layout.cardSizes, ...tempSizes },
       sectionHeights: { ...layout.sectionHeights, ...tempSectionHeights }
     };
     
-    setPendingSave(newLayout);
-    setShowSaveDialog(true);
-  };
-
-  const handleConfirmSave = async (updateActiveProfile: boolean) => {
-    if (!pendingSave) return;
-    
-    console.log('[PatientDetail] Saving layout with updateActiveProfile:', updateActiveProfile);
-    console.log('[PatientDetail] Active profile:', activeProfileId, activeProfileName);
-    
-    const success = await saveUserLayout(pendingSave, updateActiveProfile);
-    
-    console.log('[PatientDetail] Save result:', success);
+    const success = await saveUserLayout(newLayout);
     
     if (success) {
-      console.log('[PatientDetail] Save successful! Cleaning up edit state...');
-      // CRITICAL: Exit edit mode and clear temp states BEFORE reload
+      setIsExitEditDialogOpen(false);
       setIsEditMode(false);
       setTempSizes({});
       setTempSectionHeights({});
-      setPendingSave(null);
-      
-      console.log('[PatientDetail] Edit state cleaned, showing toast...');
       toast({ title: 'Layout salvo e sincronizado!' });
-      
-      console.log('[PatientDetail] Toast shown, waiting 100ms before reload...');
-      // Small delay to ensure state updates are flushed
-      setTimeout(() => {
-        console.log('[PatientDetail] Reloading now...');
-        window.location.reload();
-      }, 100);
+      setTimeout(() => window.location.reload(), 300);
     } else {
       toast({ title: 'Erro ao salvar layout', description: 'Verifique sua conexão.', variant: 'destructive' });
     }
@@ -948,6 +894,7 @@ Assinatura do Profissional`;
   const handleCancelChanges = () => {
     setTempSizes({});
     setTempSectionHeights({});
+    setIsExitEditDialogOpen(false);
     setIsEditMode(false);
     setVisibleCards(layout.visibleCards);
     toast({ title: 'Alterações descartadas' });
@@ -1035,6 +982,9 @@ Assinatura do Profissional`;
         isEditMode={isEditMode}
         defaultWidth={config?.width || 350}
         defaultHeight={config?.height || 220}
+        tempSize={tempSizes[cardId]}
+        onTempSizeChange={handleTempSizeChange}
+        allCardSizes={tempSizes}
         className={cn("p-6 relative", config?.className)}
       >
         {isEditMode && (
@@ -1121,6 +1071,9 @@ Assinatura do Profissional`;
         isEditMode={isEditMode}
         defaultWidth={200}
         defaultHeight={120}
+        tempSize={tempSizes[cardId]}
+        onTempSizeChange={handleTempSizeChange}
+        allCardSizes={tempSizes}
         className="p-4 relative"
       >
         {isEditMode && (
@@ -1238,6 +1191,8 @@ Assinatura do Profissional`;
             id="stats-section"
             isEditMode={isEditMode}
             defaultHeight={200}
+            tempHeight={tempSectionHeights['stats-section']}
+            onTempHeightChange={handleTempSectionHeightChange}
           >
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               {['stat-total', 'stat-attended', 'stat-scheduled', 'stat-unpaid', 'stat-nfse',
@@ -1290,6 +1245,8 @@ Assinatura do Profissional`;
                 id="functional-section"
                 isEditMode={isEditMode}
                 defaultHeight={510}
+                tempHeight={tempSectionHeights['functional-section']}
+                onTempHeightChange={handleTempSectionHeightChange}
               >
                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                  {nextSession && isCardVisible('next-appointment') && renderFunctionalCard(
@@ -2107,6 +2064,26 @@ Assinatura do Profissional`;
         </DialogContent>
       </Dialog>
 
+      {/* Exit Edit Mode Confirmation Dialog */}
+      <AlertDialog open={isExitEditDialogOpen} onOpenChange={setIsExitEditDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Salvar alterações no layout?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você fez alterações no tamanho dos cards. Deseja salvar essas mudanças ou descartá-las?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelChanges}>
+              Cancelar (descartar mudanças)
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleSaveChanges}>
+              Salvar alterações
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Add Card Dialog */}
       <AddCardDialog
         open={isAddCardDialogOpen}
@@ -2114,18 +2091,6 @@ Assinatura do Profissional`;
         onAddCard={handleAddCard}
         onRemoveCard={handleRemoveCard}
         existingCardIds={visibleCards}
-      />
-
-      <RequireActiveProfileDialog 
-        open={showProfileRequiredDialog}
-        onOpenChange={setShowProfileRequiredDialog}
-      />
-
-      <SaveLayoutDialog
-        open={showSaveDialog}
-        onOpenChange={setShowSaveDialog}
-        onConfirm={handleConfirmSave}
-        activeProfileName={activeProfileName}
       />
     </div>
   );

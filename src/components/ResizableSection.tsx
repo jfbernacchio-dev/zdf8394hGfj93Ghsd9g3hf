@@ -8,6 +8,8 @@ interface ResizableSectionProps {
   className?: string;
   isEditMode: boolean;
   defaultHeight?: number;
+  tempHeight?: number | null;
+  onTempHeightChange?: (id: string, height: number) => void;
 }
 
 export const ResizableSection = ({ 
@@ -16,23 +18,23 @@ export const ResizableSection = ({
   className, 
   isEditMode,
   defaultHeight = 400,
+  tempHeight,
+  onTempHeightChange
 }: ResizableSectionProps) => {
   const [savedHeight, setSavedHeight] = useState(defaultHeight);
   const [isResizing, setIsResizing] = useState(false);
   const [resizeDirection, setResizeDirection] = useState<'top' | 'bottom' | null>(null);
 
-  // Load saved height from localStorage on mount
+  // Load saved height from localStorage on mount and when exiting edit mode
   useEffect(() => {
     const saved = localStorage.getItem(`section-height-${id}`);
     if (saved) {
       setSavedHeight(parseInt(saved));
     }
-  }, [id]);
+  }, [id, isEditMode]); // Reload when isEditMode changes
 
-  // Salva no localStorage
-  const saveToLocalStorage = (height: number) => {
-    localStorage.setItem(`section-height-${id}`, height.toString());
-  };
+  // Use tempHeight if in edit mode and available, otherwise use savedHeight
+  const currentHeight = isEditMode && tempHeight ? tempHeight : savedHeight;
 
   const handleMouseDown = (e: React.MouseEvent, direction: 'top' | 'bottom') => {
     if (!isEditMode) return;
@@ -43,7 +45,7 @@ export const ResizableSection = ({
     setResizeDirection(direction);
     
     const startY = e.clientY;
-    const startHeight = savedHeight;
+    const startHeight = currentHeight;
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
       const deltaY = moveEvent.clientY - startY;
@@ -56,9 +58,9 @@ export const ResizableSection = ({
         newHeight = Math.max(150, startHeight - deltaY);
       }
       
-      setSavedHeight(newHeight);
-      // Salva DURANTE o movimento
-      saveToLocalStorage(newHeight);
+      if (onTempHeightChange) {
+        onTempHeightChange(id, newHeight);
+      }
     };
 
     const handleMouseUp = () => {
@@ -80,8 +82,8 @@ export const ResizableSection = ({
         className
       )}
       style={{ 
-        minHeight: `${savedHeight}px`,
-        height: `${savedHeight}px`
+        minHeight: `${currentHeight}px`,
+        height: `${currentHeight}px`
       }}
     >
       {/* Top resize handle */}
@@ -126,7 +128,7 @@ export const ResizableSection = ({
       {/* Height indicator (optional, for debugging/UX) */}
       {isEditMode && isResizing && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-primary-foreground px-3 py-1 rounded-md shadow-lg text-sm font-medium z-30">
-          {Math.round(savedHeight)}px
+          {Math.round(currentHeight)}px
         </div>
       )}
     </div>

@@ -6,24 +6,18 @@ import {
   subscribeToLayoutUpdates,
   syncPendingLayouts,
   createBackup,
-  getActiveProfileId,
-  loadProfile,
   LayoutType,
   LayoutConfig,
 } from '@/lib/layoutSync';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
-export function useLayoutSync(
-  layoutType: LayoutType, 
-  defaultLayout: LayoutConfig,
-  isEditMode: boolean = false
-) {
+export function useLayoutSync(layoutType: LayoutType, defaultLayout: LayoutConfig) {
   const { user } = useAuth();
   const [layout, setLayout] = useState<LayoutConfig>(defaultLayout);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // Load layout on mount - with auto-load of active profile
+  // Load layout on mount
   useEffect(() => {
     if (!user) return;
 
@@ -33,34 +27,16 @@ export function useLayoutSync(
         // Sync any pending layouts first
         await syncPendingLayouts(user.id);
 
-        // Check if user already has a saved layout
+        // Load from DB
         const savedLayout = await loadLayout(user.id, layoutType);
-        
         if (savedLayout) {
-          // User has saved layouts, use them
           setLayout(savedLayout);
         } else {
-          // First time user - check if there's an active profile to load
-          const activeProfileId = await getActiveProfileId(user.id);
-          
-          if (activeProfileId) {
-            // Load the active profile (this will populate user_layout_preferences)
-            await loadProfile(user.id, activeProfileId);
-            // Now load the newly populated layout
-            const profileLayout = await loadLayout(user.id, layoutType);
-            
-            if (profileLayout) {
-              setLayout(profileLayout);
-            } else {
-              setLayout(defaultLayout);
-            }
-          } else {
-            // No profile, use default
-            setLayout(defaultLayout);
-          }
+          // Use default layout if none exists
+          setLayout(defaultLayout);
         }
       } catch (error) {
-        console.error('[useLayoutSync] Error loading layout:', error);
+        console.error('Error loading layout:', error);
         setLayout(defaultLayout);
       } finally {
         setIsLoading(false);
@@ -78,13 +54,8 @@ export function useLayoutSync(
 
     const setupRealtimeSubscription = () => {
       channel = subscribeToLayoutUpdates(user.id, layoutType, (newConfig) => {
-        // CRITICAL: Only update if NOT in edit mode to prevent losing temp changes
-        if (!isEditMode) {
-          console.log('[Realtime] Applying update for:', layoutType);
-          setLayout(newConfig);
-        } else {
-          console.log('[Realtime] Blocked update during edit mode for:', layoutType);
-        }
+        console.log('Realtime layout update received:', layoutType);
+        setLayout(newConfig);
       });
     };
 
@@ -95,30 +66,34 @@ export function useLayoutSync(
         channel.unsubscribe();
       }
     };
-  }, [user, layoutType, isEditMode]); // Add isEditMode dependency
+  }, [user, layoutType]);
 
   // Save layout function
   const saveUserLayout = useCallback(
-    async (newLayout: LayoutConfig, updateActiveProfile: boolean = false) => {
+    async (newLayout: LayoutConfig) => {
       if (!user) return false;
 
       setIsSyncing(true);
       try {
-        // Pass current layout for backup to avoid race condition with loadLayout
-        const success = await saveLayout(user.id, layoutType, newLayout, updateActiveProfile, layout);
-        
+        // Create backup before saving
+        const currentLayout = await loadLayout(user.id, layoutType);
+        if (currentLayout) {
+          await createBackup(user.id, layoutType, currentLayout);
+        }
+
+        const success = await saveLayout(user.id, layoutType, newLayout);
         if (success) {
           setLayout(newLayout);
         }
         return success;
       } catch (error) {
-        console.error('[useLayoutSync] Error saving layout:', error);
+        console.error('Error saving layout:', error);
         return false;
       } finally {
         setIsSyncing(false);
       }
     },
-    [user, layoutType, layout]
+    [user, layoutType]
   );
 
   return {

@@ -26,9 +26,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Checkbox } from '@/components/ui/checkbox';
 import { DEFAULT_EVOLUTION_LAYOUT } from '@/lib/defaultLayoutEvolution';
 import { useLayoutSync } from '@/hooks/useLayoutSync';
-import { resetLayoutToDefault, getActiveProfileId, getProfiles, LayoutProfile } from '@/lib/layoutSync';
-import { RequireActiveProfileDialog } from './RequireActiveProfileDialog';
-import { SaveLayoutDialog } from './SaveLayoutDialog';
+import { resetLayoutToDefault } from '@/lib/layoutSync';
 
 interface ClinicalEvolutionProps {
   patientId: string;
@@ -1398,27 +1396,16 @@ interface EvaluationData {
 
 function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolutionMetricsProps) {
   const { user } = useAuth();
+  const { layout, saveUserLayout, isLoading: isLayoutLoading, isSyncing } = useLayoutSync('evolution', DEFAULT_EVOLUTION_LAYOUT);
   
   const [evaluations, setEvaluations] = useState<EvaluationData[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  // Edit mode state (declared before useLayoutSync)
   const [isEditMode, setIsEditMode] = useState(false);
   const [visibleCards, setVisibleCards] = useState<string[]>(DEFAULT_EVOLUTION_LAYOUT.visibleCards);
   const [tempSectionHeights, setTempSectionHeights] = useState<Record<string, number>>({});
   const [tempCardSizes, setTempCardSizes] = useState<Record<string, { width: number; height: number; x: number; y: number }>>({});
   const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
-  
-  // Layout sync
-  const { layout, saveUserLayout, isLoading: isLayoutLoading, isSyncing } = useLayoutSync('evolution', DEFAULT_EVOLUTION_LAYOUT, isEditMode);
-  
-  // Active profile state
-  const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
-  const [activeProfileName, setActiveProfileName] = useState<string>('');
-  const [showProfileRequiredDialog, setShowProfileRequiredDialog] = useState(false);
-  const [showSaveLayoutDialog, setShowSaveLayoutDialog] = useState(false);
-  const [pendingSave, setPendingSave] = useState<any>(null);
-  
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
   const { toast } = useToast();
 
   // Update visible cards when layout changes
@@ -1427,22 +1414,6 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
       setVisibleCards(layout.visibleCards);
     }
   }, [layout, isLayoutLoading]);
-
-  // Load active profile
-  useEffect(() => {
-    if (user) {
-      getActiveProfileId(user.id).then(async (profileId) => {
-        setActiveProfileId(profileId);
-        if (profileId) {
-          const profiles = await getProfiles(user.id);
-          const active = profiles.find((p: LayoutProfile) => p.id === profileId);
-          if (active) {
-            setActiveProfileName(active.profile_name);
-          }
-        }
-      });
-    }
-  }, [user]);
 
   useEffect(() => {
     loadEvaluations();
@@ -1879,62 +1850,37 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
 
   const handleToggleEditMode = () => {
     if (isEditMode) {
-      // Call save directly
-      handleSaveLayout();
+      // Show confirmation dialog before saving
+      setShowSaveDialog(true);
     } else {
       setIsEditMode(true);
     }
   };
 
   const handleSaveLayout = async () => {
-    // Check if user has active profile
-    if (!activeProfileId) {
-      setShowProfileRequiredDialog(true);
-      return;
-    }
-
     const newLayout = {
       visibleCards,
       cardSizes: { ...layout.cardSizes, ...tempCardSizes },
       sectionHeights: { ...layout.sectionHeights, ...tempSectionHeights }
     };
     
-    setPendingSave(newLayout);
-    setShowSaveLayoutDialog(true);
-  };
-
-  const handleConfirmSave = async (updateActiveProfile: boolean) => {
-    if (!pendingSave) return;
-    
-    console.log('[Evolution] Saving layout with updateActiveProfile:', updateActiveProfile);
-    console.log('[Evolution] Active profile:', activeProfileId, activeProfileName);
-    
-    const success = await saveUserLayout(pendingSave, updateActiveProfile);
-    
-    console.log('[Evolution] Save result:', success);
+    const success = await saveUserLayout(newLayout);
     
     if (success) {
-      console.log('[ClinicalEvolution] Save successful! Cleaning up edit state...');
-      // CRITICAL: Exit edit mode and clear temp states BEFORE reload
-      setIsEditMode(false);
       setTempSectionHeights({});
       setTempCardSizes({});
+      setIsEditMode(false);
+      setShowSaveDialog(false);
       
       sessionStorage.setItem('returnToTab', 'evolution');
       sessionStorage.setItem('returnToSubTab', 'evolution');
       
-      console.log('[ClinicalEvolution] Edit state cleaned, showing toast...');
       toast({
         title: "Layout salvo e sincronizado!",
         description: "Recarregando página para aplicar alterações...",
       });
 
-      console.log('[ClinicalEvolution] Toast shown, waiting 100ms before reload...');
-      // Small delay to ensure state updates are flushed
-      setTimeout(() => {
-        console.log('[ClinicalEvolution] Reloading now...');
-        window.location.reload();
-      }, 100);
+      setTimeout(() => window.location.reload(), 500);
     } else {
       toast({
         title: "Erro ao salvar layout",
@@ -1948,6 +1894,7 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
     setTempSectionHeights({});
     setTempCardSizes({});
     setIsEditMode(false);
+    setShowSaveDialog(false);
     setVisibleCards(layout.visibleCards);
     
     sessionStorage.setItem('returnToTab', 'evolution');
@@ -2135,6 +2082,8 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
         id="evolution-charts-section"
         isEditMode={isEditMode}
         defaultHeight={DEFAULT_EVOLUTION_LAYOUT.sectionHeights['evolution-charts-section']}
+        tempHeight={tempSectionHeights['evolution-charts-section']}
+        onTempHeightChange={(id, height) => setTempSectionHeights(prev => ({ ...prev, [id]: height }))}
         className="relative"
       >
         <div className="relative w-full h-full">
@@ -2147,6 +2096,9 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
                 isEditMode={isEditMode}
                 defaultWidth={DEFAULT_EVOLUTION_LAYOUT.cardSizes[chart.id]?.width || 590}
                 defaultHeight={DEFAULT_EVOLUTION_LAYOUT.cardSizes[chart.id]?.height || 320}
+                tempSize={tempCardSizes[chart.id]}
+                onTempSizeChange={(id, size) => setTempCardSizes(prev => ({ ...prev, [id]: size }))}
+                allCardSizes={tempCardSizes}
                 className={cn(!isEditMode && "static")}
               >
                 <Card className="h-full w-full">
@@ -2163,17 +2115,25 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
         </div>
       </ResizableSection>
 
-      <RequireActiveProfileDialog 
-        open={showProfileRequiredDialog}
-        onOpenChange={setShowProfileRequiredDialog}
-      />
-
-      <SaveLayoutDialog
-        open={showSaveLayoutDialog}
-        onOpenChange={setShowSaveLayoutDialog}
-        onConfirm={handleConfirmSave}
-        activeProfileName={activeProfileName}
-      />
+      <AlertDialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Salvar alterações no layout?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja salvar as configurações atuais do layout ou cancelar as alterações? 
+              A página será recarregada após sua escolha.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelLayout}>
+              Cancelar alterações
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleSaveLayout}>
+              Salvar configurações
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

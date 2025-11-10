@@ -27,9 +27,7 @@ import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, Cart
 import { useChartTimeScale, generateTimeIntervals, formatTimeLabel, getIntervalBounds, getScaleLabel, TimeScale } from '@/hooks/useChartTimeScale';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { useLayoutSync } from '@/hooks/useLayoutSync';
-import { resetLayoutToDefault, getActiveProfileId, getProfiles, LayoutProfile } from '@/lib/layoutSync';
-import { RequireActiveProfileDialog } from '@/components/RequireActiveProfileDialog';
-import { SaveLayoutDialog } from '@/components/SaveLayoutDialog';
+import { resetLayoutToDefault } from '@/lib/layoutSync';
 
 const DashboardTest = () => {
   const { user } = useAuth();
@@ -41,23 +39,19 @@ const DashboardTest = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState<'expected' | 'actual' | 'unpaid' | null>(null);
 
-  // Edit mode state (declared before useLayoutSync)
-  const [isEditMode, setIsEditMode] = useState(false);
-
   // Layout sync
-  const { layout, saveUserLayout, isLoading: isLayoutLoading, isSyncing } = useLayoutSync('dashboard', DEFAULT_DASHBOARD_LAYOUT, isEditMode);
+  const { layout, saveUserLayout, isLoading: isLayoutLoading, isSyncing } = useLayoutSync('dashboard', DEFAULT_DASHBOARD_LAYOUT);
   const [visibleCards, setVisibleCards] = useState<string[]>(DEFAULT_DASHBOARD_LAYOUT.visibleCards);
 
-  // Active profile state
-  const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
-  const [activeProfileName, setActiveProfileName] = useState<string>('');
-  const [showProfileRequiredDialog, setShowProfileRequiredDialog] = useState(false);
-  const [showSaveDialog, setShowSaveDialog] = useState(false);
-  const [pendingSave, setPendingSave] = useState<any>(null);
+  // Edit mode state
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [tempCardSizes, setTempCardSizes] = useState<Record<string, { width: number; height: number; x: number; y: number }>>({});
+  const [tempSectionHeights, setTempSectionHeights] = useState<Record<string, number>>({});
   
   // Add card dialog state
   const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
   const [isAddChartDialogOpen, setIsAddChartDialogOpen] = useState(false);
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -71,22 +65,6 @@ const DashboardTest = () => {
       setVisibleCards(layout.visibleCards);
     }
   }, [layout, isLayoutLoading]);
-
-  // Load active profile
-  useEffect(() => {
-    if (user) {
-      getActiveProfileId(user.id).then(async (profileId) => {
-        setActiveProfileId(profileId);
-        if (profileId) {
-          const profiles = await getProfiles(user.id);
-          const active = profiles.find((p: LayoutProfile) => p.id === profileId);
-          if (active) {
-            setActiveProfileName(active.profile_name);
-          }
-        }
-      });
-    }
-  }, [user]);
 
   const loadData = async () => {
     const { data: patientsData } = await supabase
@@ -383,92 +361,29 @@ const DashboardTest = () => {
     return [];
   };
 
-  // Função para capturar SNAPSHOT COMPLETO do layout atual
-  const captureCurrentLayout = () => {
-    const cardSizes: Record<string, { width: number; height: number; x: number; y: number }> = {};
-    const sectionHeights: Record<string, number> = {};
-
-    // Escanear TODOS os cards no localStorage
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key?.startsWith('card-size-')) {
-        const cardId = key.replace('card-size-', '');
-        const stored = localStorage.getItem(key);
-        if (stored) {
-          try {
-            cardSizes[cardId] = JSON.parse(stored);
-            console.log(`[captureCurrentLayout] Card ${cardId}:`, JSON.parse(stored));
-          } catch (e) {
-            console.error(`Error parsing card size for ${cardId}:`, e);
-          }
-        }
-      } else if (key?.startsWith('section-height-')) {
-        const sectionId = key.replace('section-height-', '');
-        const stored = localStorage.getItem(key);
-        if (stored) {
-          try {
-            sectionHeights[sectionId] = parseInt(stored);
-            console.log(`[captureCurrentLayout] Section ${sectionId}:`, parseInt(stored));
-          } catch (e) {
-            console.error(`Error parsing section height for ${sectionId}:`, e);
-          }
-        }
-      }
-    }
-
-    console.log('[captureCurrentLayout] TOTAL captured:', { cardSizes, sectionHeights });
-    return { cardSizes, sectionHeights };
-  };
-
   const handleSaveLayout = async () => {
-    // Check if user has active profile
-    if (!activeProfileId) {
-      setShowProfileRequiredDialog(true);
-      return;
-    }
-
-    if (!visibleCards || visibleCards.length === 0) {
-      toast.error('Configure pelo menos um card visível antes de salvar');
-      return;
-    }
-
-    // SNAPSHOT COMPLETO: captura TUDO que está no localStorage agora
-    const { cardSizes, sectionHeights } = captureCurrentLayout();
-
-    console.log('[handleSaveLayout] Captured layout:', { cardSizes, sectionHeights, visibleCards });
-
     const newLayout = {
       visibleCards,
-      cardSizes,
-      sectionHeights
+      cardSizes: { ...layout.cardSizes, ...tempCardSizes },
+      sectionHeights: { ...layout.sectionHeights, ...tempSectionHeights }
     };
     
-    console.log('[handleSaveLayout] Final layout to save:', newLayout);
+    const success = await saveUserLayout(newLayout);
     
-    setPendingSave(newLayout);
-    setShowSaveDialog(true);
-  };
-
-  const handleConfirmSave = async (updateActiveProfile: boolean) => {
-    if (!pendingSave) return;
-    
-    try {
-      const success = await saveUserLayout(pendingSave, updateActiveProfile);
-      
-      if (success) {
-        setIsEditMode(false);
-        setPendingSave(null);
-        toast.success('Layout salvo com sucesso!');
-      } else {
-        toast.error('Erro ao salvar layout. Verifique sua conexão.');
-      }
-    } catch (error) {
-      console.error('[Dashboard] Error in handleConfirmSave:', error);
-      toast.error('Erro inesperado ao salvar layout');
+    if (success) {
+      setTempCardSizes({});
+      setTempSectionHeights({});
+      setIsEditMode(false);
+      toast.success('Layout salvo e sincronizado!');
+      setTimeout(() => window.location.reload(), 300);
+    } else {
+      toast.error('Erro ao salvar layout. Verifique sua conexão.');
     }
   };
 
   const handleCancelEdit = () => {
+    setTempCardSizes({});
+    setTempSectionHeights({});
     setIsEditMode(false);
     setVisibleCards(layout.visibleCards);
   };
@@ -478,12 +393,22 @@ const DashboardTest = () => {
     
     const success = await resetLayoutToDefault(user.id, 'dashboard');
     if (success) {
+      setTempCardSizes({});
+      setTempSectionHeights({});
       setVisibleCards(DEFAULT_DASHBOARD_LAYOUT.visibleCards);
       toast.success('Layout restaurado para o padrão!');
       setTimeout(() => window.location.reload(), 300);
     } else {
       toast.error('Erro ao resetar layout.');
     }
+  };
+
+  const handleTempCardSizeChange = (id: string, size: { width: number; height: number; x: number; y: number }) => {
+    setTempCardSizes(prev => ({ ...prev, [id]: size }));
+  };
+
+  const handleTempSectionHeightChange = (id: string, height: number) => {
+    setTempSectionHeights(prev => ({ ...prev, [id]: height }));
   };
 
   const handleAddCard = async (card: CardConfig) => {
@@ -524,12 +449,19 @@ const DashboardTest = () => {
   };
 
   const getSavedCardSize = (id: string) => {
+    if (tempCardSizes[id]) return tempCardSizes[id];
     return layout.cardSizes[id] || DEFAULT_DASHBOARD_LAYOUT.cardSizes[id];
   };
 
   const getSavedSectionHeight = (id: string) => {
+    if (tempSectionHeights[id]) return tempSectionHeights[id];
     return layout.sectionHeights[id] || DEFAULT_DASHBOARD_LAYOUT.sectionHeights[id] || 400;
   };
+
+  const allCardSizes = Object.keys(DEFAULT_DASHBOARD_LAYOUT.cardSizes).reduce((acc, id) => {
+    acc[id] = getSavedCardSize(id);
+    return acc;
+  }, {} as Record<string, { width: number; height: number; x: number; y: number }>);
 
   const renderCard = (
     id: string,
@@ -565,6 +497,9 @@ const DashboardTest = () => {
         isEditMode={isEditMode}
         defaultWidth={getSavedCardSize(id)?.width || 280}
         defaultHeight={getSavedCardSize(id)?.height || 160}
+        tempSize={tempCardSizes[id]}
+        onTempSizeChange={handleTempCardSizeChange}
+        allCardSizes={allCardSizes}
       >
         <div onClick={onClick}>
           {CardContent}
@@ -1191,6 +1126,14 @@ const DashboardTest = () => {
         isEditMode={isEditMode}
         defaultWidth={chartConfig.defaultWidth || 600}
         defaultHeight={chartConfig.defaultHeight || 400}
+        tempSize={tempCardSizes[id]}
+        onTempSizeChange={(cardId, newSize) => {
+          setTempCardSizes(prev => ({
+            ...prev,
+            [cardId]: newSize
+          }));
+        }}
+        allCardSizes={isEditMode ? tempCardSizes : allCardSizes}
       >
         {ChartContent}
       </ResizableCard>
@@ -1207,11 +1150,7 @@ const DashboardTest = () => {
         
         <div className="flex gap-2">
           {!isEditMode ? (
-            <Button 
-              onClick={() => setIsEditMode(true)} 
-              variant="outline" 
-              size="sm"
-            >
+            <Button onClick={() => setIsEditMode(true)} variant="outline" size="sm">
               <Settings className="w-4 h-4 mr-2" />
               Editar Layout
             </Button>
@@ -1224,7 +1163,7 @@ const DashboardTest = () => {
               <Button onClick={handleCancelEdit} variant="outline" size="sm">
                 Cancelar
               </Button>
-              <Button onClick={handleSaveLayout} size="sm">
+              <Button onClick={() => setIsSaveDialogOpen(true)} size="sm">
                 <Save className="w-4 h-4 mr-2" />
                 Salvar Layout
               </Button>
@@ -1341,6 +1280,8 @@ const DashboardTest = () => {
           id="metrics-section"
           isEditMode={isEditMode}
           defaultHeight={getSavedSectionHeight('metrics-section')}
+          tempHeight={tempSectionHeights['metrics-section']}
+          onTempHeightChange={handleTempSectionHeightChange}
         >
           <div className="relative h-full">
             {renderCard(
@@ -1439,6 +1380,8 @@ const DashboardTest = () => {
           id="charts-section"
           isEditMode={isEditMode}
           defaultHeight={getSavedSectionHeight('charts-section')}
+          tempHeight={tempSectionHeights['charts-section']}
+          onTempHeightChange={handleTempSectionHeightChange}
         >
           {visibleCards.filter(id => id.startsWith('chart-')).length === 0 ? (
             <Card className="p-8 text-center border-dashed">
@@ -1527,17 +1470,37 @@ const DashboardTest = () => {
         </DialogContent>
       </Dialog>
 
-      <RequireActiveProfileDialog 
-        open={showProfileRequiredDialog}
-        onOpenChange={setShowProfileRequiredDialog}
-      />
-
-      <SaveLayoutDialog
-        open={showSaveDialog}
-        onOpenChange={setShowSaveDialog}
-        onConfirm={handleConfirmSave}
-        activeProfileName={activeProfileName}
-      />
+      {/* Save Layout Confirmation Dialog */}
+      <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Salvar alterações no layout?</DialogTitle>
+            <DialogDescription>
+              Você tem alterações não salvas no layout do dashboard. Deseja salvar estas alterações?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 justify-end mt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsSaveDialogOpen(false);
+                handleCancelEdit();
+              }}
+            >
+              Descartar Alterações
+            </Button>
+            <Button
+              onClick={() => {
+                setIsSaveDialogOpen(false);
+                handleSaveLayout();
+              }}
+            >
+              <Save className="w-4 h-4 mr-2" />
+              Salvar Layout
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <NotificationPrompt />
     </div>

@@ -48,7 +48,6 @@ export async function loadLayout(
         // No layout found, return null
         return null;
       }
-      console.error('[loadLayout] Database error:', error);
       throw error;
     }
 
@@ -64,12 +63,11 @@ export async function loadLayout(
 
     return null;
   } catch (error) {
-    console.error('[loadLayout] Error loading layout from DB:', error);
+    console.error('Error loading layout from DB:', error);
     
     // Fallback to localStorage cache if DB fails
     const cacheKey = `layout_${layoutType}`;
     const cached = localStorage.getItem(cacheKey);
-    
     if (cached) {
       try {
         return JSON.parse(cached) as LayoutConfig;
@@ -88,16 +86,9 @@ export async function loadLayout(
 export async function saveLayout(
   userId: string,
   layoutType: LayoutType,
-  config: LayoutConfig,
-  updateActiveProfileToo: boolean = false,
-  currentLayoutForBackup?: LayoutConfig | null
+  config: LayoutConfig
 ): Promise<boolean> {
   try {
-    // Create backup using the provided current layout (avoid race condition)
-    if (currentLayoutForBackup) {
-      await createBackup(userId, layoutType, currentLayoutForBackup);
-    }
-
     // Get current version
     const { data: current } = await supabase
       .from('user_layout_preferences')
@@ -131,16 +122,9 @@ export async function saveLayout(
     // Remove pending sync flag if exists
     localStorage.removeItem(`${cacheKey}_pending_sync`);
 
-    // Update active profile if requested
-    if (updateActiveProfileToo) {
-      console.log('[saveLayout] Updating active profile...');
-      const profileUpdateSuccess = await updateActiveProfile(userId, layoutType, config);
-      console.log('[saveLayout] Profile update result:', profileUpdateSuccess);
-    }
-
     return true;
   } catch (error) {
-    console.error('[saveLayout] Error saving layout to DB:', error);
+    console.error('Error saving layout to DB:', error);
     
     // If offline, save to localStorage with pending sync flag
     const cacheKey = `layout_${layoutType}`;
@@ -398,162 +382,6 @@ export async function restoreBackup(
 }
 
 // ============================================================================
-// ACTIVE PROFILE MANAGEMENT
-// ============================================================================
-
-export interface ActiveProfileState {
-  user_id: string;
-  active_profile_id: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-/**
- * Get the active profile ID for a user
- */
-export async function getActiveProfileId(userId: string): Promise<string | null> {
-  try {
-    // Try DB first
-    const { data, error } = await supabase
-      .from('active_profile_state' as any)
-      .select('active_profile_id')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (error) throw error;
-    
-    const activeProfileId = (data as any)?.active_profile_id || null;
-    
-    // Update cache
-    if (activeProfileId) {
-      localStorage.setItem('active_profile_id', activeProfileId);
-      localStorage.setItem('active_profile_synced_at', new Date().toISOString());
-    } else {
-      localStorage.removeItem('active_profile_id');
-      localStorage.removeItem('active_profile_synced_at');
-    }
-    
-    return activeProfileId;
-  } catch (error) {
-    console.error('Error getting active profile:', error);
-    
-    // Fallback to cache
-    const cached = localStorage.getItem('active_profile_id');
-    return cached || null;
-  }
-}
-
-/**
- * Set the active profile for a user
- */
-export async function setActiveProfile(
-  userId: string, 
-  profileId: string | null
-): Promise<boolean> {
-  try {
-    const { error } = await supabase
-      .from('active_profile_state' as any)
-      .upsert({
-        user_id: userId,
-        active_profile_id: profileId,
-        updated_at: new Date().toISOString(),
-      }, {
-        onConflict: 'user_id'
-      });
-
-    if (error) throw error;
-    
-    // Update cache
-    if (profileId) {
-      localStorage.setItem('active_profile_id', profileId);
-      localStorage.setItem('active_profile_synced_at', new Date().toISOString());
-    } else {
-      localStorage.removeItem('active_profile_id');
-      localStorage.removeItem('active_profile_synced_at');
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Error setting active profile:', error);
-    
-    // Save to cache as pending sync
-    if (profileId) {
-      localStorage.setItem('active_profile_id', profileId);
-      localStorage.setItem('active_profile_pending_sync', 'true');
-    }
-    
-    return false;
-  }
-}
-
-/**
- * Update the active profile with current layouts
- */
-export async function updateActiveProfile(
-  userId: string, 
-  layoutTypeToUpdate?: LayoutType,
-  newLayoutConfig?: LayoutConfig
-): Promise<boolean> {
-  try {
-    const activeProfileId = await getActiveProfileId(userId);
-    if (!activeProfileId) {
-      console.log('[updateActiveProfile] No active profile found');
-      return false;
-    }
-
-    console.log('[updateActiveProfile] Updating profile:', activeProfileId);
-
-    // Get current profile to preserve other layouts
-    const { data: profileData, error: fetchError } = await supabase
-      .from('layout_profiles')
-      .select('layout_configs')
-      .eq('id', activeProfileId)
-      .eq('user_id', userId)
-      .single();
-
-    if (fetchError) throw fetchError;
-
-    const currentLayouts = (profileData?.layout_configs || {}) as unknown as Record<string, LayoutConfig>;
-
-    // If specific layout provided, update only that one
-    if (layoutTypeToUpdate && newLayoutConfig) {
-      currentLayouts[layoutTypeToUpdate] = newLayoutConfig;
-      console.log('[updateActiveProfile] Updated specific layout:', layoutTypeToUpdate);
-    } else {
-      // Otherwise, load ALL current layouts from DB
-      const layoutTypes: LayoutType[] = ['dashboard', 'patient-detail', 'evolution'];
-      
-      for (const layoutType of layoutTypes) {
-        const layout = await loadLayout(userId, layoutType);
-        if (layout) {
-          currentLayouts[layoutType] = layout;
-        }
-      }
-    }
-
-    console.log('[updateActiveProfile] Layouts to update:', Object.keys(currentLayouts));
-
-    // Update the profile
-    const { error } = await supabase
-      .from('layout_profiles')
-      .update({
-        layout_configs: currentLayouts as any,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', activeProfileId)
-      .eq('user_id', userId);
-
-    if (error) throw error;
-    
-    console.log('[updateActiveProfile] Profile updated successfully');
-    return true;
-  } catch (error) {
-    console.error('[updateActiveProfile] Error:', error);
-    return false;
-  }
-}
-
-// ============================================================================
 // PROFILE MANAGEMENT
 // ============================================================================
 
@@ -657,12 +485,9 @@ export async function loadProfile(
     // Load ALL layouts from profile
     for (const layoutType of layoutTypes) {
       if (layoutConfigs[layoutType]) {
-        await saveLayout(userId, layoutType, layoutConfigs[layoutType], false);
+        await saveLayout(userId, layoutType, layoutConfigs[layoutType]);
       }
     }
-    
-    // Set this profile as active
-    await setActiveProfile(userId, profileId);
     
     return true;
   } catch (error) {

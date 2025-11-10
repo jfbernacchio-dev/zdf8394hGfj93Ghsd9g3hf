@@ -19,8 +19,6 @@ import {
   restoreBackup,
   loadLayout,
   importLayoutTemplate,
-  getActiveProfileId,
-  setActiveProfile,
   LayoutBackup,
   LayoutProfile,
   LayoutType
@@ -33,7 +31,6 @@ export function LayoutManager() {
   const { user } = useAuth();
   const [backups, setBackups] = useState<LayoutBackup[]>([]);
   const [profiles, setProfiles] = useState<LayoutProfile[]>([]);
-  const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   
   // Save profile dialog state
@@ -56,14 +53,12 @@ export function LayoutManager() {
     
     setIsLoading(true);
     try {
-      const [backupsData, profilesData, activeId] = await Promise.all([
-        getBackups(user.id, 'dashboard'),
-        getProfiles(user.id),
-        getActiveProfileId(user.id)
+      const [backupsData, profilesData] = await Promise.all([
+        getBackups(user.id, 'dashboard'), // Load dashboard backups as representative
+        getProfiles(user.id) // Load all profiles (they now contain all layouts)
       ]);
       setBackups(backupsData);
       setProfiles(profilesData);
-      setActiveProfileId(activeId);
     } catch (error) {
       console.error('Error loading data:', error);
       toast.error('Erro ao carregar dados');
@@ -81,15 +76,7 @@ export function LayoutManager() {
     setIsSaving(true);
     try {
       await saveProfile(user.id, newProfileName.trim());
-      
-      // Get the newly created profile and set it as active
-      const updatedProfiles = await getProfiles(user.id);
-      const newProfile = updatedProfiles.find(p => p.profile_name === newProfileName.trim());
-      if (newProfile) {
-        await setActiveProfile(user.id, newProfile.id);
-      }
-      
-      toast.success('Profile salvo e ativado!', {
+      toast.success('Profile salvo com sucesso!', {
         description: 'Todos os layouts foram incluídos neste snapshot.'
       });
       setNewProfileName('');
@@ -327,21 +314,11 @@ export function LayoutManager() {
                   </p>
                 ) : (
                   profiles.map((profile) => (
-                    <Card 
-                      key={profile.id}
-                      className={profile.id === activeProfileId ? 'border-green-500 bg-green-500/5' : ''}
-                    >
+                    <Card key={profile.id}>
                       <CardContent className="pt-6">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <h4 className="font-medium">{profile.profile_name}</h4>
-                              {profile.id === activeProfileId && (
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-green-500 text-white">
-                                  Ativo
-                                </span>
-                              )}
-                            </div>
+                            <h4 className="font-medium">{profile.profile_name}</h4>
                             <p className="text-sm text-muted-foreground">
                               Criado {formatDistanceToNow(new Date(profile.created_at), { 
                                 addSuffix: true, 
