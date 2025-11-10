@@ -27,7 +27,9 @@ import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, Cart
 import { useChartTimeScale, generateTimeIntervals, formatTimeLabel, getIntervalBounds, getScaleLabel, TimeScale } from '@/hooks/useChartTimeScale';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { useLayoutSync } from '@/hooks/useLayoutSync';
-import { resetLayoutToDefault } from '@/lib/layoutSync';
+import { resetLayoutToDefault, getActiveProfileId, getProfiles, LayoutProfile } from '@/lib/layoutSync';
+import { RequireActiveProfileDialog } from '@/components/RequireActiveProfileDialog';
+import { SaveLayoutDialog } from '@/components/SaveLayoutDialog';
 
 const DashboardTest = () => {
   const { user } = useAuth();
@@ -42,6 +44,13 @@ const DashboardTest = () => {
   // Layout sync
   const { layout, saveUserLayout, isLoading: isLayoutLoading, isSyncing } = useLayoutSync('dashboard', DEFAULT_DASHBOARD_LAYOUT);
   const [visibleCards, setVisibleCards] = useState<string[]>(DEFAULT_DASHBOARD_LAYOUT.visibleCards);
+
+  // Active profile state
+  const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
+  const [activeProfileName, setActiveProfileName] = useState<string>('');
+  const [showProfileRequiredDialog, setShowProfileRequiredDialog] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [pendingSave, setPendingSave] = useState<any>(null);
 
   // Edit mode state
   const [isEditMode, setIsEditMode] = useState(false);
@@ -65,6 +74,22 @@ const DashboardTest = () => {
       setVisibleCards(layout.visibleCards);
     }
   }, [layout, isLayoutLoading]);
+
+  // Load active profile
+  useEffect(() => {
+    if (user) {
+      getActiveProfileId(user.id).then(async (profileId) => {
+        setActiveProfileId(profileId);
+        if (profileId) {
+          const profiles = await getProfiles(user.id);
+          const active = profiles.find((p: LayoutProfile) => p.id === profileId);
+          if (active) {
+            setActiveProfileName(active.profile_name);
+          }
+        }
+      });
+    }
+  }, [user]);
 
   const loadData = async () => {
     const { data: patientsData } = await supabase
@@ -362,18 +387,32 @@ const DashboardTest = () => {
   };
 
   const handleSaveLayout = async () => {
+    // Check if user has active profile
+    if (!activeProfileId) {
+      setShowProfileRequiredDialog(true);
+      return;
+    }
+
     const newLayout = {
       visibleCards,
       cardSizes: { ...layout.cardSizes, ...tempCardSizes },
       sectionHeights: { ...layout.sectionHeights, ...tempSectionHeights }
     };
     
-    const success = await saveUserLayout(newLayout);
+    setPendingSave(newLayout);
+    setShowSaveDialog(true);
+  };
+
+  const handleConfirmSave = async (updateActiveProfile: boolean) => {
+    if (!pendingSave) return;
+    
+    const success = await saveUserLayout(pendingSave, updateActiveProfile);
     
     if (success) {
       setTempCardSizes({});
       setTempSectionHeights({});
       setIsEditMode(false);
+      setPendingSave(null);
       toast.success('Layout salvo e sincronizado!');
       setTimeout(() => window.location.reload(), 300);
     } else {
@@ -1501,6 +1540,18 @@ const DashboardTest = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <RequireActiveProfileDialog 
+        open={showProfileRequiredDialog}
+        onOpenChange={setShowProfileRequiredDialog}
+      />
+
+      <SaveLayoutDialog
+        open={showSaveDialog}
+        onOpenChange={setShowSaveDialog}
+        onConfirm={handleConfirmSave}
+        activeProfileName={activeProfileName}
+      />
 
       <NotificationPrompt />
     </div>

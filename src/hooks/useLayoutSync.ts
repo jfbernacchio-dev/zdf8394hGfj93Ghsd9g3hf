@@ -70,7 +70,7 @@ export function useLayoutSync(layoutType: LayoutType, defaultLayout: LayoutConfi
 
   // Save layout function
   const saveUserLayout = useCallback(
-    async (newLayout: LayoutConfig) => {
+    async (newLayout: LayoutConfig, updateActiveProfile: boolean = false) => {
       if (!user) return false;
 
       setIsSyncing(true);
@@ -81,7 +81,7 @@ export function useLayoutSync(layoutType: LayoutType, defaultLayout: LayoutConfi
           await createBackup(user.id, layoutType, currentLayout);
         }
 
-        const success = await saveLayout(user.id, layoutType, newLayout);
+        const success = await saveLayout(user.id, layoutType, newLayout, updateActiveProfile);
         if (success) {
           setLayout(newLayout);
         }
