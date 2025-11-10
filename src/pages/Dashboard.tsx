@@ -456,11 +456,20 @@ const DashboardTest = () => {
   }, [tempSectionHeights, layout.sectionHeights]);
 
   const allCardSizes = useMemo(() => {
-    return Object.keys(DEFAULT_DASHBOARD_LAYOUT.cardSizes).reduce((acc, id) => {
-      acc[id] = getSavedCardSize(id);
-      return acc;
-    }, {} as Record<string, { width: number; height: number; x: number; y: number }>);
-  }, [getSavedCardSize]);
+    // Merge keys from both layout.cardSizes AND DEFAULT to ensure all cards are included
+    const allKeys = new Set([
+      ...Object.keys(layout.cardSizes || {}),
+      ...Object.keys(DEFAULT_DASHBOARD_LAYOUT.cardSizes)
+    ]);
+    
+    const sizes: Record<string, { width: number; height: number; x: number; y: number }> = {};
+    allKeys.forEach(id => {
+      sizes[id] = getSavedCardSize(id);
+    });
+    
+    console.log('🎯 allCardSizes calculado:', sizes);
+    return sizes;
+  }, [getSavedCardSize, layout.cardSizes]);
 
   const renderCard = (
     id: string,
