@@ -418,66 +418,101 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
           </CardContent>
         </Card>
 
-        {/* 2. ATENÇÃO E CONCENTRAÇÃO */}
+        {/* 2. ORIENTAÇÃO / JUÍZO / CRÍTICA */}
         <Card>
           <CardHeader className="p-4 pb-3">
-            <CardTitle className="text-lg">2. Atenção e Concentração</CardTitle>
-            <CardDescription className="text-xs">Capacidade de focar e sustentar a atenção</CardDescription>
+            <CardTitle className="text-lg">2. Orientação / Juízo / Crítica</CardTitle>
+            <CardDescription className="text-xs">Orientação, juízo de realidade e insight</CardDescription>
           </CardHeader>
           <CardContent className="p-4 pt-0 space-y-4">
+            <div className="space-y-3">
+              <Label>Orientação auto / alopsíquica</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="orientation_time"
+                    checked={orientation.time}
+                    onCheckedChange={(checked) => setOrientation({ ...orientation, time: checked as boolean })}
+                  />
+                  <label htmlFor="orientation_time" className="text-sm cursor-pointer">
+                    Tempo
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="orientation_space"
+                    checked={orientation.space}
+                    onCheckedChange={(checked) => setOrientation({ ...orientation, space: checked as boolean })}
+                  />
+                  <label htmlFor="orientation_space" className="text-sm cursor-pointer">
+                    Espaço
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="orientation_person"
+                    checked={orientation.person}
+                    onCheckedChange={(checked) => setOrientation({ ...orientation, person: checked as boolean })}
+                  />
+                  <label htmlFor="orientation_person" className="text-sm cursor-pointer">
+                    Pessoa
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="orientation_situation"
+                    checked={orientation.situation}
+                    onCheckedChange={(checked) => setOrientation({ ...orientation, situation: checked as boolean })}
+                  />
+                  <label htmlFor="orientation_situation" className="text-sm cursor-pointer">
+                    Situação
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Juízo de realidade</Label>
+              <Select
+                value={orientation.reality_judgment}
+                onValueChange={(value) => setOrientation({ ...orientation, reality_judgment: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="intact">Íntegro</SelectItem>
+                  <SelectItem value="partially_altered">Parcialmente alterado</SelectItem>
+                  <SelectItem value="severely_altered">Gravemente alterado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <Label>Amplitude da atenção</Label>
-                <span className="text-sm font-medium">{attention.range}</span>
+                <Label>Crítica e insight</Label>
+                <span className="text-sm font-medium">{orientation.insight}</span>
               </div>
               <Slider
-                value={[attention.range]}
-                onValueChange={(v) => setAttention({ ...attention, range: v[0] })}
+                value={[orientation.insight]}
+                onValueChange={(v) => setOrientation({ ...orientation, insight: v[0] })}
                 min={0}
                 max={100}
                 step={1}
               />
               <p className="text-xs text-muted-foreground">
-                0 (aprosexia) | 50 (normal) | 100 (hiperprosexia)
+                0 (sem insight) | 100 (crítico sobre a própria condição)
               </p>
             </div>
 
             <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label>Concentração</Label>
-                <span className="text-sm font-medium">{attention.concentration}</span>
-              </div>
-              <Slider
-                value={[attention.concentration]}
-                onValueChange={(v) => setAttention({ ...attention, concentration: v[0] })}
-                min={0}
-                max={100}
-                step={1}
-              />
-              <p className="text-xs text-muted-foreground">
-                Sustentação atencional: 0 (nenhuma) | 100 (excelente)
-              </p>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="distractibility"
-                checked={attention.distractibility}
-                onCheckedChange={(checked) => setAttention({ ...attention, distractibility: checked as boolean })}
-              />
-              <label htmlFor="distractibility" className="text-sm cursor-pointer">
-                Distraibilidade presente
-              </label>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="attention_notes">Descrição fenomenológica</Label>
+              <Label htmlFor="orientation_comments">Comentário sobre insight e percepção de doença</Label>
               <Textarea
-                id="attention_notes"
-                value={attention.notes}
-                onChange={(e) => setAttention({ ...attention, notes: e.target.value })}
-                placeholder="Breve descrição fenomenológica..."
-                rows={2}
+                id="orientation_comments"
+                value={orientation.comments}
+                onChange={(e) => setOrientation({ ...orientation, comments: e.target.value })}
+                placeholder="Comentário sobre insight e percepção de doença..."
+                rows={3}
               />
             </div>
           </CardContent>
@@ -1086,110 +1121,10 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
           </CardContent>
         </Card>
 
-        {/* 10. ORIENTAÇÃO / JUÍZO / CRÍTICA */}
+        {/* 10. INTELIGÊNCIA */}
         <Card>
           <CardHeader className="p-4 pb-3">
-            <CardTitle className="text-lg">10. Orientação / Juízo / Crítica</CardTitle>
-            <CardDescription className="text-xs">Orientação, juízo de realidade e insight</CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 pt-0 space-y-4">
-            <div className="space-y-3">
-              <Label>Orientação auto / alopsíquica</Label>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="orientation_time"
-                    checked={orientation.time}
-                    onCheckedChange={(checked) => setOrientation({ ...orientation, time: checked as boolean })}
-                  />
-                  <label htmlFor="orientation_time" className="text-sm cursor-pointer">
-                    Tempo
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="orientation_space"
-                    checked={orientation.space}
-                    onCheckedChange={(checked) => setOrientation({ ...orientation, space: checked as boolean })}
-                  />
-                  <label htmlFor="orientation_space" className="text-sm cursor-pointer">
-                    Espaço
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="orientation_person"
-                    checked={orientation.person}
-                    onCheckedChange={(checked) => setOrientation({ ...orientation, person: checked as boolean })}
-                  />
-                  <label htmlFor="orientation_person" className="text-sm cursor-pointer">
-                    Pessoa
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="orientation_situation"
-                    checked={orientation.situation}
-                    onCheckedChange={(checked) => setOrientation({ ...orientation, situation: checked as boolean })}
-                  />
-                  <label htmlFor="orientation_situation" className="text-sm cursor-pointer">
-                    Situação
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Juízo de realidade</Label>
-              <Select
-                value={orientation.reality_judgment}
-                onValueChange={(value) => setOrientation({ ...orientation, reality_judgment: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="intact">Íntegro</SelectItem>
-                  <SelectItem value="partially_altered">Parcialmente alterado</SelectItem>
-                  <SelectItem value="severely_altered">Gravemente alterado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label>Crítica e insight</Label>
-                <span className="text-sm font-medium">{orientation.insight}</span>
-              </div>
-              <Slider
-                value={[orientation.insight]}
-                onValueChange={(v) => setOrientation({ ...orientation, insight: v[0] })}
-                min={0}
-                max={100}
-                step={1}
-              />
-              <p className="text-xs text-muted-foreground">
-                0 (sem insight) | 100 (crítico sobre a própria condição)
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="orientation_comments">Comentário sobre insight e percepção de doença</Label>
-              <Textarea
-                id="orientation_comments"
-                value={orientation.comments}
-                onChange={(e) => setOrientation({ ...orientation, comments: e.target.value })}
-                placeholder="Comentário sobre insight e percepção de doença..."
-                rows={3}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* 11. INTELIGÊNCIA */}
-        <Card>
-          <CardHeader className="p-4 pb-3">
-            <CardTitle className="text-lg">11. Inteligência</CardTitle>
+            <CardTitle className="text-lg">10. Inteligência</CardTitle>
             <CardDescription className="text-xs">Raciocínio, aprendizagem e capacidade adaptativa</CardDescription>
           </CardHeader>
           <CardContent className="p-4 pt-0 space-y-4">
@@ -1246,6 +1181,71 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
                 value={intelligence.notes}
                 onChange={(e) => setIntelligence({ ...intelligence, notes: e.target.value })}
                 placeholder="Observações sobre inteligência e capacidades cognitivas..."
+                rows={2}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 11. ATENÇÃO E CONCENTRAÇÃO */}
+        <Card>
+          <CardHeader className="p-4 pb-3">
+            <CardTitle className="text-lg">11. Atenção e Concentração</CardTitle>
+            <CardDescription className="text-xs">Capacidade de focar e sustentar a atenção</CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 pt-0 space-y-4">
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <Label>Amplitude da atenção</Label>
+                <span className="text-sm font-medium">{attention.range}</span>
+              </div>
+              <Slider
+                value={[attention.range]}
+                onValueChange={(v) => setAttention({ ...attention, range: v[0] })}
+                min={0}
+                max={100}
+                step={1}
+              />
+              <p className="text-xs text-muted-foreground">
+                0 (aprosexia) | 50 (normal) | 100 (hiperprosexia)
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <Label>Concentração</Label>
+                <span className="text-sm font-medium">{attention.concentration}</span>
+              </div>
+              <Slider
+                value={[attention.concentration]}
+                onValueChange={(v) => setAttention({ ...attention, concentration: v[0] })}
+                min={0}
+                max={100}
+                step={1}
+              />
+              <p className="text-xs text-muted-foreground">
+                Sustentação atencional: 0 (nenhuma) | 100 (excelente)
+              </p>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="distractibility"
+                checked={attention.distractibility}
+                onCheckedChange={(checked) => setAttention({ ...attention, distractibility: checked as boolean })}
+              />
+              <label htmlFor="distractibility" className="text-sm cursor-pointer">
+                Distraibilidade presente
+              </label>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="attention_notes">Descrição fenomenológica</Label>
+              <Textarea
+                id="attention_notes"
+                value={attention.notes}
+                onChange={(e) => setAttention({ ...attention, notes: e.target.value })}
+                placeholder="Breve descrição fenomenológica..."
                 rows={2}
               />
             </div>
