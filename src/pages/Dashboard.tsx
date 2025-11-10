@@ -374,7 +374,6 @@ const DashboardTest = () => {
       setTempSectionHeights({});
       setIsEditMode(false);
       toast.success('Layout salvo e sincronizado!');
-      setTimeout(() => window.location.reload(), 300);
     } else {
       toast.error('Erro ao salvar layout. Verifique sua conexão.');
     }
@@ -396,7 +395,6 @@ const DashboardTest = () => {
       setTempSectionHeights({});
       setVisibleCards(DEFAULT_DASHBOARD_LAYOUT.visibleCards);
       toast.success('Layout restaurado para o padrão!');
-      setTimeout(() => window.location.reload(), 300);
     } else {
       toast.error('Erro ao resetar layout.');
     }

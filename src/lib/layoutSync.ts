@@ -41,13 +41,9 @@ export async function loadLayout(
       .select('*')
       .eq('user_id', userId)
       .eq('layout_type', layoutType)
-      .single();
+      .maybeSingle();
 
     if (error) {
-      if (error.code === 'PGRST116') {
-        // No layout found, return null
-        return null;
-      }
       throw error;
     }
 
@@ -95,7 +91,7 @@ export async function saveLayout(
       .select('version')
       .eq('user_id', userId)
       .eq('layout_type', layoutType)
-      .single();
+      .maybeSingle();
 
     const newVersion = (current?.version || 0) + 1;
 
@@ -208,7 +204,7 @@ export async function exportLayoutTemplate(
     .select('*')
     .eq('user_id', userId)
     .eq('layout_type', layoutType)
-    .single();
+    .maybeSingle();
 
   if (!data) {
     throw new Error('Layout not found');
