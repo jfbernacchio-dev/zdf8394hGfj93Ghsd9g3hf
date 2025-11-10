@@ -132,7 +132,7 @@ export async function saveLayout(
     // Update active profile if requested
     if (updateActiveProfileToo) {
       console.log('[saveLayout] Updating active profile...');
-      const profileUpdateSuccess = await updateActiveProfile(userId);
+      const profileUpdateSuccess = await updateActiveProfile(userId, layoutType, config);
       console.log('[saveLayout] Profile update result:', profileUpdateSuccess);
     }
 
@@ -487,7 +487,11 @@ export async function setActiveProfile(
 /**
  * Update the active profile with current layouts
  */
-export async function updateActiveProfile(userId: string): Promise<boolean> {
+export async function updateActiveProfile(
+  userId: string, 
+  layoutTypeToUpdate?: LayoutType,
+  newLayoutConfig?: LayoutConfig
+): Promise<boolean> {
   try {
     const activeProfileId = await getActiveProfileId(userId);
     if (!activeProfileId) {
@@ -497,24 +501,41 @@ export async function updateActiveProfile(userId: string): Promise<boolean> {
 
     console.log('[updateActiveProfile] Updating profile:', activeProfileId);
 
-    // Load ALL current layouts
-    const layoutTypes: LayoutType[] = ['dashboard', 'patient-detail', 'evolution'];
-    const allLayouts: Record<string, LayoutConfig> = {};
-    
-    for (const layoutType of layoutTypes) {
-      const layout = await loadLayout(userId, layoutType);
-      if (layout) {
-        allLayouts[layoutType] = layout;
+    // Get current profile to preserve other layouts
+    const { data: profileData, error: fetchError } = await supabase
+      .from('layout_profiles')
+      .select('layout_configs')
+      .eq('id', activeProfileId)
+      .eq('user_id', userId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    const currentLayouts = (profileData?.layout_configs || {}) as unknown as Record<string, LayoutConfig>;
+
+    // If specific layout provided, update only that one
+    if (layoutTypeToUpdate && newLayoutConfig) {
+      currentLayouts[layoutTypeToUpdate] = newLayoutConfig;
+      console.log('[updateActiveProfile] Updated specific layout:', layoutTypeToUpdate);
+    } else {
+      // Otherwise, load ALL current layouts from DB
+      const layoutTypes: LayoutType[] = ['dashboard', 'patient-detail', 'evolution'];
+      
+      for (const layoutType of layoutTypes) {
+        const layout = await loadLayout(userId, layoutType);
+        if (layout) {
+          currentLayouts[layoutType] = layout;
+        }
       }
     }
 
-    console.log('[updateActiveProfile] Layouts to update:', Object.keys(allLayouts));
+    console.log('[updateActiveProfile] Layouts to update:', Object.keys(currentLayouts));
 
     // Update the profile
     const { error } = await supabase
       .from('layout_profiles')
       .update({
-        layout_configs: allLayouts as any,
+        layout_configs: currentLayouts as any,
         updated_at: new Date().toISOString(),
       })
       .eq('id', activeProfileId)
