@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -23,7 +24,9 @@ import { ResizableSection } from './ResizableSection';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
-import { DEFAULT_EVOLUTION_LAYOUT, resetToDefaultEvolutionLayout } from '@/lib/defaultLayoutEvolution';
+import { DEFAULT_EVOLUTION_LAYOUT } from '@/lib/defaultLayoutEvolution';
+import { useLayoutSync } from '@/hooks/useLayoutSync';
+import { resetLayoutToDefault } from '@/lib/layoutSync';
 
 interface ClinicalEvolutionProps {
   patientId: string;
@@ -1392,25 +1395,25 @@ interface EvaluationData {
 }
 
 function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolutionMetricsProps) {
+  const { user } = useAuth();
+  const { layout, saveUserLayout, isLoading: isLayoutLoading, isSyncing } = useLayoutSync('evolution', DEFAULT_EVOLUTION_LAYOUT);
+  
   const [evaluations, setEvaluations] = useState<EvaluationData[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [visibleCards, setVisibleCards] = useState<string[]>([]);
+  const [visibleCards, setVisibleCards] = useState<string[]>(DEFAULT_EVOLUTION_LAYOUT.visibleCards);
   const [tempSectionHeights, setTempSectionHeights] = useState<Record<string, number>>({});
   const [tempCardSizes, setTempCardSizes] = useState<Record<string, { width: number; height: number; x: number; y: number }>>({});
   const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const { toast } = useToast();
 
-  // Load visible cards from localStorage
+  // Update visible cards when layout changes
   useEffect(() => {
-    const saved = localStorage.getItem('evolution-visible-cards');
-    if (saved) {
-      setVisibleCards(JSON.parse(saved));
-    } else {
-      setVisibleCards(DEFAULT_EVOLUTION_LAYOUT.visibleCards);
+    if (!isLayoutLoading) {
+      setVisibleCards(layout.visibleCards);
     }
-  }, []);
+  }, [layout, isLayoutLoading]);
 
   useEffect(() => {
     loadEvaluations();
@@ -1854,34 +1857,37 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
     }
   };
 
-  const handleSaveLayout = () => {
-    // Save changes
-    Object.entries(tempSectionHeights).forEach(([id, height]) => {
-      localStorage.setItem(`section-height-${id}`, height.toString());
-    });
-    Object.entries(tempCardSizes).forEach(([id, size]) => {
-      localStorage.setItem(`card-size-${id}`, JSON.stringify(size));
-    });
-    localStorage.setItem('evolution-visible-cards', JSON.stringify(visibleCards));
+  const handleSaveLayout = async () => {
+    const newLayout = {
+      visibleCards,
+      cardSizes: { ...layout.cardSizes, ...tempCardSizes },
+      sectionHeights: { ...layout.sectionHeights, ...tempSectionHeights }
+    };
     
-    setTempSectionHeights({});
-    setTempCardSizes({});
-    setIsEditMode(false);
-    setShowSaveDialog(false);
+    const success = await saveUserLayout(newLayout);
     
-    // Save tab state to redirect after reload
-    sessionStorage.setItem('returnToTab', 'evolution');
-    sessionStorage.setItem('returnToSubTab', 'evolution');
-    
-    toast({
-      title: "Layout salvo",
-      description: "Recarregando página para aplicar alterações...",
-    });
+    if (success) {
+      setTempSectionHeights({});
+      setTempCardSizes({});
+      setIsEditMode(false);
+      setShowSaveDialog(false);
+      
+      sessionStorage.setItem('returnToTab', 'evolution');
+      sessionStorage.setItem('returnToSubTab', 'evolution');
+      
+      toast({
+        title: "Layout salvo e sincronizado!",
+        description: "Recarregando página para aplicar alterações...",
+      });
 
-    // Hard refresh after short delay
-    setTimeout(() => {
-      window.location.reload();
-    }, 500);
+      setTimeout(() => window.location.reload(), 500);
+    } else {
+      toast({
+        title: "Erro ao salvar layout",
+        description: "Verifique sua conexão.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleCancelLayout = () => {
@@ -1889,40 +1895,65 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
     setTempCardSizes({});
     setIsEditMode(false);
     setShowSaveDialog(false);
+    setVisibleCards(layout.visibleCards);
     
-    // Save tab state to redirect after reload
     sessionStorage.setItem('returnToTab', 'evolution');
     sessionStorage.setItem('returnToSubTab', 'evolution');
     
-    // Reload to discard changes
     window.location.reload();
   };
 
-  const handleResetLayout = () => {
-    resetToDefaultEvolutionLayout();
-    setVisibleCards(DEFAULT_EVOLUTION_LAYOUT.visibleCards);
-    setTempSectionHeights({});
-    setTempCardSizes({});
-    setIsEditMode(false);
+  const handleResetLayout = async () => {
+    if (!user) return;
     
-    toast({
-      title: "Layout restaurado",
-      description: "O layout foi restaurado para o padrão.",
-    });
+    const success = await resetLayoutToDefault(user.id, 'evolution');
+    if (success) {
+      setVisibleCards(DEFAULT_EVOLUTION_LAYOUT.visibleCards);
+      setTempSectionHeights({});
+      setTempCardSizes({});
+      setIsEditMode(false);
+      
+      toast({
+        title: "Layout restaurado",
+        description: "O layout foi restaurado para o padrão.",
+      });
+      
+      setTimeout(() => window.location.reload(), 300);
+    } else {
+      toast({
+        title: "Erro ao resetar layout",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleToggleCard = (cardId: string) => {
-    setVisibleCards(prev => {
-      if (prev.includes(cardId)) {
-        return prev.filter(id => id !== cardId);
-      } else {
-        return [...prev, cardId];
-      }
-    });
+  const handleToggleCard = async (cardId: string) => {
+    const newVisibleCards = visibleCards.includes(cardId)
+      ? visibleCards.filter(id => id !== cardId)
+      : [...visibleCards, cardId];
+    
+    setVisibleCards(newVisibleCards);
+    
+    const newLayout = {
+      visibleCards: newVisibleCards,
+      cardSizes: layout.cardSizes,
+      sectionHeights: layout.sectionHeights
+    };
+    
+    await saveUserLayout(newLayout);
+  };
+
+  const getSavedCardSize = (id: string) => {
+    if (tempCardSizes[id]) return tempCardSizes[id];
+    return layout.cardSizes[id] || DEFAULT_EVOLUTION_LAYOUT.cardSizes[id];
+  };
+
+  const getSavedSectionHeight = (id: string) => {
+    if (tempSectionHeights[id]) return tempSectionHeights[id];
+    return layout.sectionHeights[id] || DEFAULT_EVOLUTION_LAYOUT.sectionHeights[id] || 600;
   };
 
   const handleSaveCardSelection = () => {
-    localStorage.setItem('evolution-visible-cards', JSON.stringify(visibleCards));
     setIsAddCardDialogOpen(false);
     
     toast({

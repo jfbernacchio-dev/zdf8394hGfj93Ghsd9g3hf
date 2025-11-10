@@ -19,13 +19,15 @@ import { ComplianceReminder } from '@/components/ComplianceReminder';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import { ResizableCard } from '@/components/ResizableCard';
 import { ResizableSection } from '@/components/ResizableSection';
-import { DEFAULT_DASHBOARD_LAYOUT, resetToDefaultDashboardLayout } from '@/lib/defaultLayoutDashboard';
+import { DEFAULT_DASHBOARD_LAYOUT } from '@/lib/defaultLayoutDashboard';
 import { toast } from 'sonner';
 import { AddCardDialog } from '@/components/AddCardDialog';
 import { CardConfig, AVAILABLE_DASHBOARD_CHARTS } from '@/types/cardTypes';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useChartTimeScale, generateTimeIntervals, formatTimeLabel, getIntervalBounds, getScaleLabel, TimeScale } from '@/hooks/useChartTimeScale';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { useLayoutSync } from '@/hooks/useLayoutSync';
+import { resetLayoutToDefault } from '@/lib/layoutSync';
 
 const DashboardTest = () => {
   const { user } = useAuth();
@@ -37,9 +39,12 @@ const DashboardTest = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState<'expected' | 'actual' | 'unpaid' | null>(null);
 
+  // Layout sync
+  const { layout, saveUserLayout, isLoading: isLayoutLoading, isSyncing } = useLayoutSync('dashboard', DEFAULT_DASHBOARD_LAYOUT);
+  const [visibleCards, setVisibleCards] = useState<string[]>(DEFAULT_DASHBOARD_LAYOUT.visibleCards);
+
   // Edit mode state
   const [isEditMode, setIsEditMode] = useState(false);
-  const [visibleCards, setVisibleCards] = useState<string[]>([]);
   const [tempCardSizes, setTempCardSizes] = useState<Record<string, { width: number; height: number; x: number; y: number }>>({});
   const [tempSectionHeights, setTempSectionHeights] = useState<Record<string, number>>({});
   
@@ -50,9 +55,15 @@ const DashboardTest = () => {
   useEffect(() => {
     if (user) {
       loadData();
-      loadLayout();
     }
   }, [user]);
+
+  // Update visible cards when layout changes
+  useEffect(() => {
+    if (!isLayoutLoading) {
+      setVisibleCards(layout.visibleCards);
+    }
+  }, [layout, isLayoutLoading]);
 
   const loadData = async () => {
     const { data: patientsData } = await supabase
@@ -72,15 +83,6 @@ const DashboardTest = () => {
 
     setPatients(patientsData || []);
     setSessions(sessionsData || []);
-  };
-
-  const loadLayout = () => {
-    const savedCards = localStorage.getItem('dashboard-visible-cards');
-    if (savedCards) {
-      setVisibleCards(JSON.parse(savedCards));
-    } else {
-      setVisibleCards(DEFAULT_DASHBOARD_LAYOUT.visibleCards);
-    }
   };
 
   const getDateRange = () => {
@@ -358,44 +360,46 @@ const DashboardTest = () => {
     return [];
   };
 
-  const handleSaveLayout = () => {
-    // Save visible cards
-    localStorage.setItem('dashboard-visible-cards', JSON.stringify(visibleCards));
+  const handleSaveLayout = async () => {
+    const newLayout = {
+      visibleCards,
+      cardSizes: { ...layout.cardSizes, ...tempCardSizes },
+      sectionHeights: { ...layout.sectionHeights, ...tempSectionHeights }
+    };
     
-    // Save temp sizes to localStorage with the correct key that ResizableCard uses
-    Object.entries(tempCardSizes).forEach(([id, size]) => {
-      localStorage.setItem(`card-size-${id}`, JSON.stringify(size));
-    });
+    const success = await saveUserLayout(newLayout);
     
-    // Save temp section heights
-    Object.entries(tempSectionHeights).forEach(([id, height]) => {
-      localStorage.setItem(`section-height-${id}`, height.toString());
-    });
-    
-    // Clear temp state
-    setTempCardSizes({});
-    setTempSectionHeights({});
-    setIsEditMode(false);
-    
-    toast.success('Layout salvo com sucesso!');
-    
-    // Force reload to apply saved sizes
-    setTimeout(() => window.location.reload(), 300);
+    if (success) {
+      setTempCardSizes({});
+      setTempSectionHeights({});
+      setIsEditMode(false);
+      toast.success('Layout salvo e sincronizado!');
+      setTimeout(() => window.location.reload(), 300);
+    } else {
+      toast.error('Erro ao salvar layout. Verifique sua conexão.');
+    }
   };
 
   const handleCancelEdit = () => {
     setTempCardSizes({});
     setTempSectionHeights({});
     setIsEditMode(false);
-    loadLayout();
+    setVisibleCards(layout.visibleCards);
   };
 
-  const handleResetLayout = () => {
-    resetToDefaultDashboardLayout();
-    setTempCardSizes({});
-    setTempSectionHeights({});
-    loadLayout();
-    toast.success('Layout restaurado para o padrão!');
+  const handleResetLayout = async () => {
+    if (!user) return;
+    
+    const success = await resetLayoutToDefault(user.id, 'dashboard');
+    if (success) {
+      setTempCardSizes({});
+      setTempSectionHeights({});
+      setVisibleCards(DEFAULT_DASHBOARD_LAYOUT.visibleCards);
+      toast.success('Layout restaurado para o padrão!');
+      setTimeout(() => window.location.reload(), 300);
+    } else {
+      toast.error('Erro ao resetar layout.');
+    }
   };
 
   const handleTempCardSizeChange = (id: string, size: { width: number; height: number; x: number; y: number }) => {
@@ -406,43 +410,51 @@ const DashboardTest = () => {
     setTempSectionHeights(prev => ({ ...prev, [id]: height }));
   };
 
-  const handleAddCard = (card: CardConfig) => {
+  const handleAddCard = async (card: CardConfig) => {
     const newVisibleCards = [...visibleCards, card.id];
     setVisibleCards(newVisibleCards);
-    localStorage.setItem('dashboard-visible-cards', JSON.stringify(newVisibleCards));
     
-    // Set default size for the new card
     const defaultSize = {
       width: card.defaultWidth || 280,
       height: card.defaultHeight || 160,
       x: 0,
       y: 0,
     };
-    localStorage.setItem(`card-size-${card.id}`, JSON.stringify(defaultSize));
     
+    const newLayout = {
+      visibleCards: newVisibleCards,
+      cardSizes: { ...layout.cardSizes, [card.id]: defaultSize },
+      sectionHeights: layout.sectionHeights
+    };
+    
+    await saveUserLayout(newLayout);
     toast.success(`Card "${card.name}" adicionado!`);
   };
 
-  const handleRemoveCard = (cardId: string) => {
+  const handleRemoveCard = async (cardId: string) => {
     const newVisibleCards = visibleCards.filter(id => id !== cardId);
     setVisibleCards(newVisibleCards);
-    localStorage.setItem('dashboard-visible-cards', JSON.stringify(newVisibleCards));
-    localStorage.removeItem(`card-size-${cardId}`);
+    
+    const { [cardId]: removed, ...remainingCardSizes } = layout.cardSizes;
+    
+    const newLayout = {
+      visibleCards: newVisibleCards,
+      cardSizes: remainingCardSizes,
+      sectionHeights: layout.sectionHeights
+    };
+    
+    await saveUserLayout(newLayout);
     toast.success('Card removido!');
   };
 
   const getSavedCardSize = (id: string) => {
     if (tempCardSizes[id]) return tempCardSizes[id];
-    const saved = localStorage.getItem(`card-size-${id}`);
-    if (saved) return JSON.parse(saved);
-    return DEFAULT_DASHBOARD_LAYOUT.cardSizes[id];
+    return layout.cardSizes[id] || DEFAULT_DASHBOARD_LAYOUT.cardSizes[id];
   };
 
   const getSavedSectionHeight = (id: string) => {
     if (tempSectionHeights[id]) return tempSectionHeights[id];
-    const saved = localStorage.getItem(`section-height-${id}`);
-    if (saved) return parseInt(saved);
-    return DEFAULT_DASHBOARD_LAYOUT.sectionHeights[id] || 400;
+    return layout.sectionHeights[id] || DEFAULT_DASHBOARD_LAYOUT.sectionHeights[id] || 400;
   };
 
   const allCardSizes = Object.keys(DEFAULT_DASHBOARD_LAYOUT.cardSizes).reduce((acc, id) => {
