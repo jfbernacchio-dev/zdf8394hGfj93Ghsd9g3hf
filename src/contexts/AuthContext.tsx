@@ -10,6 +10,9 @@ interface Profile {
   crp: string;
   birth_date: string;
   created_by?: string;
+  phone?: string;
+  clinical_approach?: string;
+  send_nfse_to_therapist?: boolean;
   work_days?: number[];
   work_start_time?: string;
   work_end_time?: string;
