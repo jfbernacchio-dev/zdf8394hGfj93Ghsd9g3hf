@@ -24,8 +24,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DEFAULT_EVOLUTION_LAYOUT, resetToDefaultEvolutionLayout } from '@/lib/defaultLayoutEvolution';
-import { AddCardDialog } from './AddCardDialog';
-import { CardConfig } from '@/types/cardTypes';
 
 interface ClinicalEvolutionProps {
   patientId: string;
@@ -1913,35 +1911,23 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
     });
   };
 
-  const handleAddCard = (card: CardConfig) => {
-    const newVisibleCards = [...visibleCards, card.id];
-    setVisibleCards(newVisibleCards);
-    localStorage.setItem('evolution-visible-cards', JSON.stringify(newVisibleCards));
-    
-    // Set default size for the new card
-    const defaultSize = {
-      width: card.defaultWidth || 590,
-      height: card.defaultHeight || 320,
-      x: 0,
-      y: 0,
-    };
-    localStorage.setItem(`card-size-${card.id}`, JSON.stringify(defaultSize));
-    
-    toast({
-      title: "Card adicionado",
-      description: `"${card.name}" foi adicionado com sucesso.`,
+  const handleToggleCard = (cardId: string) => {
+    setVisibleCards(prev => {
+      if (prev.includes(cardId)) {
+        return prev.filter(id => id !== cardId);
+      } else {
+        return [...prev, cardId];
+      }
     });
   };
 
-  const handleRemoveCard = (cardId: string) => {
-    const newVisibleCards = visibleCards.filter(id => id !== cardId);
-    setVisibleCards(newVisibleCards);
-    localStorage.setItem('evolution-visible-cards', JSON.stringify(newVisibleCards));
-    localStorage.removeItem(`card-size-${cardId}`);
+  const handleSaveCardSelection = () => {
+    localStorage.setItem('evolution-visible-cards', JSON.stringify(visibleCards));
+    setIsAddCardDialogOpen(false);
     
     toast({
-      title: "Card removido",
-      description: "O card foi removido com sucesso.",
+      title: "Cards atualizados",
+      description: "A seleção de gráficos foi salva.",
     });
   };
 
@@ -2000,14 +1986,44 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
 
           {isEditMode && (
             <>
-              <Button
-                onClick={() => setIsAddCardDialogOpen(true)}
-                variant="outline"
-                size="sm"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Adicionar Cards
-              </Button>
+              <Dialog open={isAddCardDialogOpen} onOpenChange={setIsAddCardDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Adicionar Cards
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Selecionar Gráficos</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    {allCharts.map(chart => (
+                      <div key={chart.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={chart.id}
+                          checked={visibleCards.includes(chart.id)}
+                          onCheckedChange={() => handleToggleCard(chart.id)}
+                        />
+                        <label
+                          htmlFor={chart.id}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                        >
+                          {chart.title} - {chart.description}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => setIsAddCardDialogOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button onClick={handleSaveCardSelection}>
+                      Salvar
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
 
               <Button
                 variant="outline"
@@ -2067,15 +2083,6 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
             ))}
         </div>
       </ResizableSection>
-
-      <AddCardDialog
-        open={isAddCardDialogOpen}
-        onOpenChange={setIsAddCardDialogOpen}
-        onAddCard={handleAddCard}
-        onRemoveCard={handleRemoveCard}
-        existingCardIds={visibleCards}
-        mode="evolution"
-      />
 
       <AlertDialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
         <AlertDialogContent>
