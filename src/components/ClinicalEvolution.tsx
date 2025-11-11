@@ -1602,7 +1602,7 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
   // Chart definitions
   const allCharts = [
     {
-      id: 'chart-consciousness',
+      id: 'evolution-chart-consciousness',
       title: '1. Consciência',
       description: 'Nível e Campo de Consciência',
       render: () => (
@@ -1623,7 +1623,7 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
       )
     },
     {
-      id: 'chart-orientation',
+      id: 'evolution-chart-orientation',
       title: '2. Orientação',
       description: 'Tipos de Alteração do Juízo de Realidade',
       render: () => (
@@ -1649,7 +1649,7 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
       )
     },
     {
-      id: 'chart-memory',
+      id: 'evolution-chart-memory',
       title: '3. Memória',
       description: 'Desempenho Médio por Tipo',
       render: () => (
@@ -1665,7 +1665,7 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
       )
     },
     {
-      id: 'chart-mood',
+      id: 'evolution-chart-mood',
       title: '4. Humor / Afeto',
       description: 'Polaridade do Humor por Sessão',
       render: () => (
@@ -1684,7 +1684,7 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
       )
     },
     {
-      id: 'chart-thought',
+      id: 'evolution-chart-thought',
       title: '5. Pensamento',
       description: 'Curso do Pensamento',
       render: () => (
@@ -1703,7 +1703,7 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
       )
     },
     {
-      id: 'chart-language',
+      id: 'evolution-chart-language',
       title: '6. Linguagem',
       description: 'Ritmo de Fala (Velocidade)',
       render: () => (
@@ -1722,7 +1722,7 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
       )
     },
     {
-      id: 'chart-sensoperception',
+      id: 'evolution-chart-sensoperception',
       title: '7. Sensopercepção',
       description: 'Tipos de Alteração no Período',
       render: () => (
@@ -1748,7 +1748,7 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
       )
     },
     {
-      id: 'chart-intelligence',
+      id: 'evolution-chart-intelligence',
       title: '8. Inteligência',
       description: 'Desempenho Cognitivo Médio',
       render: () => (
@@ -1764,7 +1764,7 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
       )
     },
     {
-      id: 'chart-will',
+      id: 'evolution-chart-will',
       title: '9. Vontade',
       description: 'Energia Volitiva e Controle de Impulsos',
       render: () => (
@@ -1786,7 +1786,7 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
       )
     },
     {
-      id: 'chart-psychomotor',
+      id: 'evolution-chart-psychomotor',
       title: '10. Psicomotricidade',
       description: 'Tônus Psicomotor',
       render: () => (
@@ -1805,7 +1805,7 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
       )
     },
     {
-      id: 'chart-attention',
+      id: 'evolution-chart-attention',
       title: '11. Atenção',
       description: 'Amplitude da Atenção',
       render: () => (
@@ -1823,7 +1823,7 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
       )
     },
     {
-      id: 'chart-personality',
+      id: 'evolution-chart-personality',
       title: '12. Personalidade',
       description: 'Coerência do Self e Estabilidade Afetiva',
       render: () => (

@@ -1021,17 +1021,17 @@ Assinatura do Profissional`;
     if (!isCardVisible(cardId)) return null;
 
     const statConfigs: Record<string, { label: string; value: number | string; sublabel: string; color?: string }> = {
-      'stat-total': { label: 'Total no Mês', value: totalMonthSessions, sublabel: 'sessões', color: 'text-foreground' },
-      'stat-attended': { label: 'Comparecidas', value: attendedMonthSessions, sublabel: 'no mês', color: 'text-accent' },
-      'stat-scheduled': { label: 'Agendadas', value: scheduledMonthSessions, sublabel: 'no mês', color: 'text-blue-500' },
-      'stat-unpaid': { label: 'A Pagar', value: unpaidMonthSessions, sublabel: 'no mês', color: 'text-orange-500' },
-      'stat-nfse': { label: 'A Receber', value: nfseIssuedSessions, sublabel: 'NFSe emitida', color: 'text-emerald-500' },
-      'stat-total-all': { label: 'Total Geral', value: totalAllSessions, sublabel: 'todas sessões', color: 'text-primary' },
-      'stat-revenue-month': { label: 'Faturado', value: formatBrazilianCurrency(revenueMonth), sublabel: 'no mês', color: 'text-green-600' },
-      'stat-paid-month': { label: 'Recebido', value: formatBrazilianCurrency(paidMonth), sublabel: 'no mês', color: 'text-green-500' },
-      'stat-missed-month': { label: 'Faltas', value: missedMonthSessions, sublabel: 'no mês', color: 'text-red-500' },
-      'stat-attendance-rate': { label: 'Taxa', value: `${attendanceRate}%`, sublabel: 'comparecimento', color: 'text-blue-600' },
-      'stat-unscheduled-month': { label: 'Desmarcadas', value: unscheduledMonthSessions, sublabel: 'no mês', color: 'text-gray-500' },
+      'patient-stat-total': { label: 'Total no Mês', value: totalMonthSessions, sublabel: 'sessões', color: 'text-foreground' },
+      'patient-stat-attended': { label: 'Comparecidas', value: attendedMonthSessions, sublabel: 'no mês', color: 'text-accent' },
+      'patient-stat-scheduled': { label: 'Agendadas', value: scheduledMonthSessions, sublabel: 'no mês', color: 'text-blue-500' },
+      'patient-stat-unpaid': { label: 'A Pagar', value: unpaidMonthSessions, sublabel: 'no mês', color: 'text-orange-500' },
+      'patient-stat-nfse': { label: 'A Receber', value: nfseIssuedSessions, sublabel: 'NFSe emitida', color: 'text-emerald-500' },
+      'patient-stat-total-all': { label: 'Total Geral', value: totalAllSessions, sublabel: 'todas sessões', color: 'text-primary' },
+      'patient-stat-revenue-month': { label: 'Faturado', value: formatBrazilianCurrency(revenueMonth), sublabel: 'no mês', color: 'text-green-600' },
+      'patient-stat-paid-month': { label: 'Recebido', value: formatBrazilianCurrency(paidMonth), sublabel: 'no mês', color: 'text-green-500' },
+      'patient-stat-missed-month': { label: 'Faltas', value: missedMonthSessions, sublabel: 'no mês', color: 'text-red-500' },
+      'patient-stat-attendance-rate': { label: 'Taxa', value: `${attendanceRate}%`, sublabel: 'comparecimento', color: 'text-blue-600' },
+      'patient-stat-unscheduled-month': { label: 'Desmarcadas', value: unscheduledMonthSessions, sublabel: 'no mês', color: 'text-gray-500' },
     };
 
     const config = statConfigs[cardId];
@@ -1161,16 +1161,16 @@ Assinatura do Profissional`;
             </div>
           )}
           <ResizableSection
-            id="stats-section"
+            id="patient-stats-section"
             isEditMode={isEditMode}
             defaultHeight={200}
-            tempHeight={tempSectionHeights['stats-section']}
+            tempHeight={tempSectionHeights['patient-stats-section']}
             onTempHeightChange={handleTempSectionHeightChange}
           >
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              {['stat-total', 'stat-attended', 'stat-scheduled', 'stat-unpaid', 'stat-nfse',
-                'stat-total-all', 'stat-revenue-month', 'stat-paid-month', 'stat-missed-month',
-                'stat-attendance-rate', 'stat-unscheduled-month'].map(cardId => renderStatCard(cardId))}
+              {['patient-stat-total', 'patient-stat-attended', 'patient-stat-scheduled', 'patient-stat-unpaid', 'patient-stat-nfse',
+                'patient-stat-total-all', 'patient-stat-revenue-month', 'patient-stat-paid-month', 'patient-stat-missed-month',
+                'patient-stat-attendance-rate', 'patient-stat-unscheduled-month'].map(cardId => renderStatCard(cardId))}
             </div>
           </ResizableSection>
         </div>
@@ -1215,15 +1215,15 @@ Assinatura do Profissional`;
 
               {/* Functional Cards Section */}
               <ResizableSection
-                id="functional-section"
+                id="patient-functional-section"
                 isEditMode={isEditMode}
                 defaultHeight={510}
-                tempHeight={tempSectionHeights['functional-section']}
+                tempHeight={tempSectionHeights['patient-functional-section']}
                 onTempHeightChange={handleTempSectionHeightChange}
               >
                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                 {nextSession && isCardVisible('next-appointment') && renderFunctionalCard(
-                 'next-appointment',
+                 {nextSession && isCardVisible('patient-next-appointment') && renderFunctionalCard(
+                 'patient-next-appointment',
                  <div className="flex flex-col">
                    <p className="text-sm font-medium text-muted-foreground mb-2">Próximo Agendamento</p>
                    <div className="flex items-center gap-2 mb-1">
@@ -1241,8 +1241,8 @@ Assinatura do Profissional`;
                  { className: 'bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20' }
                )}
 
-               {isCardVisible('contact-info') && renderFunctionalCard(
-                 'contact-info',
+               {isCardVisible('patient-contact-info') && renderFunctionalCard(
+                 'patient-contact-info',
                  <>
                    <h3 className="font-semibold text-lg mb-4">Informações de Contato</h3>
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
@@ -1286,8 +1286,8 @@ Assinatura do Profissional`;
                  </>
                )}
 
-               {isCardVisible('clinical-complaint') && renderFunctionalCard(
-                 'clinical-complaint',
+               {isCardVisible('patient-clinical-complaint') && renderFunctionalCard(
+                 'patient-clinical-complaint',
                  <>
                    <div className="flex items-center justify-between mb-4">
                      <h3 className="font-semibold text-lg flex items-center gap-2">
@@ -1321,8 +1321,8 @@ Assinatura do Profissional`;
                   </>
                   )}
 
-                   {isCardVisible('clinical-info') && renderFunctionalCard(
-                 'clinical-info',
+                   {isCardVisible('patient-clinical-info') && renderFunctionalCard(
+                 'patient-clinical-info',
                  <>
                    <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
                      <Tag className="w-5 h-5 text-primary" />
@@ -1350,8 +1350,8 @@ Assinatura do Profissional`;
                  { width: 700, height: 280, className: 'lg:col-span-2' }
                 )}
 
-                  {isCardVisible('history') && renderFunctionalCard(
-                   'history',
+                  {isCardVisible('patient-history') && renderFunctionalCard(
+                   'patient-history',
                    <>
                      <div className="flex items-center justify-between mb-4">
                        <h3 className="font-semibold text-lg">Histórico</h3>

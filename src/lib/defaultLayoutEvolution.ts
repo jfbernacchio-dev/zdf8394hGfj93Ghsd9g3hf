@@ -4,42 +4,42 @@ export const DEFAULT_EVOLUTION_LAYOUT = {
     'evolution-charts-section': 800,
   },
   visibleCards: [
-    'chart-consciousness',
-    'chart-orientation',
-    'chart-memory',
-    'chart-mood',
-    'chart-thought',
-    'chart-language',
-    'chart-sensoperception',
-    'chart-intelligence',
-    'chart-will',
-    'chart-psychomotor',
-    'chart-attention',
-    'chart-personality',
+    'evolution-chart-consciousness',
+    'evolution-chart-orientation',
+    'evolution-chart-memory',
+    'evolution-chart-mood',
+    'evolution-chart-thought',
+    'evolution-chart-language',
+    'evolution-chart-sensoperception',
+    'evolution-chart-intelligence',
+    'evolution-chart-will',
+    'evolution-chart-psychomotor',
+    'evolution-chart-attention',
+    'evolution-chart-personality',
   ],
   cardSizes: {
-    'chart-consciousness': { width: 590, height: 320, x: 12, y: 11 },
-    'chart-orientation': { width: 590, height: 320, x: 619, y: -309 },
-    'chart-memory': { width: 590, height: 320, x: 12, y: -294 },
-    'chart-mood': { width: 590, height: 320, x: 619, y: -614 },
-    'chart-thought': { width: 590, height: 320, x: 12, y: -599 },
-    'chart-language': { width: 590, height: 320, x: 619, y: -919 },
-    'chart-sensoperception': { width: 590, height: 320, x: 12, y: -904 },
-    'chart-intelligence': { width: 590, height: 320, x: 619, y: -1224 },
-    'chart-will': { width: 590, height: 320, x: 12, y: -1209 },
-    'chart-psychomotor': { width: 590, height: 320, x: 619, y: -1529 },
-    'chart-attention': { width: 590, height: 320, x: 12, y: -1514 },
-    'chart-personality': { width: 590, height: 320, x: 619, y: -1834 },
+    'evolution-chart-consciousness': { width: 590, height: 320, x: 12, y: 11 },
+    'evolution-chart-orientation': { width: 590, height: 320, x: 619, y: -309 },
+    'evolution-chart-memory': { width: 590, height: 320, x: 12, y: -294 },
+    'evolution-chart-mood': { width: 590, height: 320, x: 619, y: -614 },
+    'evolution-chart-thought': { width: 590, height: 320, x: 12, y: -599 },
+    'evolution-chart-language': { width: 590, height: 320, x: 619, y: -919 },
+    'evolution-chart-sensoperception': { width: 590, height: 320, x: 12, y: -904 },
+    'evolution-chart-intelligence': { width: 590, height: 320, x: 619, y: -1224 },
+    'evolution-chart-will': { width: 590, height: 320, x: 12, y: -1209 },
+    'evolution-chart-psychomotor': { width: 590, height: 320, x: 619, y: -1529 },
+    'evolution-chart-attention': { width: 590, height: 320, x: 12, y: -1514 },
+    'evolution-chart-personality': { width: 590, height: 320, x: 619, y: -1834 },
   } as Record<string, { width: number; height: number; x: number; y: number }>,
 };
 
 // Function to reset layout to default
 export const resetToDefaultEvolutionLayout = () => {
-  // Clear all existing customizations
+  // Clear only evolution-specific customizations
   const keys = Object.keys(localStorage);
   keys.forEach(key => {
-    if (key.startsWith('card-size-chart-') || 
-        key.startsWith('section-height-evolution-charts-section') || 
+    if (key.startsWith('card-size-evolution-') || 
+        key.startsWith('section-height-evolution-') || 
         key === 'evolution-visible-cards') {
       localStorage.removeItem(key);
     }

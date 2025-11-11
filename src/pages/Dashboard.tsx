@@ -502,10 +502,10 @@ const DashboardTest = () => {
 
     // Determine if this chart uses time-based data
     const timeBasedCharts = [
-      'chart-monthly-comparison',
-      'chart-revenue-trend',
-      'chart-attendance-weekly',
-      'chart-patient-growth',
+      'dashboard-chart-monthly-comparison',
+      'dashboard-chart-revenue-trend',
+      'dashboard-chart-attendance-weekly',
+      'dashboard-chart-patient-growth',
     ];
     const isTimeBasedChart = timeBasedCharts.includes(id);
     const currentScale = isTimeBasedChart ? getScale(id) : null;
@@ -514,7 +514,7 @@ const DashboardTest = () => {
     const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--muted))', '#8b5cf6', '#ec4899'];
 
     switch (id) {
-      case 'chart-monthly-comparison': {
+      case 'dashboard-chart-monthly-comparison': {
         const intervals = generateTimeIntervals(start, end, currentScale!);
         const chartData = [];
         
@@ -597,7 +597,7 @@ const DashboardTest = () => {
         break;
       }
 
-      case 'chart-revenue-trend': {
+      case 'dashboard-chart-revenue-trend': {
         const intervals = generateTimeIntervals(start, end, currentScale!);
         const chartData = [];
         
@@ -670,7 +670,7 @@ const DashboardTest = () => {
         break;
       }
 
-      case 'chart-session-types': {
+      case 'dashboard-chart-session-types': {
         const statusCounts = {
           'Comparecida': periodSessions.filter(s => s.status === 'attended').length,
           'Faltou': periodSessions.filter(s => s.status === 'missed').length,
@@ -712,7 +712,7 @@ const DashboardTest = () => {
         break;
       }
 
-      case 'chart-payment-status': {
+      case 'dashboard-chart-payment-status': {
         const attendedPeriodSessions = periodSessions.filter(s => s.status === 'attended');
         const paymentCounts = {
           'Pago': attendedPeriodSessions.filter(s => s.paid === true).length,
@@ -753,7 +753,7 @@ const DashboardTest = () => {
         break;
       }
 
-      case 'chart-therapist-distribution': {
+      case 'dashboard-chart-therapist-distribution': {
         // Group sessions by therapist
         const therapistSessionCount = new Map<string, number>();
         
@@ -795,7 +795,7 @@ const DashboardTest = () => {
         break;
       }
 
-      case 'chart-attendance-weekly': {
+      case 'dashboard-chart-attendance-weekly': {
         const intervals = generateTimeIntervals(start, end, currentScale!);
         const chartData = [];
         
@@ -848,7 +848,7 @@ const DashboardTest = () => {
         break;
       }
 
-      case 'chart-revenue-by-therapist': {
+      case 'dashboard-chart-revenue-by-therapist': {
         // Group revenue by therapist considering monthly patients
         const therapistRevenue = new Map<string, number>();
         const monthlyPatientsByTherapist = new Map<string, Map<string, Set<string>>>();
@@ -911,7 +911,7 @@ const DashboardTest = () => {
         break;
       }
 
-      case 'chart-patient-growth': {
+      case 'dashboard-chart-patient-growth': {
         const intervals = generateTimeIntervals(start, end, currentScale!);
         const chartData = [];
         const patientFirstSession = new Map<string, Date>();
@@ -967,7 +967,7 @@ const DashboardTest = () => {
         break;
       }
 
-      case 'chart-hourly-distribution': {
+      case 'dashboard-chart-hourly-distribution': {
         // Count sessions by hour
         const hourCounts = new Map<number, number>();
         
@@ -1009,7 +1009,7 @@ const DashboardTest = () => {
         break;
       }
 
-      case 'chart-cancellation-reasons': {
+      case 'dashboard-chart-cancellation-reasons': {
         // For now show a placeholder since we don't have cancellation reasons in the schema
         chartContent = (
           <div className="flex-1 flex items-center justify-center">
@@ -1263,13 +1263,13 @@ const DashboardTest = () => {
           </div>
         )}
         <ResizableSection
-          id="metrics-section"
+          id="dashboard-metrics-section"
           isEditMode={isEditMode}
-          defaultHeight={getSavedSectionHeight('metrics-section')}
-          tempHeight={tempSectionHeights['metrics-section']}
+          defaultHeight={getSavedSectionHeight('dashboard-metrics-section')}
+          tempHeight={tempSectionHeights['dashboard-metrics-section']}
           onTempHeightChange={handleTempSectionHeightChange}
         >
-          {visibleCards.filter(id => !id.startsWith('chart-')).length === 0 ? (
+          {visibleCards.filter(id => !id.startsWith('dashboard-chart-')).length === 0 ? (
             <Card className="p-8 text-center border-dashed">
               <p className="text-muted-foreground">
                 {isEditMode 
@@ -1281,20 +1281,20 @@ const DashboardTest = () => {
           ) : (
             <div className="relative h-full">
               {visibleCards
-                .filter(id => !id.startsWith('chart-') && !id.startsWith('clinical-'))
+                .filter(id => !id.startsWith('dashboard-chart-') && !id.startsWith('clinical-'))
                 .map(cardId => {
                   // Render each metric card dynamically based on its ID
                   switch (cardId) {
-                    case 'total-patients':
+                    case 'dashboard-total-patients':
                       return renderCard(
-                        'total-patients',
+                        'dashboard-total-patients',
                         <Users className="w-6 h-6 text-primary" />,
                         patients.length,
                         'Total de Pacientes'
                       );
-                    case 'expected-revenue':
+                    case 'dashboard-expected-revenue':
                       return renderCard(
-                        'expected-revenue',
+                        'dashboard-expected-revenue',
                         <TrendingUp className="w-6 h-6 text-blue-500" />,
                         formatBrazilianCurrency(totalExpected),
                         'Receita Esperada',
@@ -1302,9 +1302,9 @@ const DashboardTest = () => {
                         'bg-blue-500/10',
                         'text-blue-500'
                       );
-                    case 'actual-revenue':
+                    case 'dashboard-actual-revenue':
                       return renderCard(
-                        'actual-revenue',
+                        'dashboard-actual-revenue',
                         <DollarSign className="w-6 h-6 text-[hsl(var(--success))]" />,
                         formatBrazilianCurrency(totalActual),
                         `Receita Efetiva (${revenuePercent}%)`,
@@ -1312,9 +1312,9 @@ const DashboardTest = () => {
                         'bg-success/10',
                         'text-[hsl(var(--success))]'
                       );
-                    case 'attended-sessions':
+                    case 'dashboard-attended-sessions':
                       return renderCard(
-                        'attended-sessions',
+                        'dashboard-attended-sessions',
                         <CheckCircle2 className="w-6 h-6 text-accent" />,
                         visiblePeriodSessions.filter(s => s.status === 'attended').length,
                         'Sessões Realizadas',
@@ -1322,9 +1322,9 @@ const DashboardTest = () => {
                         'bg-accent/10',
                         'text-accent'
                       );
-                    case 'expected-sessions':
+                    case 'dashboard-expected-sessions':
                       return renderCard(
-                        'expected-sessions',
+                        'dashboard-expected-sessions',
                         <Calendar className="w-6 h-6 text-accent" />,
                         expectedSessions,
                         'Sessões Esperadas',
@@ -1332,9 +1332,9 @@ const DashboardTest = () => {
                         'bg-accent/10',
                         'text-accent'
                       );
-                    case 'missed-sessions':
+                    case 'dashboard-missed-sessions':
                       return renderCard(
-                        'missed-sessions',
+                        'dashboard-missed-sessions',
                         <AlertCircle className="w-6 h-6 text-destructive" />,
                         missedSessions.length,
                         `Sessões Desmarcadas (${missedPercent}%)`,
@@ -1342,9 +1342,9 @@ const DashboardTest = () => {
                         'bg-destructive/10',
                         'text-destructive'
                       );
-                    case 'pending-sessions':
+                    case 'dashboard-pending-sessions':
                       return renderCard(
-                        'pending-sessions',
+                        'dashboard-pending-sessions',
                         <Calendar className="w-6 h-6 text-muted-foreground" />,
                         pendingSessions.length,
                         `Sessões Pendentes (${pendingPercent}%)`,
@@ -1352,9 +1352,9 @@ const DashboardTest = () => {
                         'bg-muted/50',
                         'text-muted-foreground'
                       );
-                    case 'unpaid-value':
+                    case 'dashboard-unpaid-value':
                       return renderCard(
-                        'unpaid-value',
+                        'dashboard-unpaid-value',
                         <DollarSign className="w-6 h-6 text-[hsl(var(--warning))]" />,
                         formatBrazilianCurrency(unpaidValue),
                         `Em Aberto (${unpaidSessions.length})`,
@@ -1362,7 +1362,7 @@ const DashboardTest = () => {
                         'bg-warning/10',
                         'text-[hsl(var(--warning))]'
                       );
-                    case 'active-therapists': {
+                    case 'dashboard-active-therapists': {
                       const uniqueTherapists = new Set(
                         periodSessions.map(s => {
                           const patient = patients.find(p => p.id === s.patient_id);
@@ -1370,7 +1370,7 @@ const DashboardTest = () => {
                         }).filter(Boolean)
                       );
                       return renderCard(
-                        'active-therapists',
+                        'dashboard-active-therapists',
                         <Users className="w-6 h-6 text-purple-500" />,
                         uniqueTherapists.size,
                         'Terapeutas Ativos',
@@ -1379,12 +1379,12 @@ const DashboardTest = () => {
                         'text-purple-500'
                       );
                     }
-                    case 'attendance-rate': {
+                    case 'dashboard-attendance-rate': {
                       const attendanceRate = expectedSessions > 0 
                         ? ((attendedSessions.length / expectedSessions) * 100).toFixed(0) 
                         : 0;
                       return renderCard(
-                        'attendance-rate',
+                        'dashboard-attendance-rate',
                         <TrendingUp className="w-6 h-6 text-[hsl(var(--success))]" />,
                         `${attendanceRate}%`,
                         'Taxa de Comparecimento',
@@ -1393,7 +1393,7 @@ const DashboardTest = () => {
                         'text-[hsl(var(--success))]'
                       );
                     }
-                    case 'monthly-growth': {
+                    case 'dashboard-monthly-growth': {
                       // Calculate growth vs previous period
                       const periodLength = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
                       const prevStart = new Date(start);
@@ -1429,7 +1429,7 @@ const DashboardTest = () => {
                         : totalActual > 0 ? 100 : 0;
                       
                       return renderCard(
-                        'monthly-growth',
+                        'dashboard-monthly-growth',
                         <TrendingUp className="w-6 h-6 text-blue-500" />,
                         `${Number(growth) >= 0 ? '+' : ''}${growth}%`,
                         'Crescimento',
@@ -1438,13 +1438,13 @@ const DashboardTest = () => {
                         Number(growth) >= 0 ? 'text-[hsl(var(--success))]' : 'text-destructive'
                       );
                     }
-                    case 'payment-rate': {
+                    case 'dashboard-payment-rate': {
                       const paidSessions = attendedSessions.filter(s => s.paid === true);
                       const paymentRate = attendedSessions.length > 0 
                         ? ((paidSessions.length / attendedSessions.length) * 100).toFixed(0)
                         : 0;
                       return renderCard(
-                        'payment-rate',
+                        'dashboard-payment-rate',
                         <DollarSign className="w-6 h-6 text-[hsl(var(--success))]" />,
                         `${paymentRate}%`,
                         'Taxa de Pagamento',
@@ -1469,13 +1469,13 @@ const DashboardTest = () => {
       {/* Charts Section - For Visualizations */}
       <div>
         <ResizableSection
-          id="charts-section"
+          id="dashboard-charts-section"
           isEditMode={isEditMode}
-          defaultHeight={getSavedSectionHeight('charts-section')}
-          tempHeight={tempSectionHeights['charts-section']}
+          defaultHeight={getSavedSectionHeight('dashboard-charts-section')}
+          tempHeight={tempSectionHeights['dashboard-charts-section']}
           onTempHeightChange={handleTempSectionHeightChange}
         >
-          {visibleCards.filter(id => id.startsWith('chart-')).length === 0 ? (
+          {visibleCards.filter(id => id.startsWith('dashboard-chart-')).length === 0 ? (
             <Card className="p-8 text-center border-dashed">
               <p className="text-muted-foreground">
                 {isEditMode 
@@ -1487,7 +1487,7 @@ const DashboardTest = () => {
           ) : (
             <div className="relative h-full">
               {visibleCards
-                .filter(id => id.startsWith('chart-'))
+                .filter(id => id.startsWith('dashboard-chart-'))
                 .map(id => renderChart(id))
               }
             </div>
