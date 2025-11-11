@@ -54,7 +54,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Fetching NFSe data for:", nfseId);
 
-    // Fetch NFSe data with patient information
+    // Fetch NFSe data with patient and therapist information
     const { data: nfseData, error: nfseError } = await supabase
       .from("nfse_issued")
       .select(`
@@ -67,6 +67,11 @@ const handler = async (req: Request): Promise<Response> => {
           use_alternate_nfse_contact,
           nfse_alternate_email,
           nfse_alternate_phone
+        ),
+        therapist:profiles!nfse_issued_user_id_fkey (
+          full_name,
+          phone,
+          send_nfse_to_therapist
         )
       `)
       .eq("id", nfseId)
@@ -344,12 +349,71 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
+    // Send copy to therapist if configured
+    let therapistWhatsappSent = false;
+    if (nfseData.therapist?.send_nfse_to_therapist && nfseData.therapist?.phone) {
+      try {
+        const therapistPhone = normalizePhone(nfseData.therapist.phone);
+        console.log("Sending copy to therapist at:", therapistPhone);
+
+        // Get the file from storage to use the correct filename
+        const { data: uploadedFiles } = await supabase
+          .from("patient_files")
+          .select("file_name")
+          .eq("patient_id", nfseData.patient_id)
+          .eq("category", "NFSe")
+          .order("uploaded_at", { ascending: false })
+          .limit(1);
+
+        const correctFilename = uploadedFiles && uploadedFiles.length > 0 
+          ? uploadedFiles[0].file_name 
+          : `NFSe_${nfseNumber}_${patientName.replace(/\s+/g, "_")}.pdf`;
+
+        // Send WhatsApp to therapist
+        const therapistWhatsappResponse = await fetch(
+          `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-whatsapp`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            },
+            body: JSON.stringify({
+              type: "document",
+              data: {
+                to: therapistPhone,
+                documentUrl: nfseData.pdf_url,
+                filename: correctFilename,
+                caption: `📄 *Cópia - Nota Fiscal Enviada*\n\n` +
+                  `*Paciente:* ${patientName}\n` +
+                  `*Número NF-e:* ${nfseNumber}\n` +
+                  `*Data:* ${issueDate}\n` +
+                  `*Valor:* ${serviceValue}\n\n` +
+                  `Cópia da nota fiscal de ${issueMonth} enviada ao paciente.`,
+              },
+            }),
+          }
+        );
+
+        const therapistResult = await therapistWhatsappResponse.json();
+        if (therapistResult && therapistResult.success) {
+          console.log("WhatsApp sent successfully to therapist");
+          therapistWhatsappSent = true;
+        } else {
+          console.error("Failed to send WhatsApp to therapist:", therapistResult);
+        }
+      } catch (therapistError) {
+        console.error("Error sending WhatsApp to therapist:", therapistError);
+      }
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 
         message: whatsappSent ? "Email and WhatsApp sent successfully" : "Email sent successfully (WhatsApp not available)",
         emailId: emailResponse.data?.id,
-        whatsappSent 
+        whatsappSent,
+        therapistWhatsappSent
       }),
       {
         status: 200,
