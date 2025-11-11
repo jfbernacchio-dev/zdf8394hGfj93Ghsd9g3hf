@@ -54,7 +54,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Fetching NFSe data for:", nfseId);
 
-    // Fetch NFSe data with patient and therapist information
+    // Fetch NFSe data with patient information
     const { data: nfseData, error: nfseError } = await supabase
       .from("nfse_issued")
       .select(`
@@ -67,11 +67,6 @@ const handler = async (req: Request): Promise<Response> => {
           use_alternate_nfse_contact,
           nfse_alternate_email,
           nfse_alternate_phone
-        ),
-        therapist:profiles!nfse_issued_user_id_fkey (
-          full_name,
-          phone,
-          send_nfse_to_therapist
         )
       `)
       .eq("id", nfseId)
@@ -82,30 +77,44 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("NFSe not found");
     }
 
+    // Fetch therapist information separately
+    const { data: therapistData } = await supabase
+      .from("profiles")
+      .select("full_name, phone, send_nfse_to_therapist")
+      .eq("id", nfseData.user_id)
+      .single();
+
+    // Add therapist data to nfseData
+    const nfseDataWithTherapist = {
+      ...nfseData,
+      therapist: therapistData
+    };
+
+
     // Check if NFSe is issued and has a PDF URL
-    if (nfseData.status !== "issued" && nfseData.status !== "processing") {
+    if (nfseDataWithTherapist.status !== "issued" && nfseDataWithTherapist.status !== "processing") {
       throw new Error("NFSe is not in a valid state for email sending");
     }
 
-    if (!nfseData.pdf_url) {
+    if (!nfseDataWithTherapist.pdf_url) {
       throw new Error("NFSe PDF URL not available");
     }
 
     // Determine which email to use: alternate if available, otherwise patient email
-    const recipientEmail = nfseData.patient?.use_alternate_nfse_contact && nfseData.patient?.nfse_alternate_email
-      ? nfseData.patient.nfse_alternate_email
-      : nfseData.patient?.email;
+    const recipientEmail = nfseDataWithTherapist.patient?.use_alternate_nfse_contact && nfseDataWithTherapist.patient?.nfse_alternate_email
+      ? nfseDataWithTherapist.patient.nfse_alternate_email
+      : nfseDataWithTherapist.patient?.email;
 
     if (!recipientEmail) {
       throw new Error("Patient email not found");
     }
 
-    console.log("Downloading PDF from:", nfseData.pdf_url);
+    console.log("Downloading PDF from:", nfseDataWithTherapist.pdf_url);
 
     // Download PDF from FocusNFe
     let pdfBuffer: ArrayBuffer;
     try {
-      const pdfResponse = await fetch(nfseData.pdf_url);
+      const pdfResponse = await fetch(nfseDataWithTherapist.pdf_url);
       if (!pdfResponse.ok) {
         throw new Error(`Failed to download PDF: ${pdfResponse.statusText}`);
       }
@@ -123,11 +132,11 @@ const handler = async (req: Request): Promise<Response> => {
       )
     );
 
-    const patientName = nfseData.patient.name;
-    const nfseNumber = nfseData.nfse_number || "Pendente";
-    const issueDate = new Date(nfseData.issue_date).toLocaleDateString("pt-BR");
-    const issueMonth = new Date(nfseData.issue_date).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
-    const serviceValue = Number(nfseData.service_value).toLocaleString("pt-BR", {
+    const patientName = nfseDataWithTherapist.patient.name;
+    const nfseNumber = nfseDataWithTherapist.nfse_number || "Pendente";
+    const issueDate = new Date(nfseDataWithTherapist.issue_date).toLocaleDateString("pt-BR");
+    const issueMonth = new Date(nfseDataWithTherapist.issue_date).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+    const serviceValue = Number(nfseDataWithTherapist.service_value).toLocaleString("pt-BR", {
       style: "currency",
       currency: "BRL",
     });
@@ -151,7 +160,7 @@ const handler = async (req: Request): Promise<Response> => {
             <p style="margin: 5px 0;"><strong>Número da NF-e:</strong> ${nfseNumber}</p>
             <p style="margin: 5px 0;"><strong>Data de Emissão:</strong> ${issueDate}</p>
             <p style="margin: 5px 0;"><strong>Valor Total:</strong> ${serviceValue}</p>
-            ${nfseData.verification_code ? `<p style="margin: 5px 0;"><strong>Código de Verificação:</strong> ${nfseData.verification_code}</p>` : ""}
+            ${nfseDataWithTherapist.verification_code ? `<p style="margin: 5px 0;"><strong>Código de Verificação:</strong> ${nfseDataWithTherapist.verification_code}</p>` : ""}
           </div>
           
           <p>O documento PDF está anexado a este email para sua conveniência.</p>
@@ -175,21 +184,21 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send WhatsApp message if phone is available
     let whatsappSent = false;
-    const recipientPhone = nfseData.patient?.use_alternate_nfse_contact && nfseData.patient?.nfse_alternate_phone
-      ? nfseData.patient.nfse_alternate_phone
-      : nfseData.patient?.phone;
+    const recipientPhone = nfseDataWithTherapist.patient?.use_alternate_nfse_contact && nfseDataWithTherapist.patient?.nfse_alternate_phone
+      ? nfseDataWithTherapist.patient.nfse_alternate_phone
+      : nfseDataWithTherapist.patient?.phone;
     
     const normalizedPhone = recipientPhone ? normalizePhone(recipientPhone) : null;
 
     console.log("Patient phone data:", {
-      phone: nfseData.patient?.phone,
-      alternate: nfseData.patient?.nfse_alternate_phone,
-      useAlternate: nfseData.patient?.use_alternate_nfse_contact,
+      phone: nfseDataWithTherapist.patient?.phone,
+      alternate: nfseDataWithTherapist.patient?.nfse_alternate_phone,
+      useAlternate: nfseDataWithTherapist.patient?.use_alternate_nfse_contact,
       recipientPhone,
       normalizedPhone
     });
 
-    if (normalizedPhone && nfseData.pdf_url) {
+    if (normalizedPhone && nfseDataWithTherapist.pdf_url) {
       try {
         console.log("Sending WhatsApp message to:", normalizedPhone);
         
@@ -197,7 +206,7 @@ const handler = async (req: Request): Promise<Response> => {
         const { data: uploadedFiles } = await supabase
           .from("patient_files")
           .select("file_name, file_path")
-          .eq("patient_id", nfseData.patient_id)
+          .eq("patient_id", nfseDataWithTherapist.patient_id)
           .eq("category", "NFSe")
           .order("uploaded_at", { ascending: false })
           .limit(1);
@@ -233,7 +242,7 @@ const handler = async (req: Request): Promise<Response> => {
                     issueDate,
                     serviceValue,
                   ],
-                  documentUrl: nfseData.pdf_url,
+                  documentUrl: nfseDataWithTherapist.pdf_url,
                   filename: correctFilename, // Add filename to template
                 },
               }),
@@ -262,7 +271,7 @@ const handler = async (req: Request): Promise<Response> => {
                 type: "document",
                 data: {
                   to: normalizedPhone,
-                  documentUrl: nfseData.pdf_url,
+                  documentUrl: nfseDataWithTherapist.pdf_url,
                   filename: correctFilename, // Use the correct filename
                   caption: `📄 *Nota Fiscal Espaço Mindware*\n\n` +
                     `*Número:* ${nfseNumber}\n` +
@@ -290,8 +299,8 @@ const handler = async (req: Request): Promise<Response> => {
             const { data: existingConv } = await supabase
               .from("whatsapp_conversations")
               .select("id")
-              .eq("user_id", nfseData.user_id)
-              .eq("patient_id", nfseData.patient_id)
+              .eq("user_id", nfseDataWithTherapist.user_id)
+              .eq("patient_id", nfseDataWithTherapist.patient_id)
               .eq("phone_number", normalizedPhone)
               .maybeSingle();
 
@@ -308,8 +317,8 @@ const handler = async (req: Request): Promise<Response> => {
               const { data: newConv } = await supabase
                 .from("whatsapp_conversations")
                 .insert({
-                  user_id: nfseData.user_id,
-                  patient_id: nfseData.patient_id,
+                  user_id: nfseDataWithTherapist.user_id,
+                  patient_id: nfseDataWithTherapist.patient_id,
                   phone_number: normalizedPhone,
                   contact_name: patientName,
                   last_message_at: new Date().toISOString(),
@@ -351,16 +360,16 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send copy to therapist if configured
     let therapistWhatsappSent = false;
-    if (nfseData.therapist?.send_nfse_to_therapist && nfseData.therapist?.phone) {
+    if (nfseDataWithTherapist.therapist?.send_nfse_to_therapist && nfseDataWithTherapist.therapist?.phone) {
       try {
-        const therapistPhone = normalizePhone(nfseData.therapist.phone);
+        const therapistPhone = normalizePhone(nfseDataWithTherapist.therapist.phone);
         console.log("Sending copy to therapist at:", therapistPhone);
 
         // Get the file from storage to use the correct filename
         const { data: uploadedFiles } = await supabase
           .from("patient_files")
           .select("file_name")
-          .eq("patient_id", nfseData.patient_id)
+          .eq("patient_id", nfseDataWithTherapist.patient_id)
           .eq("category", "NFSe")
           .order("uploaded_at", { ascending: false })
           .limit(1);
@@ -382,7 +391,7 @@ const handler = async (req: Request): Promise<Response> => {
               type: "document",
               data: {
                 to: therapistPhone,
-                documentUrl: nfseData.pdf_url,
+                documentUrl: nfseDataWithTherapist.pdf_url,
                 filename: correctFilename,
                 caption: `📄 *Cópia - Nota Fiscal Enviada*\n\n` +
                   `*Paciente:* ${patientName}\n` +
