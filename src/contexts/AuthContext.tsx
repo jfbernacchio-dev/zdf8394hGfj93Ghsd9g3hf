@@ -26,6 +26,7 @@ interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   isAdmin: boolean;
+  isAccountant: boolean;
   signUp: (email: string, password: string, userData: Omit<Profile, 'id'>) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -52,6 +53,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isAccountant, setIsAccountant] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -100,14 +102,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setProfile(data);
 
     // Check if user is admin
-    const { data: roleData } = await supabase
+    const { data: adminRoleData } = await supabase
       .from('user_roles')
       .select('role')
       .eq('user_id', userId)
       .eq('role', 'admin')
       .maybeSingle();
 
-    setIsAdmin(!!roleData);
+    setIsAdmin(!!adminRoleData);
+
+    // Check if user is accountant
+    const { data: accountantRoleData } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .eq('role', 'accountant')
+      .maybeSingle();
+
+    setIsAccountant(!!accountantRoleData);
   };
 
   const signUp = async (email: string, password: string, userData: Omit<Profile, 'id'>) => {
@@ -166,6 +178,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setSession(null);
     setProfile(null);
     setIsAdmin(false);
+    setIsAccountant(false);
   };
 
   const resetPassword = async (email: string) => {
@@ -251,7 +264,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, isAdmin, signUp, signIn, signOut, resetPassword, createTherapist }}>
+    <AuthContext.Provider value={{ user, session, profile, loading, isAdmin, isAccountant, signUp, signIn, signOut, resetPassword, createTherapist }}>
       {children}
     </AuthContext.Provider>
   );
