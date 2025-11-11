@@ -206,6 +206,48 @@ export const AccessManagement = () => {
     }
   };
 
+  const handleDeleteUser = async (userId: string, userName: string) => {
+    if (!confirm(`Tem certeza que deseja deletar permanentemente o usuário "${userName}"? Esta ação não pode ser desfeita.`)) {
+      return;
+    }
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Sessão não encontrada');
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Erro ao deletar usuário');
+      }
+
+      toast({
+        title: 'Usuário deletado',
+        description: `O usuário ${userName} foi removido permanentemente do sistema.`,
+      });
+
+      loadUsers();
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao deletar usuário',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
       case 'admin':
@@ -418,6 +460,17 @@ export const AccessManagement = () => {
                           </>
                         )}
                       </Button>
+
+                      {!user.roles.includes('admin') && (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDeleteUser(user.id, user.full_name)}
+                          title="Deletar usuário permanentemente"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
