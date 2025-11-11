@@ -7,10 +7,11 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Users } from 'lucide-react';
 import { AccessManagement } from '@/components/AccessManagement';
 
 const WEEKDAYS = [
@@ -24,7 +25,7 @@ const WEEKDAYS = [
 ];
 
 const ProfileEdit = () => {
-  const { user, profile, isAdmin } = useAuth();
+  const { user, profile, isAdmin, isAccountant } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -45,6 +46,12 @@ const ProfileEdit = () => {
   const [slotDuration, setSlotDuration] = useState(60);
   const [breakTime, setBreakTime] = useState(15);
   const [clinicalApproach, setClinicalApproach] = useState('');
+  
+  // Subordinação de contador
+  const [showSubordinationDialog, setShowSubordinationDialog] = useState(false);
+  const [availableTherapists, setAvailableTherapists] = useState<Array<{ id: string; full_name: string }>>([]);
+  const [selectedTherapists, setSelectedTherapists] = useState<string[]>([]);
+  const [loadingSubordination, setLoadingSubordination] = useState(false);
   
   const [loading, setLoading] = useState(false);
 
@@ -164,6 +171,118 @@ const ProfileEdit = () => {
     }
   };
 
+  const loadSubordinationData = async () => {
+    if (!isAccountant || !user) return;
+
+    setLoadingSubordination(true);
+    try {
+      // Buscar therapists que ainda não têm contador
+      const { data: allTherapists, error: therapistsError } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .neq('id', user.id);
+
+      if (therapistsError) throw therapistsError;
+
+      // Buscar therapists que já têm contador
+      const { data: assignedTherapists, error: assignedError } = await supabase
+        .from('accountant_therapist_assignments')
+        .select('therapist_id');
+
+      if (assignedError) throw assignedError;
+
+      const assignedIds = new Set(assignedTherapists?.map(a => a.therapist_id) || []);
+
+      // Buscar subordinados atuais deste contador
+      const { data: currentAssignments, error: currentError } = await supabase
+        .from('accountant_therapist_assignments')
+        .select('therapist_id')
+        .eq('accountant_id', user.id);
+
+      if (currentError) throw currentError;
+
+      const currentIds = currentAssignments?.map(a => a.therapist_id) || [];
+      setSelectedTherapists(currentIds);
+
+      // Filtrar: mostrar disponíveis + os já subordinados a este contador
+      const available = allTherapists?.filter(
+        t => !assignedIds.has(t.id) || currentIds.includes(t.id)
+      ) || [];
+
+      setAvailableTherapists(available);
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao carregar dados',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingSubordination(false);
+    }
+  };
+
+  const handleOpenSubordination = () => {
+    loadSubordinationData();
+    setShowSubordinationDialog(true);
+  };
+
+  const handleToggleTherapist = (therapistId: string) => {
+    setSelectedTherapists(prev =>
+      prev.includes(therapistId)
+        ? prev.filter(id => id !== therapistId)
+        : [...prev, therapistId]
+    );
+  };
+
+  const handleSaveSubordination = async () => {
+    if (selectedTherapists.length === 0) {
+      toast({
+        title: 'Validação',
+        description: 'Selecione pelo menos um terapeuta para subordinar.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setLoadingSubordination(true);
+    try {
+      // Remover todas as atribuições existentes
+      const { error: deleteError } = await supabase
+        .from('accountant_therapist_assignments')
+        .delete()
+        .eq('accountant_id', user!.id);
+
+      if (deleteError) throw deleteError;
+
+      // Inserir novas atribuições
+      const assignments = selectedTherapists.map(therapistId => ({
+        accountant_id: user!.id,
+        therapist_id: therapistId,
+      }));
+
+      const { error: insertError } = await supabase
+        .from('accountant_therapist_assignments')
+        .insert(assignments);
+
+      if (insertError) throw insertError;
+
+      toast({
+        title: 'Subordinação atualizada',
+        description: 'Terapeutas subordinados foram atualizados com sucesso.',
+      });
+
+      setShowSubordinationDialog(false);
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao salvar subordinação',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingSubordination(false);
+    }
+  };
+
   return (
     <div className="container mx-auto p-6 max-w-4xl">
       <Button
@@ -272,6 +391,24 @@ const ProfileEdit = () => {
                     Enviar NFSe para terapeuta (cópia no email e telefone)
                   </Label>
                 </div>
+
+                {isAccountant && (
+                  <div className="pt-4 border-t">
+                    <Label className="mb-2 block">Gestão de Subordinação</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleOpenSubordination}
+                      className="w-full"
+                    >
+                      <Users className="w-4 h-4 mr-2" />
+                      Subordinar Usuário
+                    </Button>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Gerencie quais terapeutas e admins este contador pode visualizar.
+                    </p>
+                  </div>
+                )}
 
                 <div className="flex gap-3 pt-4">
                   <Button type="submit" disabled={loading}>
@@ -403,6 +540,65 @@ const ProfileEdit = () => {
           </Tabs>
         </CardContent>
       </Card>
+
+      <Dialog open={showSubordinationDialog} onOpenChange={setShowSubordinationDialog}>
+        <DialogContent className="max-w-2xl max-h-[600px] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Subordinar Terapeutas</DialogTitle>
+          </DialogHeader>
+
+          {loadingSubordination ? (
+            <div className="py-8 text-center text-muted-foreground">Carregando...</div>
+          ) : availableTherapists.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground">
+              Nenhum terapeuta disponível para subordinação.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Selecione os terapeutas e admins que este contador poderá visualizar.
+                Pelo menos um deve estar selecionado.
+              </p>
+              <div className="grid grid-cols-1 gap-3">
+                {availableTherapists.map((therapist) => (
+                  <div
+                    key={therapist.id}
+                    className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-accent/50 transition-colors"
+                  >
+                    <Checkbox
+                      id={`therapist-${therapist.id}`}
+                      checked={selectedTherapists.includes(therapist.id)}
+                      onCheckedChange={() => handleToggleTherapist(therapist.id)}
+                    />
+                    <Label
+                      htmlFor={`therapist-${therapist.id}`}
+                      className="cursor-pointer flex-1"
+                    >
+                      {therapist.full_name}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowSubordinationDialog(false)}
+              disabled={loadingSubordination}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSaveSubordination}
+              disabled={loadingSubordination || selectedTherapists.length === 0}
+            >
+              {loadingSubordination ? 'Salvando...' : 'Salvar Subordinação'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

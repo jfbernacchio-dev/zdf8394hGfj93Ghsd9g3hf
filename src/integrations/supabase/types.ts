@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      accountant_therapist_assignments: {
+        Row: {
+          accountant_id: string
+          created_at: string
+          id: string
+          therapist_id: string
+          updated_at: string
+        }
+        Insert: {
+          accountant_id: string
+          created_at?: string
+          id?: string
+          therapist_id: string
+          updated_at?: string
+        }
+        Update: {
+          accountant_id?: string
+          created_at?: string
+          id?: string
+          therapist_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accountant_therapist_assignments_accountant_id_fkey"
+            columns: ["accountant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accountant_therapist_assignments_therapist_id_fkey"
+            columns: ["therapist_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       active_profile_state: {
         Row: {
           active_profile_id: string | null

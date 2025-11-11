@@ -14,10 +14,15 @@ import Layout from "@/components/Layout";
 
 type PeriodPreset = "current_month" | "last_month" | "current_year" | "last_year" | "custom";
 
+interface TherapistData {
+  id: string;
+  name: string;
+  revenue: number;
+}
+
 interface NFSeData {
   total_revenue: number;
-  joao_revenue: number;
-  larissa_revenue: number;
+  therapists: TherapistData[];
   total_count: number;
 }
 
@@ -27,40 +32,44 @@ const AccountantDashboard = () => {
   const [startDate, setStartDate] = useState<Date>(startOfMonth(new Date()));
   const [endDate, setEndDate] = useState<Date>(endOfMonth(new Date()));
   const [loading, setLoading] = useState(true);
+  const [subordinatedTherapists, setSubordinatedTherapists] = useState<Array<{ id: string; full_name: string }>>([]);
   const [data, setData] = useState<NFSeData>({
     total_revenue: 0,
-    joao_revenue: 0,
-    larissa_revenue: 0,
+    therapists: [],
     total_count: 0,
   });
 
-  // João and Larissa user IDs (you'll need to get these from the profiles table)
-  const [joaoId, setJoaoId] = useState<string | null>(null);
-  const [larissaId, setLarissaId] = useState<string | null>(null);
-
   useEffect(() => {
-    const fetchTherapistIds = async () => {
-      const { data: profiles, error } = await supabase
-        .from("profiles")
-        .select("id, full_name")
-        .in("full_name", ["João Paulo Silva Santos", "Larissa Queiroz Pereira"]);
+    const fetchSubordinatedTherapists = async () => {
+      if (!user) return;
+
+      const { data: assignments, error } = await supabase
+        .from("accountant_therapist_assignments")
+        .select(`
+          therapist_id,
+          profiles!accountant_therapist_assignments_therapist_id_fkey (
+            id,
+            full_name
+          )
+        `)
+        .eq("accountant_id", user.id);
 
       if (error) {
-        console.error("Error fetching therapist IDs:", error);
+        console.error("Error fetching subordinated therapists:", error);
+        toast.error("Erro ao carregar terapeutas subordinados");
         return;
       }
 
-      profiles?.forEach((profile) => {
-        if (profile.full_name === "João Paulo Silva Santos") {
-          setJoaoId(profile.id);
-        } else if (profile.full_name === "Larissa Queiroz Pereira") {
-          setLarissaId(profile.id);
-        }
-      });
+      const therapists = assignments?.map((a: any) => ({
+        id: a.profiles.id,
+        full_name: a.profiles.full_name,
+      })) || [];
+
+      setSubordinatedTherapists(therapists);
     };
 
-    fetchTherapistIds();
-  }, []);
+    fetchSubordinatedTherapists();
+  }, [user]);
 
   useEffect(() => {
     if (periodPreset !== "custom") {
@@ -69,10 +78,10 @@ const AccountantDashboard = () => {
   }, [periodPreset]);
 
   useEffect(() => {
-    if (joaoId && larissaId) {
+    if (subordinatedTherapists.length > 0) {
       fetchNFSeData();
     }
-  }, [startDate, endDate, joaoId, larissaId]);
+  }, [startDate, endDate, subordinatedTherapists]);
 
   const updateDatesFromPreset = (preset: PeriodPreset) => {
     const now = new Date();
@@ -97,56 +106,55 @@ const AccountantDashboard = () => {
   };
 
   const fetchNFSeData = async () => {
-    if (!joaoId || !larissaId) {
-      console.log("IDs não carregados ainda:", { joaoId, larissaId });
+    if (subordinatedTherapists.length === 0) {
+      setLoading(false);
       return;
     }
 
     setLoading(true);
     try {
-      console.log("Buscando NFSe entre:", startDate.toISOString(), "e", endDate.toISOString());
-      
-      // Fetch all NFSe with status 'issued' in the period
+      const therapistIds = subordinatedTherapists.map(t => t.id);
+
+      // Fetch NFSe with status 'issued' and environment 'producao' in the period
       const { data: nfses, error } = await supabase
         .from("nfse_issued")
-        .select("user_id, net_value, status, issue_date")
+        .select("user_id, net_value")
         .eq("status", "issued")
+        .eq("environment", "producao")
+        .in("user_id", therapistIds)
         .gte("issue_date", startDate.toISOString())
         .lte("issue_date", endDate.toISOString());
 
-      console.log("NFSe encontradas:", nfses?.length || 0, nfses);
+      if (error) throw error;
 
-      if (error) {
-        console.error("Erro na query:", error);
-        throw error;
-      }
-
-      // Calculate totals
+      // Calculate totals per therapist
+      const therapistRevenues = new Map<string, number>();
       let totalRevenue = 0;
-      let joaoRevenue = 0;
-      let larissaRevenue = 0;
 
       nfses?.forEach((nfse) => {
         const value = Number(nfse.net_value);
         totalRevenue += value;
-        if (nfse.user_id === joaoId) {
-          joaoRevenue += value;
-        } else if (nfse.user_id === larissaId) {
-          larissaRevenue += value;
-        }
+        const current = therapistRevenues.get(nfse.user_id) || 0;
+        therapistRevenues.set(nfse.user_id, current + value);
       });
 
-      console.log("Totais calculados:", {
-        totalRevenue,
-        joaoRevenue,
-        larissaRevenue,
-        count: nfses?.length || 0
+      // Build therapist data array
+      const therapistsData: TherapistData[] = subordinatedTherapists.map(therapist => {
+        const names = therapist.full_name.split(' ');
+        const displayName = names.length > 1 
+          ? `${names[0]} ${names[names.length - 1]}`
+          : names[0];
+
+        return {
+          id: therapist.id,
+          name: displayName,
+          revenue: therapistRevenues.get(therapist.id) || 0,
+        };
       });
 
       setData({
         total_revenue: totalRevenue,
-        joao_revenue: joaoRevenue,
-        larissa_revenue: larissaRevenue,
+        therapists: therapistsData,
         total_count: nfses?.length || 0,
       });
     } catch (error) {
@@ -229,77 +237,66 @@ const AccountantDashboard = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Faturamento Total</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="text-2xl font-bold text-muted-foreground">Carregando...</div>
-              ) : (
+        {loading ? (
+          <div className="text-center py-12 text-muted-foreground">
+            Carregando dados...
+          </div>
+        ) : subordinatedTherapists.length === 0 ? (
+          <Card className="p-8">
+            <div className="text-center text-muted-foreground">
+              <p className="text-lg mb-2">Nenhum terapeuta subordinado</p>
+              <p className="text-sm">
+                Configure os terapeutas subordinados nas configurações do seu perfil.
+              </p>
+            </div>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Card de Faturamento Total */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Faturamento Total</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
                 <div className="text-2xl font-bold">{formatCurrency(data.total_revenue)}</div>
-              )}
-              <p className="text-xs text-muted-foreground mt-1">
-                Período: {format(startDate, "dd/MM/yy")} - {format(endDate, "dd/MM/yy")}
-              </p>
-            </CardContent>
-          </Card>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Período: {format(startDate, "dd/MM/yy")} - {format(endDate, "dd/MM/yy")}
+                </p>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Faturamento João</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="text-2xl font-bold text-muted-foreground">Carregando...</div>
-              ) : (
-                <div className="text-2xl font-bold">{formatCurrency(data.joao_revenue)}</div>
-              )}
-              <p className="text-xs text-muted-foreground mt-1">
-                {data.total_revenue > 0
-                  ? `${((data.joao_revenue / data.total_revenue) * 100).toFixed(1)}% do total`
-                  : "0% do total"}
-              </p>
-            </CardContent>
-          </Card>
+            {/* Cards dinâmicos por terapeuta */}
+            {data.therapists.map((therapist) => (
+              <Card key={therapist.id}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Faturamento {therapist.name}</CardTitle>
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{formatCurrency(therapist.revenue)}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {data.total_revenue > 0
+                      ? `${((therapist.revenue / data.total_revenue) * 100).toFixed(1)}% do total`
+                      : "0% do total"}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Faturamento Larissa</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="text-2xl font-bold text-muted-foreground">Carregando...</div>
-              ) : (
-                <div className="text-2xl font-bold">{formatCurrency(data.larissa_revenue)}</div>
-              )}
-              <p className="text-xs text-muted-foreground mt-1">
-                {data.total_revenue > 0
-                  ? `${((data.larissa_revenue / data.total_revenue) * 100).toFixed(1)}% do total`
-                  : "0% do total"}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Número de NFS-e</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="text-2xl font-bold text-muted-foreground">Carregando...</div>
-              ) : (
+            {/* Card de Número de NFS-e */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Número de NFS-e</CardTitle>
+                <FileText className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
                 <div className="text-2xl font-bold">{data.total_count}</div>
-              )}
-              <p className="text-xs text-muted-foreground mt-1">Notas emitidas no período</p>
-            </CardContent>
-          </Card>
-        </div>
+                <p className="text-xs text-muted-foreground mt-1">Notas emitidas no período</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </Layout>
   );
