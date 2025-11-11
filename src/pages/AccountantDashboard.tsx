@@ -97,19 +97,29 @@ const AccountantDashboard = () => {
   };
 
   const fetchNFSeData = async () => {
-    if (!joaoId || !larissaId) return;
+    if (!joaoId || !larissaId) {
+      console.log("IDs não carregados ainda:", { joaoId, larissaId });
+      return;
+    }
 
     setLoading(true);
     try {
-      // Fetch all authorized NFSe in the period
+      console.log("Buscando NFSe entre:", startDate.toISOString(), "e", endDate.toISOString());
+      
+      // Fetch all NFSe with status 'authorized' in the period
       const { data: nfses, error } = await supabase
         .from("nfse_issued")
-        .select("user_id, net_value")
+        .select("user_id, net_value, status, issue_date")
         .eq("status", "authorized")
         .gte("issue_date", startDate.toISOString())
         .lte("issue_date", endDate.toISOString());
 
-      if (error) throw error;
+      console.log("NFSe encontradas:", nfses?.length || 0, nfses);
+
+      if (error) {
+        console.error("Erro na query:", error);
+        throw error;
+      }
 
       // Calculate totals
       let totalRevenue = 0;
@@ -124,6 +134,13 @@ const AccountantDashboard = () => {
         } else if (nfse.user_id === larissaId) {
           larissaRevenue += value;
         }
+      });
+
+      console.log("Totais calculados:", {
+        totalRevenue,
+        joaoRevenue,
+        larissaRevenue,
+        count: nfses?.length || 0
       });
 
       setData({
