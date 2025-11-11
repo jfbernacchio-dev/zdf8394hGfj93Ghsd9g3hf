@@ -13,7 +13,7 @@ export interface CardConfig {
 
 export const AVAILABLE_STAT_CARDS: CardConfig[] = [
   {
-    id: 'stat-total',
+    id: 'patient-stat-total',
     name: 'Total no Mês',
     description: 'Total de sessões no mês atual',
     detailedDescription: 'Cálculo: COUNT(sessões) WHERE MONTH(data_sessão) = mês_atual AND paciente_id = este_paciente. Contagem de todas as sessões deste paciente específico que ocorreram no mês civil corrente, independentemente do status (agendada, comparecida, faltou, cancelada). Atualizado em tempo real conforme novas sessões são registradas. Útil para visão geral rápida da atividade mensal do paciente.',
@@ -22,7 +22,7 @@ export const AVAILABLE_STAT_CARDS: CardConfig[] = [
     defaultHeight: 120,
   },
   {
-    id: 'stat-attended',
+    id: 'patient-stat-attended',
     name: 'Comparecidas',
     description: 'Sessões comparecidas no mês',
     detailedDescription: 'Cálculo: COUNT(sessões) WHERE status = "Comparecida" AND MONTH(data_sessão) = mês_atual AND paciente_id = este_paciente. Contagem específica de sessões marcadas como efetivamente realizadas (paciente compareceu ao atendimento) no mês corrente. Exclui faltas, cancelamentos e agendamentos futuros. Métrica fundamental para avaliar engajamento e adesão ao tratamento do paciente.',
@@ -31,7 +31,7 @@ export const AVAILABLE_STAT_CARDS: CardConfig[] = [
     defaultHeight: 120,
   },
   {
-    id: 'stat-scheduled',
+    id: 'patient-stat-scheduled',
     name: 'Agendadas',
     description: 'Sessões agendadas no mês',
     detailedDescription: 'Cálculo: COUNT(sessões) WHERE status = "Agendada" AND MONTH(data_sessão) = mês_atual AND paciente_id = este_paciente. Contagem de sessões futuras já marcadas na agenda do paciente para o mês atual. Inclui apenas compromissos ainda não realizados. Importante para planejamento e previsão de receita. Permite identificar pacientes com agenda cheia vs pacientes que precisam remarcar.',
@@ -40,7 +40,7 @@ export const AVAILABLE_STAT_CARDS: CardConfig[] = [
     defaultHeight: 120,
   },
   {
-    id: 'stat-unpaid',
+    id: 'patient-stat-unpaid',
     name: 'A Pagar',
     description: 'Sessões não pagas no mês',
     detailedDescription: 'Cálculo: COUNT(sessões) WHERE status = "Comparecida" AND status_pagamento IN ("Pendente", "Não Pago") AND MONTH(data_sessão) = mês_atual AND paciente_id = este_paciente. Contagem de sessões realizadas mas sem registro de pagamento confirmado no mês. Indicador crítico para gestão de recebíveis e identificação de inadimplência. Permite ações de cobrança direcionadas ao paciente.',
@@ -49,7 +49,7 @@ export const AVAILABLE_STAT_CARDS: CardConfig[] = [
     defaultHeight: 120,
   },
   {
-    id: 'stat-nfse',
+    id: 'patient-stat-nfse',
     name: 'NFSe Emitida',
     description: 'Sessões com NFSe emitida',
     detailedDescription: 'Cálculo: COUNT(sessões) WHERE nfse_emitida = true AND MONTH(data_sessão) = mês_atual AND paciente_id = este_paciente. Contagem de sessões do mês que possuem Nota Fiscal de Serviço Eletrônica emitida. Essencial para compliance fiscal e organização documental. Permite identificar rapidamente sessões que precisam de emissão de NF para regularização contábil e atendimento a solicitações do paciente.',
@@ -58,7 +58,7 @@ export const AVAILABLE_STAT_CARDS: CardConfig[] = [
     defaultHeight: 120,
   },
   {
-    id: 'stat-total-all',
+    id: 'patient-stat-total-all',
     name: 'Total Geral',
     description: 'Todas as sessões registradas',
     detailedDescription: 'Cálculo: COUNT(sessões) WHERE paciente_id = este_paciente. Contagem histórica total desde a primeira sessão registrada até hoje, sem filtro temporal. Inclui todos os status possíveis. Métrica de relacionamento de longo prazo: número alto indica paciente antigo e fiel; permite calcular frequência média (total / meses de tratamento) e avaliar continuidade do tratamento.',
@@ -67,7 +67,7 @@ export const AVAILABLE_STAT_CARDS: CardConfig[] = [
     defaultHeight: 120,
   },
   {
-    id: 'stat-revenue-month',
+    id: 'patient-stat-revenue-month',
     name: 'Faturamento do Mês',
     description: 'Valor total faturado no mês',
     detailedDescription: 'Cálculo: Σ(valor_sessão) WHERE MONTH(data_sessão) = mês_atual AND paciente_id = este_paciente. Soma dos valores de todas as sessões do paciente no mês, independente do status de pagamento. Representa o faturamento potencial/esperado gerado por este paciente específico. Útil para análise de valor por cliente (CLV mensal), identificação de pacientes premium, e projeção de receita individual.',
@@ -76,7 +76,7 @@ export const AVAILABLE_STAT_CARDS: CardConfig[] = [
     defaultHeight: 120,
   },
   {
-    id: 'stat-paid-month',
+    id: 'patient-stat-paid-month',
     name: 'Recebido no Mês',
     description: 'Valor recebido (pago) no mês',
     detailedDescription: 'Cálculo: Σ(valor_sessão) WHERE status_pagamento = "Pago" AND MONTH(data_sessão) = mês_atual AND paciente_id = este_paciente. Soma dos valores efetivamente recebidos do paciente no mês corrente. Representa a receita consolidada e liquidada. Diferença entre Faturamento e Recebido indica inadimplência. Essencial para análise de fluxo de caixa individual e qualidade de pagamento do cliente.',
@@ -85,7 +85,7 @@ export const AVAILABLE_STAT_CARDS: CardConfig[] = [
     defaultHeight: 120,
   },
   {
-    id: 'stat-missed-month',
+    id: 'patient-stat-missed-month',
     name: 'Faltas no Mês',
     description: 'Total de faltas no mês',
     detailedDescription: 'Cálculo: COUNT(sessões) WHERE status = "Faltou" AND MONTH(data_sessão) = mês_atual AND paciente_id = este_paciente. Contagem de sessões marcadas como não comparecimento sem justificativa no mês. Indicador crítico de engajamento e risco de desistência: >20% das sessões = alerta. Permite intervenção proativa do terapeuta, identificação de padrões (sempre falta às segundas?) e revisão de políticas de falta.',
@@ -94,7 +94,7 @@ export const AVAILABLE_STAT_CARDS: CardConfig[] = [
     defaultHeight: 120,
   },
   {
-    id: 'stat-attendance-rate',
+    id: 'patient-stat-attendance-rate',
     name: 'Taxa de Comparecimento',
     description: 'Percentual de comparecimento',
     detailedDescription: 'Cálculo: [COUNT(comparecidas) ÷ COUNT(total agendadas passadas)] × 100% WHERE paciente_id = este_paciente AND data_sessão ≤ hoje. Proporção histórica de presenças confirmadas sobre total de compromissos marcados. Exclui sessões futuras. Taxa alta (>85%) indica paciente comprometido; taxa baixa (<70%) requer atenção. Métrica-chave para prever confiabilidade futura e avaliar qualidade do vínculo terapêutico.',
@@ -103,7 +103,7 @@ export const AVAILABLE_STAT_CARDS: CardConfig[] = [
     defaultHeight: 120,
   },
   {
-    id: 'stat-unscheduled-month',
+    id: 'patient-stat-unscheduled-month',
     name: 'Desmarcadas no Mês',
     description: 'Sessões desmarcadas no mês',
     detailedDescription: 'Cálculo: COUNT(sessões) WHERE status = "Cancelada" AND MONTH(data_cancelamento) = mês_atual AND paciente_id = este_paciente. Contagem de sessões que foram agendadas mas posteriormente canceladas (pelo paciente ou terapeuta) no mês corrente. Diferente de "Faltou" pois houve aviso prévio. Alto número pode indicar problemas de agenda, conflitos de horário ou fase de instabilidade do paciente. Permite otimizar reagendamentos.',
@@ -115,7 +115,7 @@ export const AVAILABLE_STAT_CARDS: CardConfig[] = [
 
 export const AVAILABLE_FUNCTIONAL_CARDS: CardConfig[] = [
   {
-    id: 'next-appointment',
+    id: 'patient-next-appointment',
     name: 'Próximo Agendamento',
     description: 'Detalhes da próxima sessão agendada',
     detailedDescription: 'Exibe informações completas do próximo compromisso futuro do paciente: data, horário, duração esperada, nome do terapeuta responsável, modalidade terapêutica, e status de confirmação. Query: SELECT MIN(data_sessão) WHERE status = "Agendada" AND data_sessão > hoje AND paciente_id = este_paciente. Útil para preparação pré-sessão, confirmação de comparecimento, e visualização rápida sem navegar à agenda completa.',
@@ -124,7 +124,7 @@ export const AVAILABLE_FUNCTIONAL_CARDS: CardConfig[] = [
     defaultHeight: 220,
   },
   {
-    id: 'contact-info',
+    id: 'patient-contact-info',
     name: 'Informações de Contato',
     description: 'Telefone, email e endereço do paciente',
     detailedDescription: 'Consolida todos os dados de contato cadastrados: telefone(s) principal e secundário, e-mail(s), endereço residencial completo (rua, número, complemento, bairro, cidade, CEP), e informações de contato de emergência quando disponíveis. Permite ações rápidas como: copiar contato, iniciar ligação (em dispositivos mobile), enviar e-mail, ou abrir localização no mapa. Essencial para comunicação rápida e gestão de relacionamento.',
@@ -133,7 +133,7 @@ export const AVAILABLE_FUNCTIONAL_CARDS: CardConfig[] = [
     defaultHeight: 220,
   },
   {
-    id: 'clinical-complaint',
+    id: 'patient-clinical-complaint',
     name: 'Queixa Clínica',
     description: 'Queixa clínica atual do paciente',
     detailedDescription: 'Apresenta a queixa principal ou demanda inicial que motivou a procura por atendimento psicológico, registrada na avaliação inicial ou anamnese. Pode incluir: descrição do problema em linguagem do paciente, sintomas reportados, duração/histórico da queixa, e fatores desencadeantes identificados. Campo editável que deve ser atualizado conforme evolução do tratamento. Fundamental para manter foco terapêutico e avaliar progresso em relação à demanda original.',
@@ -142,7 +142,7 @@ export const AVAILABLE_FUNCTIONAL_CARDS: CardConfig[] = [
     defaultHeight: 220,
   },
   {
-    id: 'clinical-info',
+    id: 'patient-clinical-info',
     name: 'Informações Clínicas',
     description: 'Detalhes da terapia e modalidade',
     detailedDescription: 'Painel abrangente com dados clínicos estruturados: abordagem terapêutica utilizada (TCC, Junguiana, Psicanálise, etc.), frequência de sessões (semanal, quinzenal, mensal), duração típica de cada sessão, data de início do acompanhamento, objetivos terapêuticos estabelecidos, diagnósticos ou hipóteses diagnósticas (quando aplicável), medicações em uso, outros profissionais envolvidos (psiquiatra, neurologista), e contraindicações ou cuidados especiais. Central para continuidade de cuidado e decisões clínicas informadas.',
@@ -151,7 +151,7 @@ export const AVAILABLE_FUNCTIONAL_CARDS: CardConfig[] = [
     defaultHeight: 280,
   },
   {
-    id: 'history',
+    id: 'patient-history',
     name: 'Histórico de Alterações',
     description: 'Mudanças de horário e datas',
     detailedDescription: 'Log cronológico reverso (mais recente primeiro) de todas as modificações realizadas no registro do paciente: mudanças de horário fixo, alterações de frequência, cancelamentos, reagendamentos, mudanças de terapeuta, ajustes de valor, e atualizações cadastrais. Cada entrada inclui: tipo de alteração, data/hora da modificação, usuário responsável pela mudança, valores antigos vs novos, e justificativa quando registrada. Essencial para auditoria, rastreabilidade, e compreensão da evolução do relacionamento terapêutico.',
@@ -160,7 +160,7 @@ export const AVAILABLE_FUNCTIONAL_CARDS: CardConfig[] = [
     defaultHeight: 280,
   },
   {
-    id: 'recent-notes',
+    id: 'patient-recent-notes',
     name: 'Últimas Notas Clínicas',
     description: 'Notas das sessões recentes',
     detailedDescription: 'Exibe as 5-10 anotações clínicas mais recentes em ordem cronológica reversa. Cada nota inclui: data da sessão, duração real, resumo do conteúdo trabalhado, observações sobre estado emocional/cognitivo do paciente, técnicas/intervenções aplicadas, temas emergentes, tarefas terapêuticas propostas, e plano para próxima sessão. Permite acesso rápido ao contexto recente sem abrir prontuário completo. Fundamental para continuidade e preparação pré-sessão.',
@@ -169,7 +169,7 @@ export const AVAILABLE_FUNCTIONAL_CARDS: CardConfig[] = [
     defaultHeight: 300,
   },
   {
-    id: 'quick-actions',
+    id: 'patient-quick-actions',
     name: 'Ações Rápidas',
     description: 'Botões para ações frequentes',
     detailedDescription: 'Painel de atalhos para as operações mais comuns na gestão do paciente, evitando navegação em múltiplas telas. Ações típicas: agendar nova sessão, registrar pagamento, enviar mensagem/e-mail, adicionar nota clínica rápida, emitir recibo, visualizar agenda completa, marcar falta, cancelar sessão, editar cadastro, e gerar relatórios. Cada botão executa ou abre modal da ação correspondente. Otimiza fluxo de trabalho e reduz cliques necessários para tarefas rotineiras.',
@@ -178,7 +178,7 @@ export const AVAILABLE_FUNCTIONAL_CARDS: CardConfig[] = [
     defaultHeight: 200,
   },
   {
-    id: 'attendance-chart',
+    id: 'patient-attendance-chart',
     name: 'Gráfico de Comparecimento',
     description: 'Visualização do histórico de presenças',
     detailedDescription: 'Representação visual (gráfico de linha ou barras empilhadas) da frequência de comparecimento ao longo do tempo. Eixo X: semanas ou meses. Eixo Y: quantidade de sessões ou taxa %. Categorias codificadas por cor: comparecidas (verde), faltas (vermelho), canceladas (amarelo), agendadas futuras (cinza). Permite identificar visualmente: padrões temporais (piora em certos meses?), tendências (engajamento crescente/decrescente), e períodos críticos. Inclui taxa média geral como linha de referência.',
@@ -187,7 +187,7 @@ export const AVAILABLE_FUNCTIONAL_CARDS: CardConfig[] = [
     defaultHeight: 300,
   },
   {
-    id: 'payment-summary',
+    id: 'patient-payment-summary',
     name: 'Resumo de Pagamentos',
     description: 'Status de pagamentos e pendências',
     detailedDescription: 'Dashboard financeiro consolidado do paciente contendo: total a receber (sessões realizadas não pagas), saldo devedor histórico, último pagamento realizado (data e valor), método de pagamento preferido, histórico de 5-10 últimos pagamentos com datas e valores, sessões pagas vs não pagas no mês, e status de regularidade (em dia, atrasado 1 mês, inadimplente >2 meses). Inclui alertas visuais para valores vencidos. Permite ações: registrar pagamento, enviar cobrança, emitir recibo. Central para gestão de recebíveis.',
@@ -196,7 +196,7 @@ export const AVAILABLE_FUNCTIONAL_CARDS: CardConfig[] = [
     defaultHeight: 250,
   },
   {
-    id: 'session-frequency',
+    id: 'patient-session-frequency',
     name: 'Frequência de Sessões',
     description: 'Análise de frequência e regularidade',
     detailedDescription: 'Métricas estatísticas sobre padrão de atendimento: frequência contratada (ex: semanal = 4 sessões/mês), frequência real observada (média de sessões/mês nos últimos 3-6 meses), intervalo médio entre sessões (dias), variabilidade/regularidade (desvio padrão dos intervalos), identificação de gaps significativos (pausas >30 dias), e comparação entre período inicial vs atual. Cálculos: Frequência Real = COUNT(sessões últimos 6 meses) ÷ 6. Útil para avaliar adesão, detectar irregularidades, e ajustar plano terapêutico.',
@@ -209,7 +209,7 @@ export const AVAILABLE_FUNCTIONAL_CARDS: CardConfig[] = [
 // Dashboard cards - for metrics section
 export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
   {
-    id: 'total-patients',
+    id: 'dashboard-total-patients',
     name: 'Total de Pacientes',
     description: 'Pacientes únicos com sessões no período',
     detailedDescription: 'Exibe a contagem absoluta de pacientes únicos cadastrados no sistema que possuem pelo menos uma sessão no período selecionado. Cálculo: COUNT(DISTINCT patient_id) WHERE session.date IN [período]. Útil para medir a base ativa de atendimento.',
@@ -218,7 +218,7 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
     defaultHeight: 160,
   },
   {
-    id: 'expected-revenue',
+    id: 'dashboard-expected-revenue',
     name: 'Faturamento Esperado',
     description: 'Valor total de todas as sessões agendadas',
     detailedDescription: 'Soma do valor de todas as sessões agendadas no período, independente do status de pagamento ou comparecimento. Cálculo: Σ(session.price) WHERE session.date IN [período] AND status IN (scheduled, attended, missed). Representa o potencial máximo de receita se todas as sessões fossem realizadas e pagas.',
@@ -227,7 +227,7 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
     defaultHeight: 160,
   },
   {
-    id: 'actual-revenue',
+    id: 'dashboard-actual-revenue',
     name: 'Faturamento Real',
     description: 'Valor efetivamente recebido',
     detailedDescription: 'Soma do valor efetivamente recebido de sessões realizadas e pagas no período. Cálculo: Σ(session.price) WHERE session.date IN [período] AND status = attended AND payment_status = paid. Representa a receita líquida consolidada. Inclui percentual em relação ao faturamento esperado: (Faturamento Real / Faturamento Esperado) × 100%.',
@@ -236,7 +236,7 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
     defaultHeight: 160,
   },
   {
-    id: 'attended-sessions',
+    id: 'dashboard-attended-sessions',
     name: 'Sessões Comparecidas',
     description: 'Sessões realizadas com presença confirmada',
     detailedDescription: 'Contagem de sessões com status "attended" (comparecidas) no período selecionado. Cálculo: COUNT(session_id) WHERE status = attended AND session.date IN [período]. Métrica fundamental para avaliar a efetividade do agendamento e engajamento dos pacientes.',
@@ -245,7 +245,7 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
     defaultHeight: 160,
   },
   {
-    id: 'expected-sessions',
+    id: 'dashboard-expected-sessions',
     name: 'Sessões Esperadas',
     description: 'Total de sessões agendadas',
     detailedDescription: 'Número total de sessões agendadas no período, incluindo futuras, comparecidas e faltantes. Cálculo: COUNT(session_id) WHERE session.date IN [período] AND status IN (scheduled, attended, missed). Base para cálculos de taxa de comparecimento e previsão de carga de trabalho.',
@@ -254,7 +254,7 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
     defaultHeight: 160,
   },
   {
-    id: 'missed-sessions',
+    id: 'dashboard-missed-sessions',
     name: 'Faltas',
     description: 'Sessões com ausência não justificada',
     detailedDescription: 'Contagem de sessões marcadas como "missed" (falta não justificada do paciente) no período. Cálculo: COUNT(session_id) WHERE status = missed AND session.date IN [período]. Inclui percentual de faltas: (Faltas / Sessões Esperadas) × 100%. Indicador crítico de qualidade do atendimento e engajamento.',
@@ -263,7 +263,7 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
     defaultHeight: 160,
   },
   {
-    id: 'pending-sessions',
+    id: 'dashboard-pending-sessions',
     name: 'Sessões Pendentes',
     description: 'Agendamentos futuros ainda não realizados',
     detailedDescription: 'Sessões com status "scheduled" (agendadas mas ainda não realizadas) no período. Cálculo: COUNT(session_id) WHERE status = scheduled AND session.date IN [período]. Inclui percentual: (Pendentes / Sessões Esperadas) × 100%. Importante para planejamento de agenda e previsão de receita a realizar.',
@@ -272,7 +272,7 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
     defaultHeight: 160,
   },
   {
-    id: 'unpaid-value',
+    id: 'dashboard-unpaid-value',
     name: 'Valor a Receber',
     description: 'Total de sessões realizadas sem pagamento',
     detailedDescription: 'Soma dos valores de sessões realizadas (attended) mas com pagamento pendente no período. Cálculo: Σ(session.price) WHERE status = attended AND payment_status IN (pending, unpaid) AND session.date IN [período]. Exibe quantidade de sessões não pagas entre parênteses. Métrica crucial para gestão de fluxo de caixa.',
@@ -281,7 +281,7 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
     defaultHeight: 160,
   },
   {
-    id: 'active-therapists',
+    id: 'dashboard-active-therapists',
     name: 'Terapeutas Ativos',
     description: 'Profissionais com atendimentos no período',
     detailedDescription: 'Número de terapeutas únicos que possuem ao menos uma sessão (qualquer status) no período selecionado. Cálculo: COUNT(DISTINCT therapist_id) WHERE session.date IN [período]. Útil para distribuição de carga de trabalho e análise de produtividade da equipe.',
@@ -290,7 +290,7 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
     defaultHeight: 160,
   },
   {
-    id: 'attendance-rate',
+    id: 'dashboard-attendance-rate',
     name: 'Taxa de Comparecimento',
     description: 'Percentual de presenças confirmadas',
     detailedDescription: 'Razão percentual entre sessões comparecidas e sessões esperadas. Cálculo: (Sessões Comparecidas / Sessões Esperadas) × 100%. Métrica-chave de qualidade operacional. Valores típicos saudáveis: >80%. Abaixo de 70% indica necessidade de intervenção na gestão de agendamentos.',
@@ -299,7 +299,7 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
     defaultHeight: 160,
   },
   {
-    id: 'monthly-growth',
+    id: 'dashboard-monthly-growth',
     name: 'Crescimento Mensal',
     description: 'Variação vs período anterior',
     detailedDescription: 'Variação percentual do faturamento real entre o período atual e o período anterior de mesmo tamanho. Cálculo: ((Faturamento Atual - Faturamento Anterior) / Faturamento Anterior) × 100%. Valores positivos indicam crescimento. Se o período for "Este Mês", compara com o mês anterior. Indicador de tendência de negócio.',
@@ -308,7 +308,7 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
     defaultHeight: 160,
   },
   {
-    id: 'payment-rate',
+    id: 'dashboard-payment-rate',
     name: 'Taxa de Pagamento',
     description: 'Percentual de sessões efetivamente pagas',
     detailedDescription: 'Razão percentual entre sessões pagas e sessões realizadas no período. Cálculo: (Sessões Pagas / Sessões Comparecidas) × 100% onde Sessões Pagas = COUNT(session_id WHERE status = attended AND payment_status = paid). Valores ideais: >90%. Abaixo de 80% indica necessidade de revisão das políticas de cobrança.',
@@ -321,7 +321,7 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
 // Dashboard charts - for visualization section
 export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
   {
-    id: 'chart-revenue-trend',
+    id: 'dashboard-chart-revenue-trend',
     name: 'Evolução da Receita',
     description: 'Tendência de receita no período selecionado',
     detailedDescription: 'Gráfico de linha temporal mostrando a evolução da receita gerada (sessões atendidas) ao longo do período. A escala de tempo (diária, semanal ou mensal) se ajusta automaticamente ao período selecionado. Cada ponto representa a soma dos valores de sessões atendidas naquele intervalo, considerando regras especiais para pacientes mensais (contabilizados uma vez por mês). Útil para identificar sazonalidades, tendências de crescimento/declínio e anomalias.',
@@ -330,7 +330,7 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
     defaultHeight: 400,
   },
   {
-    id: 'chart-session-types',
+    id: 'dashboard-chart-session-types',
     name: 'Tipos de Sessão',
     description: 'Proporção de status de sessões',
     detailedDescription: 'Gráfico de pizza (pie chart) representando a distribuição proporcional dos diferentes status de sessões no período. Categorias: Comparecidas (attended), Faltas (missed), Canceladas (cancelled), Agendadas/Pendentes (scheduled). Cada fatia representa: (COUNT(status_X) / COUNT(total)) × 100%. Inclui valores absolutos e percentuais. Ideal para análise de composição e identificação rápida de problemas operacionais (ex: fatia de faltas muito grande). Cores semânticas: verde (comparecidas), vermelho (faltas), amarelo (pendentes).',
@@ -339,7 +339,7 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
     defaultHeight: 400,
   },
   {
-    id: 'chart-therapist-distribution',
+    id: 'dashboard-chart-therapist-distribution',
     name: 'Distribuição por Terapeuta',
     description: 'Sessões realizadas por cada profissional',
     detailedDescription: 'Gráfico de barras verticais com número de sessões realizadas por cada terapeuta no período. Eixo X: nome do terapeuta. Eixo Y: COUNT(session_id) WHERE status = attended. Ordenado decrescentemente por volume. Permite comparação visual de carga de trabalho, identificação de desequilíbrios na distribuição, e análise de produtividade individual. Pode incluir linha de referência com a média: (Total Sessões / Número de Terapeutas). Útil para planejamento de recursos humanos.',
@@ -348,7 +348,7 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
     defaultHeight: 400,
   },
   {
-    id: 'chart-monthly-comparison',
+    id: 'dashboard-chart-monthly-comparison',
     name: 'Comparação Temporal',
     description: 'Métricas consolidadas ao longo do período',
     detailedDescription: 'Gráfico de barras agrupadas comparando múltiplas métricas (Receita, Sessões, Taxa de Comparecimento) ao longo do período selecionado. A escala de tempo se ajusta dinamicamente: diária para períodos curtos (≤2 semanas), semanal para períodos médios (>2 semanas até 3 meses), e mensal para períodos longos (>3 meses). Cada intervalo exibe 3 barras lado a lado permitindo comparação direta entre as métricas. Útil para análise multi-dimensional e identificação de correlações.',
@@ -357,7 +357,7 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
     defaultHeight: 400,
   },
   {
-    id: 'chart-payment-status',
+    id: 'dashboard-chart-payment-status',
     name: 'Status de Pagamento',
     description: 'Proporção entre pagas e não pagas',
     detailedDescription: 'Gráfico de pizza mostrando a proporção entre sessões pagas e não pagas no período, considerando apenas sessões realizadas (attended). Categorias: Pagas (payment_status = paid), Pendentes (pending), Não Pagas (unpaid). Cálculo: (COUNT(status_pagamento) / COUNT(attended)) × 100%. Métrica crucial para gestão financeira e fluxo de caixa. Idealmente, a fatia "Pagas" deve representar >90% do total. Fatias grandes de "Não Pagas" indicam necessidade de revisão das políticas de cobrança ou follow-up.',
@@ -366,7 +366,7 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
     defaultHeight: 400,
   },
   {
-    id: 'chart-attendance-weekly',
+    id: 'dashboard-chart-attendance-weekly',
     name: 'Taxa de Comparecimento',
     description: 'Evolução da taxa de presença ao longo do tempo',
     detailedDescription: 'Gráfico de linha mostrando a taxa de comparecimento ao longo do período, com escala de tempo dinâmica (diária, semanal ou mensal). Cada ponto representa o percentual de sessões comparecidas sobre o total de sessões esperadas naquele intervalo. Útil para monitorar a qualidade do serviço, detectar tendências de engajamento dos pacientes e identificar períodos críticos que necessitam intervenção.',
@@ -375,7 +375,7 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
     defaultHeight: 400,
   },
   {
-    id: 'chart-revenue-by-therapist',
+    id: 'dashboard-chart-revenue-by-therapist',
     name: 'Receita por Terapeuta',
     description: 'Receita gerada por cada profissional',
     detailedDescription: 'Gráfico de barras horizontais exibindo a receita gerada por cada terapeuta no período selecionado, calculada a partir das sessões atendidas. Para pacientes mensais, a receita é contabilizada apenas uma vez por mês. Ordenado decrescentemente por valor total. Permite análise de contribuição individual, identificação de top performers e planejamento estratégico de recursos.',
@@ -384,7 +384,7 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
     defaultHeight: 450,
   },
   {
-    id: 'chart-patient-growth',
+    id: 'dashboard-chart-patient-growth',
     name: 'Evolução de Pacientes',
     description: 'Crescimento acumulado da base de pacientes',
     detailedDescription: 'Gráfico de linha mostrando a evolução acumulada do número de pacientes ativos ao longo do tempo, com escala temporal dinâmica. Cada ponto representa o total acumulado de pacientes únicos que já iniciaram tratamento até aquela data. Útil para visualizar o crescimento da base de clientes, identificar períodos de maior captação e projetar capacidade futura de atendimento.',
@@ -393,7 +393,7 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
     defaultHeight: 400,
   },
   {
-    id: 'chart-hourly-distribution',
+    id: 'dashboard-chart-hourly-distribution',
     name: 'Distribuição por Horário',
     description: 'Volume de sessões em cada hora do dia',
     detailedDescription: 'Gráfico de barras verticais mostrando o número de sessões agendadas por hora do dia no período. Eixo X: faixas horárias (0h-23h ou 8h-20h para horário comercial). Eixo Y: COUNT(session_id) WHERE HOUR(session.time) = hora_X. Permite identificar horários de pico, horários ociosos, e otimizar a grade de horários disponíveis. Útil para planejamento de escalas, identificação de oportunidades de agendamento, e análise de preferências dos pacientes. Pode comparar dias úteis vs fins de semana.',
@@ -402,7 +402,7 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
     defaultHeight: 400,
   },
   {
-    id: 'chart-cancellation-reasons',
+    id: 'dashboard-chart-cancellation-reasons',
     name: 'Motivos de Cancelamento',
     description: 'Categorização das causas de faltas',
     detailedDescription: 'Gráfico de pizza categorizando os motivos registrados para faltas e cancelamentos no período. Categorias típicas: Doença, Compromisso, Esquecimento, Viagem, Outros, Não Informado. Cálculo: (COUNT(cancellation_reason = X) / COUNT(total_cancellations)) × 100%. Apenas sessões com status = missed ou cancelled. Útil para análise de causa raiz, identificação de padrões evitáveis (ex: muitos esquecimentos → implementar lembretes), e definição de políticas de faltas. Permite ações corretivas direcionadas.',
@@ -415,7 +415,7 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
 // Clinical cards - for patient clinical evolution
 export const AVAILABLE_CLINICAL_CARDS: CardConfig[] = [
   {
-    id: 'consciousness-evolution',
+    id: 'evolution-chart-consciousness',
     name: 'Evolução da Consciência',
     description: 'Acompanhamento dos níveis de consciência ao longo das sessões',
     detailedDescription: 'Visualização temporal da evolução dos três componentes da consciência: nível (vigília/rebaixamento), campo (amplitude/estreitamento) e autoconsciência. Apresenta tendências e permite identificar padrões de melhora ou deterioração ao longo do tratamento.',
@@ -424,7 +424,7 @@ export const AVAILABLE_CLINICAL_CARDS: CardConfig[] = [
     defaultHeight: 350,
   },
   {
-    id: 'orientation-trends',
+    id: 'evolution-chart-orientation',
     name: 'Tendências de Orientação',
     description: 'Evolução da orientação têmporo-espacial e insight',
     detailedDescription: 'Acompanhamento da capacidade de orientação nas quatro esferas (tempo, espaço, pessoa, situação), juízo de realidade e nível de insight do paciente ao longo das sessões avaliadas.',
@@ -433,7 +433,7 @@ export const AVAILABLE_CLINICAL_CARDS: CardConfig[] = [
     defaultHeight: 350,
   },
   {
-    id: 'attention-memory-metrics',
+    id: 'evolution-chart-attention',
     name: 'Atenção e Memória',
     description: 'Métricas de atenção, concentração e capacidade de memória',
     detailedDescription: 'Consolidação das avaliações de amplitude atencional, capacidade de concentração, fixação (memória imediata) e evocação (memória de curto prazo). Identifica declínios ou melhorias cognitivas.',
@@ -442,7 +442,7 @@ export const AVAILABLE_CLINICAL_CARDS: CardConfig[] = [
     defaultHeight: 350,
   },
   {
-    id: 'mood-tracking',
+    id: 'evolution-chart-mood',
     name: 'Acompanhamento de Humor',
     description: 'Oscilações de humor e estado afetivo',
     detailedDescription: 'Rastreamento da intensidade emocional, adequação afetiva, presença de episódios maníacos/depressivos, e identificação de ciclos de humor. Utiliza escala bipolar para representar estados depressivos (negativo) e maníacos (positivo).',
@@ -451,7 +451,7 @@ export const AVAILABLE_CLINICAL_CARDS: CardConfig[] = [
     defaultHeight: 350,
   },
   {
-    id: 'thought-patterns',
+    id: 'evolution-chart-thought',
     name: 'Padrões de Pensamento',
     description: 'Análise de curso, forma e conteúdo do pensamento',
     detailedDescription: 'Avaliação longitudinal das características do pensamento: velocidade (lentificado/acelerado), forma (coerência, tangencialidade), e conteúdo (presença de delírios, obsessões, ideias supervalorizadas). Fundamental para monitorar transtornos psicóticos e ansiosos.',
@@ -460,7 +460,7 @@ export const AVAILABLE_CLINICAL_CARDS: CardConfig[] = [
     defaultHeight: 350,
   },
   {
-    id: 'perception-hallucinations',
+    id: 'evolution-chart-sensoperception',
     name: 'Percepção e Alucinações',
     description: 'Monitoramento de alterações perceptivas',
     detailedDescription: 'Registro e evolução de fenômenos perceptivos anormais: tipos de alucinações (auditivas, visuais, táteis, etc.), ilusões, e alterações da percepção corporal. Inclui frequência, intensidade e modalidades sensoriais afetadas.',
@@ -469,7 +469,7 @@ export const AVAILABLE_CLINICAL_CARDS: CardConfig[] = [
     defaultHeight: 350,
   },
   {
-    id: 'language-communication',
+    id: 'evolution-chart-language',
     name: 'Linguagem e Comunicação',
     description: 'Avaliação da expressão verbal e comunicação',
     detailedDescription: 'Análise da velocidade da fala, clareza, coerência, presença de disfemias (gagueira), disartrias, afasias, neologismos, ecolalia e demais alterações de linguagem. Importante para diagnósticos neurológicos e psiquiátricos.',
@@ -478,7 +478,7 @@ export const AVAILABLE_CLINICAL_CARDS: CardConfig[] = [
     defaultHeight: 350,
   },
   {
-    id: 'intelligence-reasoning',
+    id: 'evolution-chart-intelligence',
     name: 'Inteligência e Raciocínio',
     description: 'Capacidade intelectual e raciocínio lógico',
     detailedDescription: 'Avaliação do nível intelectual estimado, capacidade de raciocínio abstrato, compreensão de conceitos complexos, julgamento crítico e capacidade de resolução de problemas. Inclui estimativa percentílica em relação à população geral.',
@@ -487,7 +487,7 @@ export const AVAILABLE_CLINICAL_CARDS: CardConfig[] = [
     defaultHeight: 350,
   },
   {
-    id: 'will-motivation',
+    id: 'evolution-chart-will',
     name: 'Volição e Motivação',
     description: 'Avaliação da vontade e impulso para ação',
     detailedDescription: 'Mensuração da volição (força de vontade), impulsos (controlados/aumentados/diminuídos), presença de abulia (falta de vontade), hipobulia ou hiperbulia, e ideações/comportamentos suicidas ou autolesivos. Crítico para avaliação de risco.',
@@ -496,7 +496,7 @@ export const AVAILABLE_CLINICAL_CARDS: CardConfig[] = [
     defaultHeight: 350,
   },
   {
-    id: 'psychomotor-activity',
+    id: 'evolution-chart-psychomotor',
     name: 'Atividade Psicomotora',
     description: 'Nível de atividade motora e psicomotricidade',
     detailedDescription: 'Observação da atividade motora geral: agitação psicomotora, lentificação, estereotipias, maneirismos, catalepsia, negativismo e outros sinais motores. Escala de -100 (lentificação/catatonia) a +100 (agitação/hiperatividade).',
@@ -505,22 +505,22 @@ export const AVAILABLE_CLINICAL_CARDS: CardConfig[] = [
     defaultHeight: 350,
   },
   {
-    id: 'personality-traits',
+    id: 'evolution-chart-memory',
+    name: 'Memória',
+    description: 'Avaliação da memória de curto e longo prazo',
+    detailedDescription: 'Rastreamento da capacidade de memória imediata, recente e remota ao longo do tratamento. Permite identificar déficits cognitivos ou melhorias na capacidade de retenção e recordação de informações.',
+    category: 'clinical',
+    defaultWidth: 500,
+    defaultHeight: 350,
+  },
+  {
+    id: 'evolution-chart-personality',
     name: 'Traços de Personalidade',
     description: 'Padrões persistentes de comportamento e cognição',
     detailedDescription: 'Identificação de traços e padrões de personalidade predominantes: narcisistas, borderline, ansiosos, obsessivos, histriônicos, entre outros. Avalia rigidez vs flexibilidade, extroversão vs introversão, e desadaptação funcional.',
     category: 'clinical',
     defaultWidth: 500,
     defaultHeight: 350,
-  },
-  {
-    id: 'clinical-summary-timeline',
-    name: 'Linha do Tempo Clínica',
-    description: 'Resumo cronológico de todas avaliações',
-    detailedDescription: 'Visualização temporal consolidada mostrando todas as sessões avaliadas, com resumo automático das principais alterações encontradas em cada avaliação. Permite identificar rapidamente períodos de crise, estabilização ou melhora.',
-    category: 'clinical',
-    defaultWidth: 700,
-    defaultHeight: 400,
   },
 ];
 
