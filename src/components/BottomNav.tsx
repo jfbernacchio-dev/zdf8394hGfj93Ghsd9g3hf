@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router-dom';
 
 const BottomNav = () => {
   const location = useLocation();
-  const { isAdmin, signOut } = useAuth();
+  const { isAdmin, isAccountant, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -26,14 +26,21 @@ const BottomNav = () => {
     setMenuOpen(false);
   };
 
-  const navItems = [
-    { path: '/dashboard', icon: Home, label: 'Início' },
-    { path: '/schedule', icon: Calendar, label: 'Agenda' },
-    { path: '/patients', icon: Users, label: 'Pacientes' },
-    { path: '/whatsapp', icon: MessageCircle, label: 'WhatsApp' },
-  ];
+  // Define nav items based on user role
+  const navItems = isAccountant 
+    ? [
+        { path: '/dashboard', icon: Home, label: 'Início' },
+        { path: '/payment-control', icon: TrendingUp, label: 'Pagamentos' },
+        { path: '/nfse/history', icon: FileText, label: 'NFSe' },
+      ]
+    : [
+        { path: '/dashboard', icon: Home, label: 'Início' },
+        { path: '/schedule', icon: Calendar, label: 'Agenda' },
+        { path: '/patients', icon: Users, label: 'Pacientes' },
+        { path: '/whatsapp', icon: MessageCircle, label: 'WhatsApp' },
+      ];
 
-  if (isAdmin) {
+  if (isAdmin && !isAccountant) {
     navItems.push({ path: '/therapists', icon: Users, label: 'Terapeutas' });
   }
 
@@ -41,8 +48,8 @@ const BottomNav = () => {
     <>
       {/* Bottom Navigation Bar */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border z-50 pb-safe shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
-        <div className="grid grid-cols-5 h-16">
-          {navItems.slice(0, 4).map((item) => {
+        <div className={`grid ${isAccountant ? 'grid-cols-4' : 'grid-cols-5'} h-16`}>
+          {navItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
             return (
@@ -78,25 +85,30 @@ const BottomNav = () => {
                 <SheetTitle className="text-xl">Menu</SheetTitle>
               </SheetHeader>
               <div className="flex flex-col gap-1 pb-safe">
-                {isAdmin && (
-                  <Button
-                    variant="ghost"
-                    className="justify-start h-14 text-base rounded-xl active:scale-98 transition-transform"
-                    onClick={() => handleMenuNavigation('/therapists')}
-                  >
-                    <Users className="w-5 h-5 mr-3" />
-                    Terapeutas
-                  </Button>
+                 {!isAccountant && (
+                   <>
+                     {isAdmin && (
+                       <Button
+                         variant="ghost"
+                         className="justify-start h-14 text-base rounded-xl active:scale-98 transition-transform"
+                         onClick={() => handleMenuNavigation('/therapists')}
+                       >
+                         <Users className="w-5 h-5 mr-3" />
+                         Terapeutas
+                       </Button>
+                     )}
+                     <div className="border-t border-border my-3" />
+                     <Button
+                       variant="ghost"
+                       className="justify-start h-14 text-base rounded-xl active:scale-98 transition-transform"
+                       onClick={() => handleMenuNavigation('/financial')}
+                     >
+                       <TrendingUp className="w-5 h-5 mr-3" />
+                       Análise Financeira
+                     </Button>
+                   </>
                  )}
                  <div className="border-t border-border my-3" />
-                 <Button
-                   variant="ghost"
-                   className="justify-start h-14 text-base rounded-xl active:scale-98 transition-transform"
-                   onClick={() => handleMenuNavigation('/financial')}
-                 >
-                   <TrendingUp className="w-5 h-5 mr-3" />
-                   Análise Financeira
-                 </Button>
                  <Button
                    variant="ghost"
                    className="justify-start h-14 text-base rounded-xl active:scale-98 transition-transform"
