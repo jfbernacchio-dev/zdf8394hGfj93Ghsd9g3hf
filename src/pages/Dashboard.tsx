@@ -1362,6 +1362,97 @@ const DashboardTest = () => {
                         'bg-warning/10',
                         'text-[hsl(var(--warning))]'
                       );
+                    case 'active-therapists': {
+                      const uniqueTherapists = new Set(
+                        periodSessions.map(s => {
+                          const patient = patients.find(p => p.id === s.patient_id);
+                          return patient?.user_id;
+                        }).filter(Boolean)
+                      );
+                      return renderCard(
+                        'active-therapists',
+                        <Users className="w-6 h-6 text-purple-500" />,
+                        uniqueTherapists.size,
+                        'Terapeutas Ativos',
+                        undefined,
+                        'bg-purple-500/10',
+                        'text-purple-500'
+                      );
+                    }
+                    case 'attendance-rate': {
+                      const attendanceRate = expectedSessions > 0 
+                        ? ((attendedSessions.length / expectedSessions) * 100).toFixed(0) 
+                        : 0;
+                      return renderCard(
+                        'attendance-rate',
+                        <TrendingUp className="w-6 h-6 text-[hsl(var(--success))]" />,
+                        `${attendanceRate}%`,
+                        'Taxa de Comparecimento',
+                        undefined,
+                        'bg-success/10',
+                        'text-[hsl(var(--success))]'
+                      );
+                    }
+                    case 'monthly-growth': {
+                      // Calculate growth vs previous period
+                      const periodLength = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+                      const prevStart = new Date(start);
+                      prevStart.setDate(prevStart.getDate() - periodLength);
+                      const prevEnd = new Date(end);
+                      prevEnd.setDate(prevEnd.getDate() - periodLength);
+                      
+                      const prevPeriodSessions = sessions.filter(s => {
+                        const date = parseISO(s.date);
+                        return date >= prevStart && date <= prevEnd && s.status === 'attended';
+                      });
+                      
+                      const prevMonthlyTracked = new Map<string, Set<string>>();
+                      const prevRevenue = prevPeriodSessions.reduce((sum, s) => {
+                        const patient = patients.find(p => p.id === s.patient_id);
+                        if (patient?.monthly_price) {
+                          const monthKey = format(parseISO(s.date), 'yyyy-MM');
+                          if (!prevMonthlyTracked.has(s.patient_id)) {
+                            prevMonthlyTracked.set(s.patient_id, new Set());
+                          }
+                          const months = prevMonthlyTracked.get(s.patient_id)!;
+                          if (!months.has(monthKey)) {
+                            months.add(monthKey);
+                            return sum + Number(s.value);
+                          }
+                          return sum;
+                        }
+                        return sum + Number(s.value);
+                      }, 0);
+                      
+                      const growth = prevRevenue > 0 
+                        ? (((totalActual - prevRevenue) / prevRevenue) * 100).toFixed(1)
+                        : totalActual > 0 ? 100 : 0;
+                      
+                      return renderCard(
+                        'monthly-growth',
+                        <TrendingUp className="w-6 h-6 text-blue-500" />,
+                        `${Number(growth) >= 0 ? '+' : ''}${growth}%`,
+                        'Crescimento',
+                        undefined,
+                        Number(growth) >= 0 ? 'bg-success/10' : 'bg-destructive/10',
+                        Number(growth) >= 0 ? 'text-[hsl(var(--success))]' : 'text-destructive'
+                      );
+                    }
+                    case 'payment-rate': {
+                      const paidSessions = attendedSessions.filter(s => s.paid === true);
+                      const paymentRate = attendedSessions.length > 0 
+                        ? ((paidSessions.length / attendedSessions.length) * 100).toFixed(0)
+                        : 0;
+                      return renderCard(
+                        'payment-rate',
+                        <DollarSign className="w-6 h-6 text-[hsl(var(--success))]" />,
+                        `${paymentRate}%`,
+                        'Taxa de Pagamento',
+                        undefined,
+                        'bg-success/10',
+                        'text-[hsl(var(--success))]'
+                      );
+                    }
                     default:
                       return null;
                   }
