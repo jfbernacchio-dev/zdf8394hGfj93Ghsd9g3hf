@@ -1905,10 +1905,19 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
     setTempCardSizes({});
     setIsEditMode(false);
     
+    // Save tab state to redirect after reload
+    sessionStorage.setItem('returnToTab', 'evolution');
+    sessionStorage.setItem('returnToSubTab', 'evolution');
+    
     toast({
       title: "Layout restaurado",
-      description: "O layout foi restaurado para o padrão.",
+      description: "Recarregando página para aplicar alterações...",
     });
+
+    // Hard refresh after short delay
+    setTimeout(() => {
+      window.location.reload();
+    }, 500);
   };
 
   const handleToggleCard = (cardId: string) => {
