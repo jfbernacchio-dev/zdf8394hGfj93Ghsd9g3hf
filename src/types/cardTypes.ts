@@ -1,4 +1,4 @@
-export type CardCategory = 'statistics' | 'functional' | 'dashboard-cards' | 'dashboard-charts';
+export type CardCategory = 'statistics' | 'functional' | 'dashboard-cards' | 'dashboard-charts' | 'clinical';
 
 export interface CardConfig {
   id: string;
@@ -412,4 +412,122 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
   },
 ];
 
-export const ALL_AVAILABLE_CARDS = [...AVAILABLE_STAT_CARDS, ...AVAILABLE_FUNCTIONAL_CARDS, ...AVAILABLE_DASHBOARD_CARDS, ...AVAILABLE_DASHBOARD_CHARTS];
+// Clinical cards - for patient clinical evolution
+export const AVAILABLE_CLINICAL_CARDS: CardConfig[] = [
+  {
+    id: 'consciousness-evolution',
+    name: 'Evolução da Consciência',
+    description: 'Acompanhamento dos níveis de consciência ao longo das sessões',
+    detailedDescription: 'Visualização temporal da evolução dos três componentes da consciência: nível (vigília/rebaixamento), campo (amplitude/estreitamento) e autoconsciência. Apresenta tendências e permite identificar padrões de melhora ou deterioração ao longo do tratamento.',
+    category: 'clinical',
+    defaultWidth: 500,
+    defaultHeight: 350,
+  },
+  {
+    id: 'orientation-trends',
+    name: 'Tendências de Orientação',
+    description: 'Evolução da orientação têmporo-espacial e insight',
+    detailedDescription: 'Acompanhamento da capacidade de orientação nas quatro esferas (tempo, espaço, pessoa, situação), juízo de realidade e nível de insight do paciente ao longo das sessões avaliadas.',
+    category: 'clinical',
+    defaultWidth: 500,
+    defaultHeight: 350,
+  },
+  {
+    id: 'attention-memory-metrics',
+    name: 'Atenção e Memória',
+    description: 'Métricas de atenção, concentração e capacidade de memória',
+    detailedDescription: 'Consolidação das avaliações de amplitude atencional, capacidade de concentração, fixação (memória imediata) e evocação (memória de curto prazo). Identifica declínios ou melhorias cognitivas.',
+    category: 'clinical',
+    defaultWidth: 500,
+    defaultHeight: 350,
+  },
+  {
+    id: 'mood-tracking',
+    name: 'Acompanhamento de Humor',
+    description: 'Oscilações de humor e estado afetivo',
+    detailedDescription: 'Rastreamento da intensidade emocional, adequação afetiva, presença de episódios maníacos/depressivos, e identificação de ciclos de humor. Utiliza escala bipolar para representar estados depressivos (negativo) e maníacos (positivo).',
+    category: 'clinical',
+    defaultWidth: 500,
+    defaultHeight: 350,
+  },
+  {
+    id: 'thought-patterns',
+    name: 'Padrões de Pensamento',
+    description: 'Análise de curso, forma e conteúdo do pensamento',
+    detailedDescription: 'Avaliação longitudinal das características do pensamento: velocidade (lentificado/acelerado), forma (coerência, tangencialidade), e conteúdo (presença de delírios, obsessões, ideias supervalorizadas). Fundamental para monitorar transtornos psicóticos e ansiosos.',
+    category: 'clinical',
+    defaultWidth: 500,
+    defaultHeight: 350,
+  },
+  {
+    id: 'perception-hallucinations',
+    name: 'Percepção e Alucinações',
+    description: 'Monitoramento de alterações perceptivas',
+    detailedDescription: 'Registro e evolução de fenômenos perceptivos anormais: tipos de alucinações (auditivas, visuais, táteis, etc.), ilusões, e alterações da percepção corporal. Inclui frequência, intensidade e modalidades sensoriais afetadas.',
+    category: 'clinical',
+    defaultWidth: 500,
+    defaultHeight: 350,
+  },
+  {
+    id: 'language-communication',
+    name: 'Linguagem e Comunicação',
+    description: 'Avaliação da expressão verbal e comunicação',
+    detailedDescription: 'Análise da velocidade da fala, clareza, coerência, presença de disfemias (gagueira), disartrias, afasias, neologismos, ecolalia e demais alterações de linguagem. Importante para diagnósticos neurológicos e psiquiátricos.',
+    category: 'clinical',
+    defaultWidth: 500,
+    defaultHeight: 350,
+  },
+  {
+    id: 'intelligence-reasoning',
+    name: 'Inteligência e Raciocínio',
+    description: 'Capacidade intelectual e raciocínio lógico',
+    detailedDescription: 'Avaliação do nível intelectual estimado, capacidade de raciocínio abstrato, compreensão de conceitos complexos, julgamento crítico e capacidade de resolução de problemas. Inclui estimativa percentílica em relação à população geral.',
+    category: 'clinical',
+    defaultWidth: 500,
+    defaultHeight: 350,
+  },
+  {
+    id: 'will-motivation',
+    name: 'Volição e Motivação',
+    description: 'Avaliação da vontade e impulso para ação',
+    detailedDescription: 'Mensuração da volição (força de vontade), impulsos (controlados/aumentados/diminuídos), presença de abulia (falta de vontade), hipobulia ou hiperbulia, e ideações/comportamentos suicidas ou autolesivos. Crítico para avaliação de risco.',
+    category: 'clinical',
+    defaultWidth: 500,
+    defaultHeight: 350,
+  },
+  {
+    id: 'psychomotor-activity',
+    name: 'Atividade Psicomotora',
+    description: 'Nível de atividade motora e psicomotricidade',
+    detailedDescription: 'Observação da atividade motora geral: agitação psicomotora, lentificação, estereotipias, maneirismos, catalepsia, negativismo e outros sinais motores. Escala de -100 (lentificação/catatonia) a +100 (agitação/hiperatividade).',
+    category: 'clinical',
+    defaultWidth: 500,
+    defaultHeight: 350,
+  },
+  {
+    id: 'personality-traits',
+    name: 'Traços de Personalidade',
+    description: 'Padrões persistentes de comportamento e cognição',
+    detailedDescription: 'Identificação de traços e padrões de personalidade predominantes: narcisistas, borderline, ansiosos, obsessivos, histriônicos, entre outros. Avalia rigidez vs flexibilidade, extroversão vs introversão, e desadaptação funcional.',
+    category: 'clinical',
+    defaultWidth: 500,
+    defaultHeight: 350,
+  },
+  {
+    id: 'clinical-summary-timeline',
+    name: 'Linha do Tempo Clínica',
+    description: 'Resumo cronológico de todas avaliações',
+    detailedDescription: 'Visualização temporal consolidada mostrando todas as sessões avaliadas, com resumo automático das principais alterações encontradas em cada avaliação. Permite identificar rapidamente períodos de crise, estabilização ou melhora.',
+    category: 'clinical',
+    defaultWidth: 700,
+    defaultHeight: 400,
+  },
+];
+
+export const ALL_AVAILABLE_CARDS = [
+  ...AVAILABLE_STAT_CARDS,
+  ...AVAILABLE_FUNCTIONAL_CARDS,
+  ...AVAILABLE_DASHBOARD_CARDS,
+  ...AVAILABLE_DASHBOARD_CHARTS,
+  ...AVAILABLE_CLINICAL_CARDS,
+];

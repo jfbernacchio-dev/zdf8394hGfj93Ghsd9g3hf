@@ -45,7 +45,6 @@ const DashboardTest = () => {
   
   // Add card dialog state
   const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
-  const [isAddChartDialogOpen, setIsAddChartDialogOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -1259,7 +1258,7 @@ const DashboardTest = () => {
               className="gap-2"
             >
               <Plus className="w-4 h-4" />
-              Adicionar Card
+              Adicionar Cards
             </Button>
           </div>
         )}
@@ -1349,20 +1348,6 @@ const DashboardTest = () => {
 
       {/* Charts Section - For Visualizations */}
       <div>
-        {isEditMode && (
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-foreground">Gráficos e Visualizações</h2>
-            <Button
-              onClick={() => setIsAddChartDialogOpen(true)}
-              variant="outline"
-              size="sm"
-              className="gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Adicionar Gráfico
-            </Button>
-          </div>
-        )}
         <ResizableSection
           id="charts-section"
           isEditMode={isEditMode}
@@ -1390,23 +1375,14 @@ const DashboardTest = () => {
         </ResizableSection>
       </div>
 
-      {/* Add Card Dialogs */}
+      {/* Add Card Dialog - Unified for all card types */}
       <AddCardDialog
         open={isAddCardDialogOpen}
         onOpenChange={setIsAddCardDialogOpen}
         onAddCard={handleAddCard}
         onRemoveCard={handleRemoveCard}
         existingCardIds={visibleCards}
-        mode="dashboard-cards"
-      />
-      
-      <AddCardDialog
-        open={isAddChartDialogOpen}
-        onOpenChange={setIsAddChartDialogOpen}
-        onAddCard={handleAddCard}
-        onRemoveCard={handleRemoveCard}
-        existingCardIds={visibleCards}
-        mode="dashboard-charts"
+        mode="dashboard-unified"
       />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
