@@ -2,7 +2,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import React from "react";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ThemeProvider } from "./components/ThemeProvider";
 import Layout from "./components/Layout";
@@ -70,6 +71,23 @@ const DashboardRoute = () => {
   return isAccountant ? <AccountantDashboard /> : <Dashboard />;
 };
 
+const ClinicalRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAccountant } = useAuth();
+  const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (isAccountant) {
+      navigate("/accountant-dashboard", { replace: true });
+    }
+  }, [isAccountant, navigate]);
+
+  if (isAccountant) {
+    return null;
+  }
+
+  return <>{children}</>;
+};
+
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
 
@@ -117,20 +135,20 @@ const App = () => (
             <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
             <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
             
-            <Route path="/financial" element={<ProtectedRoute><Layout><Financial /></Layout></ProtectedRoute>} />
-            <Route path="/schedule" element={<ProtectedRoute><Layout><Schedule /></Layout></ProtectedRoute>} />
-            <Route path="/patients" element={<ProtectedRoute><Layout><Patients /></Layout></ProtectedRoute>} />
-            <Route path="/patients/new" element={<ProtectedRoute><Layout><NewPatient /></Layout></ProtectedRoute>} />
-            <Route path="/patients/:id/edit" element={<ProtectedRoute><Layout><EditPatient /></Layout></ProtectedRoute>} />
-            <Route path="/patients/:patientId/complaint/new" element={<ProtectedRoute><Layout><ClinicalComplaintForm /></Layout></ProtectedRoute>} />
-            <Route path="/patients/:patientId/complaint/:complaintId/edit" element={<ProtectedRoute><Layout><ClinicalComplaintForm /></Layout></ProtectedRoute>} />
-            <Route path="/patients/:patientId/sessions/:sessionId/evaluation" element={<ProtectedRoute><Layout><SessionEvaluationForm /></Layout></ProtectedRoute>} />
-            <Route path="/sessions/:sessionId/evaluation" element={<ProtectedRoute><Layout><SessionEvaluationForm /></Layout></ProtectedRoute>} />
-            <Route path="/patients/:id" element={<ProtectedRoute><Layout><PatientDetail /></Layout></ProtectedRoute>} />
-            <Route path="/patient-old/:id" element={<ProtectedRoute><Layout><PatientDetailOLD /></Layout></ProtectedRoute>} />
-            <Route path="/therapists" element={<ProtectedRoute><Layout><TherapistManagement /></Layout></ProtectedRoute>} />
-            <Route path="/therapists/:id" element={<ProtectedRoute><Layout><TherapistDetail /></Layout></ProtectedRoute>} />
-            <Route path="/create-therapist" element={<ProtectedRoute><Layout><CreateTherapist /></Layout></ProtectedRoute>} />
+            <Route path="/financial" element={<ProtectedRoute><ClinicalRoute><Layout><Financial /></Layout></ClinicalRoute></ProtectedRoute>} />
+            <Route path="/schedule" element={<ProtectedRoute><ClinicalRoute><Layout><Schedule /></Layout></ClinicalRoute></ProtectedRoute>} />
+            <Route path="/patients" element={<ProtectedRoute><ClinicalRoute><Layout><Patients /></Layout></ClinicalRoute></ProtectedRoute>} />
+            <Route path="/patients/new" element={<ProtectedRoute><ClinicalRoute><Layout><NewPatient /></Layout></ClinicalRoute></ProtectedRoute>} />
+            <Route path="/patients/:id/edit" element={<ProtectedRoute><ClinicalRoute><Layout><EditPatient /></Layout></ClinicalRoute></ProtectedRoute>} />
+            <Route path="/patients/:patientId/complaint/new" element={<ProtectedRoute><ClinicalRoute><Layout><ClinicalComplaintForm /></Layout></ClinicalRoute></ProtectedRoute>} />
+            <Route path="/patients/:patientId/complaint/:complaintId/edit" element={<ProtectedRoute><ClinicalRoute><Layout><ClinicalComplaintForm /></Layout></ClinicalRoute></ProtectedRoute>} />
+            <Route path="/patients/:patientId/sessions/:sessionId/evaluation" element={<ProtectedRoute><ClinicalRoute><Layout><SessionEvaluationForm /></Layout></ClinicalRoute></ProtectedRoute>} />
+            <Route path="/sessions/:sessionId/evaluation" element={<ProtectedRoute><ClinicalRoute><Layout><SessionEvaluationForm /></Layout></ClinicalRoute></ProtectedRoute>} />
+            <Route path="/patients/:id" element={<ProtectedRoute><ClinicalRoute><Layout><PatientDetail /></Layout></ClinicalRoute></ProtectedRoute>} />
+            <Route path="/patient-old/:id" element={<ProtectedRoute><ClinicalRoute><Layout><PatientDetailOLD /></Layout></ClinicalRoute></ProtectedRoute>} />
+            <Route path="/therapists" element={<ProtectedRoute><ClinicalRoute><Layout><TherapistManagement /></Layout></ClinicalRoute></ProtectedRoute>} />
+            <Route path="/therapists/:id" element={<ProtectedRoute><ClinicalRoute><Layout><TherapistDetail /></Layout></ClinicalRoute></ProtectedRoute>} />
+            <Route path="/create-therapist" element={<ProtectedRoute><ClinicalRoute><Layout><CreateTherapist /></Layout></ClinicalRoute></ProtectedRoute>} />
             <Route path="/nfse/config" element={<ProtectedRoute><Layout><NFSeConfig /></Layout></ProtectedRoute>} />
             <Route path="/nfse/history" element={<ProtectedRoute><Layout><NFSeHistory /></Layout></ProtectedRoute>} />
             <Route path="/invoice-logs" element={<ProtectedRoute><Layout><InvoiceLogs /></Layout></ProtectedRoute>} />
