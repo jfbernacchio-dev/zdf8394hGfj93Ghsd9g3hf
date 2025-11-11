@@ -116,9 +116,9 @@ export const AccessManagement = () => {
         options: {
           emailRedirectTo: `${window.location.origin}/`,
           data: {
-            full_name: newFullName,
-            cpf: newCpf,
-            crp: newCrp,
+            full_name: newFullName || '',
+            cpf: newCpf || '',
+            crp: newCrp || '',
             birth_date: '2000-01-01', // Data padrão
           }
         }
@@ -285,35 +285,32 @@ export const AccessManagement = () => {
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="new-fullname">Nome Completo*</Label>
+                  <Label htmlFor="new-fullname">Nome Completo (opcional)</Label>
                   <Input
                     id="new-fullname"
                     value={newFullName}
                     onChange={(e) => setNewFullName(e.target.value)}
-                    required
                     placeholder="Nome completo"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="new-cpf">CPF*</Label>
+                    <Label htmlFor="new-cpf">CPF (opcional)</Label>
                     <Input
                       id="new-cpf"
                       value={newCpf}
                       onChange={(e) => setNewCpf(e.target.value)}
-                      required
                       placeholder="000.000.000-00"
                     />
                   </div>
 
                   <div className="grid gap-2">
-                    <Label htmlFor="new-crp">CRP*</Label>
+                    <Label htmlFor="new-crp">CRP (opcional)</Label>
                     <Input
                       id="new-crp"
                       value={newCrp}
                       onChange={(e) => setNewCrp(e.target.value)}
-                      required
                       placeholder="00/00000"
                     />
                   </div>
