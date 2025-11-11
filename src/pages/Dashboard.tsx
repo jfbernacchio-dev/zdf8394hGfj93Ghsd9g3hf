@@ -1269,77 +1269,106 @@ const DashboardTest = () => {
           tempHeight={tempSectionHeights['metrics-section']}
           onTempHeightChange={handleTempSectionHeightChange}
         >
-          <div className="relative h-full">
-            {renderCard(
-              'total-patients',
-              <Users className="w-6 h-6 text-primary" />,
-              patients.length,
-              'Total de Pacientes'
-            )}
-            {renderCard(
-              'expected-revenue',
-              <TrendingUp className="w-6 h-6 text-blue-500" />,
-              formatBrazilianCurrency(totalExpected),
-              'Receita Esperada',
-              () => openDialog('expected'),
-              'bg-blue-500/10',
-              'text-blue-500'
-            )}
-            {renderCard(
-              'actual-revenue',
-              <DollarSign className="w-6 h-6 text-[hsl(var(--success))]" />,
-              formatBrazilianCurrency(totalActual),
-              `Receita Efetiva (${revenuePercent}%)`,
-              () => openDialog('actual'),
-              'bg-success/10',
-              'text-[hsl(var(--success))]'
-            )}
-            {renderCard(
-              'attended-sessions',
-              <CheckCircle2 className="w-6 h-6 text-accent" />,
-              visiblePeriodSessions.filter(s => s.status === 'attended').length,
-              'Sessões Realizadas',
-              undefined,
-              'bg-accent/10',
-              'text-accent'
-            )}
-            {renderCard(
-              'expected-sessions',
-              <Calendar className="w-6 h-6 text-accent" />,
-              expectedSessions,
-              'Sessões Esperadas',
-              undefined,
-              'bg-accent/10',
-              'text-accent'
-            )}
-            {renderCard(
-              'missed-sessions',
-              <AlertCircle className="w-6 h-6 text-destructive" />,
-              missedSessions.length,
-              `Sessões Desmarcadas (${missedPercent}%)`,
-              undefined,
-              'bg-destructive/10',
-              'text-destructive'
-            )}
-            {renderCard(
-              'pending-sessions',
-              <Calendar className="w-6 h-6 text-muted-foreground" />,
-              pendingSessions.length,
-              `Sessões Pendentes (${pendingPercent}%)`,
-              undefined,
-              'bg-muted/50',
-              'text-muted-foreground'
-            )}
-            {renderCard(
-              'unpaid-value',
-              <DollarSign className="w-6 h-6 text-[hsl(var(--warning))]" />,
-              formatBrazilianCurrency(unpaidValue),
-              `Em Aberto (${unpaidSessions.length})`,
-              () => openDialog('unpaid'),
-              'bg-warning/10',
-              'text-[hsl(var(--warning))]'
-            )}
-          </div>
+          {visibleCards.filter(id => !id.startsWith('chart-')).length === 0 ? (
+            <Card className="p-8 text-center border-dashed">
+              <p className="text-muted-foreground">
+                {isEditMode 
+                  ? 'Clique em "Adicionar Cards" para adicionar métricas'
+                  : 'Nenhum card métrico adicionado. Entre no modo de edição para adicionar cards.'
+                }
+              </p>
+            </Card>
+          ) : (
+            <div className="relative h-full">
+              {visibleCards
+                .filter(id => !id.startsWith('chart-') && !id.startsWith('clinical-'))
+                .map(cardId => {
+                  // Render each metric card dynamically based on its ID
+                  switch (cardId) {
+                    case 'total-patients':
+                      return renderCard(
+                        'total-patients',
+                        <Users className="w-6 h-6 text-primary" />,
+                        patients.length,
+                        'Total de Pacientes'
+                      );
+                    case 'expected-revenue':
+                      return renderCard(
+                        'expected-revenue',
+                        <TrendingUp className="w-6 h-6 text-blue-500" />,
+                        formatBrazilianCurrency(totalExpected),
+                        'Receita Esperada',
+                        () => openDialog('expected'),
+                        'bg-blue-500/10',
+                        'text-blue-500'
+                      );
+                    case 'actual-revenue':
+                      return renderCard(
+                        'actual-revenue',
+                        <DollarSign className="w-6 h-6 text-[hsl(var(--success))]" />,
+                        formatBrazilianCurrency(totalActual),
+                        `Receita Efetiva (${revenuePercent}%)`,
+                        () => openDialog('actual'),
+                        'bg-success/10',
+                        'text-[hsl(var(--success))]'
+                      );
+                    case 'attended-sessions':
+                      return renderCard(
+                        'attended-sessions',
+                        <CheckCircle2 className="w-6 h-6 text-accent" />,
+                        visiblePeriodSessions.filter(s => s.status === 'attended').length,
+                        'Sessões Realizadas',
+                        undefined,
+                        'bg-accent/10',
+                        'text-accent'
+                      );
+                    case 'expected-sessions':
+                      return renderCard(
+                        'expected-sessions',
+                        <Calendar className="w-6 h-6 text-accent" />,
+                        expectedSessions,
+                        'Sessões Esperadas',
+                        undefined,
+                        'bg-accent/10',
+                        'text-accent'
+                      );
+                    case 'missed-sessions':
+                      return renderCard(
+                        'missed-sessions',
+                        <AlertCircle className="w-6 h-6 text-destructive" />,
+                        missedSessions.length,
+                        `Sessões Desmarcadas (${missedPercent}%)`,
+                        undefined,
+                        'bg-destructive/10',
+                        'text-destructive'
+                      );
+                    case 'pending-sessions':
+                      return renderCard(
+                        'pending-sessions',
+                        <Calendar className="w-6 h-6 text-muted-foreground" />,
+                        pendingSessions.length,
+                        `Sessões Pendentes (${pendingPercent}%)`,
+                        undefined,
+                        'bg-muted/50',
+                        'text-muted-foreground'
+                      );
+                    case 'unpaid-value':
+                      return renderCard(
+                        'unpaid-value',
+                        <DollarSign className="w-6 h-6 text-[hsl(var(--warning))]" />,
+                        formatBrazilianCurrency(unpaidValue),
+                        `Em Aberto (${unpaidSessions.length})`,
+                        () => openDialog('unpaid'),
+                        'bg-warning/10',
+                        'text-[hsl(var(--warning))]'
+                      );
+                    default:
+                      return null;
+                  }
+                })
+              }
+            </div>
+          )}
         </ResizableSection>
       </div>
 
