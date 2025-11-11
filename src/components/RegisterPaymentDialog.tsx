@@ -64,7 +64,7 @@ export const RegisterPaymentDialog = ({
     
     setLoadingNFSes(true);
     try {
-      // Get all authorized NFSes
+      // Get all issued NFSes
       const { data: nfses, error } = await supabase
         .from('nfse_issued')
         .select(`
@@ -75,7 +75,7 @@ export const RegisterPaymentDialog = ({
           patients!nfse_issued_patient_id_fkey (name)
         `)
         .eq('user_id', user.id)
-        .eq('status', 'authorized')
+        .eq('status', 'issued')
         .order('issue_date', { ascending: false });
 
       if (error) throw error;

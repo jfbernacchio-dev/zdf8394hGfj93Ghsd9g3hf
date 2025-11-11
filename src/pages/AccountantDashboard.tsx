@@ -106,11 +106,11 @@ const AccountantDashboard = () => {
     try {
       console.log("Buscando NFSe entre:", startDate.toISOString(), "e", endDate.toISOString());
       
-      // Fetch all NFSe with status 'authorized' in the period
+      // Fetch all NFSe with status 'issued' in the period
       const { data: nfses, error } = await supabase
         .from("nfse_issued")
         .select("user_id, net_value, status, issue_date")
-        .eq("status", "authorized")
+        .eq("status", "issued")
         .gte("issue_date", startDate.toISOString())
         .lte("issue_date", endDate.toISOString());
 

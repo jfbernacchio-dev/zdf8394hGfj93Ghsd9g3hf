@@ -82,7 +82,7 @@ const PaymentControl = () => {
         patients!nfse_issued_patient_id_fkey (name)
       `)
       .eq('user_id', user.id)
-      .eq('status', 'authorized')
+      .eq('status', 'issued')
       .order('issue_date', { ascending: false });
 
     if (nfseError) throw nfseError;
