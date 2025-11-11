@@ -300,9 +300,9 @@ const ProfileEdit = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="personal" className="w-full">
-            <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-3' : 'grid-cols-2'}`}>
+            <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-3' : isAccountant ? 'grid-cols-1' : 'grid-cols-2'}`}>
               <TabsTrigger value="personal">Dados Pessoais</TabsTrigger>
-              <TabsTrigger value="clinical">Clínica</TabsTrigger>
+              {!isAccountant && <TabsTrigger value="clinical">Clínica</TabsTrigger>}
               {isAdmin && <TabsTrigger value="access">Configurações</TabsTrigger>}
             </TabsList>
 
@@ -340,15 +340,17 @@ const ProfileEdit = () => {
                     />
                   </div>
 
-                  <div>
-                    <Label htmlFor="crp">CRP</Label>
-                    <Input
-                      id="crp"
-                      value={crp}
-                      onChange={(e) => setCrp(e.target.value)}
-                      required
-                    />
-                  </div>
+                  {!isAccountant && (
+                    <div>
+                      <Label htmlFor="crp">CRP</Label>
+                      <Input
+                        id="crp"
+                        value={crp}
+                        onChange={(e) => setCrp(e.target.value)}
+                        required
+                      />
+                    </div>
+                  )}
 
                   <div>
                     <Label htmlFor="phone">Telefone</Label>
@@ -381,16 +383,18 @@ const ProfileEdit = () => {
                   />
                 </div>
 
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="send-nfse"
-                    checked={sendNfseToTherapist}
-                    onCheckedChange={(checked) => setSendNfseToTherapist(checked as boolean)}
-                  />
-                  <Label htmlFor="send-nfse" className="cursor-pointer">
-                    Enviar NFSe para terapeuta (cópia no email e telefone)
-                  </Label>
-                </div>
+                {!isAccountant && (
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="send-nfse"
+                      checked={sendNfseToTherapist}
+                      onCheckedChange={(checked) => setSendNfseToTherapist(checked as boolean)}
+                    />
+                    <Label htmlFor="send-nfse" className="cursor-pointer">
+                      Enviar NFSe para terapeuta (cópia no email e telefone)
+                    </Label>
+                  </div>
+                )}
 
                 {isAccountant && (
                   <div className="pt-4 border-t">
@@ -425,112 +429,114 @@ const ProfileEdit = () => {
               </form>
             </TabsContent>
 
-            <TabsContent value="clinical">
-              <form onSubmit={handleSubmitClinical} className="space-y-6">
-                <div>
-                  <Label>Abordagem Clínica</Label>
-                  <Select value={clinicalApproach} onValueChange={setClinicalApproach}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a abordagem" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="TCC">Terapia Cognitivo-Comportamental (TCC)</SelectItem>
-                      <SelectItem value="Psicologia Analítica">Psicologia Analítica</SelectItem>
-                      <SelectItem value="Psicanálise">Psicanálise</SelectItem>
-                      <SelectItem value="Fenomenologia">Fenomenologia</SelectItem>
-                      <SelectItem value="Behaviorismo">Behaviorismo</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label className="mb-3 block">Dias de Trabalho</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {WEEKDAYS.map((day) => (
-                      <div key={day.value} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`day-${day.value}`}
-                          checked={workDays.includes(day.value)}
-                          onCheckedChange={() => handleWorkDayToggle(day.value)}
-                        />
-                        <Label
-                          htmlFor={`day-${day.value}`}
-                          className="cursor-pointer"
-                        >
-                          {day.label}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {!isAccountant && (
+              <TabsContent value="clinical">
+                <form onSubmit={handleSubmitClinical} className="space-y-6">
                   <div>
-                    <Label htmlFor="start-time">Horário de Início</Label>
-                    <Input
-                      id="start-time"
-                      type="time"
-                      value={workStartTime}
-                      onChange={(e) => setWorkStartTime(e.target.value)}
-                      required
-                    />
+                    <Label>Abordagem Clínica</Label>
+                    <Select value={clinicalApproach} onValueChange={setClinicalApproach}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a abordagem" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="TCC">Terapia Cognitivo-Comportamental (TCC)</SelectItem>
+                        <SelectItem value="Psicologia Analítica">Psicologia Analítica</SelectItem>
+                        <SelectItem value="Psicanálise">Psicanálise</SelectItem>
+                        <SelectItem value="Fenomenologia">Fenomenologia</SelectItem>
+                        <SelectItem value="Behaviorismo">Behaviorismo</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div>
-                    <Label htmlFor="end-time">Horário de Término</Label>
-                    <Input
-                      id="end-time"
-                      type="time"
-                      value={workEndTime}
-                      onChange={(e) => setWorkEndTime(e.target.value)}
-                      required
-                    />
+                    <Label className="mb-3 block">Dias de Trabalho</Label>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {WEEKDAYS.map((day) => (
+                        <div key={day.value} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`day-${day.value}`}
+                            checked={workDays.includes(day.value)}
+                            onCheckedChange={() => handleWorkDayToggle(day.value)}
+                          />
+                          <Label
+                            htmlFor={`day-${day.value}`}
+                            className="cursor-pointer"
+                          >
+                            {day.label}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
-                  <div>
-                    <Label htmlFor="slot-duration">Duração de Cada Sessão (minutos)</Label>
-                    <Input
-                      id="slot-duration"
-                      type="number"
-                      min="15"
-                      step="15"
-                      value={slotDuration}
-                      onChange={(e) => setSlotDuration(Number(e.target.value))}
-                      required
-                    />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="start-time">Horário de Início</Label>
+                      <Input
+                        id="start-time"
+                        type="time"
+                        value={workStartTime}
+                        onChange={(e) => setWorkStartTime(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="end-time">Horário de Término</Label>
+                      <Input
+                        id="end-time"
+                        type="time"
+                        value={workEndTime}
+                        onChange={(e) => setWorkEndTime(e.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="slot-duration">Duração de Cada Sessão (minutos)</Label>
+                      <Input
+                        id="slot-duration"
+                        type="number"
+                        min="15"
+                        step="15"
+                        value={slotDuration}
+                        onChange={(e) => setSlotDuration(Number(e.target.value))}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="break-time">Tempo de Descanso Entre Sessões (minutos)</Label>
+                      <Input
+                        id="break-time"
+                        type="number"
+                        min="0"
+                        step="5"
+                        value={breakTime}
+                        onChange={(e) => setBreakTime(Number(e.target.value))}
+                        required
+                      />
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Tempo de intervalo entre atendimentos para recomposição.
+                      </p>
+                    </div>
                   </div>
 
-                  <div>
-                    <Label htmlFor="break-time">Tempo de Descanso Entre Sessões (minutos)</Label>
-                    <Input
-                      id="break-time"
-                      type="number"
-                      min="0"
-                      step="5"
-                      value={breakTime}
-                      onChange={(e) => setBreakTime(Number(e.target.value))}
-                      required
-                    />
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Tempo de intervalo entre atendimentos para recomposição.
-                    </p>
+                  <div className="flex gap-3 pt-4">
+                    <Button type="submit" disabled={loading}>
+                      {loading ? 'Salvando...' : 'Salvar Alterações'}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => navigate(-1)}
+                    >
+                      Cancelar
+                    </Button>
                   </div>
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <Button type="submit" disabled={loading}>
-                    {loading ? 'Salvando...' : 'Salvar Alterações'}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => navigate(-1)}
-                  >
-                    Cancelar
-                  </Button>
-                </div>
-              </form>
-            </TabsContent>
+                </form>
+              </TabsContent>
+            )}
 
             {isAdmin && (
               <TabsContent value="access">
