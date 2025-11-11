@@ -12,7 +12,7 @@ import { ThemeToggle } from './ThemeToggle';
 const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut, profile, isAdmin } = useAuth();
+  const { signOut, profile, isAdmin, isAccountant } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isActive = (path: string) => location.pathname === path;
@@ -50,78 +50,83 @@ const Navbar = () => {
                 <Calendar className="w-4 h-4" />
                 <span className="font-medium">Dashboard</span>
               </Link>
-              <Link
-                to="/schedule"
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                  isActive('/schedule')
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-                }`}
-              >
-                <Calendar className="w-4 h-4" />
-                <span className="font-medium">Agenda</span>
-              </Link>
-              <Link
-                to="/patients"
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                  isActive('/patients')
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-                }`}
-              >
-                <Users className="w-4 h-4" />
-                <span className="font-medium">Pacientes</span>
-              </Link>
-              <Link
-                to="/whatsapp"
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                  isActive('/whatsapp')
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-                }`}
-              >
-                <MessageCircle className="w-4 h-4" />
-                <span className="font-medium">WhatsApp</span>
-              </Link>
-              {isAdmin && (
-                <Link
-                  to="/therapists"
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                    isActive('/therapists')
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-                  }`}
-                >
-                  <Users className="w-4 h-4" />
-                  <span className="font-medium">Terapeutas</span>
-                </Link>
-              )}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
+              
+              {!isAccountant && (
+                <>
+                  <Link
+                    to="/schedule"
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                      location.pathname.startsWith('/financial') || location.pathname.startsWith('/metrics')
+                      isActive('/schedule')
                         ? 'bg-primary text-primary-foreground'
                         : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
                     }`}
                   >
-                    <TrendingUp className="w-4 h-4" />
-                    <span className="font-medium">Métricas</span>
-                    <ChevronDown className="w-3 h-3" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-popover z-50">
-                  <DropdownMenuItem onClick={() => navigate('/financial')}>
-                    <TrendingUp className="w-4 h-4 mr-2" />
-                    Análise Financeira
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => navigate('/metrics/website')}>
-                    <FileText className="w-4 h-4 mr-2" />
-                    Website
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    <Calendar className="w-4 h-4" />
+                    <span className="font-medium">Agenda</span>
+                  </Link>
+                  <Link
+                    to="/patients"
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                      isActive('/patients')
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                    }`}
+                  >
+                    <Users className="w-4 h-4" />
+                    <span className="font-medium">Pacientes</span>
+                  </Link>
+                  <Link
+                    to="/whatsapp"
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                      isActive('/whatsapp')
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                    }`}
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span className="font-medium">WhatsApp</span>
+                  </Link>
+                  {isAdmin && (
+                    <Link
+                      to="/therapists"
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                        isActive('/therapists')
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                      }`}
+                    >
+                      <Users className="w-4 h-4" />
+                      <span className="font-medium">Terapeutas</span>
+                    </Link>
+                  )}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                          location.pathname.startsWith('/financial') || location.pathname.startsWith('/metrics')
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                        }`}
+                      >
+                        <TrendingUp className="w-4 h-4" />
+                        <span className="font-medium">Métricas</span>
+                        <ChevronDown className="w-3 h-3" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="bg-popover z-50">
+                      <DropdownMenuItem onClick={() => navigate('/financial')}>
+                        <TrendingUp className="w-4 h-4 mr-2" />
+                        Análise Financeira
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => navigate('/metrics/website')}>
+                        <FileText className="w-4 h-4 mr-2" />
+                        Website
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </>
+              )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button

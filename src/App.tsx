@@ -8,6 +8,7 @@ import { ThemeProvider } from "./components/ThemeProvider";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import DashboardOLD from "./pages/DashboardOLD";
+import AccountantDashboard from "./pages/AccountantDashboard";
 import Financial from "./pages/Financial";
 import Index from "./pages/Index";
 import TerapiaCognitivaComportamental from "./pages/TerapiaCognitivaComportamental";
@@ -64,6 +65,11 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const DashboardRoute = () => {
+  const { isAccountant } = useAuth();
+  return isAccountant ? <AccountantDashboard /> : <Dashboard />;
+};
+
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
 
@@ -104,7 +110,7 @@ const App = () => (
             <Route path="/consent-form/:token" element={<ConsentForm />} />
             
             {/* Sistema de Gestão */}
-            <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
+            <Route path="/dashboard" element={<ProtectedRoute><DashboardRoute /></ProtectedRoute>} />
             <Route path="/dashboard-old" element={<ProtectedRoute><Layout><DashboardOLD /></Layout></ProtectedRoute>} />
             <Route path="/install" element={<Install />} />
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
