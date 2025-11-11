@@ -26,6 +26,7 @@ import { CardConfig, AVAILABLE_DASHBOARD_CHARTS } from '@/types/cardTypes';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useChartTimeScale, generateTimeIntervals, formatTimeLabel, getIntervalBounds, getScaleLabel, TimeScale } from '@/hooks/useChartTimeScale';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import Layout from '@/components/Layout';
 
 const DashboardTest = () => {
   const { user } = useAuth();
@@ -1127,12 +1128,13 @@ const DashboardTest = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Dashboard Test</h1>
-          <p className="text-muted-foreground">Layout customizável - Versão de teste</p>
-        </div>
+    <Layout>
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground mb-2">Dashboard Test</h1>
+            <p className="text-muted-foreground">Layout customizável - Versão de teste</p>
+          </div>
         
         <div className="flex gap-2">
           {!isEditMode ? (
@@ -1554,7 +1556,8 @@ const DashboardTest = () => {
       </Dialog>
 
       <NotificationPrompt />
-    </div>
+      </div>
+    </Layout>
   );
 };
 
