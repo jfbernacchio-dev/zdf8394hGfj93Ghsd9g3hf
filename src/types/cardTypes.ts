@@ -524,10 +524,14 @@ export const AVAILABLE_CLINICAL_CARDS: CardConfig[] = [
   },
 ];
 
+// Dashboard Clinical Cards (empty for now - to be populated with dashboard-specific clinical cards)
+export const AVAILABLE_DASHBOARD_CLINICAL_CARDS: CardConfig[] = [];
+
 export const ALL_AVAILABLE_CARDS = [
   ...AVAILABLE_STAT_CARDS,
   ...AVAILABLE_FUNCTIONAL_CARDS,
   ...AVAILABLE_DASHBOARD_CARDS,
   ...AVAILABLE_DASHBOARD_CHARTS,
   ...AVAILABLE_CLINICAL_CARDS,
+  ...AVAILABLE_DASHBOARD_CLINICAL_CARDS,
 ];

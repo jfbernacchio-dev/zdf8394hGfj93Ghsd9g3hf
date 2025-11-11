@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { Plus, BarChart3, Layers, Info, PieChart, TrendingUp, X } from 'lucide-react';
-import { AVAILABLE_STAT_CARDS, AVAILABLE_FUNCTIONAL_CARDS, AVAILABLE_DASHBOARD_CARDS, AVAILABLE_DASHBOARD_CHARTS, AVAILABLE_CLINICAL_CARDS, CardConfig } from '@/types/cardTypes';
+import { AVAILABLE_STAT_CARDS, AVAILABLE_FUNCTIONAL_CARDS, AVAILABLE_DASHBOARD_CARDS, AVAILABLE_DASHBOARD_CHARTS, AVAILABLE_CLINICAL_CARDS, AVAILABLE_DASHBOARD_CLINICAL_CARDS, CardConfig } from '@/types/cardTypes';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -30,13 +30,16 @@ export const AddCardDialog = ({ open, onOpenChange, onAddCard, onRemoveCard, exi
   const availableFunctionalCards = AVAILABLE_FUNCTIONAL_CARDS.filter(card => !existingCardIds.includes(card.id));
   const availableDashboardCards = AVAILABLE_DASHBOARD_CARDS.filter(card => !existingCardIds.includes(card.id));
   const availableDashboardCharts = AVAILABLE_DASHBOARD_CHARTS.filter(card => !existingCardIds.includes(card.id));
-  const availableClinicalCards = AVAILABLE_CLINICAL_CARDS.filter(card => !existingCardIds.includes(card.id));
+  
+  // Use dashboard-specific clinical cards for dashboard mode, regular clinical cards for evolution mode
+  const clinicalCardsSource = mode === 'dashboard-unified' ? AVAILABLE_DASHBOARD_CLINICAL_CARDS : AVAILABLE_CLINICAL_CARDS;
+  const availableClinicalCards = clinicalCardsSource.filter(card => !existingCardIds.includes(card.id));
 
   const addedStatCards = AVAILABLE_STAT_CARDS.filter(card => existingCardIds.includes(card.id));
   const addedFunctionalCards = AVAILABLE_FUNCTIONAL_CARDS.filter(card => existingCardIds.includes(card.id));
   const addedDashboardCards = AVAILABLE_DASHBOARD_CARDS.filter(card => existingCardIds.includes(card.id));
   const addedDashboardCharts = AVAILABLE_DASHBOARD_CHARTS.filter(card => existingCardIds.includes(card.id));
-  const addedClinicalCards = AVAILABLE_CLINICAL_CARDS.filter(card => existingCardIds.includes(card.id));
+  const addedClinicalCards = clinicalCardsSource.filter(card => existingCardIds.includes(card.id));
 
   const handleAddCard = (card: CardConfig) => {
     onAddCard(card);
