@@ -378,7 +378,7 @@ const handler = async (req: Request): Promise<Response> => {
           ? uploadedFiles[0].file_name 
           : `NFSe_${nfseNumber}_${patientName.replace(/\s+/g, "_")}.pdf`;
 
-        // Send WhatsApp to therapist
+        // Send WhatsApp to therapist using template (to avoid 24h window restriction)
         const therapistWhatsappResponse = await fetch(
           `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-whatsapp`,
           {
@@ -388,17 +388,19 @@ const handler = async (req: Request): Promise<Response> => {
               "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
             },
             body: JSON.stringify({
-              type: "document",
+              type: "template",
               data: {
                 to: therapistPhone,
+                templateName: "nfse_envio_v2",
+                templateLanguage: "en",
+                parameters: [
+                  `${patientName} (Cópia Terapeuta)`,
+                  nfseNumber,
+                  issueDate,
+                  serviceValue,
+                ],
                 documentUrl: nfseDataWithTherapist.pdf_url,
                 filename: correctFilename,
-                caption: `📄 *Cópia - Nota Fiscal Enviada*\n\n` +
-                  `*Paciente:* ${patientName}\n` +
-                  `*Número NF-e:* ${nfseNumber}\n` +
-                  `*Data:* ${issueDate}\n` +
-                  `*Valor:* ${serviceValue}\n\n` +
-                  `Cópia da nota fiscal de ${issueMonth} enviada ao paciente.`,
               },
             }),
           }
