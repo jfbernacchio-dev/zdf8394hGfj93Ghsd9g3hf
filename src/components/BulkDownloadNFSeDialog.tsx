@@ -18,9 +18,7 @@ interface BulkDownloadNFSeDialogProps {
     nfse_number: string | null;
     status: string;
     patient_id: string;
-    patients: {
-      name: string;
-    };
+    patient_name: string;
   }>;
   environment: string;
 }
@@ -94,7 +92,7 @@ export default function BulkDownloadNFSeDialog({ nfseList, environment }: BulkDo
       
       const downloadPromises = filteredNFSes.map(async (nfse, index) => {
         try {
-          console.log(`[${index + 1}/${filteredNFSes.length}] Processando NFSe ${nfse.nfse_number} - ${nfse.patients.name}`);
+          console.log(`[${index + 1}/${filteredNFSes.length}] Processando NFSe ${nfse.nfse_number} - ${nfse.patient_name}`);
           
           // Use edge function as proxy to avoid CORS issues
           const { data: pdfData, error } = await supabase.functions.invoke('download-nfse-pdf', {
@@ -102,13 +100,13 @@ export default function BulkDownloadNFSeDialog({ nfseList, environment }: BulkDo
           });
           
           if (error) {
-            console.error(`❌ Erro ao baixar PDF da NFSe ${nfse.nfse_number} (${nfse.patients.name}):`, error);
-            return { success: false, nfse: nfse.nfse_number, patient: nfse.patients.name };
+            console.error(`❌ Erro ao baixar PDF da NFSe ${nfse.nfse_number} (${nfse.patient_name}):`, error);
+            return { success: false, nfse: nfse.nfse_number, patient: nfse.patient_name };
           }
           
           if (!pdfData) {
-            console.error(`❌ PDF vazio para NFSe ${nfse.nfse_number} (${nfse.patients.name})`);
-            return { success: false, nfse: nfse.nfse_number, patient: nfse.patients.name };
+            console.error(`❌ PDF vazio para NFSe ${nfse.nfse_number} (${nfse.patient_name})`);
+            return { success: false, nfse: nfse.nfse_number, patient: nfse.patient_name };
           }
           
           // Get the file name from patient_files table by matching the expected filename pattern
@@ -161,7 +159,7 @@ export default function BulkDownloadNFSeDialog({ nfseList, environment }: BulkDo
             }
           } else {
             // Fallback: generate unique name with NFSe number
-            const cleanName = nfse.patients.name.replace(/\s+/g, '_');
+            const cleanName = nfse.patient_name.replace(/\s+/g, '_');
             fileName = `${cleanName}_NFSe_${nfse.nfse_number}.pdf`;
           }
           
@@ -170,10 +168,10 @@ export default function BulkDownloadNFSeDialog({ nfseList, environment }: BulkDo
           // Add PDF to ZIP
           folder?.file(fileName, pdfData);
           
-          return { success: true, nfse: nfse.nfse_number, patient: nfse.patients.name };
+          return { success: true, nfse: nfse.nfse_number, patient: nfse.patient_name };
         } catch (error) {
-          console.error(`❌ Erro inesperado ao processar NFSe ${nfse.nfse_number} (${nfse.patients.name}):`, error);
-          return { success: false, nfse: nfse.nfse_number, patient: nfse.patients.name };
+          console.error(`❌ Erro inesperado ao processar NFSe ${nfse.nfse_number} (${nfse.patient_name}):`, error);
+          return { success: false, nfse: nfse.nfse_number, patient: nfse.patient_name };
         }
       });
 

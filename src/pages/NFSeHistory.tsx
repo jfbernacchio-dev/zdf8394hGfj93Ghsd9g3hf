@@ -24,6 +24,8 @@ import { cn } from '@/lib/utils';
 interface NFSeIssued {
   id: string;
   patient_id: string;
+  patient_name: string;
+  patient_cpf: string | null;
   nfse_number: string | null;
   verification_code: string | null;
   issue_date: string;
@@ -35,10 +37,6 @@ interface NFSeIssued {
   pdf_url: string | null;
   xml_url: string | null;
   environment: string;
-  patients: {
-    name: string;
-    cpf: string | null;
-  };
 }
 
 export default function NFSeHistory() {
@@ -64,18 +62,12 @@ export default function NFSeHistory() {
 
       const { data, error } = await supabase
         .from('nfse_issued')
-        .select(`
-          *,
-          patients (
-            name,
-            cpf
-          )
-        `)
+        .select('*')
         .order('issue_date', { ascending: false });
 
       if (error) throw error;
 
-      setNfseList((data as any) || []);
+      setNfseList((data as NFSeIssued[]) || []);
     } catch (error: any) {
       console.error('Error loading NFSe:', error);
       toast({
@@ -348,7 +340,8 @@ export default function NFSeHistory() {
     nfseList
       .filter(nfse => nfse.environment === activeTab)
       .filter(nfse =>
-        nfse.patients.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        nfse.patient_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        nfse.patient_cpf?.includes(searchTerm) ||
         nfse.nfse_number?.includes(searchTerm)
       )
   );
@@ -537,8 +530,8 @@ export default function NFSeHistory() {
               <TableBody>
                 {filteredNFSe.map((nfse) => (
                   <TableRow key={nfse.id}>
-                    <TableCell className="font-medium">{nfse.patients.name}</TableCell>
-                    <TableCell className="font-mono text-sm">{nfse.patients.cpf || '-'}</TableCell>
+                    <TableCell className="font-medium">{nfse.patient_name}</TableCell>
+                    <TableCell className="font-mono text-sm">{nfse.patient_cpf || '-'}</TableCell>
                     <TableCell>{nfse.nfse_number || '-'}</TableCell>
                     <TableCell className="font-mono text-sm">
                       {nfse.verification_code || '-'}

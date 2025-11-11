@@ -773,7 +773,9 @@ export type Database = {
           issue_date: string
           net_value: number
           nfse_number: string | null
+          patient_cpf: string | null
           patient_id: string
+          patient_name: string | null
           pdf_url: string | null
           service_value: number
           session_ids: string[] | null
@@ -795,7 +797,9 @@ export type Database = {
           issue_date?: string
           net_value: number
           nfse_number?: string | null
+          patient_cpf?: string | null
           patient_id: string
+          patient_name?: string | null
           pdf_url?: string | null
           service_value: number
           session_ids?: string[] | null
@@ -817,7 +821,9 @@ export type Database = {
           issue_date?: string
           net_value?: number
           nfse_number?: string | null
+          patient_cpf?: string | null
           patient_id?: string
+          patient_name?: string | null
           pdf_url?: string | null
           service_value?: number
           session_ids?: string[] | null

@@ -326,6 +326,8 @@ Data de emissão: ${new Date().toLocaleDateString('pt-BR')}`;
       .insert({
         user_id: user.id,
         patient_id: patientId,
+        patient_name: invoiceName,
+        patient_cpf: invoiceCpf,
         service_value: serviceValue,
         iss_value: issValue,
         net_value: netValue,
