@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Users } from 'lucide-react';
 import { AccessManagement } from '@/components/AccessManagement';
+import { LayoutTemplateManager } from '@/components/LayoutTemplateManager';
 
 const WEEKDAYS = [
   { value: 0, label: 'Domingo' },
@@ -300,9 +301,10 @@ const ProfileEdit = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="personal" className="w-full">
-            <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-3' : isAccountant ? 'grid-cols-1' : 'grid-cols-2'}`}>
+            <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-4' : isAccountant ? 'grid-cols-2' : 'grid-cols-3'}`}>
               <TabsTrigger value="personal">Dados Pessoais</TabsTrigger>
               {!isAccountant && <TabsTrigger value="clinical">Clínica</TabsTrigger>}
+              <TabsTrigger value="layouts">Layouts</TabsTrigger>
               {isAdmin && <TabsTrigger value="access">Configurações</TabsTrigger>}
             </TabsList>
 
@@ -537,6 +539,10 @@ const ProfileEdit = () => {
                 </form>
               </TabsContent>
             )}
+
+            <TabsContent value="layouts">
+              <LayoutTemplateManager />
+            </TabsContent>
 
             {isAdmin && (
               <TabsContent value="access">

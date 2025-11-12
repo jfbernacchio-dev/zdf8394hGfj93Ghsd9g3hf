@@ -1640,6 +1640,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_layout_templates: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_default: boolean | null
+          layout_snapshot: Json
+          template_name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          layout_snapshot: Json
+          template_name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          layout_snapshot?: Json
+          template_name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

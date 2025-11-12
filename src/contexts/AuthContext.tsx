@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { getDefaultTemplate, applyLayoutSnapshot } from '@/lib/layoutStorage';
 
 interface Profile {
   id: string;
@@ -100,6 +101,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     setProfile(data);
+
+    // Load default layout template
+    try {
+      const defaultTemplate = await getDefaultTemplate(userId);
+      if (defaultTemplate && defaultTemplate.layout_snapshot) {
+        applyLayoutSnapshot(defaultTemplate.layout_snapshot as Record<string, string>);
+        console.log('[AuthContext] Template padrão carregado:', defaultTemplate.template_name);
+      }
+    } catch (error) {
+      console.error('[AuthContext] Erro ao carregar template padrão:', error);
+    }
 
     // Check if user is admin
     const { data: adminRoleData } = await supabase
