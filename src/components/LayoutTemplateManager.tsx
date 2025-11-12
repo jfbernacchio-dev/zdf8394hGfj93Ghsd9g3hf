@@ -50,6 +50,7 @@ export const LayoutTemplateManager = () => {
     setAsDefault,
     duplicate,
     deleteTemplate,
+    disableDefault,
   } = useLayoutTemplates();
 
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
@@ -154,7 +155,16 @@ export const LayoutTemplateManager = () => {
                           <Download className="w-3 h-3 mr-1" />
                           Carregar
                         </Button>
-                        {!template.is_default && (
+                        {template.is_default ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={disableDefault}
+                          >
+                            <Star className="w-3 h-3 mr-1 fill-current" />
+                            Desabilitar Padrão
+                          </Button>
+                        ) : (
                           <Button
                             size="sm"
                             variant="outline"

@@ -9,6 +9,7 @@ import {
   deleteTemplate,
   getDefaultTemplate,
   applyLayoutSnapshot,
+  disableDefaultTemplate,
 } from '@/lib/layoutStorage';
 import { toast } from 'sonner';
 import type { Database } from '@/integrations/supabase/types';
@@ -128,6 +129,19 @@ export const useLayoutTemplates = () => {
     }
   };
 
+  const disableDefault = async () => {
+    if (!user?.id) return;
+
+    try {
+      await disableDefaultTemplate(user.id);
+      toast.success('Template padrão desabilitado com sucesso!');
+      refresh();
+    } catch (error) {
+      console.error('Erro ao desabilitar template padrão:', error);
+      toast.error('Erro ao desabilitar template padrão');
+    }
+  };
+
   return {
     templates,
     loading,
@@ -138,5 +152,6 @@ export const useLayoutTemplates = () => {
     deleteTemplate: deleteTemplateById,
     refresh,
     loadDefaultTemplate,
+    disableDefault,
   };
 };

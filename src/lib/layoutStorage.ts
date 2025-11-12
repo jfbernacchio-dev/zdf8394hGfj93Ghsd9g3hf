@@ -280,3 +280,22 @@ export const deleteTemplate = async (templateId: string) => {
     throw error;
   }
 };
+
+/**
+ * Desabilita o template padrão do usuário
+ */
+export const disableDefaultTemplate = async (userId: string) => {
+  try {
+    const { error } = await supabase
+      .from('user_layout_templates')
+      .update({ is_default: false })
+      .eq('user_id', userId)
+      .eq('is_default', true);
+
+    if (error) throw error;
+    console.log('[LayoutStorage] Template padrão desabilitado');
+  } catch (error) {
+    console.error('[LayoutStorage] Erro ao desabilitar template padrão:', error);
+    throw error;
+  }
+};
