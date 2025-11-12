@@ -58,6 +58,7 @@ const ProfileEdit = () => {
   // Para Terapeuta Full escolher seu contador
   const [availableAccountants, setAvailableAccountants] = useState<Array<{ id: string; full_name: string }>>([]);
   const [selectedAccountantId, setSelectedAccountantId] = useState<string>('');
+  const [accountantRequestStatus, setAccountantRequestStatus] = useState<'pending' | 'approved' | 'rejected' | null>(null);
   
   // Log sempre que selectedAccountantId mudar
   useEffect(() => {
@@ -169,6 +170,18 @@ const ProfileEdit = () => {
         console.log('✅ [loadCurrentAccountant] Assignment encontrado! accountant_id:', data.accountant_id);
         console.log('✅ [loadCurrentAccountant] Chamando setSelectedAccountantId com:', data.accountant_id);
         setSelectedAccountantId(data.accountant_id);
+        
+        // Buscar o status do request
+        const { data: requestData } = await supabase
+          .from('accountant_requests')
+          .select('status')
+          .eq('therapist_id', user!.id)
+          .eq('accountant_id', data.accountant_id)
+          .maybeSingle();
+        
+        console.log('🔍 [loadCurrentAccountant] Status do request:', requestData?.status);
+        const status = requestData?.status as 'pending' | 'approved' | 'rejected' | undefined;
+        setAccountantRequestStatus(status || null);
         console.log('✅ [loadCurrentAccountant] setSelectedAccountantId executado');
       } else {
         console.log('⚠️ [loadCurrentAccountant] Nenhum assignment encontrado, verificando pedidos pendentes...');
@@ -228,6 +241,7 @@ const ProfileEdit = () => {
 
         // Limpar seleção
         setSelectedAccountantId('');
+        setAccountantRequestStatus(null);
 
         toast({
           title: 'Pedido rejeitado',
@@ -323,6 +337,9 @@ const ProfileEdit = () => {
               .eq('accountant_id', selectedAccountantId);
             throw requestError;
           }
+
+          // Atualizar status para pending
+          setAccountantRequestStatus('pending');
 
           toast({
             title: 'Pedido enviado',
@@ -625,16 +642,26 @@ const ProfileEdit = () => {
                           ))}
                         </SelectContent>
                       </Select>
-                      {selectedAccountantId && (
+                      {selectedAccountantId && accountantRequestStatus && (
                         <div className="flex items-center gap-2">
-                          <Badge className="bg-green-600">
-                            Contador Ativo
-                          </Badge>
+                          {accountantRequestStatus === 'pending' && (
+                            <Badge className="bg-yellow-500">
+                              ⏳ Ativação Pendente
+                            </Badge>
+                          )}
+                          {accountantRequestStatus === 'approved' && (
+                            <Badge className="bg-green-600">
+                              ✓ Contador Ativo
+                            </Badge>
+                          )}
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
-                            onClick={() => setSelectedAccountantId('')}
+                            onClick={() => {
+                              setSelectedAccountantId('');
+                              setAccountantRequestStatus(null);
+                            }}
                             className="text-xs"
                           >
                             Remover contador
