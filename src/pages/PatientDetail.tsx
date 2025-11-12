@@ -915,8 +915,14 @@ Assinatura do Profissional`;
     toast({ title: 'Alterações descartadas' });
   };
 
+  const [showRestoreDialog, setShowRestoreDialog] = useState(false);
+
   const handleRestoreDefault = () => {
     resetToDefaultLayout();
+    
+    // Save state to return to overview tab
+    sessionStorage.setItem('returnToTab', 'overview');
+    
     toast({ title: 'Layout restaurado para o padrão!' });
     setTimeout(() => window.location.reload(), 500);
   };
@@ -1104,7 +1110,7 @@ Assinatura do Profissional`;
             <div className="flex items-center gap-2">
               {isEditMode && (
                 <Button
-                  onClick={handleRestoreDefault}
+                  onClick={() => setShowRestoreDialog(true)}
                   variant="outline"
                   size="sm"
                 >
@@ -2052,6 +2058,24 @@ Assinatura do Profissional`;
             </AlertDialogCancel>
             <AlertDialogAction onClick={handleSaveChanges}>
               Salvar alterações
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Restore Default Layout Dialog */}
+      <AlertDialog open={showRestoreDialog} onOpenChange={setShowRestoreDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restaurar layout padrão?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação irá restaurar o layout para as configurações padrão. Todas as personalizações atuais serão perdidas. A página será recarregada e você retornará à aba Visão Geral.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRestoreDefault}>
+              Sim, restaurar padrão
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

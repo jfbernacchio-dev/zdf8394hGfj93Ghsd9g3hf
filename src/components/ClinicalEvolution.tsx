@@ -1898,6 +1898,8 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
     window.location.reload();
   };
 
+  const [showResetDialog, setShowResetDialog] = useState(false);
+
   const handleResetLayout = () => {
     resetToDefaultEvolutionLayout();
     setVisibleCards(DEFAULT_EVOLUTION_LAYOUT.visibleCards);
@@ -2037,10 +2039,10 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleResetLayout}
+                onClick={() => setShowResetDialog(true)}
               >
                 <RotateCcw className="w-4 h-4 mr-2" />
-                Resetar Layout
+                Restaurar Padrão
               </Button>
             </>
           )}
@@ -2108,6 +2110,24 @@ function PatientEvolutionMetrics({ patientId, period, setPeriod }: PatientEvolut
             </AlertDialogCancel>
             <AlertDialogAction onClick={handleSaveLayout}>
               Salvar configurações
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reset Layout Confirmation Dialog */}
+      <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restaurar layout padrão?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação irá restaurar o layout para as configurações padrão. Todas as personalizações atuais serão perdidas. A página será recarregada e você retornará à aba Evolução Clínica.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleResetLayout}>
+              Sim, restaurar padrão
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

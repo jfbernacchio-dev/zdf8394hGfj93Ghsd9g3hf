@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Users, Calendar, DollarSign, TrendingUp, AlertCircle, CheckCircle2, CalendarIcon, Settings, Save, RotateCcw, Plus, Clock } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -390,12 +391,15 @@ const DashboardTest = () => {
     loadLayout();
   };
 
+  const [showResetDialog, setShowResetDialog] = useState(false);
+
   const handleResetLayout = () => {
     resetToDefaultDashboardLayout();
     setTempCardSizes({});
     setTempSectionHeights({});
     loadLayout();
     toast.success('Layout restaurado para o padrão!');
+    setTimeout(() => window.location.reload(), 500);
   };
 
   const handleTempCardSizeChange = (id: string, size: { width: number; height: number; x: number; y: number }) => {
@@ -1144,7 +1148,7 @@ const DashboardTest = () => {
             </Button>
           ) : (
             <>
-              <Button onClick={handleResetLayout} variant="outline" size="sm">
+              <Button onClick={() => setShowResetDialog(true)} variant="outline" size="sm">
                 <RotateCcw className="w-4 h-4 mr-2" />
                 Restaurar Padrão
               </Button>
@@ -1554,6 +1558,24 @@ const DashboardTest = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Reset Layout Confirmation Dialog */}
+      <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Restaurar layout padrão?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação irá restaurar o layout para as configurações padrão. Todas as personalizações atuais serão perdidas. A página será recarregada.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleResetLayout}>
+              Sim, restaurar padrão
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <NotificationPrompt />
       </div>
