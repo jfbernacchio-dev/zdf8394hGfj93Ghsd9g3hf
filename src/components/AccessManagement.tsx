@@ -52,7 +52,7 @@ export const AccessManagement = () => {
   const [newFullName, setNewFullName] = useState('');
   const [newCpf, setNewCpf] = useState('');
   const [newCrp, setNewCrp] = useState('');
-  const [newRole, setNewRole] = useState<'accountant' | 'admin'>('accountant');
+  const [newRole, setNewRole] = useState<'accountant' | 'admin' | 'therapist'>('therapist');
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
@@ -135,14 +135,20 @@ export const AccessManagement = () => {
         .from('user_roles')
         .insert({
           user_id: data.user.id,
-          role: newRole as 'admin' | 'accountant',
+          role: newRole as 'admin' | 'accountant' | 'therapist',
         });
 
       if (roleError) throw roleError;
 
+      const roleLabels = {
+        admin: 'Administrador',
+        accountant: 'Contador',
+        therapist: 'Terapeuta Full'
+      };
+
       toast({
         title: 'Usuário criado!',
-        description: `Acesso criado para ${newEmail} com perfil de ${newRole === 'accountant' ? 'Contador' : 'Administrador'}.`,
+        description: `Acesso criado para ${newEmail} com perfil de ${roleLabels[newRole]}.`,
       });
 
       // Reset form
@@ -151,7 +157,7 @@ export const AccessManagement = () => {
       setNewFullName('');
       setNewCpf('');
       setNewCrp('');
-      setNewRole('accountant');
+      setNewRole('therapist');
       setIsCreateDialogOpen(false);
       
       loadUsers();
@@ -254,8 +260,10 @@ export const AccessManagement = () => {
         return 'destructive';
       case 'accountant':
         return 'secondary';
-      default:
+      case 'therapist':
         return 'default';
+      default:
+        return 'outline';
     }
   };
 
@@ -265,6 +273,8 @@ export const AccessManagement = () => {
         return 'Administrador';
       case 'accountant':
         return 'Contador';
+      case 'therapist':
+        return 'Terapeuta';
       default:
         return role;
     }
@@ -365,6 +375,7 @@ export const AccessManagement = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="therapist">Terapeuta Full (pode ter subordinados e accountant)</SelectItem>
                       <SelectItem value="accountant">Contador (apenas dados financeiros)</SelectItem>
                       <SelectItem value="admin">Administrador (acesso completo)</SelectItem>
                     </SelectContent>
