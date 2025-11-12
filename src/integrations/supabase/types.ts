@@ -1239,7 +1239,7 @@ export type Database = {
           birth_date: string
           break_time: number | null
           clinical_approach: string | null
-          cpf: string
+          cpf: string | null
           created_at: string
           created_by: string | null
           crp: string | null
@@ -1257,7 +1257,7 @@ export type Database = {
           birth_date: string
           break_time?: number | null
           clinical_approach?: string | null
-          cpf: string
+          cpf?: string | null
           created_at?: string
           created_by?: string | null
           crp?: string | null
@@ -1275,7 +1275,7 @@ export type Database = {
           birth_date?: string
           break_time?: number | null
           clinical_approach?: string | null
-          cpf?: string
+          cpf?: string | null
           created_at?: string
           created_by?: string | null
           crp?: string | null
