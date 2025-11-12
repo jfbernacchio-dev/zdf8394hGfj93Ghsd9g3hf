@@ -84,6 +84,38 @@ Deno.serve(async (req) => {
       );
     }
 
+    // FASE 2: Verificar se usuário é um Therapist Full com subordinados
+    const { data: subordinates, error: subordinatesError } = await supabaseClient
+      .from('therapist_assignments')
+      .select('subordinate_id')
+      .eq('manager_id', userId);
+
+    if (subordinatesError) {
+      console.error('Erro ao verificar subordinados:', subordinatesError);
+      return new Response(
+        JSON.stringify({ error: 'Erro ao verificar subordinados do terapeuta' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Se tem subordinados, deletar todos antes (cascade será automático via FK, mas vamos garantir)
+    if (subordinates && subordinates.length > 0) {
+      console.log(`Terapeuta Full com ${subordinates.length} subordinados será deletado. Cascade delete aplicado.`);
+      
+      // Os subordinados serão deletados automaticamente via cascade DELETE na FK
+      // Mas podemos deletar explicitamente para ter mais controle e logs
+      for (const sub of subordinates) {
+        const { error: deleteSubError } = await supabaseAdmin.auth.admin.deleteUser(sub.subordinate_id);
+        
+        if (deleteSubError) {
+          console.error(`Erro ao deletar subordinado ${sub.subordinate_id}:`, deleteSubError);
+          // Continuar mesmo com erro, o cascade FK vai deletar
+        } else {
+          console.log(`Subordinado ${sub.subordinate_id} deletado com sucesso.`);
+        }
+      }
+    }
+
     // Deletar o usuário usando admin client
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
 
