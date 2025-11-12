@@ -96,6 +96,15 @@ export const AccessManagement = () => {
         const supervisor = supervisors?.find(s => s.id === profile.created_by);
         const isSubordinate = !!profile.created_by;
         
+        // LOG DETALHADO
+        console.log('=== USUÁRIO CARREGADO ===');
+        console.log('Nome:', profile.full_name);
+        console.log('ID:', profile.id);
+        console.log('Roles encontradas:', userRoles);
+        console.log('É subordinado?:', isSubordinate);
+        console.log('Created by:', profile.created_by);
+        console.log('=========================');
+        
         return {
           id: profile.id,
           email: `${profile.id.substring(0, 8)}...`,
@@ -437,17 +446,34 @@ export const AccessManagement = () => {
                 const hasAccountantRole = user.roles.includes('accountant');
                 const hasTherapistRole = user.roles.includes('therapist');
                 
+                // LOG DETALHADO DA RENDERIZAÇÃO
+                console.log('>>> RENDERIZANDO USUÁRIO:', user.full_name);
+                console.log('    Roles array:', user.roles);
+                console.log('    hasAdminRole:', hasAdminRole);
+                console.log('    hasAccountantRole:', hasAccountantRole);
+                console.log('    hasTherapistRole:', hasTherapistRole);
+                console.log('    is_subordinate:', user.is_subordinate);
+                
                 // Determinar o tipo principal do usuário
                 let userType = null;
+                let userTypeDebug = 'NENHUM';
+                
                 if (hasAdminRole) {
                   userType = <Badge variant="destructive">Administrador</Badge>;
+                  userTypeDebug = 'ADMIN';
                 } else if (hasAccountantRole && !hasTherapistRole) {
                   userType = <Badge variant="secondary">Contador</Badge>;
+                  userTypeDebug = 'CONTADOR';
                 } else if (user.is_subordinate) {
                   userType = <Badge className="bg-yellow-500 text-white hover:bg-yellow-600">Subordinado</Badge>;
+                  userTypeDebug = 'SUBORDINADO';
                 } else if (hasTherapistRole || (!hasAdminRole && !hasAccountantRole && !user.is_subordinate)) {
                   userType = <Badge className="bg-green-600 text-white hover:bg-green-700">Terapeuta Full</Badge>;
+                  userTypeDebug = 'TERAPEUTA FULL';
                 }
+                
+                console.log('    >>> TIPO DEFINIDO:', userTypeDebug);
+                console.log('    >>> userType é null?:', userType === null);
                 
                 // Permissões extras (accountant)
                 const extraPermissions = hasAccountantRole ? (
