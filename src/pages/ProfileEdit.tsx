@@ -554,7 +554,7 @@ const ProfileEdit = () => {
                   <div className="pt-4 border-t">
                     <Label htmlFor="accountant-select" className="mb-2 block">Contador Responsável (opcional)</Label>
                     <div className="space-y-2">
-                      <Select value={selectedAccountantId || undefined} onValueChange={setSelectedAccountantId}>
+                      <Select value={selectedAccountantId} onValueChange={setSelectedAccountantId}>
                         <SelectTrigger id="accountant-select">
                           <SelectValue placeholder="Nenhum contador selecionado" />
                         </SelectTrigger>
