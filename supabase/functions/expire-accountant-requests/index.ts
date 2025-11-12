@@ -48,31 +48,39 @@ Deno.serve(async (req) => {
 
     // Para cada request expirado, deletar assignment e request
     for (const request of expiredRequests) {
-      // Deletar assignment
-      const { error: assignError } = await supabase
-        .from('accountant_therapist_assignments')
-        .delete()
-        .eq('therapist_id', request.therapist_id)
-        .eq('accountant_id', request.accountant_id);
+      try {
+        console.log(`🗑️ Processing expired request: ${request.id}`);
+        
+        // 1. DELETAR ASSIGNMENT PRIMEIRO (permanente)
+        const { error: assignError } = await supabase
+          .from('accountant_therapist_assignments')
+          .delete()
+          .eq('therapist_id', request.therapist_id)
+          .eq('accountant_id', request.accountant_id);
 
-      if (assignError) {
-        console.error(`❌ Error deleting assignment for request ${request.id}:`, assignError);
-      } else {
-        deletedAssignments++;
-        console.log(`✅ Deleted assignment for request ${request.id}`);
-      }
+        if (assignError) {
+          console.error(`❌ Error deleting assignment:`, assignError);
+          // Continuar mesmo se assignment não existir (pode já ter sido deletado)
+        } else {
+          deletedAssignments++;
+          console.log(`✅ Assignment deleted for therapist ${request.therapist_id}`);
+        }
 
-      // Deletar request
-      const { error: requestError } = await supabase
-        .from('accountant_requests')
-        .delete()
-        .eq('id', request.id);
+        // 2. DELETAR REQUEST
+        const { error: requestError } = await supabase
+          .from('accountant_requests')
+          .delete()
+          .eq('id', request.id);
 
-      if (requestError) {
-        console.error(`❌ Error deleting request ${request.id}:`, requestError);
-      } else {
+        if (requestError) {
+          console.error(`❌ Error deleting request:`, requestError);
+          continue;
+        }
+
         deletedRequests++;
-        console.log(`✅ Deleted request ${request.id}`);
+        console.log(`✅ Request ${request.id} deleted successfully`);
+      } catch (error) {
+        console.error(`❌ Error processing request ${request.id}:`, error);
       }
     }
 
@@ -89,8 +97,9 @@ Deno.serve(async (req) => {
     );
   } catch (error) {
     console.error('❌ Error in expire-accountant-requests function:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errorMessage }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }

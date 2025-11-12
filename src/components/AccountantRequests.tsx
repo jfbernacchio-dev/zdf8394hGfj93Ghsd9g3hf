@@ -74,7 +74,6 @@ export const AccountantRequests = () => {
   const handleRequest = async (requestId: string, approve: boolean) => {
     try {
       const newStatus = approve ? 'approved' : 'rejected';
-      const request = requests.find(r => r.id === requestId);
       
       // Atualizar status do request
       const { error: updateError } = await supabase
@@ -87,22 +86,14 @@ export const AccountantRequests = () => {
 
       if (updateError) throw updateError;
 
-      // Se rejeitado, deletar o assignment criado pelo terapeuta
-      if (!approve && request) {
-        const { error: deleteError } = await supabase
-          .from('accountant_therapist_assignments')
-          .delete()
-          .eq('therapist_id', request.therapist_id)
-          .eq('accountant_id', request.accountant_id);
-
-        if (deleteError) throw deleteError;
-      }
-
+      // NÃO deletar assignment aqui
+      // O terapeuta irá detectar a rejeição via polling e deletar seu próprio assignment
+      
       toast({
         title: approve ? 'Pedido aprovado' : 'Pedido rejeitado',
         description: approve 
           ? 'Você agora tem acesso aos dados financeiros deste terapeuta.'
-          : 'O pedido foi rejeitado e o assignment foi removido.',
+          : 'O pedido foi rejeitado. O terapeuta será notificado.',
       });
 
       loadRequests();

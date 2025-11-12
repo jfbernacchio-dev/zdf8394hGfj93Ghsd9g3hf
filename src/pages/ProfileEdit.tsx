@@ -96,6 +96,12 @@ const ProfileEdit = () => {
       console.log('✅ Chamando loadAccountants e loadCurrentAccountant');
       loadAccountants();
       loadCurrentAccountant();
+      
+      // Polling para detectar rejeições
+      checkForRejectedRequests();
+      const interval = setInterval(checkForRejectedRequests, 30000); // 30s
+      
+      return () => clearInterval(interval);
     }
   }, [isAccountant, isSubordinate, user, profile]); // Adicionado profile para recarregar quando perfil atualizar
 
@@ -189,6 +195,51 @@ const ProfileEdit = () => {
     }
   };
 
+  const checkForRejectedRequests = async () => {
+    if (!user) return;
+    
+    try {
+      // Buscar requests rejeitados
+      const { data: rejected } = await supabase
+        .from('accountant_requests')
+        .select('accountant_id')
+        .eq('therapist_id', user.id)
+        .eq('status', 'rejected')
+        .order('responded_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (rejected) {
+        console.log('❌ Request rejeitado detectado, limpando assignment...');
+        
+        // Deletar o assignment correspondente
+        await supabase
+          .from('accountant_therapist_assignments')
+          .delete()
+          .eq('therapist_id', user.id)
+          .eq('accountant_id', rejected.accountant_id);
+
+        // Deletar o request rejeitado
+        await supabase
+          .from('accountant_requests')
+          .delete()
+          .eq('therapist_id', user.id)
+          .eq('status', 'rejected');
+
+        // Limpar seleção
+        setSelectedAccountantId('');
+
+        toast({
+          title: 'Pedido rejeitado',
+          description: 'O contador rejeitou seu pedido de subordinação.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error: any) {
+      console.error('Erro ao verificar rejeições:', error);
+    }
+  };
+
   const handleWorkDayToggle = (day: number) => {
     setWorkDays(prev =>
       prev.includes(day)
@@ -244,32 +295,39 @@ const ProfileEdit = () => {
 
         // Se mudou o contador ou não tinha contador
         if (!existingAssignment || existingAssignment.accountant_id !== selectedAccountantId) {
-          // Verificar se já existe um pedido pendente para este contador
-          const { data: existingRequest } = await supabase
-            .from('accountant_requests')
-            .select('id')
-            .eq('therapist_id', user!.id)
-            .eq('accountant_id', selectedAccountantId)
-            .eq('status', 'pending')
-            .maybeSingle();
-
-          if (!existingRequest) {
-            // Criar pedido de subordinação
-            const { error: requestError } = await supabase
-              .from('accountant_requests')
-              .insert({
-                therapist_id: user!.id,
-                accountant_id: selectedAccountantId,
-                status: 'pending',
-              });
-
-            if (requestError) throw requestError;
-
-            toast({
-              title: 'Pedido enviado',
-              description: 'O contador receberá uma notificação e deverá aprovar o pedido.',
+          // 1. CRIAR ASSIGNMENT PRIMEIRO (permanente)
+          const { error: assignmentError } = await supabase
+            .from('accountant_therapist_assignments')
+            .insert({
+              therapist_id: user!.id,
+              accountant_id: selectedAccountantId,
             });
+          
+          if (assignmentError) throw assignmentError;
+
+          // 2. CRIAR REQUEST PENDENTE
+          const { error: requestError } = await supabase
+            .from('accountant_requests')
+            .insert({
+              therapist_id: user!.id,
+              accountant_id: selectedAccountantId,
+              status: 'pending',
+            });
+            
+          if (requestError) {
+            // Se request falhar, rollback do assignment criado
+            await supabase
+              .from('accountant_therapist_assignments')
+              .delete()
+              .eq('therapist_id', user!.id)
+              .eq('accountant_id', selectedAccountantId);
+            throw requestError;
           }
+
+          toast({
+            title: 'Pedido enviado',
+            description: 'O contador receberá uma notificação e deverá aprovar o pedido.',
+          });
         }
       }
 
