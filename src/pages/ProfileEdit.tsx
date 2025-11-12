@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -134,6 +135,18 @@ const ProfileEdit = () => {
 
       if (data) {
         setSelectedAccountantId(data.accountant_id);
+      } else {
+        // Se não tem assignment, verificar se há um pedido pendente
+        const { data: pendingRequest } = await supabase
+          .from('accountant_requests')
+          .select('accountant_id')
+          .eq('therapist_id', user!.id)
+          .eq('status', 'pending')
+          .maybeSingle();
+
+        if (pendingRequest) {
+          setSelectedAccountantId(pendingRequest.accountant_id);
+        }
       }
     } catch (error: any) {
       console.error('Erro ao carregar contador atual:', error);
@@ -185,23 +198,42 @@ const ProfileEdit = () => {
       }
 
       // Atualizar contador se for Terapeuta Full
-      if (!isAccountant && !isSubordinate) {
-        // Remover atribuição anterior
-        await supabase
+      if (!isAccountant && !isSubordinate && selectedAccountantId) {
+        // Verificar se já tem um assignment ativo
+        const { data: existingAssignment } = await supabase
           .from('accountant_therapist_assignments')
-          .delete()
-          .eq('therapist_id', user!.id);
+          .select('accountant_id')
+          .eq('therapist_id', user!.id)
+          .maybeSingle();
 
-        // Adicionar nova atribuição se um contador foi selecionado
-        if (selectedAccountantId) {
-          const { error: assignError } = await supabase
-            .from('accountant_therapist_assignments')
-            .insert({
-              therapist_id: user!.id,
-              accountant_id: selectedAccountantId,
+        // Se mudou o contador ou não tinha contador
+        if (!existingAssignment || existingAssignment.accountant_id !== selectedAccountantId) {
+          // Verificar se já existe um pedido pendente para este contador
+          const { data: existingRequest } = await supabase
+            .from('accountant_requests')
+            .select('id')
+            .eq('therapist_id', user!.id)
+            .eq('accountant_id', selectedAccountantId)
+            .eq('status', 'pending')
+            .maybeSingle();
+
+          if (!existingRequest) {
+            // Criar pedido de subordinação
+            const { error: requestError } = await supabase
+              .from('accountant_requests')
+              .insert({
+                therapist_id: user!.id,
+                accountant_id: selectedAccountantId,
+                status: 'pending',
+              });
+
+            if (requestError) throw requestError;
+
+            toast({
+              title: 'Pedido enviado',
+              description: 'O contador receberá uma notificação e deverá aprovar o pedido.',
             });
-
-          if (assignError) throw assignError;
+          }
         }
       }
 
@@ -494,24 +526,30 @@ const ProfileEdit = () => {
                           {availableAccountants.map((accountant) => (
                             <SelectItem key={accountant.id} value={accountant.id}>
                               {accountant.full_name}
+                              {selectedAccountantId === accountant.id && ' ✓'}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                       {selectedAccountantId && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setSelectedAccountantId('')}
-                          className="text-xs"
-                        >
-                          Remover contador
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Badge className="bg-green-600">
+                            Contador Ativo
+                          </Badge>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedAccountantId('')}
+                            className="text-xs"
+                          >
+                            Remover contador
+                          </Button>
+                        </div>
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground mt-2">
-                      O contador terá acesso aos seus dados financeiros e poderá emitir notas fiscais.
+                      O contador precisa aprovar o pedido antes de ter acesso aos seus dados financeiros.
                     </p>
                   </div>
                 )}

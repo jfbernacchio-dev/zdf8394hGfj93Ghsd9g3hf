@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AccountantRequests } from "@/components/AccountantRequests";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -236,6 +237,9 @@ const AccountantDashboard = () => {
             )}
           </div>
         </div>
+
+        {/* Seção de Pedidos de Subordinação */}
+        <AccountantRequests />
 
         {loading ? (
           <div className="text-center py-12 text-muted-foreground">

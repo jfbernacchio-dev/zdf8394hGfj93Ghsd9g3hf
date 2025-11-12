@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      accountant_requests: {
+        Row: {
+          accountant_id: string
+          created_at: string
+          id: string
+          requested_at: string
+          responded_at: string | null
+          status: string
+          therapist_id: string
+          updated_at: string
+        }
+        Insert: {
+          accountant_id: string
+          created_at?: string
+          id?: string
+          requested_at?: string
+          responded_at?: string | null
+          status?: string
+          therapist_id: string
+          updated_at?: string
+        }
+        Update: {
+          accountant_id?: string
+          created_at?: string
+          id?: string
+          requested_at?: string
+          responded_at?: string | null
+          status?: string
+          therapist_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       accountant_therapist_assignments: {
         Row: {
           accountant_id: string
