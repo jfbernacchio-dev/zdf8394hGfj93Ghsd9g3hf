@@ -38,6 +38,9 @@ interface UserWithRoles {
   full_name: string;
   cpf: string;
   roles: string[];
+  created_by: string | null;
+  supervisor_name: string | null;
+  is_subordinate: boolean;
 }
 
 export const AccessManagement = () => {
@@ -63,11 +66,10 @@ export const AccessManagement = () => {
     try {
       setLoading(true);
       
-      // Buscar todos os profiles com auth.users via RPC ou edge function
-      // Por enquanto, vamos pegar só os profiles
+      // Buscar todos os profiles com informações de subordinação
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, full_name, cpf')
+        .select('id, full_name, cpf, created_by')
         .order('full_name');
 
       if (profilesError) throw profilesError;
@@ -79,16 +81,30 @@ export const AccessManagement = () => {
 
       if (rolesError) throw rolesError;
 
+      // Buscar informações dos supervisores
+      const supervisorIds = profiles?.filter(p => p.created_by).map(p => p.created_by) || [];
+      const { data: supervisors, error: supervisorsError } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', supervisorIds);
+
+      if (supervisorsError) throw supervisorsError;
+
       // Montar lista de usuários
       const usersWithRoles: UserWithRoles[] = (profiles || []).map(profile => {
         const userRoles = roles?.filter(r => r.user_id === profile.id).map(r => r.role) || [];
+        const supervisor = supervisors?.find(s => s.id === profile.created_by);
+        const isSubordinate = !!profile.created_by;
         
         return {
           id: profile.id,
-          email: `${profile.id.substring(0, 8)}...`, // Temporário até implementar edge function
+          email: `${profile.id.substring(0, 8)}...`,
           full_name: profile.full_name,
           cpf: profile.cpf,
           roles: userRoles,
+          created_by: profile.created_by,
+          supervisor_name: supervisor?.full_name || null,
+          is_subordinate: isSubordinate,
         };
       });
 
@@ -408,83 +424,102 @@ export const AccessManagement = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
-                <TableHead>Email</TableHead>
                 <TableHead>CPF</TableHead>
-                <TableHead>Permissões</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Subordinado a</TableHead>
+                <TableHead>Permissões Extras</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.full_name}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell className="text-muted-foreground">{user.cpf}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      {user.roles.length === 0 ? (
-                        <Badge variant="outline">Usuário</Badge>
-                      ) : (
-                        user.roles.map((role) => (
-                          <Badge key={role} variant={getRoleBadgeVariant(role)}>
-                            {getRoleLabel(role)}
-                          </Badge>
-                        ))
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex gap-2 justify-end">
-                      <Button
-                        size="sm"
-                        variant={user.roles.includes('accountant') ? 'destructive' : 'outline'}
-                        onClick={() => handleToggleRole(user.id, 'accountant', user.roles.includes('accountant'))}
-                      >
-                        {user.roles.includes('accountant') ? (
-                          <>
-                            <UserMinus className="w-3 h-3 mr-1" />
-                            Remover Contador
-                          </>
-                        ) : (
-                          <>
-                            <Shield className="w-3 h-3 mr-1" />
-                            Adicionar Contador
-                          </>
-                        )}
-                      </Button>
-                      
-                      <Button
-                        size="sm"
-                        variant={user.roles.includes('admin') ? 'destructive' : 'outline'}
-                        onClick={() => handleToggleRole(user.id, 'admin', user.roles.includes('admin'))}
-                      >
-                        {user.roles.includes('admin') ? (
-                          <>
-                            <UserMinus className="w-3 h-3 mr-1" />
-                            Remover Admin
-                          </>
-                        ) : (
-                          <>
-                            <Shield className="w-3 h-3 mr-1" />
-                            Adicionar Admin
-                          </>
-                        )}
-                      </Button>
+              {users.map((user) => {
+                const hasAdminRole = user.roles.includes('admin');
+                const hasAccountantRole = user.roles.includes('accountant');
+                const hasTherapistRole = user.roles.includes('therapist');
+                
+                // Determinar o tipo principal do usuário
+                let userType = null;
+                if (hasAdminRole) {
+                  userType = <Badge variant="destructive">Administrador</Badge>;
+                } else if (user.is_subordinate) {
+                  userType = <Badge className="bg-yellow-500 text-white hover:bg-yellow-600">Subordinado</Badge>;
+                } else if (hasTherapistRole || (!hasAdminRole && !hasAccountantRole && !user.is_subordinate)) {
+                  userType = <Badge className="bg-green-600 text-white hover:bg-green-700">Terapeuta Full</Badge>;
+                }
+                
+                // Permissões extras (accountant)
+                const extraPermissions = hasAccountantRole ? (
+                  <Badge variant="secondary">Contador</Badge>
+                ) : (
+                  <span className="text-muted-foreground text-sm">-</span>
+                );
 
-                      {!user.roles.includes('admin') && (
+                return (
+                  <TableRow key={user.id}>
+                    <TableCell className="font-medium">{user.full_name}</TableCell>
+                    <TableCell className="text-muted-foreground">{user.cpf}</TableCell>
+                    <TableCell>{userType}</TableCell>
+                    <TableCell>
+                      {user.supervisor_name ? (
+                        <span className="text-sm">{user.supervisor_name}</span>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>{extraPermissions}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex gap-2 justify-end">
                         <Button
                           size="sm"
-                          variant="destructive"
-                          onClick={() => handleDeleteUser(user.id, user.full_name)}
-                          title="Deletar usuário permanentemente"
+                          variant={hasAccountantRole ? 'destructive' : 'outline'}
+                          onClick={() => handleToggleRole(user.id, 'accountant', hasAccountantRole)}
                         >
-                          <Trash2 className="w-3 h-3" />
+                          {hasAccountantRole ? (
+                            <>
+                              <UserMinus className="w-3 h-3 mr-1" />
+                              Remover Contador
+                            </>
+                          ) : (
+                            <>
+                              <Shield className="w-3 h-3 mr-1" />
+                              Adicionar Contador
+                            </>
+                          )}
                         </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+                        
+                        <Button
+                          size="sm"
+                          variant={hasAdminRole ? 'destructive' : 'outline'}
+                          onClick={() => handleToggleRole(user.id, 'admin', hasAdminRole)}
+                        >
+                          {hasAdminRole ? (
+                            <>
+                              <UserMinus className="w-3 h-3 mr-1" />
+                              Remover Admin
+                            </>
+                          ) : (
+                            <>
+                              <Shield className="w-3 h-3 mr-1" />
+                              Adicionar Admin
+                            </>
+                          )}
+                        </Button>
+
+                        {!hasAdminRole && (
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleDeleteUser(user.id, user.full_name)}
+                            title="Deletar usuário permanentemente"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>
