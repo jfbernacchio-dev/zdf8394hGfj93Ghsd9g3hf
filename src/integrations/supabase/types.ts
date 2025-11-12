@@ -1242,7 +1242,7 @@ export type Database = {
           cpf: string
           created_at: string
           created_by: string | null
-          crp: string
+          crp: string | null
           full_name: string
           id: string
           phone: string | null
@@ -1260,7 +1260,7 @@ export type Database = {
           cpf: string
           created_at?: string
           created_by?: string | null
-          crp: string
+          crp?: string | null
           full_name: string
           id: string
           phone?: string | null
@@ -1278,7 +1278,7 @@ export type Database = {
           cpf?: string
           created_at?: string
           created_by?: string | null
-          crp?: string
+          crp?: string | null
           full_name?: string
           id?: string
           phone?: string | null

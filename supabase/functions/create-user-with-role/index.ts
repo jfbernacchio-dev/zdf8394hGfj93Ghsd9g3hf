@@ -72,16 +72,22 @@ Deno.serve(async (req) => {
     }
 
     // Criar usuário usando admin client
+    const metadata: Record<string, string> = {
+      full_name: full_name || '',
+      cpf: cpf || '',
+      birth_date: birth_date || '2000-01-01',
+    };
+
+    // Apenas terapeutas precisam de CRP
+    if (role === 'therapist' || role === 'admin') {
+      metadata.crp = crp || '';
+    }
+
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
       email_confirm: true, // Auto-confirmar email
-      user_metadata: {
-        full_name: full_name || '',
-        cpf: cpf || '',
-        crp: crp || '',
-        birth_date: birth_date || '2000-01-01',
-      }
+      user_metadata: metadata,
     });
 
     if (createError) {
