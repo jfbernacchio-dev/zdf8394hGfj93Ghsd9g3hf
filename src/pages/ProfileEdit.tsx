@@ -54,6 +54,11 @@ const ProfileEdit = () => {
   const [selectedTherapists, setSelectedTherapists] = useState<string[]>([]);
   const [loadingSubordination, setLoadingSubordination] = useState(false);
   
+  // Para Terapeuta Full escolher seu contador
+  const [availableAccountants, setAvailableAccountants] = useState<Array<{ id: string; full_name: string }>>([]);
+  const [selectedAccountantId, setSelectedAccountantId] = useState<string>('');
+  const [isSubordinate, setIsSubordinate] = useState(false);
+  
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -71,11 +76,69 @@ const ProfileEdit = () => {
       setWorkEndTime(profile.work_end_time || '18:00');
       setSlotDuration(profile.slot_duration || 60);
       setBreakTime(profile.break_time || 15);
+      
+      setIsSubordinate(!!profile.created_by);
     }
     if (user) {
       setEmail(user.email || '');
     }
   }, [profile, user]);
+
+  useEffect(() => {
+    if (!isAccountant && !isSubordinate && user) {
+      loadAccountants();
+      loadCurrentAccountant();
+    }
+  }, [isAccountant, isSubordinate, user]);
+
+  const loadAccountants = async () => {
+    try {
+      // Buscar todos os usuários com role accountant
+      const { data: accountantRoles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'accountant');
+
+      if (rolesError) throw rolesError;
+
+      const accountantIds = accountantRoles?.map(r => r.user_id) || [];
+
+      if (accountantIds.length === 0) {
+        setAvailableAccountants([]);
+        return;
+      }
+
+      const { data: accountants, error: accountantsError } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', accountantIds)
+        .order('full_name');
+
+      if (accountantsError) throw accountantsError;
+
+      setAvailableAccountants(accountants || []);
+    } catch (error: any) {
+      console.error('Erro ao carregar contadores:', error);
+    }
+  };
+
+  const loadCurrentAccountant = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('accountant_therapist_assignments')
+        .select('accountant_id')
+        .eq('therapist_id', user!.id)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        setSelectedAccountantId(data.accountant_id);
+      }
+    } catch (error: any) {
+      console.error('Erro ao carregar contador atual:', error);
+    }
+  };
 
   const handleWorkDayToggle = (day: number) => {
     setWorkDays(prev =>
@@ -119,6 +182,27 @@ const ProfileEdit = () => {
           password: newPassword,
         });
         if (passwordError) throw passwordError;
+      }
+
+      // Atualizar contador se for Terapeuta Full
+      if (!isAccountant && !isSubordinate) {
+        // Remover atribuição anterior
+        await supabase
+          .from('accountant_therapist_assignments')
+          .delete()
+          .eq('therapist_id', user!.id);
+
+        // Adicionar nova atribuição se um contador foi selecionado
+        if (selectedAccountantId) {
+          const { error: assignError } = await supabase
+            .from('accountant_therapist_assignments')
+            .insert({
+              therapist_id: user!.id,
+              accountant_id: selectedAccountantId,
+            });
+
+          if (assignError) throw assignError;
+        }
       }
 
       toast({
@@ -395,6 +479,28 @@ const ProfileEdit = () => {
                     <Label htmlFor="send-nfse" className="cursor-pointer">
                       Enviar NFSe para terapeuta (cópia no email e telefone)
                     </Label>
+                  </div>
+                )}
+
+                {!isAccountant && !isSubordinate && (
+                  <div className="pt-4 border-t">
+                    <Label htmlFor="accountant-select" className="mb-2 block">Contador Responsável (opcional)</Label>
+                    <Select value={selectedAccountantId} onValueChange={setSelectedAccountantId}>
+                      <SelectTrigger id="accountant-select">
+                        <SelectValue placeholder="Selecione um contador" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Nenhum contador</SelectItem>
+                        {availableAccountants.map((accountant) => (
+                          <SelectItem key={accountant.id} value={accountant.id}>
+                            {accountant.full_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      O contador terá acesso aos seus dados financeiros e poderá emitir notas fiscais.
+                    </p>
                   </div>
                 )}
 
