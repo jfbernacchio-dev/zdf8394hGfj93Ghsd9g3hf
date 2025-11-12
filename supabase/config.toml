@@ -30,6 +30,9 @@ verify_jwt = true
 [functions.whatsapp-webhook]
 verify_jwt = false
 
+[functions.expire-accountant-requests]
+verify_jwt = false
+
 [functions.send-whatsapp-reply]
 verify_jwt = true
 
