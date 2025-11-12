@@ -485,19 +485,31 @@ const ProfileEdit = () => {
                 {!isAccountant && !isSubordinate && (
                   <div className="pt-4 border-t">
                     <Label htmlFor="accountant-select" className="mb-2 block">Contador Responsável (opcional)</Label>
-                    <Select value={selectedAccountantId} onValueChange={setSelectedAccountantId}>
-                      <SelectTrigger id="accountant-select">
-                        <SelectValue placeholder="Selecione um contador" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">Nenhum contador</SelectItem>
-                        {availableAccountants.map((accountant) => (
-                          <SelectItem key={accountant.id} value={accountant.id}>
-                            {accountant.full_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="space-y-2">
+                      <Select value={selectedAccountantId || undefined} onValueChange={setSelectedAccountantId}>
+                        <SelectTrigger id="accountant-select">
+                          <SelectValue placeholder="Nenhum contador selecionado" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableAccountants.map((accountant) => (
+                            <SelectItem key={accountant.id} value={accountant.id}>
+                              {accountant.full_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {selectedAccountantId && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSelectedAccountantId('')}
+                          className="text-xs"
+                        >
+                          Remover contador
+                        </Button>
+                      )}
+                    </div>
                     <p className="text-sm text-muted-foreground mt-2">
                       O contador terá acesso aos seus dados financeiros e poderá emitir notas fiscais.
                     </p>
