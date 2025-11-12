@@ -92,7 +92,7 @@ const ProfileEdit = () => {
       loadAccountants();
       loadCurrentAccountant();
     }
-  }, [isAccountant, isSubordinate, user]);
+  }, [isAccountant, isSubordinate, user, profile]); // Adicionado profile para recarregar quando perfil atualizar
 
   const loadAccountants = async () => {
     try {
