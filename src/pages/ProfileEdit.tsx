@@ -91,12 +91,12 @@ const ProfileEdit = () => {
     }
   }, [profile, user]);
 
+  // Primeiro useEffect: Carrega lista de contadores disponíveis
   useEffect(() => {
     console.log('🔄 UseEffect loadAccountants - isAccountant:', isAccountant, 'isSubordinate:', isSubordinate, 'user:', !!user);
     if (!isAccountant && !isSubordinate && user) {
-      console.log('✅ Chamando loadAccountants e loadCurrentAccountant');
+      console.log('✅ Chamando loadAccountants');
       loadAccountants();
-      loadCurrentAccountant();
       
       // Polling para detectar rejeições
       checkForRejectedRequests();
@@ -104,7 +104,16 @@ const ProfileEdit = () => {
       
       return () => clearInterval(interval);
     }
-  }, [isAccountant, isSubordinate, user, profile]); // Adicionado profile para recarregar quando perfil atualizar
+  }, [isAccountant, isSubordinate, user, profile]);
+
+  // Segundo useEffect: Carrega contador atual SOMENTE após lista estar disponível
+  useEffect(() => {
+    console.log('🔄 UseEffect loadCurrentAccountant - availableAccountants length:', availableAccountants.length, 'user:', !!user);
+    if (!isAccountant && !isSubordinate && user && availableAccountants.length > 0) {
+      console.log('✅ Lista de contadores carregada, chamando loadCurrentAccountant');
+      loadCurrentAccountant();
+    }
+  }, [availableAccountants, isAccountant, isSubordinate, user]);
 
   const loadAccountants = async () => {
     try {
