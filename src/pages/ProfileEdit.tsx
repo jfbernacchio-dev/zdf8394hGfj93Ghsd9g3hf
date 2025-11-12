@@ -58,6 +58,11 @@ const ProfileEdit = () => {
   // Para Terapeuta Full escolher seu contador
   const [availableAccountants, setAvailableAccountants] = useState<Array<{ id: string; full_name: string }>>([]);
   const [selectedAccountantId, setSelectedAccountantId] = useState<string>('');
+  
+  // Log sempre que selectedAccountantId mudar
+  useEffect(() => {
+    console.log('🔄 [selectedAccountantId CHANGED] Novo valor:', selectedAccountantId);
+  }, [selectedAccountantId]);
   const [isSubordinate, setIsSubordinate] = useState(false);
   
   const [loading, setLoading] = useState(false);
@@ -139,17 +144,28 @@ const ProfileEdit = () => {
 
   const loadCurrentAccountant = async () => {
     try {
+      console.log('🔍 [loadCurrentAccountant] Iniciando busca...');
+      console.log('🔍 [loadCurrentAccountant] user.id:', user!.id);
+      console.log('🔍 [loadCurrentAccountant] selectedAccountantId ANTES:', selectedAccountantId);
+      
       const { data, error } = await supabase
         .from('accountant_therapist_assignments')
         .select('accountant_id')
         .eq('therapist_id', user!.id)
         .maybeSingle();
 
+      console.log('🔍 [loadCurrentAccountant] Query assignments retornou:', data);
+      console.log('🔍 [loadCurrentAccountant] Erro na query assignments:', error);
+
       if (error) throw error;
 
       if (data) {
+        console.log('✅ [loadCurrentAccountant] Assignment encontrado! accountant_id:', data.accountant_id);
+        console.log('✅ [loadCurrentAccountant] Chamando setSelectedAccountantId com:', data.accountant_id);
         setSelectedAccountantId(data.accountant_id);
+        console.log('✅ [loadCurrentAccountant] setSelectedAccountantId executado');
       } else {
+        console.log('⚠️ [loadCurrentAccountant] Nenhum assignment encontrado, verificando pedidos pendentes...');
         // Se não tem assignment, verificar se há um pedido pendente
         const { data: pendingRequest } = await supabase
           .from('accountant_requests')
@@ -158,12 +174,18 @@ const ProfileEdit = () => {
           .eq('status', 'pending')
           .maybeSingle();
 
+        console.log('🔍 [loadCurrentAccountant] Query requests retornou:', pendingRequest);
+
         if (pendingRequest) {
+          console.log('✅ [loadCurrentAccountant] Pedido pendente encontrado! accountant_id:', pendingRequest.accountant_id);
           setSelectedAccountantId(pendingRequest.accountant_id);
+        } else {
+          console.log('⚠️ [loadCurrentAccountant] Nenhum pedido pendente encontrado');
+          console.log('⚠️ [loadCurrentAccountant] selectedAccountantId permanecerá:', selectedAccountantId);
         }
       }
     } catch (error: any) {
-      console.error('Erro ao carregar contador atual:', error);
+      console.error('❌ [loadCurrentAccountant] Erro:', error);
     }
   };
 
