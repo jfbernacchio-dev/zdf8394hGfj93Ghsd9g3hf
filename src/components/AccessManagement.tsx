@@ -441,6 +441,8 @@ export const AccessManagement = () => {
                 let userType = null;
                 if (hasAdminRole) {
                   userType = <Badge variant="destructive">Administrador</Badge>;
+                } else if (hasAccountantRole && !hasTherapistRole) {
+                  userType = <Badge variant="secondary">Contador</Badge>;
                 } else if (user.is_subordinate) {
                   userType = <Badge className="bg-yellow-500 text-white hover:bg-yellow-600">Subordinado</Badge>;
                 } else if (hasTherapistRole || (!hasAdminRole && !hasAccountantRole && !user.is_subordinate)) {
