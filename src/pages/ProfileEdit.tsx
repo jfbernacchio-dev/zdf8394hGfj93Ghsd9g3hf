@@ -86,7 +86,9 @@ const ProfileEdit = () => {
   }, [profile, user]);
 
   useEffect(() => {
+    console.log('🔄 UseEffect loadAccountants - isAccountant:', isAccountant, 'isSubordinate:', isSubordinate, 'user:', !!user);
     if (!isAccountant && !isSubordinate && user) {
+      console.log('✅ Chamando loadAccountants e loadCurrentAccountant');
       loadAccountants();
       loadCurrentAccountant();
     }
@@ -94,17 +96,25 @@ const ProfileEdit = () => {
 
   const loadAccountants = async () => {
     try {
+      console.log('🔍 Carregando contadores...');
+      
       // Buscar todos os usuários com role accountant
       const { data: accountantRoles, error: rolesError } = await supabase
         .from('user_roles')
         .select('user_id')
         .eq('role', 'accountant');
 
-      if (rolesError) throw rolesError;
+      console.log('📋 Roles encontradas:', accountantRoles);
+      if (rolesError) {
+        console.error('❌ Erro ao buscar roles:', rolesError);
+        throw rolesError;
+      }
 
       const accountantIds = accountantRoles?.map(r => r.user_id) || [];
+      console.log('👥 IDs de contadores:', accountantIds);
 
       if (accountantIds.length === 0) {
+        console.log('⚠️ Nenhum contador encontrado');
         setAvailableAccountants([]);
         return;
       }
@@ -115,11 +125,15 @@ const ProfileEdit = () => {
         .in('id', accountantIds)
         .order('full_name');
 
-      if (accountantsError) throw accountantsError;
+      console.log('✅ Contadores carregados:', accountants);
+      if (accountantsError) {
+        console.error('❌ Erro ao buscar profiles:', accountantsError);
+        throw accountantsError;
+      }
 
       setAvailableAccountants(accountants || []);
     } catch (error: any) {
-      console.error('Erro ao carregar contadores:', error);
+      console.error('❌ Erro ao carregar contadores:', error);
     }
   };
 
