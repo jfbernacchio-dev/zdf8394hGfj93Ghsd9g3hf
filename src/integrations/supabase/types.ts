@@ -1577,6 +1577,42 @@ export type Database = {
         }
         Relationships: []
       }
+      therapist_assignments: {
+        Row: {
+          created_at: string | null
+          id: string
+          manager_id: string
+          subordinate_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          manager_id: string
+          subordinate_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          manager_id?: string
+          subordinate_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "therapist_assignments_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "therapist_assignments_subordinate_id_fkey"
+            columns: ["subordinate_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       therapist_notifications: {
         Row: {
           admin_id: string
@@ -1796,6 +1832,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_manager_id: { Args: { _subordinate_id: string }; Returns: string }
+      get_subordinate_ids: { Args: { _manager_id: string }; Returns: string[] }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1803,6 +1841,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_subordinate: { Args: { _user_id: string }; Returns: boolean }
       validate_cpf: { Args: { cpf_input: string }; Returns: boolean }
     }
     Enums: {
