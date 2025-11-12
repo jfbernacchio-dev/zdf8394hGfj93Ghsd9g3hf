@@ -109,36 +109,35 @@ export const AccessManagement = () => {
     setCreating(true);
 
     try {
-      // Criar usuário usando signup normal
-      const { data, error: createError } = await supabase.auth.signUp({
-        email: newEmail,
-        password: newPassword,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            full_name: newFullName || '',
-            cpf: newCpf || '',
-            crp: newCrp || '',
-            birth_date: '2000-01-01', // Data padrão
-          }
+      // Usar Edge Function para criar usuário (evita problemas com RLS)
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Sessão não encontrada');
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user-with-role`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: newEmail,
+            password: newPassword,
+            full_name: newFullName,
+            cpf: newCpf,
+            crp: newCrp,
+            birth_date: '2000-01-01',
+            role: newRole,
+          }),
         }
-      });
+      );
 
-      if (createError) throw createError;
-      if (!data.user) throw new Error('Usuário não foi criado');
+      const result = await response.json();
 
-      // Aguardar um pouco para o trigger criar o profile
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Adicionar role
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: data.user.id,
-          role: newRole as 'admin' | 'accountant' | 'therapist',
-        });
-
-      if (roleError) throw roleError;
+      if (!response.ok) {
+        throw new Error(result.error || 'Erro ao criar usuário');
+      }
 
       const roleLabels = {
         admin: 'Administrador',

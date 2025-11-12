@@ -1,5 +1,8 @@
 project_id = "klxyilxprlzhxnwjzcvv"
 
+[functions.create-user-with-role]
+verify_jwt = true
+
 [functions.auto-mark-sessions]
 verify_jwt = false
 
