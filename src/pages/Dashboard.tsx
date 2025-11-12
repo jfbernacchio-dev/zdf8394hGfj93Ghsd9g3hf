@@ -47,6 +47,7 @@ const DashboardTest = () => {
   
   // Add card dialog state
   const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
+  const [showResetDialog, setShowResetDialog] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -390,8 +391,6 @@ const DashboardTest = () => {
     setIsEditMode(false);
     loadLayout();
   };
-
-  const [showResetDialog, setShowResetDialog] = useState(false);
 
   const handleResetLayout = () => {
     resetToDefaultDashboardLayout();
