@@ -13,6 +13,16 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ArrowLeft, Calendar, Users, MessageSquare, Bell, Lock, FileText, Clock, User, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
@@ -56,6 +66,15 @@ const TherapistDetail = () => {
   const [loading, setLoading] = useState(true);
   const [autonomySettings, setAutonomySettings] = useState<AutonomyPermissions | null>(null);
   const [managerHasCNPJ, setManagerHasCNPJ] = useState(false);
+  const [confirmCascadeDialog, setConfirmCascadeDialog] = useState<{
+    open: boolean;
+    field: 'manages_own_patients' | 'has_financial_access';
+    newValue: boolean;
+  }>({
+    open: false,
+    field: 'manages_own_patients',
+    newValue: false
+  });
 
   useEffect(() => {
     if (!isAdmin) {
@@ -226,21 +245,32 @@ const TherapistDetail = () => {
   ) => {
     if (!id || !user) return;
 
-    // Buscar estado atual completo
+    // VALIDAÇÃO DE CASCADE
+    // Se está tentando desligar "manages_own_patients" E "has_financial_access" está ligado
+    if (field === 'manages_own_patients' && value === false && autonomySettings?.hasFinancialAccess) {
+      // Abrir dialog de confirmação em vez de executar diretamente
+      setConfirmCascadeDialog({
+        open: true,
+        field: 'manages_own_patients',
+        newValue: false
+      });
+      return; // PARAR AQUI - não executa o update
+    }
+
+    // Se não precisa de cascade, executar normalmente
     const { data: current } = await supabase
       .from('subordinate_autonomy_settings')
       .select('*')
       .eq('subordinate_id', id)
       .maybeSingle();
 
-    // Fazer merge com novo valor
     const updatedSettings = {
       subordinate_id: id,
       manager_id: user.id,
       manages_own_patients: current?.manages_own_patients || false,
       has_financial_access: current?.has_financial_access || false,
       nfse_emission_mode: current?.nfse_emission_mode || 'own_company',
-      [field]: value  // Sobrescreve apenas o campo modificado
+      [field]: value
     };
 
     const { error } = await supabase
@@ -254,6 +284,70 @@ const TherapistDetail = () => {
 
     toast({ title: 'Configuração atualizada!' });
     loadAutonomySettings();
+  };
+
+  const executeCascadeUpdate = async () => {
+    if (!id || !user) return;
+
+    // Fechar dialog
+    setConfirmCascadeDialog({ 
+      open: false, 
+      field: 'manages_own_patients', 
+      newValue: false 
+    });
+
+    // Executar DUAS atualizações em sequência:
+    // 1. Primeiro desligar has_financial_access
+    // 2. Depois desligar manages_own_patients
+
+    try {
+      // Update 1: Desligar acesso financeiro
+      const { data: current } = await supabase
+        .from('subordinate_autonomy_settings')
+        .select('*')
+        .eq('subordinate_id', id)
+        .maybeSingle();
+
+      const step1 = {
+        subordinate_id: id,
+        manager_id: user.id,
+        manages_own_patients: current?.manages_own_patients || false,
+        has_financial_access: false, // DESLIGANDO
+        nfse_emission_mode: current?.nfse_emission_mode || 'own_company'
+      };
+
+      const { error: error1 } = await supabase
+        .from('subordinate_autonomy_settings')
+        .upsert(step1, { onConflict: 'subordinate_id' });
+
+      if (error1) throw error1;
+
+      // Update 2: Desligar gerenciamento de pacientes
+      const step2 = {
+        ...step1,
+        manages_own_patients: false // DESLIGANDO
+      };
+
+      const { error: error2 } = await supabase
+        .from('subordinate_autonomy_settings')
+        .upsert(step2, { onConflict: 'subordinate_id' });
+
+      if (error2) throw error2;
+
+      toast({ 
+        title: 'Configurações atualizadas!',
+        description: 'Gerenciamento de pacientes e acesso financeiro foram desligados.'
+      });
+      loadAutonomySettings();
+
+    } catch (error) {
+      console.error('Erro no cascade:', error);
+      toast({ 
+        title: 'Erro ao atualizar configurações', 
+        variant: 'destructive' 
+      });
+      loadAutonomySettings(); // Recarregar para reverter estado visual
+    }
   };
 
   const getNotificationIcon = (type: string) => {
@@ -272,7 +366,35 @@ const TherapistDetail = () => {
   if (!therapist) return <div className="container mx-auto p-6">Terapeuta não encontrado</div>;
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <>
+      {/* Dialog de Confirmação de Cascade */}
+      <AlertDialog open={confirmCascadeDialog.open} onOpenChange={(open) => 
+        setConfirmCascadeDialog({ ...confirmCascadeDialog, open })
+      }>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desligar gerenciamento de pacientes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Para desligar o gerenciamento de pacientes próprios, o acesso financeiro também será desligado automaticamente.
+              <br /><br />
+              <strong>Após essa ação:</strong>
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>Subordinado não gerenciará pacientes próprios</li>
+                <li>Subordinado não terá acesso à tela financeira</li>
+                <li>Você (Full) verá todos os pacientes e sessões do subordinado</li>
+              </ul>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={executeCascadeUpdate}>
+              Confirmar e desligar ambos
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <div className="container mx-auto p-6 space-y-6">
         <div className="flex items-center gap-4">
           <Button variant="ghost" onClick={() => navigate('/therapists')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -712,6 +834,7 @@ const TherapistDetail = () => {
           </TabsContent>
         </Tabs>
       </div>
+    </>
   );
 };
 
