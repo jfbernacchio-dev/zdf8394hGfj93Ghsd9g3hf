@@ -3,6 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { getDefaultTemplate, applyLayoutSnapshot } from '@/lib/layoutStorage';
+import { sanitizeCPF } from '@/lib/brazilianFormat';
 
 interface Profile {
   id: string;
@@ -144,7 +145,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         emailRedirectTo: redirectUrl,
         data: {
           full_name: userData.full_name,
-          cpf: userData.cpf,
+          cpf: sanitizeCPF(userData.cpf), // Sanitize CPF before sending
           crp: userData.crp,
           birth_date: userData.birth_date,
         }
@@ -244,7 +245,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         emailRedirectTo: redirectUrl,
         data: {
           full_name: userData.full_name,
-          cpf: userData.cpf,
+          cpf: sanitizeCPF(userData.cpf), // Sanitize CPF before sending
           crp: userData.crp,
           birth_date: userData.birth_date,
           created_by: user?.id,

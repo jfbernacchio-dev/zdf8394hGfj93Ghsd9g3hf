@@ -26,6 +26,7 @@ import { ArrowLeft, CalendarIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { formatCPF, sanitizeCPF } from '@/lib/brazilianFormat';
 
 const NewPatient = () => {
   const navigate = useNavigate();
@@ -79,11 +80,12 @@ const NewPatient = () => {
     try {
       // Check for duplicate CPF if CPF is provided and noNfse is false
       if (formData.cpf && !formData.noNfse) {
+        const sanitizedCpf = sanitizeCPF(formData.cpf);
         const { data: existingPatient } = await supabase
           .from('patients')
           .select('id, name')
           .eq('user_id', user.id)
-          .eq('cpf', formData.cpf)
+          .eq('cpf', sanitizedCpf)
           .maybeSingle();
 
         if (existingPatient) {
@@ -98,11 +100,12 @@ const NewPatient = () => {
 
       // Check for duplicate guardian CPF if minor and guardian CPF provided
       if (formData.isMinor && formData.guardianCpf && formData.nfseIssueTo === 'guardian') {
+        const sanitizedGuardianCpf = sanitizeCPF(formData.guardianCpf);
         const { data: existingGuardian } = await supabase
           .from('patients')
           .select('id, name, guardian_name')
           .eq('user_id', user.id)
-          .eq('guardian_cpf', formData.guardianCpf)
+          .eq('guardian_cpf', sanitizedGuardianCpf)
           .maybeSingle();
 
         if (existingGuardian) {
@@ -131,7 +134,7 @@ const NewPatient = () => {
           name: formData.name,
           email: formData.email || null,
           phone: formData.phone || null,
-          cpf: formData.cpf || null,
+          cpf: sanitizeCPF(formData.cpf) || null,
           birth_date: formData.birthDate || null,
           frequency: formData.frequency || 'weekly',
           session_day: formData.sessionDay || null,
@@ -147,9 +150,9 @@ const NewPatient = () => {
           nfse_max_sessions_per_invoice: formData.nfseMaxSessionsPerInvoice,
           is_minor: formData.isMinor,
           guardian_name: formData.isMinor ? (formData.guardianName || null) : null,
-          guardian_cpf: formData.isMinor ? (formData.guardianCpf || null) : null,
+          guardian_cpf: formData.isMinor ? (sanitizeCPF(formData.guardianCpf) || null) : null,
           guardian_name_2: formData.isMinor ? (formData.guardianName2 || null) : null,
-          guardian_cpf_2: formData.isMinor ? (formData.guardianCpf2 || null) : null,
+          guardian_cpf_2: formData.isMinor ? (sanitizeCPF(formData.guardianCpf2) || null) : null,
           guardian_phone_1: formData.isMinor ? (formData.guardianPhone1 || null) : null,
           guardian_phone_2: formData.isMinor ? (formData.guardianPhone2 || null) : null,
           nfse_issue_to: formData.isMinor ? formData.nfseIssueTo : 'patient',
@@ -430,11 +433,7 @@ const NewPatient = () => {
                   required={!formData.noNfse && (!formData.isMinor || formData.nfseIssueTo === 'patient')}
                   value={formData.cpf}
                   onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, '');
-                    let formatted = value;
-                    if (value.length > 3) formatted = value.slice(0, 3) + '.' + value.slice(3);
-                    if (value.length > 6) formatted = formatted.slice(0, 7) + '.' + value.slice(6);
-                    if (value.length > 9) formatted = formatted.slice(0, 11) + '-' + value.slice(9);
+                    const formatted = formatCPF(e.target.value);
                     setFormData({ ...formData, cpf: formatted });
                   }}
                   maxLength={14}
@@ -530,11 +529,7 @@ const NewPatient = () => {
                       required={!formData.noNfse && formData.isMinor && formData.nfseIssueTo === 'guardian'}
                       value={formData.guardianCpf}
                       onChange={(e) => {
-                        const value = e.target.value.replace(/\D/g, '');
-                        let formatted = value;
-                        if (value.length > 3) formatted = value.slice(0, 3) + '.' + value.slice(3);
-                        if (value.length > 6) formatted = formatted.slice(0, 7) + '.' + value.slice(6);
-                        if (value.length > 9) formatted = formatted.slice(0, 11) + '-' + value.slice(9);
+                        const formatted = formatCPF(e.target.value);
                         setFormData({ ...formData, guardianCpf: formatted });
                       }}
                       maxLength={14}
@@ -579,11 +574,7 @@ const NewPatient = () => {
                       id="guardianCpf2"
                       value={formData.guardianCpf2}
                       onChange={(e) => {
-                        const value = e.target.value.replace(/\D/g, '');
-                        let formatted = value;
-                        if (value.length > 3) formatted = value.slice(0, 3) + '.' + value.slice(3);
-                        if (value.length > 6) formatted = formatted.slice(0, 7) + '.' + value.slice(6);
-                        if (value.length > 9) formatted = formatted.slice(0, 11) + '-' + value.slice(9);
+                        const formatted = formatCPF(e.target.value);
                         setFormData({ ...formData, guardianCpf2: formatted });
                       }}
                       maxLength={14}

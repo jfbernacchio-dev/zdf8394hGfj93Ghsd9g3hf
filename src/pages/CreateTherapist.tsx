@@ -9,10 +9,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ArrowLeft } from 'lucide-react';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
+import { formatCPF, sanitizeCPF } from '@/lib/brazilianFormat';
 
 const therapistSchema = z.object({
   full_name: z.string().min(1, 'Nome completo é obrigatório'),
-  cpf: z.string().min(11, 'CPF deve ter 11 dígitos').max(14),
+  cpf: z.string()
+    .min(11, 'CPF deve ter 11 dígitos')
+    .max(14, 'CPF inválido')
+    .transform(sanitizeCPF) // Sanitize before validation
+    .refine((cpf) => cpf.length === 11, 'CPF deve ter 11 dígitos'),
   crp: z.string().min(1, 'CRP é obrigatório'),
   birth_date: z.string().min(1, 'Data de nascimento é obrigatória'),
   email: z.string().email('Email inválido'),
@@ -100,9 +105,18 @@ const CreateTherapist = () => {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-    if (errors[e.target.name]) {
-      setErrors({ ...errors, [e.target.name]: '' });
+    const { name, value } = e.target;
+    
+    // Auto-format CPF as user types
+    if (name === 'cpf') {
+      const formatted = formatCPF(value);
+      setFormData({ ...formData, [name]: formatted });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
+    
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: '' });
     }
   };
 
@@ -144,6 +158,7 @@ const CreateTherapist = () => {
                 value={formData.cpf}
                 onChange={handleChange}
                 placeholder="000.000.000-00"
+                maxLength={14}
               />
               {errors.cpf && (
                 <p className="text-sm text-destructive">{errors.cpf}</p>

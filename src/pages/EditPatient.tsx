@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 
 import { useToast } from '@/hooks/use-toast';
 import { addWeeks, parseISO, getDay, format } from 'date-fns';
-import { formatBrazilianDate, parseFromBrazilianDate } from '@/lib/brazilianFormat';
+import { formatBrazilianDate, parseFromBrazilianDate, formatCPF, sanitizeCPF } from '@/lib/brazilianFormat';
 
 const EditPatient = () => {
   const { id } = useParams<{ id: string }>();
@@ -312,11 +312,12 @@ const EditPatient = () => {
   const updatePatient = async () => {
     // Check for duplicate CPF if CPF changed and noNfse is false
     if (formData.cpf !== originalData.cpf && formData.cpf && !formData.no_nfse) {
+      const sanitizedCpf = sanitizeCPF(formData.cpf);
       const { data: existingPatient } = await supabase
         .from('patients')
         .select('id, name')
         .neq('id', id)
-        .eq('cpf', formData.cpf)
+        .eq('cpf', sanitizedCpf)
         .maybeSingle();
 
       if (existingPatient) {
@@ -332,11 +333,12 @@ const EditPatient = () => {
     // Check for duplicate guardian CPF if changed
     if (formData.is_minor && formData.guardian_cpf !== originalData.guardian_cpf && 
         formData.guardian_cpf && formData.nfse_issue_to === 'guardian') {
+      const sanitizedGuardianCpf = sanitizeCPF(formData.guardian_cpf);
       const { data: existingGuardian } = await supabase
         .from('patients')
         .select('id, name, guardian_name')
         .neq('id', id)
-        .eq('guardian_cpf', formData.guardian_cpf)
+        .eq('guardian_cpf', sanitizedGuardianCpf)
         .maybeSingle();
 
       if (existingGuardian) {
@@ -355,7 +357,7 @@ const EditPatient = () => {
       name: formData.name,
       email: formData.email,
       phone: formData.phone,
-      cpf: formData.cpf || null,
+      cpf: sanitizeCPF(formData.cpf) || null,
       birth_date: formData.birth_date,
       frequency: formData.frequency,
       session_day: formData.session_day,
@@ -371,9 +373,9 @@ const EditPatient = () => {
       nfse_max_sessions_per_invoice: formData.nfse_max_sessions_per_invoice,
       is_minor: formData.is_minor,
       guardian_name: formData.is_minor ? (formData.guardian_name || null) : null,
-      guardian_cpf: formData.is_minor ? (formData.guardian_cpf || null) : null,
+      guardian_cpf: formData.is_minor ? (sanitizeCPF(formData.guardian_cpf) || null) : null,
       guardian_name_2: formData.is_minor ? (formData.guardian_name_2 || null) : null,
-      guardian_cpf_2: formData.is_minor ? (formData.guardian_cpf_2 || null) : null,
+      guardian_cpf_2: formData.is_minor ? (sanitizeCPF(formData.guardian_cpf_2) || null) : null,
       guardian_phone_1: formData.is_minor ? (formData.guardian_phone_1 || null) : null,
       guardian_phone_2: formData.is_minor ? (formData.guardian_phone_2 || null) : null,
       nfse_issue_to: formData.is_minor ? formData.nfse_issue_to : 'patient',
@@ -651,11 +653,7 @@ const EditPatient = () => {
                 required={!formData.no_nfse && (!formData.is_minor || formData.nfse_issue_to === 'patient')}
                 value={formData.cpf || ''}
                 onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, '');
-                  let formatted = value;
-                  if (value.length > 3) formatted = value.slice(0, 3) + '.' + value.slice(3);
-                  if (value.length > 6) formatted = formatted.slice(0, 7) + '.' + value.slice(6);
-                  if (value.length > 9) formatted = formatted.slice(0, 11) + '-' + value.slice(9);
+                  const formatted = formatCPF(e.target.value);
                   setFormData({ ...formData, cpf: formatted });
                 }}
                 maxLength={14}
@@ -778,11 +776,7 @@ const EditPatient = () => {
                       required={!formData.no_nfse && formData.is_minor && formData.nfse_issue_to === 'guardian'}
                       value={formData.guardian_cpf}
                       onChange={(e) => {
-                        const value = e.target.value.replace(/\D/g, '');
-                        let formatted = value;
-                        if (value.length > 3) formatted = value.slice(0, 3) + '.' + value.slice(3);
-                        if (value.length > 6) formatted = formatted.slice(0, 7) + '.' + value.slice(6);
-                        if (value.length > 9) formatted = formatted.slice(0, 11) + '-' + value.slice(9);
+                        const formatted = formatCPF(e.target.value);
                         setFormData({ ...formData, guardian_cpf: formatted });
                       }}
                       maxLength={14}
@@ -827,11 +821,7 @@ const EditPatient = () => {
                       id="guardianCpf2"
                       value={formData.guardian_cpf_2}
                       onChange={(e) => {
-                        const value = e.target.value.replace(/\D/g, '');
-                        let formatted = value;
-                        if (value.length > 3) formatted = value.slice(0, 3) + '.' + value.slice(3);
-                        if (value.length > 6) formatted = formatted.slice(0, 7) + '.' + value.slice(6);
-                        if (value.length > 9) formatted = formatted.slice(0, 11) + '-' + value.slice(9);
+                        const formatted = formatCPF(e.target.value);
                         setFormData({ ...formData, guardian_cpf_2: formatted });
                       }}
                       maxLength={14}

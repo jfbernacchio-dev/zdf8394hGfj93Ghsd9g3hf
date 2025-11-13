@@ -94,3 +94,30 @@ export const formatBrazilianNumber = (value: number): string => {
     maximumFractionDigits: 2
   });
 };
+
+/**
+ * Formata CPF com pontos e traço (XXX.XXX.XXX-XX)
+ * @param cpf CPF com ou sem formatação
+ * @returns CPF formatado
+ */
+export const formatCPF = (cpf: string): string => {
+  // Remove all non-digit characters
+  const cleaned = cpf.replace(/\D/g, '');
+  
+  // Format as XXX.XXX.XXX-XX
+  if (cleaned.length <= 3) return cleaned;
+  if (cleaned.length <= 6) return `${cleaned.slice(0, 3)}.${cleaned.slice(3)}`;
+  if (cleaned.length <= 9) return `${cleaned.slice(0, 3)}.${cleaned.slice(3, 6)}.${cleaned.slice(6)}`;
+  return `${cleaned.slice(0, 3)}.${cleaned.slice(3, 6)}.${cleaned.slice(6, 9)}-${cleaned.slice(9, 11)}`;
+};
+
+/**
+ * Remove all non-digit characters from CPF
+ * Used to sanitize before sending to database
+ * @param cpf CPF with or without formatting
+ * @returns Only digits (11 characters)
+ */
+export const sanitizeCPF = (cpf: string | null | undefined): string => {
+  if (!cpf) return '';
+  return cpf.replace(/\D/g, '');
+};
