@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { routePermissions } from '@/lib/routePermissions';
@@ -16,6 +16,7 @@ export const PermissionRoute: React.FC<PermissionRouteProps> = ({
 }) => {
   const { isAdmin, isSubordinate, isAccountant, loading } = useAuth();
   const navigate = useNavigate();
+  const [permissionChecked, setPermissionChecked] = useState(false);
 
   useEffect(() => {
     // Aguardar carregamento do auth
@@ -42,25 +43,19 @@ export const PermissionRoute: React.FC<PermissionRouteProps> = ({
       } else {
         navigate('/dashboard', { replace: true });
       }
+    } else {
+      // Permissão concedida - marcar como verificado
+      setPermissionChecked(true);
     }
   }, [loading, isAdmin, isSubordinate, isAccountant, path, navigate]);
 
-  // Loading state
-  if (loading) {
+  // Loading state durante carregamento do auth
+  if (loading || !permissionChecked) {
     return (
       <div className="min-h-screen bg-[var(--gradient-soft)] flex items-center justify-center">
         <p className="text-muted-foreground">Carregando...</p>
       </div>
     );
-  }
-
-  // Verificação síncrona antes de renderizar
-  const userRoles = getUserRoles({ isAdmin, isSubordinate, isAccountant });
-  const permission = routePermissions[path];
-  const { allowed } = checkRoutePermission(userRoles, permission);
-
-  if (!allowed) {
-    return null; // Não renderiza nada enquanto redireciona
   }
 
   return <>{children}</>;
