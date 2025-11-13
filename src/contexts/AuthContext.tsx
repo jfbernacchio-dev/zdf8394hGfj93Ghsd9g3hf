@@ -27,6 +27,7 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
+  rolesLoaded: boolean;
   isAdmin: boolean;
   isAccountant: boolean;
   isSubordinate: boolean;
@@ -55,6 +56,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [rolesLoaded, setRolesLoaded] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isAccountant, setIsAccountant] = useState(false);
   const [isSubordinate, setIsSubordinate] = useState(false);
@@ -74,6 +76,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }, 0);
         } else {
           setProfile(null);
+          setRolesLoaded(false);
+          setIsAdmin(false);
+          setIsAccountant(false);
+          setIsSubordinate(false);
         }
       }
     );
@@ -84,6 +90,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchProfile(session.user.id);
+      } else {
+        setRolesLoaded(false);
       }
       setLoading(false);
     });
@@ -92,6 +100,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const fetchProfile = async (userId: string) => {
+    // Resetar rolesLoaded ao iniciar busca
+    setRolesLoaded(false);
+    
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -100,6 +111,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     if (error) {
       console.error('Error fetching profile:', error);
+      setRolesLoaded(true); // Marcar como carregado mesmo com erro
       return;
     }
 
@@ -144,6 +156,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       .maybeSingle();
 
     setIsSubordinate(!!subordinateData);
+    
+    // Marcar roles como carregados após todas as verificações
+    setRolesLoaded(true);
+    console.log('[AuthContext] Roles carregados:', { isAdmin: !!adminRoleData, isAccountant: !!accountantRoleData, isSubordinate: !!subordinateData });
   };
 
   const signUp = async (email: string, password: string, userData: Omit<Profile, 'id'>) => {
@@ -309,7 +325,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       user, 
       session, 
       profile, 
-      loading, 
+      loading,
+      rolesLoaded,
       isAdmin, 
       isAccountant,
       isSubordinate,
