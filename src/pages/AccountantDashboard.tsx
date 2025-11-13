@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { CalendarIcon, TrendingUp, FileText, DollarSign } from "lucide-react";
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subYears } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -320,7 +321,14 @@ const AccountantDashboard = () => {
             {data.therapists.map((therapist) => (
               <Card key={therapist.id}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Faturamento {therapist.name}</CardTitle>
+                  <div className="flex flex-col gap-2">
+                    <CardTitle className="text-sm font-medium">Faturamento {therapist.name}</CardTitle>
+                    {therapist.is_subordinate && (
+                      <Badge variant="secondary" className="w-fit text-xs">
+                        Subordinado
+                      </Badge>
+                    )}
+                  </div>
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
