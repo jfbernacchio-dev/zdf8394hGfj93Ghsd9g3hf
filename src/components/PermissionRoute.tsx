@@ -14,7 +14,7 @@ export const PermissionRoute: React.FC<PermissionRouteProps> = ({
   children, 
   path 
 }) => {
-  const { isAdmin, isSubordinate, isAccountant, loading, rolesLoaded } = useAuth();
+  const { isAdmin, isSubordinate, isAccountant, loading, rolesLoaded, user } = useAuth();
   const navigate = useNavigate();
   const [permissionChecked, setPermissionChecked] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -38,46 +38,69 @@ export const PermissionRoute: React.FC<PermissionRouteProps> = ({
   });
 
   useEffect(() => {
-    console.log(`[PermissionRoute useEffect] ${path} - INÍCIO`, { loading, rolesLoaded });
-    
-    // OPÇÃO A: Aguardar carregamento do auth E dos roles
-    if (loading || !rolesLoaded) {
-      console.log(`[PermissionRoute useEffect] ${path} - Aguardando auth/roles`, { loading, rolesLoaded });
-      return;
-    }
-
-    // Obter roles do usuário
-    const userRoles = getUserRoles({ isAdmin, isSubordinate, isAccountant });
-    console.log(`[PermissionRoute useEffect] ${path} - User roles:`, userRoles);
-
-    // Buscar permissões da rota
-    const permission = routePermissions[path];
-    console.log(`[PermissionRoute useEffect] ${path} - Permission config:`, permission);
-
-    // Verificar permissão
-    const { allowed, reason } = checkRoutePermission(userRoles, permission);
-    console.log(`[PermissionRoute useEffect] ${path} - Check result:`, { allowed, reason });
-
-    if (!allowed) {
-      console.warn(`[PermissionRoute] Acesso negado: ${path}`, { reason, userRoles });
+    const checkPermission = async () => {
+      console.log(`[PermissionRoute useEffect] ${path} - INÍCIO`, { loading, rolesLoaded });
       
-      // Marcar que está redirecionando ANTES de fazer qualquer outra coisa
-      setIsRedirecting(true);
-      console.log(`[PermissionRoute useEffect] ${path} - Iniciando redirect`);
-      
-      // Toast de feedback
-      toast.error(reason || 'Acesso negado');
+      // OPÇÃO A: Aguardar carregamento do auth E dos roles
+      if (loading || !rolesLoaded) {
+        console.log(`[PermissionRoute useEffect] ${path} - Aguardando auth/roles`, { loading, rolesLoaded });
+        return;
+      }
 
-      // Redirecionar baseado no role
-      const targetRoute = isAccountant ? '/accountant-dashboard' : '/dashboard';
-      console.log(`[PermissionRoute useEffect] ${path} - Redirecionando para: ${targetRoute}`);
-      navigate(targetRoute, { replace: true });
-    } else {
-      console.log(`[PermissionRoute useEffect] ${path} - Permissão concedida, marcando como verificado`);
-      // Permissão concedida - marcar como verificado
-      setPermissionChecked(true);
-    }
-  }, [loading, rolesLoaded, isAdmin, isSubordinate, isAccountant, path, navigate]);
+      // Obter roles do usuário
+      const userRoles = getUserRoles({ isAdmin, isSubordinate, isAccountant });
+      console.log(`[PermissionRoute useEffect] ${path} - User roles:`, userRoles);
+
+      // Para rota /financial, verificar autonomia de subordinados
+      if (path === '/financial' && isSubordinate && user) {
+        const { canAccessFinancial } = await import('@/lib/checkSubordinateAutonomy');
+        const hasAccess = await canAccessFinancial(user.id, true);
+        
+        if (!hasAccess) {
+          console.warn(`[PermissionRoute] Subordinado sem acesso financeiro: ${path}`);
+          setIsRedirecting(true);
+          toast.error('Acesso negado. Você não tem permissão para acessar a área financeira.');
+          navigate('/dashboard', { replace: true });
+          return;
+        }
+        
+        // Subordinado tem acesso financeiro
+        console.log(`[PermissionRoute useEffect] ${path} - Subordinado com acesso financeiro concedido`);
+        setPermissionChecked(true);
+        return;
+      }
+
+      // Buscar permissões da rota (lógica padrão)
+      const permission = routePermissions[path];
+      console.log(`[PermissionRoute useEffect] ${path} - Permission config:`, permission);
+
+      // Verificar permissão
+      const { allowed, reason } = checkRoutePermission(userRoles, permission);
+      console.log(`[PermissionRoute useEffect] ${path} - Check result:`, { allowed, reason });
+
+      if (!allowed) {
+        console.warn(`[PermissionRoute] Acesso negado: ${path}`, { reason, userRoles });
+        
+        // Marcar que está redirecionando ANTES de fazer qualquer outra coisa
+        setIsRedirecting(true);
+        console.log(`[PermissionRoute useEffect] ${path} - Iniciando redirect`);
+        
+        // Toast de feedback
+        toast.error(reason || 'Acesso negado');
+
+        // Redirecionar baseado no role
+        const targetRoute = isAccountant ? '/accountant-dashboard' : '/dashboard';
+        console.log(`[PermissionRoute useEffect] ${path} - Redirecionando para: ${targetRoute}`);
+        navigate(targetRoute, { replace: true });
+      } else {
+        console.log(`[PermissionRoute useEffect] ${path} - Permissão concedida, marcando como verificado`);
+        // Permissão concedida - marcar como verificado
+        setPermissionChecked(true);
+      }
+    };
+
+    checkPermission();
+  }, [loading, rolesLoaded, isAdmin, isSubordinate, isAccountant, path, navigate, user]);
 
   // OPÇÃO A: Loading state durante carregamento do auth/roles ou se não verificou permissão
   // OPÇÃO B: Sempre resetar isRedirecting quando path mudar (linha 23)

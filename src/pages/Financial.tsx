@@ -52,12 +52,18 @@ const Financial = () => {
 
     setScheduleBlocks(blocksData || []);
 
+    // Load patients (próprios + subordinados com has_financial_access = false)
     const { data: patientsData } = await supabase
       .from('patients')
       .select('*')
       .eq('user_id', user!.id);
 
-    const { data: sessionsData } = await supabase
+    // Load subordinates without financial access (suas sessões entram no fechamento do Full)
+    const { getSubordinatesForFinancialClosing } = await import('@/lib/checkSubordinateAutonomy');
+    const subordinateIds = await getSubordinatesForFinancialClosing(user!.id);
+
+    // Load sessions: próprias + subordinados sem acesso financeiro
+    let sessionsQuery = supabase
       .from('sessions')
       .select(`
         *,
@@ -65,8 +71,16 @@ const Financial = () => {
           user_id,
           name
         )
-      `)
-      .eq('patients.user_id', user!.id);
+      `);
+
+    // Se há subordinados para incluir, adicionar filtro OR
+    if (subordinateIds.length > 0) {
+      sessionsQuery = sessionsQuery.or(`patients.user_id.eq.${user!.id},patients.user_id.in.(${subordinateIds.join(',')})`);
+    } else {
+      sessionsQuery = sessionsQuery.eq('patients.user_id', user!.id);
+    }
+
+    const { data: sessionsData } = await sessionsQuery;
 
     setPatients(patientsData || []);
     setSessions(sessionsData || []);

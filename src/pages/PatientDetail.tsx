@@ -39,6 +39,8 @@ import { AddCardDialog } from '@/components/AddCardDialog';
 import { CardConfig, ALL_AVAILABLE_CARDS } from '@/types/cardTypes';
 import { DEFAULT_LAYOUT, resetToDefaultLayout } from '@/lib/defaultLayout';
 import { ClinicalEvolution } from '@/components/ClinicalEvolution';
+import { getSubordinateAutonomy, AutonomyPermissions } from '@/lib/checkSubordinateAutonomy';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const PatientDetailNew = () => {
   const { id } = useParams();
@@ -76,6 +78,7 @@ const PatientDetailNew = () => {
   const [tempSectionHeights, setTempSectionHeights] = useState<Record<string, number>>({});
   const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
   const [visibleCards, setVisibleCards] = useState<string[]>([]);
+  const [autonomyPermissions, setAutonomyPermissions] = useState<AutonomyPermissions | null>(null);
   
   const getBrazilDate = () => {
     return new Date().toLocaleString('en-CA', { 
@@ -175,6 +178,21 @@ const PatientDetailNew = () => {
     setComplaint(complaintData);
     setComplaintText(complaintData?.complaint_text || '');
     setSessionHistory(historyData || []);
+
+    // Verificar autonomia do subordinado (se aplicável)
+    if (patientData && user && patientData.user_id !== user.id) {
+      // Paciente pertence a um subordinado - carregar configurações de autonomia
+      const autonomy = await getSubordinateAutonomy(patientData.user_id);
+      setAutonomyPermissions(autonomy);
+    } else {
+      // Paciente é do próprio usuário - acesso total
+      setAutonomyPermissions({
+        managesOwnPatients: false,
+        hasFinancialAccess: false,
+        canFullSeeClinic: true,
+        includeInFullFinancial: true
+      });
+    }
 
     await logAdminAccess('view_patient', undefined, id, 'Admin viewed patient details (NEW UI)');
   };
@@ -1796,12 +1814,30 @@ Assinatura do Profissional`;
 
           {/* Clinical Complaint Tab */}
           <TabsContent value="complaint" className="space-y-6">
-            <ClinicalComplaintSummary patientId={id!} />
+            {autonomyPermissions?.canFullSeeClinic ? (
+              <ClinicalComplaintSummary patientId={id!} />
+            ) : (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Este subordinado gerencia seus próprios pacientes. Você não tem acesso aos dados clínicos.
+                </AlertDescription>
+              </Alert>
+            )}
           </TabsContent>
 
           {/* Clinical Evolution Tab */}
           <TabsContent value="evolution" className="space-y-6">
-            <ClinicalEvolution patientId={id!} />
+            {autonomyPermissions?.canFullSeeClinic ? (
+              <ClinicalEvolution patientId={id!} />
+            ) : (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Este subordinado gerencia seus próprios pacientes. Você não tem acesso aos dados clínicos.
+                </AlertDescription>
+              </Alert>
+            )}
           </TabsContent>
 
           {/* Files Tab */}
