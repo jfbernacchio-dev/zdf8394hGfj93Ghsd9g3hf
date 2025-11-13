@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-route
 import React from "react";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ThemeProvider } from "./components/ThemeProvider";
+import { PermissionRoute } from "./components/PermissionRoute";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import DashboardOLD from "./pages/DashboardOLD";
@@ -128,40 +129,41 @@ const App = () => (
             <Route path="/consent-form/:token" element={<ConsentForm />} />
             
             {/* Sistema de Gestão */}
-            <Route path="/dashboard" element={<ProtectedRoute><DashboardRoute /></ProtectedRoute>} />
+            <Route path="/dashboard" element={<ProtectedRoute><PermissionRoute path="/dashboard"><DashboardRoute /></PermissionRoute></ProtectedRoute>} />
+            <Route path="/accountant-dashboard" element={<ProtectedRoute><PermissionRoute path="/accountant-dashboard"><Layout><AccountantDashboard /></Layout></PermissionRoute></ProtectedRoute>} />
             <Route path="/dashboard-old" element={<ProtectedRoute><Layout><DashboardOLD /></Layout></ProtectedRoute>} />
             <Route path="/install" element={<Install />} />
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
             <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
             
-            <Route path="/financial" element={<ProtectedRoute><ClinicalRoute><Layout><Financial /></Layout></ClinicalRoute></ProtectedRoute>} />
-            <Route path="/schedule" element={<ProtectedRoute><ClinicalRoute><Layout><Schedule /></Layout></ClinicalRoute></ProtectedRoute>} />
-            <Route path="/patients" element={<ProtectedRoute><ClinicalRoute><Layout><Patients /></Layout></ClinicalRoute></ProtectedRoute>} />
-            <Route path="/patients/new" element={<ProtectedRoute><ClinicalRoute><Layout><NewPatient /></Layout></ClinicalRoute></ProtectedRoute>} />
-            <Route path="/patients/:id/edit" element={<ProtectedRoute><ClinicalRoute><Layout><EditPatient /></Layout></ClinicalRoute></ProtectedRoute>} />
-            <Route path="/patients/:patientId/complaint/new" element={<ProtectedRoute><ClinicalRoute><Layout><ClinicalComplaintForm /></Layout></ClinicalRoute></ProtectedRoute>} />
-            <Route path="/patients/:patientId/complaint/:complaintId/edit" element={<ProtectedRoute><ClinicalRoute><Layout><ClinicalComplaintForm /></Layout></ClinicalRoute></ProtectedRoute>} />
-            <Route path="/patients/:patientId/sessions/:sessionId/evaluation" element={<ProtectedRoute><ClinicalRoute><Layout><SessionEvaluationForm /></Layout></ClinicalRoute></ProtectedRoute>} />
-            <Route path="/sessions/:sessionId/evaluation" element={<ProtectedRoute><ClinicalRoute><Layout><SessionEvaluationForm /></Layout></ClinicalRoute></ProtectedRoute>} />
-            <Route path="/patients/:id" element={<ProtectedRoute><ClinicalRoute><Layout><PatientDetail /></Layout></ClinicalRoute></ProtectedRoute>} />
-            <Route path="/patient-old/:id" element={<ProtectedRoute><ClinicalRoute><Layout><PatientDetailOLD /></Layout></ClinicalRoute></ProtectedRoute>} />
-            <Route path="/therapists" element={<ProtectedRoute><ClinicalRoute><Layout><TherapistManagement /></Layout></ClinicalRoute></ProtectedRoute>} />
-            <Route path="/therapists/:id" element={<ProtectedRoute><ClinicalRoute><Layout><TherapistDetail /></Layout></ClinicalRoute></ProtectedRoute>} />
-            <Route path="/create-therapist" element={<ProtectedRoute><ClinicalRoute><Layout><CreateTherapist /></Layout></ClinicalRoute></ProtectedRoute>} />
-            <Route path="/nfse/config" element={<ProtectedRoute><Layout><NFSeConfig /></Layout></ProtectedRoute>} />
-            <Route path="/nfse/history" element={<ProtectedRoute><Layout><NFSeHistory /></Layout></ProtectedRoute>} />
-            <Route path="/invoice-logs" element={<ProtectedRoute><Layout><InvoiceLogs /></Layout></ProtectedRoute>} />
-            <Route path="/payment-control" element={<ProtectedRoute><Layout><PaymentControl /></Layout></ProtectedRoute>} />
-            <Route path="/admin/security" element={<ProtectedRoute><Layout><AdminSettings /></Layout></ProtectedRoute>} />
-            <Route path="/admin/audit-logs" element={<ProtectedRoute><Layout><AuditLogs /></Layout></ProtectedRoute>} />
-            <Route path="/admin/incidents" element={<ProtectedRoute><Layout><SecurityIncidents /></Layout></ProtectedRoute>} />
-            <Route path="/admin/log-review" element={<ProtectedRoute><Layout><LogReview /></Layout></ProtectedRoute>} />
-            <Route path="/admin/permission-review" element={<ProtectedRoute><Layout><PermissionReview /></Layout></ProtectedRoute>} />
-            <Route path="/admin/backup-tests" element={<ProtectedRoute><Layout><BackupTests /></Layout></ProtectedRoute>} />
-            <Route path="/profile/edit" element={<ProtectedRoute><Layout><ProfileEdit /></Layout></ProtectedRoute>} />
-            <Route path="/whatsapp" element={<ProtectedRoute><Layout><WhatsAppChat /></Layout></ProtectedRoute>} />
-            <Route path="/metrics/website" element={<ProtectedRoute><Layout><WebsiteMetrics /></Layout></ProtectedRoute>} />
+            <Route path="/financial" element={<ProtectedRoute><PermissionRoute path="/financial"><Layout><Financial /></Layout></PermissionRoute></ProtectedRoute>} />
+            <Route path="/schedule" element={<ProtectedRoute><PermissionRoute path="/schedule"><Layout><Schedule /></Layout></PermissionRoute></ProtectedRoute>} />
+            <Route path="/patients" element={<ProtectedRoute><PermissionRoute path="/patients"><Layout><Patients /></Layout></PermissionRoute></ProtectedRoute>} />
+            <Route path="/patients/new" element={<ProtectedRoute><PermissionRoute path="/patients/new"><Layout><NewPatient /></Layout></PermissionRoute></ProtectedRoute>} />
+            <Route path="/patients/:id/edit" element={<ProtectedRoute><PermissionRoute path="/patients"><Layout><EditPatient /></Layout></PermissionRoute></ProtectedRoute>} />
+            <Route path="/patients/:patientId/complaint/new" element={<ProtectedRoute><PermissionRoute path="/patients"><Layout><ClinicalComplaintForm /></Layout></PermissionRoute></ProtectedRoute>} />
+            <Route path="/patients/:patientId/complaint/:complaintId/edit" element={<ProtectedRoute><PermissionRoute path="/patients"><Layout><ClinicalComplaintForm /></Layout></PermissionRoute></ProtectedRoute>} />
+            <Route path="/patients/:patientId/sessions/:sessionId/evaluation" element={<ProtectedRoute><PermissionRoute path="/patients"><Layout><SessionEvaluationForm /></Layout></PermissionRoute></ProtectedRoute>} />
+            <Route path="/sessions/:sessionId/evaluation" element={<ProtectedRoute><PermissionRoute path="/patients"><Layout><SessionEvaluationForm /></Layout></PermissionRoute></ProtectedRoute>} />
+            <Route path="/patients/:id" element={<ProtectedRoute><PermissionRoute path="/patients"><Layout><PatientDetail /></Layout></PermissionRoute></ProtectedRoute>} />
+            <Route path="/patient-old/:id" element={<ProtectedRoute><PermissionRoute path="/patients"><Layout><PatientDetailOLD /></Layout></PermissionRoute></ProtectedRoute>} />
+            <Route path="/therapists" element={<ProtectedRoute><PermissionRoute path="/therapists"><Layout><TherapistManagement /></Layout></PermissionRoute></ProtectedRoute>} />
+            <Route path="/therapists/:id" element={<ProtectedRoute><PermissionRoute path="/therapists"><Layout><TherapistDetail /></Layout></PermissionRoute></ProtectedRoute>} />
+            <Route path="/create-therapist" element={<ProtectedRoute><PermissionRoute path="/create-therapist"><Layout><CreateTherapist /></Layout></PermissionRoute></ProtectedRoute>} />
+            <Route path="/nfse/config" element={<ProtectedRoute><PermissionRoute path="/nfse/config"><Layout><NFSeConfig /></Layout></PermissionRoute></ProtectedRoute>} />
+            <Route path="/nfse/history" element={<ProtectedRoute><PermissionRoute path="/nfse/history"><Layout><NFSeHistory /></Layout></PermissionRoute></ProtectedRoute>} />
+            <Route path="/invoice-logs" element={<ProtectedRoute><PermissionRoute path="/invoice-logs"><Layout><InvoiceLogs /></Layout></PermissionRoute></ProtectedRoute>} />
+            <Route path="/payment-control" element={<ProtectedRoute><PermissionRoute path="/payment-control"><Layout><PaymentControl /></Layout></PermissionRoute></ProtectedRoute>} />
+            <Route path="/admin/security" element={<ProtectedRoute><PermissionRoute path="/admin-settings"><Layout><AdminSettings /></Layout></PermissionRoute></ProtectedRoute>} />
+            <Route path="/admin/audit-logs" element={<ProtectedRoute><PermissionRoute path="/audit-logs"><Layout><AuditLogs /></Layout></PermissionRoute></ProtectedRoute>} />
+            <Route path="/admin/incidents" element={<ProtectedRoute><PermissionRoute path="/security-incidents"><Layout><SecurityIncidents /></Layout></PermissionRoute></ProtectedRoute>} />
+            <Route path="/admin/log-review" element={<ProtectedRoute><PermissionRoute path="/log-review"><Layout><LogReview /></Layout></PermissionRoute></ProtectedRoute>} />
+            <Route path="/admin/permission-review" element={<ProtectedRoute><PermissionRoute path="/permission-review"><Layout><PermissionReview /></Layout></PermissionRoute></ProtectedRoute>} />
+            <Route path="/admin/backup-tests" element={<ProtectedRoute><PermissionRoute path="/backup-tests"><Layout><BackupTests /></Layout></PermissionRoute></ProtectedRoute>} />
+            <Route path="/profile/edit" element={<ProtectedRoute><PermissionRoute path="/profile-edit"><Layout><ProfileEdit /></Layout></PermissionRoute></ProtectedRoute>} />
+            <Route path="/whatsapp" element={<ProtectedRoute><PermissionRoute path="/whatsapp"><Layout><WhatsAppChat /></Layout></PermissionRoute></ProtectedRoute>} />
+            <Route path="/metrics/website" element={<ProtectedRoute><PermissionRoute path="/website-metrics"><Layout><WebsiteMetrics /></Layout></PermissionRoute></ProtectedRoute>} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
