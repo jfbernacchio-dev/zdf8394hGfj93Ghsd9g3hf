@@ -14,13 +14,21 @@ export const PermissionRoute: React.FC<PermissionRouteProps> = ({
   children, 
   path 
 }) => {
-  const { isAdmin, isSubordinate, isAccountant, loading } = useAuth();
+  const { isAdmin, isSubordinate, isAccountant, loading, rolesLoaded } = useAuth();
   const navigate = useNavigate();
   const [permissionChecked, setPermissionChecked] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
 
+  // OPÇÃO B: Resetar estados quando a rota mudar
+  useEffect(() => {
+    console.log(`[PermissionRoute] Rota mudou para: ${path}, resetando estados`);
+    setPermissionChecked(false);
+    setIsRedirecting(false);
+  }, [path]);
+
   console.log(`[PermissionRoute DEBUG] ${path}`, {
     loading,
+    rolesLoaded,
     permissionChecked,
     isRedirecting,
     isAdmin,
@@ -30,11 +38,11 @@ export const PermissionRoute: React.FC<PermissionRouteProps> = ({
   });
 
   useEffect(() => {
-    console.log(`[PermissionRoute useEffect] ${path} - INÍCIO`, { loading });
+    console.log(`[PermissionRoute useEffect] ${path} - INÍCIO`, { loading, rolesLoaded });
     
-    // Aguardar carregamento do auth
-    if (loading) {
-      console.log(`[PermissionRoute useEffect] ${path} - Aguardando auth`);
+    // OPÇÃO A: Aguardar carregamento do auth E dos roles
+    if (loading || !rolesLoaded) {
+      console.log(`[PermissionRoute useEffect] ${path} - Aguardando auth/roles`, { loading, rolesLoaded });
       return;
     }
 
@@ -69,11 +77,12 @@ export const PermissionRoute: React.FC<PermissionRouteProps> = ({
       // Permissão concedida - marcar como verificado
       setPermissionChecked(true);
     }
-  }, [loading, isAdmin, isSubordinate, isAccountant, path, navigate]);
+  }, [loading, rolesLoaded, isAdmin, isSubordinate, isAccountant, path, navigate]);
 
-  // Loading state durante carregamento do auth ou enquanto redireciona
-  if (loading || !permissionChecked || isRedirecting) {
-    console.log(`[PermissionRoute RENDER] ${path} - Mostrando loading`, { loading, permissionChecked, isRedirecting });
+  // OPÇÃO A: Loading state durante carregamento do auth/roles ou se não verificou permissão
+  // OPÇÃO B: Sempre resetar isRedirecting quando path mudar (linha 23)
+  if (loading || !rolesLoaded || !permissionChecked || isRedirecting) {
+    console.log(`[PermissionRoute RENDER] ${path} - Mostrando loading`, { loading, rolesLoaded, permissionChecked, isRedirecting });
     return (
       <div className="min-h-screen bg-[var(--gradient-soft)] flex items-center justify-center">
         <p className="text-muted-foreground">Carregando...</p>
