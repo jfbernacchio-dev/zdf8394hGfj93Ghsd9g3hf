@@ -29,6 +29,7 @@ interface AuthContextType {
   loading: boolean;
   isAdmin: boolean;
   isAccountant: boolean;
+  isSubordinate: boolean;
   signUp: (email: string, password: string, userData: Omit<Profile, 'id'>) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -56,6 +57,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isAccountant, setIsAccountant] = useState(false);
+  const [isSubordinate, setIsSubordinate] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -133,6 +135,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       .maybeSingle();
 
     setIsAccountant(!!accountantRoleData);
+
+    // Check if user is subordinate (has a manager)
+    const { data: subordinateData } = await supabase
+      .from('therapist_assignments')
+      .select('manager_id')
+      .eq('subordinate_id', userId)
+      .maybeSingle();
+
+    setIsSubordinate(!!subordinateData);
   };
 
   const signUp = async (email: string, password: string, userData: Omit<Profile, 'id'>) => {
@@ -192,6 +203,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setProfile(null);
     setIsAdmin(false);
     setIsAccountant(false);
+    setIsSubordinate(false);
   };
 
   const resetPassword = async (email: string) => {
@@ -293,7 +305,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, isAdmin, isAccountant, signUp, signIn, signOut, resetPassword, createTherapist }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      session, 
+      profile, 
+      loading, 
+      isAdmin, 
+      isAccountant,
+      isSubordinate,
+      signUp, 
+      signIn, 
+      signOut, 
+      resetPassword,
+      createTherapist 
+    }}>
       {children}
     </AuthContext.Provider>
   );
