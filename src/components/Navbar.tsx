@@ -12,7 +12,7 @@ import { ThemeToggle } from './ThemeToggle';
 const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut, profile, isAdmin, isAccountant } = useAuth();
+  const { signOut, profile, isAdmin, isAccountant, isSubordinate } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isActive = (path: string) => location.pathname === path;
@@ -75,18 +75,20 @@ const Navbar = () => {
                     <Users className="w-4 h-4" />
                     <span className="font-medium">Pacientes</span>
                   </Link>
-                  <Link
-                    to="/whatsapp"
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                      isActive('/whatsapp')
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-                    }`}
-                  >
-                    <MessageCircle className="w-4 h-4" />
-                    <span className="font-medium">WhatsApp</span>
-                  </Link>
-                  {isAdmin && (
+                  {!isAccountant && !isSubordinate && (
+                    <Link
+                      to="/whatsapp"
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                        isActive('/whatsapp')
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                      }`}
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      <span className="font-medium">WhatsApp</span>
+                    </Link>
+                  )}
+                  {isAdmin && !isSubordinate && (
                     <Link
                       to="/therapists"
                       className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
@@ -99,74 +101,78 @@ const Navbar = () => {
                       <span className="font-medium">Terapeutas</span>
                     </Link>
                   )}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                          location.pathname.startsWith('/financial') || location.pathname.startsWith('/metrics')
-                            ? 'bg-primary text-primary-foreground'
-                            : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-                        }`}
-                      >
-                        <TrendingUp className="w-4 h-4" />
-                        <span className="font-medium">Métricas</span>
-                        <ChevronDown className="w-3 h-3" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="bg-popover z-50">
-                      <DropdownMenuItem onClick={() => navigate('/financial')}>
-                        <TrendingUp className="w-4 h-4 mr-2" />
-                        Análise Financeira
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => navigate('/metrics/website')}>
-                        <FileText className="w-4 h-4 mr-2" />
-                        Website
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  {!isAccountant && !isSubordinate && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                            location.pathname.startsWith('/financial') || location.pathname.startsWith('/metrics')
+                              ? 'bg-primary text-primary-foreground'
+                              : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                          }`}
+                        >
+                          <TrendingUp className="w-4 h-4" />
+                          <span className="font-medium">Métricas</span>
+                          <ChevronDown className="w-3 h-3" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-popover z-50">
+                        <DropdownMenuItem onClick={() => navigate('/financial')}>
+                          <TrendingUp className="w-4 h-4 mr-2" />
+                          Análise Financeira
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => navigate('/metrics/website')}>
+                          <FileText className="w-4 h-4 mr-2" />
+                          Website
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </>
               )}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                      location.pathname.startsWith('/nfse') || location.pathname.startsWith('/invoice-logs') || location.pathname === '/payment-control'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-                    }`}
-                  >
-                    <FileText className="w-4 h-4" />
-                    <span className="font-medium">Financeiro</span>
-                    <ChevronDown className="w-3 h-3" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-popover z-50">
-                  <DropdownMenuItem onClick={() => navigate('/payment-control')}>
-                    <TrendingUp className="w-4 h-4 mr-2" />
-                    Controle de Pagamentos
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuSub>
-                    <DropdownMenuSubTrigger>
-                      <FileText className="w-4 h-4 mr-2" />
-                      NFSe
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent className="bg-popover">
-                      <DropdownMenuItem onClick={() => navigate('/nfse/config')}>
-                        Configuração
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => navigate('/nfse/history')}>
-                        Histórico
-                      </DropdownMenuItem>
-                    </DropdownMenuSubContent>
-                  </DropdownMenuSub>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => navigate('/invoice-logs')}>
-                    Fechamentos
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {!isAccountant && !isSubordinate && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                        location.pathname.startsWith('/nfse') || location.pathname.startsWith('/invoice-logs') || location.pathname === '/payment-control'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                      }`}
+                    >
+                      <FileText className="w-4 h-4" />
+                      <span className="font-medium">Financeiro</span>
+                      <ChevronDown className="w-3 h-3" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-popover z-50">
+                    <DropdownMenuItem onClick={() => navigate('/payment-control')}>
+                      <TrendingUp className="w-4 h-4 mr-2" />
+                      Controle de Pagamentos
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>
+                        <FileText className="w-4 h-4 mr-2" />
+                        NFSe
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent className="bg-popover">
+                        <DropdownMenuItem onClick={() => navigate('/nfse/config')}>
+                          Configuração
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/nfse/history')}>
+                          Histórico
+                        </DropdownMenuItem>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => navigate('/invoice-logs')}>
+                      Fechamentos
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
             
             <div className="flex items-center gap-1 ml-2 pl-2 border-l border-border">
