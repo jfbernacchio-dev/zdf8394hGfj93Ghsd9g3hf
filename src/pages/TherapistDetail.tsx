@@ -228,8 +228,14 @@ const TherapistDetail = () => {
 
     const { error } = await supabase
       .from('subordinate_autonomy_settings')
-      .update({ [field]: value })
-      .eq('subordinate_id', id);
+      .upsert(
+        { 
+          subordinate_id: id,
+          manager_id: user.id,
+          [field]: value 
+        },
+        { onConflict: 'subordinate_id' }
+      );
 
     if (error) {
       toast({ title: 'Erro ao atualizar configuração', variant: 'destructive' });
