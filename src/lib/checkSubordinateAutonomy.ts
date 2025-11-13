@@ -6,6 +6,7 @@ export interface SubordinateAutonomySettings {
   manager_id: string;
   manages_own_patients: boolean;
   has_financial_access: boolean;
+  nfse_emission_mode: 'own_company' | 'manager_company';
   created_at: string;
   updated_at: string;
 }
@@ -13,6 +14,7 @@ export interface SubordinateAutonomySettings {
 export interface AutonomyPermissions {
   managesOwnPatients: boolean;
   hasFinancialAccess: boolean;
+  nfseEmissionMode: 'own_company' | 'manager_company';
   canFullSeeClinic: boolean;
   includeInFullFinancial: boolean;
 }
@@ -32,6 +34,7 @@ export async function getSubordinateAutonomy(
   return {
     managesOwnPatients: data?.manages_own_patients || false,
     hasFinancialAccess: data?.has_financial_access || false,
+    nfseEmissionMode: (data?.nfse_emission_mode as 'own_company' | 'manager_company') || 'own_company',
     canFullSeeClinic: !data?.manages_own_patients, // Se não gerencia próprios = Full vê clínico
     includeInFullFinancial: !data?.has_financial_access // Se não tem acesso financeiro = entra no Full
   };
