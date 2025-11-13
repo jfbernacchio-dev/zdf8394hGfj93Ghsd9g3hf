@@ -5,7 +5,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { CalendarIcon, TrendingUp, FileText, DollarSign } from "lucide-react";
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subYears } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -20,7 +19,6 @@ interface TherapistData {
   id: string;
   name: string;
   revenue: number;
-  is_subordinate?: boolean;
 }
 
 interface NFSeData {
@@ -35,7 +33,7 @@ const AccountantDashboard = () => {
   const [startDate, setStartDate] = useState<Date>(startOfMonth(new Date()));
   const [endDate, setEndDate] = useState<Date>(endOfMonth(new Date()));
   const [loading, setLoading] = useState(true);
-  const [subordinatedTherapists, setSubordinatedTherapists] = useState<Array<{ id: string; full_name: string; is_subordinate: boolean }>>([]);
+  const [subordinatedTherapists, setSubordinatedTherapists] = useState<Array<{ id: string; full_name: string }>>([]);
   const [data, setData] = useState<NFSeData>({
     total_revenue: 0,
     therapists: [],
@@ -46,73 +44,29 @@ const AccountantDashboard = () => {
     const fetchSubordinatedTherapists = async () => {
       if (!user) return;
 
-      try {
-        // 🔵 PASSO 1: Buscar terapeutas Full diretamente atribuídos ao contador
-        const { data: assignments, error: assignError } = await supabase
-          .from("accountant_therapist_assignments")
-          .select(`
-            therapist_id,
-            profiles!accountant_therapist_assignments_therapist_id_fkey (
-              id,
-              full_name
-            )
-          `)
-          .eq("accountant_id", user.id);
+      const { data: assignments, error } = await supabase
+        .from("accountant_therapist_assignments")
+        .select(`
+          therapist_id,
+          profiles!accountant_therapist_assignments_therapist_id_fkey (
+            id,
+            full_name
+          )
+        `)
+        .eq("accountant_id", user.id);
 
-        if (assignError) throw assignError;
-
-        const fullTherapists = assignments?.map((a: any) => ({
-          id: a.profiles.id,
-          full_name: a.profiles.full_name,
-          is_subordinate: false,
-        })) || [];
-
-        console.log("📊 Terapeutas Full carregados:", fullTherapists.length);
-
-        // 🔵 PASSO 2: Buscar subordinados desses terapeutas Full
-        if (fullTherapists.length === 0) {
-          setSubordinatedTherapists([]);
-          return;
-        }
-
-        const fullTherapistIds = fullTherapists.map(t => t.id);
-
-        const { data: subordinateAssignments, error: subError } = await supabase
-          .from("therapist_assignments")
-          .select(`
-            subordinate_id,
-            profiles!therapist_assignments_subordinate_id_fkey (
-              id,
-              full_name
-            )
-          `)
-          .in("manager_id", fullTherapistIds);
-
-        if (subError) throw subError;
-
-        const subordinates = subordinateAssignments?.map((a: any) => ({
-          id: a.profiles.id,
-          full_name: a.profiles.full_name,
-          is_subordinate: true,
-        })) || [];
-
-        console.log("📊 Subordinados carregados:", subordinates.length);
-
-        // 🔵 PASSO 3: Consolidar lista expandida (Full + Subordinados)
-        const allTherapists = [...fullTherapists, ...subordinates];
-        
-        console.log("📊 Total de terapeutas na dashboard:", {
-          full: fullTherapists.length,
-          subordinates: subordinates.length,
-          total: allTherapists.length,
-          names: allTherapists.map(t => t.full_name),
-        });
-
-        setSubordinatedTherapists(allTherapists);
-      } catch (error) {
+      if (error) {
         console.error("Error fetching subordinated therapists:", error);
-        toast.error("Erro ao carregar terapeutas");
+        toast.error("Erro ao carregar terapeutas subordinados");
+        return;
       }
+
+      const therapists = assignments?.map((a: any) => ({
+        id: a.profiles.id,
+        full_name: a.profiles.full_name,
+      })) || [];
+
+      setSubordinatedTherapists(therapists);
     };
 
     fetchSubordinatedTherapists();
@@ -196,7 +150,6 @@ const AccountantDashboard = () => {
           id: therapist.id,
           name: displayName,
           revenue: therapistRevenues.get(therapist.id) || 0,
-          is_subordinate: therapist.is_subordinate,
         };
       });
 
@@ -321,14 +274,7 @@ const AccountantDashboard = () => {
             {data.therapists.map((therapist) => (
               <Card key={therapist.id}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <div className="flex flex-col gap-2">
-                    <CardTitle className="text-sm font-medium">Faturamento {therapist.name}</CardTitle>
-                    {therapist.is_subordinate && (
-                      <Badge variant="secondary" className="w-fit text-xs">
-                        Subordinado
-                      </Badge>
-                    )}
-                  </div>
+                  <CardTitle className="text-sm font-medium">Faturamento {therapist.name}</CardTitle>
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
