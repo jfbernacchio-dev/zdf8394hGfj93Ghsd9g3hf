@@ -37,11 +37,27 @@ const TherapistManagement = () => {
     if (!user) return;
 
     try {
-      // Get therapists created by this admin
+      // Get subordinate therapists via therapist_assignments
+      const { data: assignments, error: assignmentsError } = await supabase
+        .from('therapist_assignments')
+        .select('subordinate_id')
+        .eq('manager_id', user.id);
+
+      if (assignmentsError) throw assignmentsError;
+
+      if (!assignments || assignments.length === 0) {
+        setTherapists([]);
+        setLoading(false);
+        return;
+      }
+
+      const subordinateIds = assignments.map(a => a.subordinate_id);
+
+      // Get profiles of subordinate therapists
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('created_by', user.id);
+        .in('id', subordinateIds);
 
       if (profilesError) throw profilesError;
 

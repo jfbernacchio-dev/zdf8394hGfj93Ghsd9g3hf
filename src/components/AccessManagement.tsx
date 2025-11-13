@@ -81,20 +81,30 @@ export const AccessManagement = () => {
 
       if (rolesError) throw rolesError;
 
-      // Buscar informações dos supervisores
-      const supervisorIds = profiles?.filter(p => p.created_by).map(p => p.created_by) || [];
-      const { data: supervisors, error: supervisorsError } = await supabase
+      // Buscar relacionamentos de hierarquia na tabela therapist_assignments
+      const { data: assignments, error: assignmentsError } = await supabase
+        .from('therapist_assignments')
+        .select('manager_id, subordinate_id');
+
+      if (assignmentsError) throw assignmentsError;
+
+      // Buscar informações dos supervisores (managers)
+      const managerIds = assignments?.map(a => a.manager_id) || [];
+      const { data: managers, error: managersError } = await supabase
         .from('profiles')
         .select('id, full_name')
-        .in('id', supervisorIds);
+        .in('id', managerIds);
 
-      if (supervisorsError) throw supervisorsError;
+      if (managersError) throw managersError;
 
       // Montar lista de usuários
       const usersWithRoles: UserWithRoles[] = (profiles || []).map(profile => {
         const userRoles = roles?.filter(r => r.user_id === profile.id).map(r => r.role) || [];
-        const supervisor = supervisors?.find(s => s.id === profile.created_by);
-        const isSubordinate = !!profile.created_by;
+        
+        // Verificar se é subordinado via therapist_assignments
+        const assignment = assignments?.find(a => a.subordinate_id === profile.id);
+        const isSubordinate = !!assignment;
+        const manager = managers?.find(m => m.id === assignment?.manager_id);
         
         // LOG DETALHADO
         console.log('=== USUÁRIO CARREGADO ===');
@@ -102,7 +112,8 @@ export const AccessManagement = () => {
         console.log('ID:', profile.id);
         console.log('Roles encontradas:', userRoles);
         console.log('É subordinado?:', isSubordinate);
-        console.log('Created by:', profile.created_by);
+        console.log('Manager ID:', assignment?.manager_id);
+        console.log('Manager Name:', manager?.full_name);
         console.log('=========================');
         
         return {
@@ -111,8 +122,8 @@ export const AccessManagement = () => {
           full_name: profile.full_name,
           cpf: profile.cpf,
           roles: userRoles,
-          created_by: profile.created_by,
-          supervisor_name: supervisor?.full_name || null,
+          created_by: assignment?.manager_id || null, // Mantém compatibilidade com interface
+          supervisor_name: manager?.full_name || null,
           is_subordinate: isSubordinate,
         };
       });

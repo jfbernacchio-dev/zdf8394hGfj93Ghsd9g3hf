@@ -265,12 +265,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         description: error.message,
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: "Terapeuta criado!",
-        description: "O terapeuta foi criado com sucesso.",
-      });
+      return { error };
     }
+
+    // NOVO: Inserir explicitamente em therapist_assignments para redundância
+    if (data?.user?.id && user?.id) {
+      const { error: assignmentError } = await supabase
+        .from('therapist_assignments')
+        .insert({
+          manager_id: user.id,
+          subordinate_id: data.user.id,
+        });
+
+      if (assignmentError) {
+        console.error('Error creating therapist assignment:', assignmentError);
+        // Não falha a operação se o trigger já criou o registro
+      }
+    }
+
+    toast({
+      title: "Terapeuta criado!",
+      description: "O terapeuta foi criado com sucesso.",
+    });
 
     return { error, userId: data?.user?.id };
   };

@@ -69,26 +69,37 @@ const ProfileEdit = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (profile) {
-      setFullName(profile.full_name || '');
-      setCpf(profile.cpf || '');
-      setCrp(profile.crp || '');
-      setPhone(profile.phone || '');
-      setBirthDate(profile.birth_date || '');
-      setSendNfseToTherapist(profile.send_nfse_to_therapist || false);
-      setClinicalApproach(profile.clinical_approach || '');
-      
-      setWorkDays(profile.work_days || [1, 2, 3, 4, 5]);
-      setWorkStartTime(profile.work_start_time || '08:00');
-      setWorkEndTime(profile.work_end_time || '18:00');
-      setSlotDuration(profile.slot_duration || 60);
-      setBreakTime(profile.break_time || 15);
-      
-      setIsSubordinate(!!profile.created_by);
-    }
-    if (user) {
-      setEmail(user.email || '');
-    }
+    const checkSubordinate = async () => {
+      if (profile) {
+        setFullName(profile.full_name || '');
+        setCpf(profile.cpf || '');
+        setCrp(profile.crp || '');
+        setPhone(profile.phone || '');
+        setBirthDate(profile.birth_date || '');
+        setSendNfseToTherapist(profile.send_nfse_to_therapist || false);
+        setClinicalApproach(profile.clinical_approach || '');
+        
+        setWorkDays(profile.work_days || [1, 2, 3, 4, 5]);
+        setWorkStartTime(profile.work_start_time || '08:00');
+        setWorkEndTime(profile.work_end_time || '18:00');
+        setSlotDuration(profile.slot_duration || 60);
+        setBreakTime(profile.break_time || 15);
+        
+        // Verificar se é subordinado via therapist_assignments
+        const { data: assignment } = await supabase
+          .from('therapist_assignments')
+          .select('manager_id')
+          .eq('subordinate_id', profile.id)
+          .maybeSingle();
+        
+        setIsSubordinate(!!assignment);
+      }
+      if (user) {
+        setEmail(user.email || '');
+      }
+    };
+
+    checkSubordinate();
   }, [profile, user]);
 
   // Primeiro useEffect: Carrega lista de contadores disponíveis

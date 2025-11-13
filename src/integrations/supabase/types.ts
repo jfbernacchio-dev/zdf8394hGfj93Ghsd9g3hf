@@ -1867,11 +1867,21 @@ export type Database = {
     Functions: {
       get_manager_id: { Args: { _subordinate_id: string }; Returns: string }
       get_subordinate_ids: { Args: { _manager_id: string }; Returns: string[] }
+      get_subordinate_therapists: {
+        Args: { _manager_id: string }
+        Returns: {
+          subordinate_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_manager_of: {
+        Args: { _manager_id: string; _subordinate_id: string }
         Returns: boolean
       }
       is_subordinate: { Args: { _user_id: string }; Returns: boolean }
