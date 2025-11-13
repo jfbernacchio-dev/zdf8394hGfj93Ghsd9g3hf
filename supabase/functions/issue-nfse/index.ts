@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getNFSeConfigForUser } from "../_shared/nfseConfigHelper.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -62,16 +63,14 @@ serve(async (req) => {
 
     console.log('Issuing NFSe for user:', user.id, 'patient:', patientId);
 
-    // Load config
-    const { data: config, error: configError } = await supabase
-      .from('nfse_config')
-      .select('*')
-      .eq('user_id', user.id)
-      .single();
+    // Load config (considerando autonomia de subordinado)
+    const { config, isUsingManagerConfig, configOwnerId } = await getNFSeConfigForUser(
+      user.id,
+      supabase
+    );
+    
+    console.log(`Using NFSe config from: ${configOwnerId}${isUsingManagerConfig ? ' (MANAGER)' : ' (OWN)'}`);
 
-    if (configError || !config) {
-      throw new Error('Configuração fiscal não encontrada. Configure em NFSe > Configuração');
-    }
 
     // Get the appropriate token based on environment
     const tokenField = config.focusnfe_environment === 'producao' 
