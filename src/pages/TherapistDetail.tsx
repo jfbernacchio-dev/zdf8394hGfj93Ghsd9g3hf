@@ -226,16 +226,26 @@ const TherapistDetail = () => {
   ) => {
     if (!id || !user) return;
 
+    // Buscar estado atual completo
+    const { data: current } = await supabase
+      .from('subordinate_autonomy_settings')
+      .select('*')
+      .eq('subordinate_id', id)
+      .maybeSingle();
+
+    // Fazer merge com novo valor
+    const updatedSettings = {
+      subordinate_id: id,
+      manager_id: user.id,
+      manages_own_patients: current?.manages_own_patients || false,
+      has_financial_access: current?.has_financial_access || false,
+      nfse_emission_mode: current?.nfse_emission_mode || 'own_company',
+      [field]: value  // Sobrescreve apenas o campo modificado
+    };
+
     const { error } = await supabase
       .from('subordinate_autonomy_settings')
-      .upsert(
-        { 
-          subordinate_id: id,
-          manager_id: user.id,
-          [field]: value 
-        },
-        { onConflict: 'subordinate_id' }
-      );
+      .upsert(updatedSettings, { onConflict: 'subordinate_id' });
 
     if (error) {
       toast({ title: 'Erro ao atualizar configuração', variant: 'destructive' });
