@@ -189,6 +189,7 @@ const PatientDetailNew = () => {
       setAutonomyPermissions({
         managesOwnPatients: false,
         hasFinancialAccess: false,
+        nfseEmissionMode: 'own_company',
         canFullSeeClinic: true,
         includeInFullFinancial: true
       });

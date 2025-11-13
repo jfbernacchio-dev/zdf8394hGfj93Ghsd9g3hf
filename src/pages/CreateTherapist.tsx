@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card } from '@/components/ui/card';
@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ArrowLeft } from 'lucide-react';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
@@ -54,6 +55,8 @@ const CreateTherapist = () => {
   // Configurações de autonomia do subordinado
   const [managesOwnPatients, setManagesOwnPatients] = useState(false);
   const [hasFinancialAccess, setHasFinancialAccess] = useState(false);
+  const [nfseEmissionMode, setNfseEmissionMode] = useState<'own_company' | 'manager_company'>('own_company');
+  const [managerHasCNPJ, setManagerHasCNPJ] = useState(false);
 
   const weekDays = [
     { value: 0, label: 'Domingo' },
@@ -64,6 +67,22 @@ const CreateTherapist = () => {
     { value: 5, label: 'Sexta' },
     { value: 6, label: 'Sábado' },
   ];
+
+  useEffect(() => {
+    const checkManagerCNPJ = async () => {
+      if (!user?.id) return;
+      
+      const { data } = await supabase
+        .from('nfse_config')
+        .select('cnpj')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      setManagerHasCNPJ(!!data?.cnpj);
+    };
+    
+    checkManagerCNPJ();
+  }, [user?.id]);
 
   if (!isAdmin) {
     navigate('/dashboard');
@@ -98,7 +117,8 @@ const CreateTherapist = () => {
             subordinate_id: userId,
             manager_id: user!.id,
             manages_own_patients: managesOwnPatients,
-            has_financial_access: hasFinancialAccess
+            has_financial_access: hasFinancialAccess,
+            nfse_emission_mode: nfseEmissionMode
           });
 
         if (autonomyError) {
@@ -372,21 +392,68 @@ const CreateTherapist = () => {
               </div>
 
               {managesOwnPatients && (
-                <div className="flex items-start space-x-3 ml-6 p-4 bg-muted/50 rounded-lg">
-                  <Checkbox
-                    id="has_financial_access"
-                    checked={hasFinancialAccess}
-                    onCheckedChange={(checked) => setHasFinancialAccess(!!checked)}
-                  />
-                  <div className="space-y-1">
-                    <Label htmlFor="has_financial_access" className="cursor-pointer font-medium">
+                <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="hasFinancialAccess"
+                      checked={hasFinancialAccess}
+                      onCheckedChange={(checked) => setHasFinancialAccess(checked as boolean)}
+                    />
+                    <Label htmlFor="hasFinancialAccess" className="cursor-pointer">
                       Subordinado faz o controle financeiro?
                     </Label>
-                    <p className="text-sm text-muted-foreground">
-                      Se <strong>marcado</strong>: O subordinado terá acesso à aba Financeiro e poderá emitir NFSe dos seus pacientes. As sessões NÃO entrarão no seu fechamento.<br />
-                      Se <strong>desmarcado</strong>: As sessões do subordinado entrarão no seu fechamento financeiro.
-                    </p>
                   </div>
+                  <p className="text-sm text-muted-foreground">
+                    Se marcado, subordinado terá acesso à aba Financial e poderá emitir NFSe dos seus próprios pacientes.
+                  </p>
+
+                  {hasFinancialAccess && (
+                    <div className="mt-4 space-y-3 pl-6 border-l-2">
+                      <Label className="text-sm font-medium">Modo de Emissão de NFSe:</Label>
+                      <RadioGroup 
+                        value={nfseEmissionMode} 
+                        onValueChange={(value) => setNfseEmissionMode(value as 'own_company' | 'manager_company')}
+                      >
+                        <div className="flex items-start space-x-2">
+                          <RadioGroupItem value="own_company" id="own_company" />
+                          <div className="space-y-1">
+                            <Label htmlFor="own_company" className="cursor-pointer font-normal">
+                              Empresa Própria
+                            </Label>
+                            <p className="text-xs text-muted-foreground">
+                              Subordinado usa seu próprio CNPJ para emitir NFSe
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {managerHasCNPJ ? (
+                          <div className="flex items-start space-x-2">
+                            <RadioGroupItem value="manager_company" id="manager_company" />
+                            <div className="space-y-1">
+                              <Label htmlFor="manager_company" className="cursor-pointer font-normal">
+                                Empresa do Full
+                              </Label>
+                              <p className="text-xs text-muted-foreground">
+                                Subordinado emite NFSe usando o CNPJ do Full (sessões entram no fechamento do Full)
+                              </p>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-start space-x-2 opacity-50">
+                            <RadioGroupItem value="manager_company" id="manager_company" disabled />
+                            <div className="space-y-1">
+                              <Label htmlFor="manager_company" className="cursor-pointer font-normal">
+                                Empresa do Full (Indisponível)
+                              </Label>
+                              <p className="text-xs text-muted-foreground">
+                                Você precisa cadastrar seu CNPJ na configuração de NFSe para habilitar esta opção
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </RadioGroup>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
