@@ -19,6 +19,7 @@ interface TherapistData {
   id: string;
   name: string;
   revenue: number;
+  is_subordinate?: boolean;
 }
 
 interface NFSeData {
@@ -33,7 +34,7 @@ const AccountantDashboard = () => {
   const [startDate, setStartDate] = useState<Date>(startOfMonth(new Date()));
   const [endDate, setEndDate] = useState<Date>(endOfMonth(new Date()));
   const [loading, setLoading] = useState(true);
-  const [subordinatedTherapists, setSubordinatedTherapists] = useState<Array<{ id: string; full_name: string }>>([]);
+  const [subordinatedTherapists, setSubordinatedTherapists] = useState<Array<{ id: string; full_name: string; is_subordinate: boolean }>>([]);
   const [data, setData] = useState<NFSeData>({
     total_revenue: 0,
     therapists: [],
@@ -44,29 +45,73 @@ const AccountantDashboard = () => {
     const fetchSubordinatedTherapists = async () => {
       if (!user) return;
 
-      const { data: assignments, error } = await supabase
-        .from("accountant_therapist_assignments")
-        .select(`
-          therapist_id,
-          profiles!accountant_therapist_assignments_therapist_id_fkey (
-            id,
-            full_name
-          )
-        `)
-        .eq("accountant_id", user.id);
+      try {
+        // 🔵 PASSO 1: Buscar terapeutas Full diretamente atribuídos ao contador
+        const { data: assignments, error: assignError } = await supabase
+          .from("accountant_therapist_assignments")
+          .select(`
+            therapist_id,
+            profiles!accountant_therapist_assignments_therapist_id_fkey (
+              id,
+              full_name
+            )
+          `)
+          .eq("accountant_id", user.id);
 
-      if (error) {
+        if (assignError) throw assignError;
+
+        const fullTherapists = assignments?.map((a: any) => ({
+          id: a.profiles.id,
+          full_name: a.profiles.full_name,
+          is_subordinate: false,
+        })) || [];
+
+        console.log("📊 Terapeutas Full carregados:", fullTherapists.length);
+
+        // 🔵 PASSO 2: Buscar subordinados desses terapeutas Full
+        if (fullTherapists.length === 0) {
+          setSubordinatedTherapists([]);
+          return;
+        }
+
+        const fullTherapistIds = fullTherapists.map(t => t.id);
+
+        const { data: subordinateAssignments, error: subError } = await supabase
+          .from("therapist_assignments")
+          .select(`
+            subordinate_id,
+            profiles!therapist_assignments_subordinate_id_fkey (
+              id,
+              full_name
+            )
+          `)
+          .in("manager_id", fullTherapistIds);
+
+        if (subError) throw subError;
+
+        const subordinates = subordinateAssignments?.map((a: any) => ({
+          id: a.profiles.id,
+          full_name: a.profiles.full_name,
+          is_subordinate: true,
+        })) || [];
+
+        console.log("📊 Subordinados carregados:", subordinates.length);
+
+        // 🔵 PASSO 3: Consolidar lista expandida (Full + Subordinados)
+        const allTherapists = [...fullTherapists, ...subordinates];
+        
+        console.log("📊 Total de terapeutas na dashboard:", {
+          full: fullTherapists.length,
+          subordinates: subordinates.length,
+          total: allTherapists.length,
+          names: allTherapists.map(t => t.full_name),
+        });
+
+        setSubordinatedTherapists(allTherapists);
+      } catch (error) {
         console.error("Error fetching subordinated therapists:", error);
-        toast.error("Erro ao carregar terapeutas subordinados");
-        return;
+        toast.error("Erro ao carregar terapeutas");
       }
-
-      const therapists = assignments?.map((a: any) => ({
-        id: a.profiles.id,
-        full_name: a.profiles.full_name,
-      })) || [];
-
-      setSubordinatedTherapists(therapists);
     };
 
     fetchSubordinatedTherapists();
@@ -150,6 +195,7 @@ const AccountantDashboard = () => {
           id: therapist.id,
           name: displayName,
           revenue: therapistRevenues.get(therapist.id) || 0,
+          is_subordinate: therapist.is_subordinate,
         };
       });
 
