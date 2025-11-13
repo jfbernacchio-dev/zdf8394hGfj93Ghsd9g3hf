@@ -30,7 +30,7 @@ const therapistSchema = z.object({
 
 const CreateTherapist = () => {
   const navigate = useNavigate();
-  const { createTherapist, isAdmin } = useAuth();
+  const { createTherapist, isAdmin, user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
@@ -50,6 +50,10 @@ const CreateTherapist = () => {
     slot_duration: 60,
     break_time: 15,
   });
+
+  // Configurações de autonomia do subordinado
+  const [managesOwnPatients, setManagesOwnPatients] = useState(false);
+  const [hasFinancialAccess, setHasFinancialAccess] = useState(false);
 
   const weekDays = [
     { value: 0, label: 'Domingo' },
@@ -86,7 +90,21 @@ const CreateTherapist = () => {
         workHours
       );
 
-      if (!error) {
+      if (!error && userId) {
+        // Criar configurações de autonomia para o subordinado
+        const { error: autonomyError } = await supabase
+          .from('subordinate_autonomy_settings')
+          .insert({
+            subordinate_id: userId,
+            manager_id: user!.id,
+            manages_own_patients: managesOwnPatients,
+            has_financial_access: hasFinancialAccess
+          });
+
+        if (autonomyError) {
+          console.error('Erro ao criar configurações de autonomia:', autonomyError);
+        }
+
         navigate('/therapists');
       }
     } catch (error) {
@@ -320,6 +338,57 @@ const CreateTherapist = () => {
                   Intervalo entre sessões para recomposição. Não conta na taxa de ocupação.
                 </p>
               </div>
+            </div>
+          </div>
+
+          <div className="border-t pt-4 mt-6">
+            <h3 className="text-lg font-semibold mb-4">Configurações de Autonomia</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Defina o nível de autonomia do subordinado em relação aos pacientes e finanças.
+            </p>
+            
+            <div className="space-y-4">
+              <div className="flex items-start space-x-3">
+                <Checkbox
+                  id="manages_own_patients"
+                  checked={managesOwnPatients}
+                  onCheckedChange={(checked) => {
+                    setManagesOwnPatients(!!checked);
+                    // Se desmarcar "gerencia pacientes", automaticamente desmarcar "acesso financeiro"
+                    if (!checked) {
+                      setHasFinancialAccess(false);
+                    }
+                  }}
+                />
+                <div className="space-y-1">
+                  <Label htmlFor="manages_own_patients" className="cursor-pointer font-medium">
+                    Subordinado gerencia seus próprios pacientes?
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Se <strong>marcado</strong>: Você verá apenas a lista básica dos pacientes (sem dados clínicos).<br />
+                    Se <strong>desmarcado</strong>: Você terá acesso total aos dados clínicos dos pacientes do subordinado.
+                  </p>
+                </div>
+              </div>
+
+              {managesOwnPatients && (
+                <div className="flex items-start space-x-3 ml-6 p-4 bg-muted/50 rounded-lg">
+                  <Checkbox
+                    id="has_financial_access"
+                    checked={hasFinancialAccess}
+                    onCheckedChange={(checked) => setHasFinancialAccess(!!checked)}
+                  />
+                  <div className="space-y-1">
+                    <Label htmlFor="has_financial_access" className="cursor-pointer font-medium">
+                      Subordinado faz o controle financeiro?
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Se <strong>marcado</strong>: O subordinado terá acesso à aba Financeiro e poderá emitir NFSe dos seus pacientes. As sessões NÃO entrarão no seu fechamento.<br />
+                      Se <strong>desmarcado</strong>: As sessões do subordinado entrarão no seu fechamento financeiro.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
