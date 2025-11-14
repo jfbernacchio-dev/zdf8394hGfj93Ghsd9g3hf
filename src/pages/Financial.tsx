@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils';
 const COLORS = ['hsl(100, 20%, 55%)', 'hsl(100, 25%, 65%)', 'hsl(100, 30%, 75%)', 'hsl(100, 15%, 45%)', 'hsl(100, 35%, 85%)', 'hsl(40, 35%, 75%)'];
 
 const Financial = () => {
-  const { user } = useAuth();
+  const { user, isSubordinate } = useAuth();
   const [patients, setPatients] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
@@ -27,6 +27,22 @@ const Financial = () => {
   const [period, setPeriod] = useState('year');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
+
+  // Validação local de permissão financeira (camada extra de segurança)
+  useEffect(() => {
+    const validateAccess = async () => {
+      if (!user || !isSubordinate) return;
+
+      const { canAccessFinancial } = await import('@/lib/checkSubordinateAutonomy');
+      const hasAccess = await canAccessFinancial(user.id, true);
+
+      if (!hasAccess) {
+        window.location.href = '/dashboard';
+      }
+    };
+
+    validateAccess();
+  }, [user, isSubordinate]);
 
   useEffect(() => {
     if (user) {
