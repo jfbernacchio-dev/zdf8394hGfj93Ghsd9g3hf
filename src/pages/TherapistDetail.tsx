@@ -23,7 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Calendar, Users, MessageSquare, Bell, Lock, FileText, Clock, User, Settings } from 'lucide-react';
+import { ArrowLeft, Calendar, Users, MessageSquare, Bell, Lock, FileText, Clock, User, Settings, ChevronRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -691,23 +691,49 @@ const TherapistDetail = () => {
           <TabsContent value="patients">
             <Card className="p-6">
               <h3 className="text-lg font-semibold mb-4">Pacientes do Terapeuta</h3>
-              <div className="space-y-2">
-                {patients.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">Nenhum paciente cadastrado</p>
-                ) : (
-                  patients.map(patient => (
-                    <div key={patient.id} className="flex justify-between items-center p-3 border rounded-lg hover:bg-accent/50 transition-colors">
-                      <div>
-                        <p className="font-semibold">{patient.name}</p>
-                        <p className="text-sm text-muted-foreground">{patient.email}</p>
+              {patients.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">Nenhum paciente cadastrado</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {patients.map(patient => (
+                    <Card 
+                      key={patient.id}
+                      className="p-4 cursor-pointer hover:shadow-lg hover:border-primary/50 transition-all duration-200"
+                      onClick={() => navigate(`/patients/${patient.id}`)}
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-base mb-1">{patient.name}</h4>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge variant={patient.status === 'active' ? 'default' : 'secondary'}>
+                              {patient.status === 'active' ? 'Ativo' : 'Inativo'}
+                            </Badge>
+                            {autonomySettings.managesOwnPatients && (
+                              <Badge variant="outline" className="text-xs">
+                                <Lock className="w-3 h-3 mr-1" />
+                                Gestão Autônoma
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
                       </div>
-                      <Badge variant={patient.status === 'active' ? 'default' : 'secondary'}>
-                        {patient.status === 'active' ? 'Ativo' : 'Inativo'}
-                      </Badge>
-                    </div>
-                  ))
-                )}
-              </div>
+                      
+                      <div className="space-y-1 text-sm text-muted-foreground">
+                        {patient.session_day && patient.session_time && (
+                          <p className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {patient.session_day} às {patient.session_time}
+                          </p>
+                        )}
+                        {patient.email && (
+                          <p className="truncate">{patient.email}</p>
+                        )}
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </Card>
           </TabsContent>
 
