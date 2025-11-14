@@ -1571,6 +1571,54 @@ export type Database = {
           },
         ]
       }
+      subordinate_autonomy_settings: {
+        Row: {
+          created_at: string
+          has_financial_access: boolean
+          id: string
+          manager_id: string
+          manages_own_patients: boolean
+          nfse_emission_mode: string | null
+          subordinate_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          has_financial_access?: boolean
+          id?: string
+          manager_id: string
+          manages_own_patients?: boolean
+          nfse_emission_mode?: string | null
+          subordinate_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          has_financial_access?: boolean
+          id?: string
+          manager_id?: string
+          manages_own_patients?: boolean
+          nfse_emission_mode?: string | null
+          subordinate_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subordinate_autonomy_settings_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subordinate_autonomy_settings_subordinate_id_fkey"
+            columns: ["subordinate_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       system_notifications: {
         Row: {
           action_url: string | null
