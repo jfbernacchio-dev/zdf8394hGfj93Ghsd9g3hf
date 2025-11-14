@@ -128,9 +128,9 @@ const AccountantDashboard = () => {
               deveria_incluir_por_financial: hasFinancialAccess === false || hasFinancialAccess === undefined
             });
             
-            // Se não tem settings (null/undefined), assumir default 'own_company'
-            // Incluir apenas se for explicitamente 'manager_company'
-            return emissionMode === 'manager_company';
+            // Incluir subordinados que emitem via manager_company OU não têm acesso financeiro próprio
+            // (has_financial_access = false significa que o Full gerencia o financeiro)
+            return emissionMode === 'manager_company' || hasFinancialAccess === false;
           })
           .map((a: any) => ({
             id: a.profiles.id,
