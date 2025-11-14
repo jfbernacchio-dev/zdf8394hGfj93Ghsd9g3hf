@@ -64,6 +64,7 @@ const TherapistDetail = () => {
   });
   const [messageText, setMessageText] = useState('');
   const [loading, setLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [autonomySettings, setAutonomySettings] = useState<AutonomyPermissions | null>(null);
   const [managerHasCNPJ, setManagerHasCNPJ] = useState(false);
   const [confirmCascadeDialog, setConfirmCascadeDialog] = useState<{
@@ -258,32 +259,38 @@ const TherapistDetail = () => {
     }
 
     // Se não precisa de cascade, executar normalmente
-    const { data: current } = await supabase
-      .from('subordinate_autonomy_settings')
-      .select('*')
-      .eq('subordinate_id', id)
-      .maybeSingle();
+    setIsUpdating(true);
+    
+    try {
+      const { data: current } = await supabase
+        .from('subordinate_autonomy_settings')
+        .select('*')
+        .eq('subordinate_id', id)
+        .maybeSingle();
 
-    const updatedSettings = {
-      subordinate_id: id,
-      manager_id: user.id,
-      manages_own_patients: current?.manages_own_patients || false,
-      has_financial_access: current?.has_financial_access || false,
-      nfse_emission_mode: current?.nfse_emission_mode || 'own_company',
-      [field]: value
-    };
+      const updatedSettings = {
+        subordinate_id: id,
+        manager_id: user.id,
+        manages_own_patients: current?.manages_own_patients || false,
+        has_financial_access: current?.has_financial_access || false,
+        nfse_emission_mode: current?.nfse_emission_mode || 'own_company',
+        [field]: value
+      };
 
-    const { error } = await supabase
-      .from('subordinate_autonomy_settings')
-      .upsert(updatedSettings, { onConflict: 'subordinate_id' });
+      const { error } = await supabase
+        .from('subordinate_autonomy_settings')
+        .upsert(updatedSettings, { onConflict: 'subordinate_id' });
 
-    if (error) {
-      toast({ title: 'Erro ao atualizar configuração', variant: 'destructive' });
-      return;
+      if (error) {
+        toast({ title: 'Erro ao atualizar configuração', variant: 'destructive' });
+        return;
+      }
+
+      toast({ title: 'Configuração atualizada!' });
+      await loadAutonomySettings();
+    } finally {
+      setIsUpdating(false);
     }
-
-    toast({ title: 'Configuração atualizada!' });
-    loadAutonomySettings();
   };
 
   const executeCascadeUpdate = async () => {
@@ -296,24 +303,27 @@ const TherapistDetail = () => {
       newValue: false 
     });
 
-    // Executar DUAS atualizações em sequência:
-    // 1. Primeiro desligar has_financial_access
-    // 2. Depois desligar manages_own_patients
+    // Executar TRÊS atualizações em sequência (TRIPLE CASCADE):
+    // 1. Mudar nfse_emission_mode para 'own_company' (evita constraint violation)
+    // 2. Desligar has_financial_access
+    // 3. Desligar manages_own_patients
+
+    setIsUpdating(true);
 
     try {
-      // Update 1: Desligar acesso financeiro
       const { data: current } = await supabase
         .from('subordinate_autonomy_settings')
         .select('*')
         .eq('subordinate_id', id)
         .maybeSingle();
 
+      // Update 1: Mudar NFSe para 'own_company' (manter switches ligados)
       const step1 = {
         subordinate_id: id,
         manager_id: user.id,
-        manages_own_patients: current?.manages_own_patients || false,
-        has_financial_access: false, // DESLIGANDO
-        nfse_emission_mode: current?.nfse_emission_mode || 'own_company'
+        manages_own_patients: current?.manages_own_patients ?? true,
+        has_financial_access: current?.has_financial_access ?? true,
+        nfse_emission_mode: 'own_company' // MUDAR PARA OWN_COMPANY
       };
 
       const { error: error1 } = await supabase
@@ -322,10 +332,10 @@ const TherapistDetail = () => {
 
       if (error1) throw error1;
 
-      // Update 2: Desligar gerenciamento de pacientes
+      // Update 2: Desligar acesso financeiro
       const step2 = {
         ...step1,
-        manages_own_patients: false // DESLIGANDO
+        has_financial_access: false // DESLIGAR
       };
 
       const { error: error2 } = await supabase
@@ -334,11 +344,23 @@ const TherapistDetail = () => {
 
       if (error2) throw error2;
 
+      // Update 3: Desligar gerenciamento de pacientes
+      const step3 = {
+        ...step2,
+        manages_own_patients: false // DESLIGAR
+      };
+
+      const { error: error3 } = await supabase
+        .from('subordinate_autonomy_settings')
+        .upsert(step3, { onConflict: 'subordinate_id' });
+
+      if (error3) throw error3;
+
       toast({ 
         title: 'Configurações atualizadas!',
         description: 'Gerenciamento de pacientes e acesso financeiro foram desligados.'
       });
-      loadAutonomySettings();
+      await loadAutonomySettings();
 
     } catch (error) {
       console.error('Erro no cascade:', error);
@@ -346,7 +368,9 @@ const TherapistDetail = () => {
         title: 'Erro ao atualizar configurações', 
         variant: 'destructive' 
       });
-      loadAutonomySettings(); // Recarregar para reverter estado visual
+      await loadAutonomySettings(); // Recarregar para reverter estado visual
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -583,6 +607,7 @@ const TherapistDetail = () => {
                       </div>
                       <Switch
                         checked={autonomySettings.managesOwnPatients}
+                        disabled={isUpdating}
                         onCheckedChange={(checked) => {
                           updateAutonomySetting('manages_own_patients', checked);
                           if (!checked) {
@@ -608,6 +633,7 @@ const TherapistDetail = () => {
                         </div>
                         <Switch
                           checked={autonomySettings.hasFinancialAccess}
+                          disabled={isUpdating}
                           onCheckedChange={(checked) => updateAutonomySetting('has_financial_access', checked)}
                         />
                       </div>
@@ -618,6 +644,7 @@ const TherapistDetail = () => {
                           <Label className="text-sm font-medium">Modo de Emissão de NFSe:</Label>
                           <RadioGroup
                             value={autonomySettings.nfseEmissionMode}
+                            disabled={isUpdating}
                             onValueChange={(value) => updateAutonomySetting('nfse_emission_mode', value)}
                           >
                             <div className="flex items-start space-x-2">
