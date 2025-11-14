@@ -41,13 +41,14 @@ import { DEFAULT_LAYOUT, resetToDefaultLayout } from '@/lib/defaultLayout';
 import { ClinicalEvolution } from '@/components/ClinicalEvolution';
 import { getSubordinateAutonomy, AutonomyPermissions } from '@/lib/checkSubordinateAutonomy';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { canAccessPatient } from '@/lib/checkPatientAccess';
 
 const PatientDetailNew = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [patient, setPatient] = useState<any>(null);
   const [sessions, setSessions] = useState<any[]>([]);
   const [allSessions, setAllSessions] = useState<any[]>([]);
@@ -117,7 +118,26 @@ const PatientDetailNew = () => {
       }
     });
 
-    loadData();
+    // Validate access before loading data
+    const validateAccess = async () => {
+      if (!user || !id) return;
+      
+      const access = await canAccessPatient(user.id, id, isAdmin);
+      
+      if (!access.allowed) {
+        toast({
+          title: "Acesso negado",
+          description: access.reason,
+          variant: "destructive"
+        });
+        navigate('/patients');
+        return;
+      }
+      
+      loadData();
+    };
+    
+    validateAccess();
     
     const channel = supabase
       .channel('patient-sessions-changes')
@@ -138,7 +158,7 @@ const PatientDetailNew = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [id, user]);
+  }, [id, user, isAdmin, navigate, toast]);
 
   // Handle navigation state to open specific tab
   useEffect(() => {
