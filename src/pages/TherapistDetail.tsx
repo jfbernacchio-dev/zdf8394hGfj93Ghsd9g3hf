@@ -608,13 +608,7 @@ const TherapistDetail = () => {
                       <Switch
                         checked={autonomySettings.managesOwnPatients}
                         disabled={isUpdating}
-                        onCheckedChange={(checked) => {
-                          updateAutonomySetting('manages_own_patients', checked);
-                          if (!checked) {
-                            // Se desmarcar, automaticamente remove acesso financeiro
-                            updateAutonomySetting('has_financial_access', false);
-                          }
-                        }}
+                        onCheckedChange={(checked) => updateAutonomySetting('manages_own_patients', checked)}
                       />
                     </div>
                   </div>
