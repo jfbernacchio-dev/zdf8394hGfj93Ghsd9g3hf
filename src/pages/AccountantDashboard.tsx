@@ -94,22 +94,40 @@ const AccountantDashboard = () => {
         // PASSO 2B: Buscar configurações de autonomia separadamente
         const subordinateIds = subordinateAssignments.map((a: any) => a.subordinate_id);
         
+        console.log("🔍 [DIAGNÓSTICO] IDs dos subordinados encontrados:", subordinateIds);
+        
         const { data: autonomySettings, error: autonomyError } = await supabase
           .from("subordinate_autonomy_settings")
-          .select("subordinate_id, nfse_emission_mode")
+          .select("subordinate_id, nfse_emission_mode, has_financial_access")
           .in("subordinate_id", subordinateIds);
 
         if (autonomyError) throw autonomyError;
 
+        console.log("🔍 [DIAGNÓSTICO] Configurações de autonomia:", autonomySettings);
+
         // Criar mapa de configurações para lookup rápido
         const autonomyMap = new Map(
-          autonomySettings?.map(s => [s.subordinate_id, s.nfse_emission_mode]) || []
+          autonomySettings?.map(s => [s.subordinate_id, {
+            nfse_emission_mode: s.nfse_emission_mode,
+            has_financial_access: s.has_financial_access
+          }]) || []
         );
 
         // PASSO 3: Filtrar apenas subordinados que emitem via manager_company
         const subordinates = subordinateAssignments
           ?.filter((a: any) => {
-            const emissionMode = autonomyMap.get(a.subordinate_id);
+            const settings = autonomyMap.get(a.subordinate_id);
+            const emissionMode = settings?.nfse_emission_mode;
+            const hasFinancialAccess = settings?.has_financial_access;
+            
+            console.log(`🔍 [DIAGNÓSTICO] Subordinado ${a.profiles.full_name}:`, {
+              subordinate_id: a.subordinate_id,
+              nfse_emission_mode: emissionMode,
+              has_financial_access: hasFinancialAccess,
+              incluído_por_emission_mode: emissionMode === 'manager_company',
+              deveria_incluir_por_financial: hasFinancialAccess === false || hasFinancialAccess === undefined
+            });
+            
             // Se não tem settings (null/undefined), assumir default 'own_company'
             // Incluir apenas se for explicitamente 'manager_company'
             return emissionMode === 'manager_company';
