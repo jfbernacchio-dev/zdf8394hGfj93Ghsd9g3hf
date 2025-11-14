@@ -1228,8 +1228,8 @@ Assinatura do Profissional`;
               <TabsTrigger value="evolution">Evolução Clínica</TabsTrigger>
               <TabsTrigger value="complaint">Queixa Clínica</TabsTrigger>
               <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
-              {/* Aba Faturamento: apenas se usuário tem acesso financeiro */}
-              {autonomyPermissions?.includeInFullFinancial !== false && (
+              {/* Aba Faturamento: apenas se usuário tem acesso financeiro OU é o dono do paciente */}
+              {(autonomyPermissions?.hasFinancialAccess !== false || patient?.user_id === user?.id) && (
                 <TabsTrigger value="billing">Faturamento</TabsTrigger>
               )}
               <TabsTrigger value="files">Arquivos</TabsTrigger>
