@@ -72,7 +72,7 @@ const AccountantDashboard = () => {
 
         const fullTherapistIds = fullTherapists.map(t => t.id);
 
-        // PASSO 2: Buscar subordinados COM suas configurações de autonomia
+        // PASSO 2A: Buscar todos os subordinados
         const { data: subordinateAssignments, error: subError } = await supabase
           .from("therapist_assignments")
           .select(`
@@ -80,21 +80,39 @@ const AccountantDashboard = () => {
             profiles!therapist_assignments_subordinate_id_fkey (
               id,
               full_name
-            ),
-            subordinate_autonomy_settings!inner (
-              nfse_emission_mode
             )
           `)
           .in("manager_id", fullTherapistIds);
 
         if (subError) throw subError;
 
+        if (!subordinateAssignments || subordinateAssignments.length === 0) {
+          setSubordinatedTherapists(fullTherapists);
+          return;
+        }
+
+        // PASSO 2B: Buscar configurações de autonomia separadamente
+        const subordinateIds = subordinateAssignments.map((a: any) => a.subordinate_id);
+        
+        const { data: autonomySettings, error: autonomyError } = await supabase
+          .from("subordinate_autonomy_settings")
+          .select("subordinate_id, nfse_emission_mode")
+          .in("subordinate_id", subordinateIds);
+
+        if (autonomyError) throw autonomyError;
+
+        // Criar mapa de configurações para lookup rápido
+        const autonomyMap = new Map(
+          autonomySettings?.map(s => [s.subordinate_id, s.nfse_emission_mode]) || []
+        );
+
         // PASSO 3: Filtrar apenas subordinados que emitem via manager_company
         const subordinates = subordinateAssignments
           ?.filter((a: any) => {
-            // Se não tem settings, assumir default 'manager_company'
-            const emissionMode = a.subordinate_autonomy_settings?.nfse_emission_mode;
-            return !emissionMode || emissionMode === 'manager_company';
+            const emissionMode = autonomyMap.get(a.subordinate_id);
+            // Se não tem settings (null/undefined), assumir default 'own_company'
+            // Incluir apenas se for explicitamente 'manager_company'
+            return emissionMode === 'manager_company';
           })
           .map((a: any) => ({
             id: a.profiles.id,
