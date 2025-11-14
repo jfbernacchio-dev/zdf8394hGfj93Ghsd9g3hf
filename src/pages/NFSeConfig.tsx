@@ -26,6 +26,7 @@ export default function NFSeConfig() {
     inscricao_municipal: '',
     cnpj: '',
     razao_social: '',
+    codigo_municipio: '',
     regime_tributario: 'simples_nacional',
     anexo_simples: 'V',
     iss_rate: '5.00',
@@ -113,6 +114,7 @@ export default function NFSeConfig() {
           inscricao_municipal: data.inscricao_municipal || '',
           cnpj: formattedCnpj,
           razao_social: data.razao_social || '',
+          codigo_municipio: data.codigo_municipio || '',
           regime_tributario: data.regime_tributario || 'simples_nacional',
           anexo_simples: data.anexo_simples || 'V',
           iss_rate: data.iss_rate?.toString() || '5.00',
@@ -189,6 +191,7 @@ export default function NFSeConfig() {
         inscricao_municipal: config.inscricao_municipal.replace(/\D/g, ''),
         cnpj: config.cnpj.replace(/\D/g, ''),
         razao_social: config.razao_social,
+        codigo_municipio: config.codigo_municipio.replace(/\D/g, ''),
         regime_tributario: config.regime_tributario,
         anexo_simples: config.anexo_simples,
         iss_rate: parseFloat(config.iss_rate),
@@ -392,6 +395,19 @@ export default function NFSeConfig() {
                     value={config.razao_social}
                     onChange={(e) => setConfig({ ...config, razao_social: e.target.value })}
                     placeholder="Nome da clínica/profissional"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="codigo_municipio">Código do Município</Label>
+                  <Input
+                    id="codigo_municipio"
+                    value={config.codigo_municipio}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '');
+                      setConfig({ ...config, codigo_municipio: value });
+                    }}
+                    placeholder="Ex: 3550308 (São Paulo)"
                   />
                 </div>
 

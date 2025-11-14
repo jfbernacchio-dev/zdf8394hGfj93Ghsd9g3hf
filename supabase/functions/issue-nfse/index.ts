@@ -362,13 +362,13 @@ Data de emissão: ${new Date().toLocaleDateString('pt-BR')}`;
       prestador: {
         cnpj: config.cnpj,
         inscricao_municipal: config.inscricao_municipal,
-        codigo_municipio: '3550308', // São Paulo
+        codigo_municipio: config.codigo_municipio,
       },
       tomador: {
         cpf: invoiceCpf.replace(/\D/g, ''),
         razao_social: invoiceName,
         email: patient.email,
-        codigo_municipio: '3550308', // Assumindo São Paulo
+        codigo_municipio: config.codigo_municipio,
       },
       servico: {
         aliquota: config.iss_rate,
