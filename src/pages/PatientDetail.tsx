@@ -1228,7 +1228,10 @@ Assinatura do Profissional`;
               <TabsTrigger value="evolution">Evolução Clínica</TabsTrigger>
               <TabsTrigger value="complaint">Queixa Clínica</TabsTrigger>
               <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
-              <TabsTrigger value="billing">Faturamento</TabsTrigger>
+              {/* Aba Faturamento: apenas se usuário tem acesso financeiro */}
+              {autonomyPermissions?.includeInFullFinancial !== false && (
+                <TabsTrigger value="billing">Faturamento</TabsTrigger>
+              )}
               <TabsTrigger value="files">Arquivos</TabsTrigger>
             </TabsList>
             <Button 
@@ -1764,22 +1767,24 @@ Assinatura do Profissional`;
             </div>
           </TabsContent>
 
-          {/* Billing Tab */}
+          {/* Billing Tab - Apenas se tem acesso financeiro */}
           <TabsContent value="billing" className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold">Faturamento</h2>
-              {patient.no_nfse ? (
-                <Button onClick={generateInvoice} variant="outline">
-                  <FileText className="w-4 h-4 mr-2" />
-                  Fazer Fechamento
-                </Button>
-              ) : (
-                <IssueNFSeDialog 
-                  patientId={id!} 
-                  patientName={patient.name}
-                />
-              )}
-            </div>
+            {autonomyPermissions?.includeInFullFinancial !== false ? (
+              <>
+                <div className="flex justify-between items-center">
+                  <h2 className="text-xl font-semibold">Faturamento</h2>
+                  {patient.no_nfse ? (
+                    <Button onClick={generateInvoice} variant="outline">
+                      <FileText className="w-4 h-4 mr-2" />
+                      Fazer Fechamento
+                    </Button>
+                  ) : (
+                    <IssueNFSeDialog 
+                      patientId={id!} 
+                      patientName={patient.name}
+                    />
+                  )}
+                </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card className="p-6">
@@ -1831,6 +1836,15 @@ Assinatura do Profissional`;
                 )}
               </div>
             </Card>
+              </>
+            ) : (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Você não tem permissão para acessar os dados financeiros deste paciente.
+                </AlertDescription>
+              </Alert>
+            )}
           </TabsContent>
 
           {/* Clinical Complaint Tab */}

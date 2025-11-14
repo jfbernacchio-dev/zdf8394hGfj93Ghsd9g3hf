@@ -23,7 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Calendar, Users, MessageSquare, Bell, Lock, FileText, Clock, User, Settings, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Calendar, Users, MessageSquare, Bell, Lock, FileText, Clock, User, Settings, ChevronRight, DollarSign } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -431,11 +431,15 @@ const TherapistDetail = () => {
         </div>
 
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-8">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
             <TabsTrigger value="autonomy">Autonomia</TabsTrigger>
             <TabsTrigger value="data">Dados</TabsTrigger>
             <TabsTrigger value="patients">Pacientes</TabsTrigger>
+            {/* Aba Financeiro: visível apenas quando subordinado NÃO tem acesso financeiro */}
+            {autonomySettings && !autonomySettings.hasFinancialAccess && (
+              <TabsTrigger value="financial">Financeiro</TabsTrigger>
+            )}
             <TabsTrigger value="sessions">Sessões</TabsTrigger>
             <TabsTrigger value="schedule">Agenda</TabsTrigger>
             <TabsTrigger value="journal">Journal</TabsTrigger>
@@ -736,6 +740,126 @@ const TherapistDetail = () => {
               )}
             </Card>
           </TabsContent>
+
+          {/* Financial Tab - Apenas quando subordinado NÃO tem acesso financeiro */}
+          {autonomySettings && !autonomySettings.hasFinancialAccess && (
+            <TabsContent value="financial">
+              <Card className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-6 w-6 text-primary" />
+                    <div>
+                      <h3 className="text-lg font-semibold">Controle Financeiro</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Gerencie as finanças dos pacientes de {therapist?.full_name}
+                      </p>
+                    </div>
+                  </div>
+                  <Button onClick={() => navigate('/financial')} variant="outline">
+                    <FileText className="w-4 h-4 mr-2" />
+                    Ir para Fechamento Geral
+                  </Button>
+                </div>
+
+                {/* Resumo Financeiro */}
+                <div className="grid gap-4 md:grid-cols-3 mb-6">
+                  <Card className="p-4 bg-muted/30">
+                    <p className="text-sm text-muted-foreground mb-1">Total de Pacientes</p>
+                    <p className="text-2xl font-bold">{patients.length}</p>
+                  </Card>
+                  <Card className="p-4 bg-orange-500/10">
+                    <p className="text-sm text-muted-foreground mb-1">Sessões Não Pagas</p>
+                    <p className="text-2xl font-bold text-orange-600">
+                      {sessions.filter(s => s.status === 'attended' && !s.paid).length}
+                    </p>
+                  </Card>
+                  <Card className="p-4 bg-green-500/10">
+                    <p className="text-sm text-muted-foreground mb-1">Valor Total em Aberto</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      R$ {sessions
+                        .filter(s => s.status === 'attended' && !s.paid)
+                        .reduce((sum, s) => sum + Number(s.value || 0), 0)
+                        .toFixed(2)
+                        .replace('.', ',')}
+                    </p>
+                  </Card>
+                </div>
+
+                <Alert className="mb-6">
+                  <AlertDescription>
+                    Como este subordinado <strong>não tem acesso financeiro próprio</strong>, 
+                    todas as sessões dele aparecem automaticamente no seu <strong>Fechamento Geral</strong> 
+                    na página Financeiro.
+                  </AlertDescription>
+                </Alert>
+
+                {/* Lista de Pacientes com Saldo em Aberto */}
+                <div>
+                  <h4 className="font-semibold mb-3">Pacientes com Sessões Não Pagas</h4>
+                  <ScrollArea className="h-[400px]">
+                    <div className="space-y-2">
+                      {patients.filter(patient => {
+                        const unpaidSessions = sessions.filter(
+                          s => s.patient_id === patient.id && 
+                          s.status === 'attended' && 
+                          !s.paid
+                        );
+                        return unpaidSessions.length > 0;
+                      }).length === 0 ? (
+                        <p className="text-center text-muted-foreground py-8">
+                          Nenhum paciente com sessões pendentes
+                        </p>
+                      ) : (
+                        patients
+                          .filter(patient => {
+                            const unpaidSessions = sessions.filter(
+                              s => s.patient_id === patient.id && 
+                              s.status === 'attended' && 
+                              !s.paid
+                            );
+                            return unpaidSessions.length > 0;
+                          })
+                          .map(patient => {
+                            const unpaidSessions = sessions.filter(
+                              s => s.patient_id === patient.id && 
+                              s.status === 'attended' && 
+                              !s.paid
+                            );
+                            const totalValue = unpaidSessions.reduce(
+                              (sum, s) => sum + Number(s.value || 0), 
+                              0
+                            );
+                            
+                            return (
+                              <Card 
+                                key={patient.id} 
+                                className="p-4 hover:shadow-md transition-shadow cursor-pointer"
+                                onClick={() => navigate(`/patients/${patient.id}`)}
+                              >
+                                <div className="flex justify-between items-start">
+                                  <div className="flex-1">
+                                    <h5 className="font-semibold mb-1">{patient.name}</h5>
+                                    <p className="text-sm text-muted-foreground">
+                                      {unpaidSessions.length} sessão(ões) não paga(s)
+                                    </p>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-lg font-bold text-orange-600">
+                                      R$ {totalValue.toFixed(2).replace('.', ',')}
+                                    </p>
+                                    <ChevronRight className="w-5 h-5 text-muted-foreground ml-auto" />
+                                  </div>
+                                </div>
+                              </Card>
+                            );
+                          })
+                      )}
+                    </div>
+                  </ScrollArea>
+                </div>
+              </Card>
+            </TabsContent>
+          )}
 
           <TabsContent value="sessions">
             <Card className="p-6">

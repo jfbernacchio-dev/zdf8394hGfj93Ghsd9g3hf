@@ -6,6 +6,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { FileText, Loader2 } from 'lucide-react';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import { format, parseISO } from 'date-fns';
+import { useAuth } from '@/contexts/AuthContext';
+import { canAccessFinancial } from '@/lib/checkSubordinateAutonomy';
 
 interface IssueNFSeDialogProps {
   patientId: string;
@@ -17,6 +19,7 @@ export default function IssueNFSeDialog({
   patientName, 
 }: IssueNFSeDialogProps) {
   const { toast } = useToast();
+  const { user, isSubordinate } = useAuth();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingSessions, setLoadingSessions] = useState(false);
@@ -24,12 +27,36 @@ export default function IssueNFSeDialog({
   const [maxSessionsPerInvoice, setMaxSessionsPerInvoice] = useState(20);
   const [isMonthlyPatient, setIsMonthlyPatient] = useState(false);
   const [patientSessionValue, setPatientSessionValue] = useState(0);
+  const [hasFinancialPermission, setHasFinancialPermission] = useState(true);
 
+  // Validar permissões financeiras ao montar
   useEffect(() => {
+    const checkFinancialPermission = async () => {
+      if (!user || !isSubordinate) {
+        setHasFinancialPermission(true);
+        return;
+      }
+
+      const hasAccess = await canAccessFinancial(user.id, true);
+      setHasFinancialPermission(hasAccess);
+
+      if (!hasAccess) {
+        toast({
+          title: 'Acesso negado',
+          description: 'Você não tem permissão para emitir NFSe. Entre em contato com seu gestor.',
+          variant: 'destructive',
+        });
+        setOpen(false);
+      }
+    };
+
     if (open) {
-      loadUnpaidSessions();
+      checkFinancialPermission();
+      if (hasFinancialPermission) {
+        loadUnpaidSessions();
+      }
     }
-  }, [open]);
+  }, [open, user, isSubordinate]);
 
   const loadUnpaidSessions = async () => {
     setLoadingSessions(true);
@@ -199,6 +226,11 @@ export default function IssueNFSeDialog({
 
   const numberOfInvoices = Math.ceil(unpaidSessions.length / maxSessionsPerInvoice);
   const willSplitInvoices = numberOfInvoices > 1;
+
+  // Bloquear renderização se não tem permissão
+  if (!hasFinancialPermission) {
+    return null;
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
