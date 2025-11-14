@@ -28,6 +28,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { getSubordinateAutonomy, type AutonomyPermissions } from '@/lib/checkSubordinateAutonomy';
+import Layout from '@/components/Layout';
 
 interface Notification {
   id: string;
@@ -67,6 +68,13 @@ const TherapistDetail = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [autonomySettings, setAutonomySettings] = useState<AutonomyPermissions | null>(null);
   const [managerHasCNPJ, setManagerHasCNPJ] = useState(false);
+  const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [generatedInvoiceText, setGeneratedInvoiceText] = useState("");
+  const [showResultDialog, setShowResultDialog] = useState(false);
+  const [patientsWithUnpaid, setPatientsWithUnpaid] = useState<any[]>([]);
+  const [unpaidSessionsCount, setUnpaidSessionsCount] = useState(0);
+  const [totalUnpaidValue, setTotalUnpaidValue] = useState(0);
   const [confirmCascadeDialog, setConfirmCascadeDialog] = useState<{
     open: boolean;
     field: 'manages_own_patients' | 'has_financial_access';
@@ -87,6 +95,7 @@ const TherapistDetail = () => {
     loadPreferences();
     loadAutonomySettings();
     checkManagerCNPJ();
+    loadFinancialData();
   }, [id, isAdmin, navigate]);
 
   const loadTherapistData = async () => {
@@ -238,6 +247,146 @@ const TherapistDetail = () => {
       .maybeSingle();
     
     setManagerHasCNPJ(!!data?.cnpj);
+  };
+
+  const loadFinancialData = async () => {
+    if (!id) return;
+    
+    const { data: sessions } = await supabase
+      .from('sessions')
+      .select('*, patients!inner(id, name, user_id)')
+      .eq('patients.user_id', id)
+      .eq('paid', false)
+      .eq('status', 'attended');
+    
+    if (sessions) {
+      const byPatient = sessions.reduce((acc: any, session: any) => {
+        const patientId = session.patients.id;
+        if (!acc[patientId]) {
+          acc[patientId] = {
+            patient: session.patients,
+            sessions: [],
+            total: 0
+          };
+        }
+        acc[patientId].sessions.push(session);
+        acc[patientId].total += Number(session.value);
+        return acc;
+      }, {});
+      
+      setPatientsWithUnpaid(Object.values(byPatient));
+      setUnpaidSessionsCount(sessions.length);
+      setTotalUnpaidValue(sessions.reduce((sum: number, s: any) => sum + Number(s.value), 0));
+    }
+  };
+
+  const handleGeneralInvoice = async () => {
+    setIsGeneratingInvoice(true);
+    setShowConfirmDialog(false);
+    
+    try {
+      // 1. Buscar sessões não pagas do subordinado
+      const { data: sessions, error: sessionsError } = await supabase
+        .from('sessions')
+        .select('*, patients!inner(id, name, user_id, no_nfse)')
+        .eq('patients.user_id', id)
+        .eq('paid', false)
+        .eq('status', 'attended');
+      
+      if (sessionsError) throw sessionsError;
+      if (!sessions || sessions.length === 0) {
+        toast({ title: "Não há sessões não pagas para este subordinado", variant: 'destructive' });
+        return;
+      }
+      
+      // 2. Agrupar sessões por paciente
+      const sessionsByPatient = sessions.reduce((acc: any, session: any) => {
+        const patientId = session.patients.id;
+        if (!acc[patientId]) {
+          acc[patientId] = {
+            patient: session.patients,
+            sessions: []
+          };
+        }
+        acc[patientId].sessions.push(session);
+        return acc;
+      }, {});
+      
+      let invoiceText = `FECHAMENTO GERAL - ${therapist?.full_name}\n`;
+      invoiceText += `Data: ${format(new Date(), "dd/MM/yyyy", { locale: ptBR })}\n\n`;
+      
+      let totalValue = 0;
+      let totalSessions = 0;
+      const sessionIdsToMark: string[] = [];
+      
+      // 3. Processar cada paciente
+      for (const [patientId, data] of Object.entries(sessionsByPatient)) {
+        const { patient, sessions: patientSessions } = data as any;
+        const patientValue = patientSessions.reduce((sum: number, s: any) => sum + Number(s.value), 0);
+        totalValue += patientValue;
+        totalSessions += patientSessions.length;
+        
+        if (patient.no_nfse) {
+          // Paciente sem NFSe - adicionar ao texto
+          invoiceText += `${patient.name}\n`;
+          invoiceText += `${patientSessions.length} sessão(ões) - R$ ${patientValue.toFixed(2)}\n\n`;
+          sessionIdsToMark.push(...patientSessions.map((s: any) => s.id));
+        } else {
+          // Paciente com NFSe - chamar edge function
+          try {
+            const { error: nfseError } = await supabase.functions.invoke('issue-nfse', {
+              body: {
+                patientId: patient.id,
+                sessionIds: patientSessions.map((s: any) => s.id)
+              }
+            });
+            
+            if (nfseError) {
+              invoiceText += `${patient.name} - ERRO na emissão de NFSe\n\n`;
+            } else {
+              invoiceText += `${patient.name} - NFSe emitida com sucesso\n`;
+              invoiceText += `${patientSessions.length} sessão(ões) - R$ ${patientValue.toFixed(2)}\n\n`;
+              sessionIdsToMark.push(...patientSessions.map((s: any) => s.id));
+            }
+          } catch (err) {
+            invoiceText += `${patient.name} - ERRO na emissão de NFSe\n\n`;
+          }
+        }
+      }
+      
+      invoiceText += `\n===================\n`;
+      invoiceText += `TOTAL: ${totalSessions} sessões - R$ ${totalValue.toFixed(2)}`;
+      
+      // 4. Marcar sessões como pagas
+      if (sessionIdsToMark.length > 0) {
+        await supabase
+          .from('sessions')
+          .update({ paid: true })
+          .in('id', sessionIdsToMark);
+      }
+      
+      // 5. Inserir log
+      await supabase.from('invoice_logs').insert({
+        user_id: id,
+        invoice_text: invoiceText,
+        total_sessions: totalSessions,
+        total_value: totalValue,
+        patient_count: Object.keys(sessionsByPatient).length,
+        session_ids: sessionIdsToMark
+      });
+      
+      setGeneratedInvoiceText(invoiceText);
+      setShowResultDialog(true);
+      await loadFinancialData();
+      
+      toast({ title: "Fechamento geral realizado com sucesso!" });
+      
+    } catch (error) {
+      console.error('Erro ao gerar fechamento:', error);
+      toast({ title: "Erro ao gerar fechamento geral", variant: 'destructive' });
+    } finally {
+      setIsGeneratingInvoice(false);
+    }
   };
 
   const updateAutonomySetting = async (
@@ -755,9 +904,19 @@ const TherapistDetail = () => {
                       </p>
                     </div>
                   </div>
-                  <Button onClick={() => navigate('/financial')} variant="outline">
-                    <FileText className="w-4 h-4 mr-2" />
-                    Ir para Fechamento Geral
+                  <Button 
+                    onClick={() => setShowConfirmDialog(true)}
+                    disabled={isGeneratingInvoice || unpaidSessionsCount === 0}
+                    variant="outline"
+                  >
+                    {isGeneratingInvoice ? (
+                      <>Processando...</>
+                    ) : (
+                      <>
+                        <FileText className="w-4 h-4 mr-2" />
+                        Fazer Fechamento Geral
+                      </>
+                    )}
                   </Button>
                 </div>
 
@@ -1005,6 +1164,52 @@ const TherapistDetail = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Dialog de Confirmação */}
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Fechamento Geral</AlertDialogTitle>
+            <AlertDialogDescription>
+              Isso irá processar todas as {unpaidSessionsCount} sessões não pagas
+              de {patientsWithUnpaid.length} paciente(s), emitindo NFSes quando aplicável
+              e gerando um resumo completo.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleGeneralInvoice}>
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Dialog de Resultado */}
+      <AlertDialog open={showResultDialog} onOpenChange={setShowResultDialog}>
+        <AlertDialogContent className="max-w-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Fechamento Concluído</AlertDialogTitle>
+          </AlertDialogHeader>
+          <Textarea
+            value={generatedInvoiceText}
+            readOnly
+            className="min-h-[400px] font-mono text-sm"
+          />
+          <AlertDialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                navigator.clipboard.writeText(generatedInvoiceText);
+                toast({ title: "Texto copiado!" });
+              }}
+            >
+              Copiar Texto
+            </Button>
+            <AlertDialogAction>Fechar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };

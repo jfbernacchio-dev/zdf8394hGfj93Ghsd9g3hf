@@ -1229,7 +1229,7 @@ Assinatura do Profissional`;
               <TabsTrigger value="complaint">Queixa Clínica</TabsTrigger>
               <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
               {/* Aba Faturamento: apenas se usuário tem acesso financeiro */}
-              {autonomyPermissions?.includeInFullFinancial !== false && (
+              {autonomyPermissions?.hasFinancialAccess && (
                 <TabsTrigger value="billing">Faturamento</TabsTrigger>
               )}
               <TabsTrigger value="files">Arquivos</TabsTrigger>
@@ -1769,7 +1769,7 @@ Assinatura do Profissional`;
 
           {/* Billing Tab - Apenas se tem acesso financeiro */}
           <TabsContent value="billing" className="space-y-4">
-            {autonomyPermissions?.includeInFullFinancial !== false ? (
+            {autonomyPermissions?.hasFinancialAccess ? (
               <>
                 <div className="flex justify-between items-center">
                   <h2 className="text-xl font-semibold">Faturamento</h2>
@@ -1841,7 +1841,7 @@ Assinatura do Profissional`;
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Você não tem permissão para acessar os dados financeiros deste paciente.
+                  O controle financeiro deste paciente é gerenciado pelo terapeuta Full.
                 </AlertDescription>
               </Alert>
             )}

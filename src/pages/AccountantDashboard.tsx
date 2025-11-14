@@ -72,6 +72,7 @@ const AccountantDashboard = () => {
 
         const fullTherapistIds = fullTherapists.map(t => t.id);
 
+        // PASSO 2: Buscar subordinados COM suas configurações de autonomia
         const { data: subordinateAssignments, error: subError } = await supabase
           .from("therapist_assignments")
           .select(`
@@ -79,18 +80,28 @@ const AccountantDashboard = () => {
             profiles!therapist_assignments_subordinate_id_fkey (
               id,
               full_name
+            ),
+            subordinate_autonomy_settings!inner (
+              nfse_emission_mode
             )
           `)
           .in("manager_id", fullTherapistIds);
 
         if (subError) throw subError;
 
-        const subordinates = subordinateAssignments?.map((a: any) => ({
-          id: a.profiles.id,
-          full_name: a.profiles.full_name,
-        })) || [];
+        // PASSO 3: Filtrar apenas subordinados que emitem via manager_company
+        const subordinates = subordinateAssignments
+          ?.filter((a: any) => {
+            // Se não tem settings, assumir default 'manager_company'
+            const emissionMode = a.subordinate_autonomy_settings?.nfse_emission_mode;
+            return !emissionMode || emissionMode === 'manager_company';
+          })
+          .map((a: any) => ({
+            id: a.profiles.id,
+            full_name: a.profiles.full_name,
+          })) || [];
 
-        // PASSO 3: Consolidar lista expandida
+        // PASSO 4: Consolidar lista expandida
         const allTherapists = [...fullTherapists, ...subordinates];
         
         console.log("📊 Terapeutas carregados:", {
