@@ -743,6 +743,7 @@ export type Database = {
         Row: {
           anexo_simples: string | null
           cnpj: string | null
+          codigo_municipio: string | null
           created_at: string
           focusnfe_environment: string | null
           focusnfe_token_homologacao: string | null
@@ -760,6 +761,7 @@ export type Database = {
         Insert: {
           anexo_simples?: string | null
           cnpj?: string | null
+          codigo_municipio?: string | null
           created_at?: string
           focusnfe_environment?: string | null
           focusnfe_token_homologacao?: string | null
@@ -777,6 +779,7 @@ export type Database = {
         Update: {
           anexo_simples?: string | null
           cnpj?: string | null
+          codigo_municipio?: string | null
           created_at?: string
           focusnfe_environment?: string | null
           focusnfe_token_homologacao?: string | null

@@ -25,7 +25,7 @@ export async function getNFSeConfigForUser(
   // 1. Verificar se é subordinado e qual modo de emissão
   const { data: autonomy, error: autonomyError } = await supabaseClient
     .from('subordinate_autonomy_settings')
-    .select('nfse_emission_mode, manager_id')
+    .select('nfse_emission_mode, manager_id, has_financial_access')
     .eq('subordinate_id', userId)
     .maybeSingle();
 
@@ -34,8 +34,32 @@ export async function getNFSeConfigForUser(
   }
 
   // 2. Determinar qual user_id usar para buscar config
-  const isUsingManagerConfig = autonomy?.nfse_emission_mode === 'manager_company';
-  const configUserId = isUsingManagerConfig ? autonomy.manager_id : userId;
+  // Lógica:
+  // - Se has_financial_access = false -> sempre usar config do Full (manager)
+  // - Se has_financial_access = true:
+  //   - Se nfse_emission_mode = 'manager_company' -> usar config do Full
+  //   - Se nfse_emission_mode = 'own_company' -> usar config do subordinado
+  let isUsingManagerConfig = false;
+  let configUserId = userId;
+
+  if (autonomy) {
+    if (!autonomy.has_financial_access) {
+      // Sem acesso financeiro -> sempre usar config do manager
+      isUsingManagerConfig = true;
+      configUserId = autonomy.manager_id;
+      console.log('[getNFSeConfigForUser] has_financial_access=false -> usando config do MANAGER');
+    } else if (autonomy.nfse_emission_mode === 'manager_company') {
+      // Com acesso financeiro mas emite pela empresa do manager
+      isUsingManagerConfig = true;
+      configUserId = autonomy.manager_id;
+      console.log('[getNFSeConfigForUser] has_financial_access=true + emission_mode=manager_company -> usando config do MANAGER');
+    } else {
+      // Com acesso financeiro e emite pela própria empresa
+      isUsingManagerConfig = false;
+      configUserId = userId;
+      console.log('[getNFSeConfigForUser] has_financial_access=true + emission_mode=own_company -> usando config PRÓPRIA');
+    }
+  }
 
   console.log(`[getNFSeConfigForUser] Modo: ${autonomy?.nfse_emission_mode || 'own_company (padrão)'}`);
   console.log(`[getNFSeConfigForUser] Buscando config de: ${configUserId} ${isUsingManagerConfig ? '(MANAGER)' : '(PRÓPRIO)'}`);
