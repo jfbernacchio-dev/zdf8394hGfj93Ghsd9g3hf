@@ -48,7 +48,7 @@ const PatientDetailNew = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isSubordinate } = useAuth();
   const [patient, setPatient] = useState<any>(null);
   const [sessions, setSessions] = useState<any[]>([]);
   const [allSessions, setAllSessions] = useState<any[]>([]);
@@ -80,6 +80,7 @@ const PatientDetailNew = () => {
   const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
   const [visibleCards, setVisibleCards] = useState<string[]>([]);
   const [autonomyPermissions, setAutonomyPermissions] = useState<AutonomyPermissions | null>(null);
+  const [loadingPermissions, setLoadingPermissions] = useState(true);
   
   const getBrazilDate = () => {
     return new Date().toLocaleString('en-CA', { 
@@ -199,20 +200,47 @@ const PatientDetailNew = () => {
     setComplaintText(complaintData?.complaint_text || '');
     setSessionHistory(historyData || []);
 
-    // Verificar autonomia do subordinado (se aplicável)
-    if (patientData && user && patientData.user_id !== user.id) {
-      // Paciente pertence a um subordinado - carregar configurações de autonomia
-      const autonomy = await getSubordinateAutonomy(patientData.user_id);
-      setAutonomyPermissions(autonomy);
-    } else {
-      // Paciente é do próprio usuário - acesso total
-      setAutonomyPermissions({
-        managesOwnPatients: false,
-        hasFinancialAccess: false,
-        nfseEmissionMode: 'own_company',
-        canFullSeeClinic: true,
-        includeInFullFinancial: true
+    // FASE 2A: Verificar autonomia corretamente
+    console.log('🔍 [FASE 2A] PatientDetail - Carregando permissões:', {
+      userId: user?.id,
+      patientUserId: patientData?.user_id,
+      isSubordinate,
+      patientBelongsToUser: patientData?.user_id === user?.id,
+      patientBelongsToOther: patientData?.user_id !== user?.id
+    });
+
+    if (user) {
+      let autonomy: AutonomyPermissions;
+
+      if (isSubordinate) {
+        // Usuário logado é subordinado - carregar SUA autonomia
+        console.log('🔍 [FASE 2A] Usuário é subordinado, carregando sua autonomia');
+        autonomy = await getSubordinateAutonomy(user.id);
+      } else if (patientData && patientData.user_id !== user.id) {
+        // Paciente pertence a outro usuário (subordinado) - carregar autonomia DELE
+        console.log('🔍 [FASE 2A] Paciente pertence a subordinado, carregando autonomia do subordinado');
+        autonomy = await getSubordinateAutonomy(patientData.user_id);
+      } else {
+        // Usuário é Full e paciente é dele - acesso total
+        console.log('🔍 [FASE 2A] Usuário é Full com paciente próprio - acesso total');
+        autonomy = {
+          managesOwnPatients: false,
+          hasFinancialAccess: true, // ✅ CORRIGIDO: Full tem acesso financeiro
+          nfseEmissionMode: 'own_company',
+          canFullSeeClinic: true,
+          includeInFullFinancial: true
+        };
+      }
+
+      console.log('🔍 [FASE 2A] Permissões carregadas:', {
+        managesOwnPatients: autonomy.managesOwnPatients,
+        hasFinancialAccess: autonomy.hasFinancialAccess,
+        nfseEmissionMode: autonomy.nfseEmissionMode,
+        canFullSeeClinic: autonomy.canFullSeeClinic
       });
+
+      setAutonomyPermissions(autonomy);
+      setLoadingPermissions(false);
     }
 
     await logAdminAccess('view_patient', undefined, id, 'Admin viewed patient details (NEW UI)');
@@ -1229,7 +1257,7 @@ Assinatura do Profissional`;
               <TabsTrigger value="complaint">Queixa Clínica</TabsTrigger>
               <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
               {/* Aba Faturamento: apenas se usuário tem acesso financeiro */}
-              {autonomyPermissions?.hasFinancialAccess && (
+              {!loadingPermissions && autonomyPermissions?.hasFinancialAccess && (
                 <TabsTrigger value="billing">Faturamento</TabsTrigger>
               )}
               <TabsTrigger value="files">Arquivos</TabsTrigger>
@@ -1769,7 +1797,11 @@ Assinatura do Profissional`;
 
           {/* Billing Tab - Apenas se tem acesso financeiro */}
           <TabsContent value="billing" className="space-y-4">
-            {autonomyPermissions?.hasFinancialAccess ? (
+            {loadingPermissions ? (
+              <div className="flex justify-center items-center py-8">
+                <p className="text-muted-foreground">Carregando permissões...</p>
+              </div>
+            ) : autonomyPermissions?.hasFinancialAccess ? (
               <>
                 <div className="flex justify-between items-center">
                   <h2 className="text-xl font-semibold">Faturamento</h2>
@@ -1849,7 +1881,11 @@ Assinatura do Profissional`;
 
           {/* Clinical Complaint Tab */}
           <TabsContent value="complaint" className="space-y-6">
-            {autonomyPermissions?.canFullSeeClinic ? (
+            {loadingPermissions ? (
+              <div className="flex justify-center items-center py-8">
+                <p className="text-muted-foreground">Carregando permissões...</p>
+              </div>
+            ) : autonomyPermissions?.canFullSeeClinic ? (
               <ClinicalComplaintSummary patientId={id!} />
             ) : (
               <Alert>
@@ -1863,7 +1899,11 @@ Assinatura do Profissional`;
 
           {/* Clinical Evolution Tab */}
           <TabsContent value="evolution" className="space-y-6">
-            {autonomyPermissions?.canFullSeeClinic ? (
+            {loadingPermissions ? (
+              <div className="flex justify-center items-center py-8">
+                <p className="text-muted-foreground">Carregando permissões...</p>
+              </div>
+            ) : autonomyPermissions?.canFullSeeClinic ? (
               <ClinicalEvolution patientId={id!} />
             ) : (
               <Alert>
