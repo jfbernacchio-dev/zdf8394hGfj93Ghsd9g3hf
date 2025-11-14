@@ -79,32 +79,16 @@ const AccountantDashboard = () => {
             profiles!therapist_assignments_subordinate_id_fkey (
               id,
               full_name
-            ),
-            subordinate_autonomy_settings!subordinate_autonomy_settings_subordinate_id_fkey (
-              nfse_emission_mode,
-              has_financial_access
             )
           `)
           .in("manager_id", fullTherapistIds);
 
         if (subError) throw subError;
 
-        // Filtrar apenas subordinados que:
-        // 1. NÃO têm acesso financeiro (has_financial_access = false)
-        // 2. Usam empresa do gerente (nfse_emission_mode = 'manager_company' ou NULL)
-        const subordinates = subordinateAssignments
-          ?.filter((a: any) => {
-            const settings = a.subordinate_autonomy_settings;
-            // Só incluir se NÃO tem acesso financeiro E usa empresa do gerente
-            return (
-              settings?.has_financial_access === false &&
-              (settings?.nfse_emission_mode === 'manager_company' || !settings?.nfse_emission_mode)
-            );
-          })
-          .map((a: any) => ({
-            id: a.profiles.id,
-            full_name: a.profiles.full_name,
-          })) || [];
+        const subordinates = subordinateAssignments?.map((a: any) => ({
+          id: a.profiles.id,
+          full_name: a.profiles.full_name,
+        })) || [];
 
         // PASSO 3: Consolidar lista expandida
         const allTherapists = [...fullTherapists, ...subordinates];
