@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import { ConsentReminder } from '@/components/ConsentReminder';
+import { getSubordinateAutonomy, AutonomyPermissions } from '@/lib/checkSubordinateAutonomy';
 
 const Patients = () => {
   const [patients, setPatients] = useState<any[]>([]);
@@ -27,13 +28,48 @@ const Patients = () => {
   const [userProfile, setUserProfile] = useState<any>(null);
   const [isDuplicatesDialogOpen, setIsDuplicatesDialogOpen] = useState(false);
   const [duplicatesReport, setDuplicatesReport] = useState<any[]>([]);
+  const [autonomyPermissions, setAutonomyPermissions] = useState<AutonomyPermissions | null>(null);
+  const [loadingPermissions, setLoadingPermissions] = useState(true);
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isSubordinate } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (user) loadData();
-  }, [user]);
+    if (user) {
+      loadData();
+      loadPermissions();
+    }
+  }, [user, isSubordinate]);
+
+  const loadPermissions = async () => {
+    if (!user) return;
+
+    console.log('🔍 [FASE 2B] Patients - Carregando permissões:', {
+      userId: user.id,
+      isSubordinate
+    });
+
+    if (isSubordinate) {
+      // Usuário é subordinado - carregar SUA autonomia
+      const autonomy = await getSubordinateAutonomy(user.id);
+      console.log('🔍 [FASE 2B] Subordinado - Permissões:', {
+        hasFinancialAccess: autonomy.hasFinancialAccess
+      });
+      setAutonomyPermissions(autonomy);
+    } else {
+      // Usuário é Full - acesso total
+      console.log('🔍 [FASE 2B] Full - Acesso total concedido');
+      setAutonomyPermissions({
+        managesOwnPatients: false,
+        hasFinancialAccess: true,
+        nfseEmissionMode: 'own_company',
+        canFullSeeClinic: true,
+        includeInFullFinancial: true
+      });
+    }
+    
+    setLoadingPermissions(false);
+  };
 
   const loadData = async () => {
     const { data: patientsData } = await supabase
@@ -452,11 +488,13 @@ const Patients = () => {
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
-            <Button onClick={generateGeneralInvoice} variant="outline" className="w-full sm:w-auto">
-              <FileText className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">Fazer Fechamento Geral</span>
-              <span className="sm:hidden">Fechamento</span>
-            </Button>
+            {!loadingPermissions && (!isSubordinate || autonomyPermissions?.hasFinancialAccess) && (
+              <Button onClick={generateGeneralInvoice} variant="outline" className="w-full sm:w-auto">
+                <FileText className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Fazer Fechamento Geral</span>
+                <span className="sm:hidden">Fechamento</span>
+              </Button>
+            )}
             <Button onClick={checkDuplicates} variant="outline" className="w-full sm:w-auto">
               <CheckCheck className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">Checar Duplicidades</span>
