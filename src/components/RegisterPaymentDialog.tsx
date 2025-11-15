@@ -217,6 +217,35 @@ export const RegisterPaymentDialog = ({
         if (allocError) throw allocError;
       }
 
+      // Mark sessions from allocated NFSes as paid
+      const nfseIds = Array.from(selectedNFSes);
+      if (nfseIds.length > 0) {
+        // Get all NFSes to extract session_ids
+        const { data: nfses, error: nfseError } = await supabase
+          .from('nfse_issued')
+          .select('session_ids')
+          .in('id', nfseIds);
+
+        if (!nfseError && nfses) {
+          // Collect all session IDs from all NFSes
+          const allSessionIds = nfses
+            .flatMap(nfse => nfse.session_ids || [])
+            .filter(id => id); // Remove nulls/undefined
+
+          if (allSessionIds.length > 0) {
+            // Mark all these sessions as paid
+            const { error: updateError } = await supabase
+              .from('sessions')
+              .update({ paid: true })
+              .in('id', allSessionIds);
+
+            if (updateError) {
+              console.error('Error marking sessions as paid:', updateError);
+            }
+          }
+        }
+      }
+
       toast({
         title: 'Pagamento registrado',
         description: proofFile 
