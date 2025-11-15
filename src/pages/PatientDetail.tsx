@@ -476,6 +476,42 @@ const PatientDetailNew = () => {
     if (!formData.nfseIssued) {
       sessionData.nfse_issued_id = null;
       console.log('⚠️ [SUBMIT] NFSe desmarcada - setando nfse_issued_id = null');
+      
+      // 🆕 NOVO: Remover session_id do array session_ids da NFSe
+      const containingNfse = nfseIssued.find(nfse => 
+        nfse.session_ids?.includes(editingSession!.id)
+      );
+      
+      if (containingNfse) {
+        console.log('🔧 [NFSE UPDATE] Removendo session_id da NFSe:', {
+          nfseId: containingNfse.id,
+          sessionId: editingSession!.id,
+          currentSessionIds: containingNfse.session_ids
+        });
+        
+        const updatedSessionIds = containingNfse.session_ids.filter(
+          id => id !== editingSession!.id
+        );
+        
+        const { error: nfseUpdateError } = await supabase
+          .from('nfse_issued')
+          .update({ session_ids: updatedSessionIds })
+          .eq('id', containingNfse.id);
+        
+        if (nfseUpdateError) {
+          console.error('❌ [NFSE UPDATE ERROR]', nfseUpdateError);
+          toast({
+            title: "Erro ao atualizar NFSe",
+            description: "Não foi possível remover a sessão da NFSe.",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        console.log('✅ [NFSE REMOVED] Session_id removido com sucesso do array');
+      } else {
+        console.log('⚠️ [NFSE NOT FOUND] Sessão não estava em nenhuma NFSe');
+      }
     }
 
     console.log('🔵 [SUBMIT DADOS] Dados que serão salvos no banco:', sessionData);
