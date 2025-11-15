@@ -196,6 +196,8 @@ const PatientDetailNew = () => {
   }, [period, customStartDate, customEndDate, allSessions, showScheduled, showUnpaid]);
 
   const loadData = async () => {
+    console.log('🔄 [LOADDATA INICIO] Carregando dados do paciente...');
+    
     const { data: patientData } = await supabase.from('patients').select('*').eq('id', id).single();
     const { data: sessionsData } = await supabase.from('sessions').select('*').eq('patient_id', id).order('date', { ascending: false });
     const { data: complaintData } = await supabase.from('patient_complaints').select('*').eq('patient_id', id).order('created_at', { ascending: false }).limit(1).maybeSingle();
@@ -212,6 +214,15 @@ const PatientDetailNew = () => {
       const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
       setUserProfile(profileData);
     }
+    
+    console.log('🔄 [LOADDATA SESSIONS] Sessões carregadas do banco:', sessionsData?.map(s => ({
+      id: s.id,
+      date: s.date,
+      paid: s.paid,
+      nfse_issued_id: s.nfse_issued_id,
+      manually_marked_nfse: s.manually_marked_nfse,
+      status: s.status
+    })));
     
     setPatient(patientData);
     setAllSessions(sessionsData || []);
@@ -268,18 +279,32 @@ const PatientDetailNew = () => {
 
   // Helper function to determine session payment status
   const getSessionPaymentStatus = (session: any): 'paid' | 'nfse_issued' | 'to_pay' => {
-    if (session.paid) return 'paid';
-    
-    // Check if session has NFSe (either real or manually marked)
-    if (session.nfse_issued_id || session.manually_marked_nfse) return 'nfse_issued';
-    
-    // Legacy check: session is in any NFSe (for backwards compatibility)
-    const hasNFSe = nfseIssued.some(nfse => 
-      nfse.session_ids && nfse.session_ids.includes(session.id)
-    );
-    
-    if (hasNFSe) return 'nfse_issued';
-    return 'to_pay';
+    const status = (() => {
+      if (session.paid) return 'paid';
+      
+      // Check if session has NFSe (either real or manually marked)
+      if (session.nfse_issued_id || session.manually_marked_nfse) return 'nfse_issued';
+      
+      // Legacy check: session is in any NFSe (for backwards compatibility)
+      const hasNFSe = nfseIssued.some(nfse => 
+        nfse.session_ids && nfse.session_ids.includes(session.id)
+      );
+      
+      if (hasNFSe) return 'nfse_issued';
+      return 'to_pay';
+    })();
+
+    console.log('🏷️ [BADGE] Status calculado:', {
+      sessionId: session.id,
+      date: session.date,
+      paid: session.paid,
+      nfse_issued_id: session.nfse_issued_id,
+      manually_marked_nfse: session.manually_marked_nfse,
+      isInIssuedNfse: nfseIssued.some(nfse => nfse.session_ids?.includes(session.id)),
+      finalStatus: status
+    });
+
+    return status;
   };
 
   const filterSessions = () => {
@@ -356,6 +381,15 @@ const PatientDetailNew = () => {
   };
 
   const openEditDialog = async (session: any) => {
+    console.log('📝 [EDIT DIALOG INICIO] Abrindo dialog para sessão:', {
+      id: session.id,
+      date: session.date,
+      paid: session.paid,
+      nfse_issued_id: session.nfse_issued_id,
+      manually_marked_nfse: session.manually_marked_nfse,
+      status: session.status
+    });
+    
     setEditingSession(session);
     
     // Check if session has payment proof
@@ -372,7 +406,7 @@ const PatientDetailNew = () => {
     // Determine NFSe state
     const nfseIssued = !!(session.nfse_issued_id || session.manually_marked_nfse);
     
-    setFormData({
+    const formDataToSet = {
       date: session.date,
       status: session.status,
       notes: session.notes || '',
@@ -383,12 +417,26 @@ const PatientDetailNew = () => {
       nfseIssued,
       manuallyMarkedNfse: session.manually_marked_nfse || false,
       nfseIssuedId: session.nfse_issued_id || null
-    });
+    };
+    
+    console.log('📝 [EDIT DIALOG] FormData configurado:', formDataToSet);
+    
+    setFormData(formDataToSet);
     setIsDialogOpen(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    console.log('🔵 [SUBMIT INICIO] FormData atual:', {
+      editingSessionId: editingSession?.id,
+      date: formData.date,
+      paid: formData.paid,
+      nfseIssued: formData.nfseIssued,
+      manuallyMarkedNfse: formData.manuallyMarkedNfse,
+      nfseIssuedId: formData.nfseIssuedId,
+      status: formData.status
+    });
     
     const sessionData: any = {
       patient_id: id,
@@ -407,6 +455,8 @@ const PatientDetailNew = () => {
       sessionData.nfse_issued_id = null;
     }
 
+    console.log('🔵 [SUBMIT DADOS] Dados que serão salvos no banco:', sessionData);
+
     if (editingSession) {
       const dateChanged = editingSession.date !== formData.date;
       const timeChanged = editingSession.time !== formData.time;
@@ -422,9 +472,12 @@ const PatientDetailNew = () => {
         .eq('id', editingSession.id);
 
       if (error) {
+        console.error('❌ [SUBMIT ERRO] Erro ao atualizar:', error);
         toast({ title: 'Erro ao atualizar sessão', variant: 'destructive' });
         return;
       }
+
+      console.log('🟢 [SUBMIT SUCESSO] Update executado com sucesso');
 
       if (dateChanged || timeChanged) {
         const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
@@ -459,8 +512,11 @@ const PatientDetailNew = () => {
       toast({ title: 'Sessão criada!' });
     }
 
+    console.log('🔵 [SUBMIT] Fechando dialog e recarregando dados...');
     setIsDialogOpen(false);
-    loadData();
+    console.log('🔵 [SUBMIT] Chamando loadData()...');
+    await loadData();
+    console.log('🟢 [SUBMIT FIM] loadData() concluído');
   };
 
   const toggleStatus = async (session: any, checked: boolean) => {
