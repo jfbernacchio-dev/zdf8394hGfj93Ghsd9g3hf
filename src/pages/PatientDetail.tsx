@@ -52,6 +52,7 @@ const PatientDetailNew = () => {
   const [patient, setPatient] = useState<any>(null);
   const [sessions, setSessions] = useState<any[]>([]);
   const [allSessions, setAllSessions] = useState<any[]>([]);
+  const [nfseIssued, setNfseIssued] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('overview');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<any>(null);
@@ -189,6 +190,13 @@ const PatientDetailNew = () => {
     const { data: complaintData } = await supabase.from('patient_complaints').select('*').eq('patient_id', id).order('created_at', { ascending: false }).limit(1).maybeSingle();
     const { data: historyData } = await supabase.from('session_history').select('*').eq('patient_id', id).order('changed_at', { ascending: false });
     
+    // Load NFSes issued (processing or issued status)
+    const { data: nfseData } = await supabase
+      .from('nfse_issued')
+      .select('id, session_ids, status')
+      .eq('patient_id', id!)
+      .in('status', ['processing', 'issued']);
+    
     if (user) {
       const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
       setUserProfile(profileData);
@@ -196,6 +204,7 @@ const PatientDetailNew = () => {
     
     setPatient(patientData);
     setAllSessions(sessionsData || []);
+    setNfseIssued(nfseData || []);
     setComplaint(complaintData);
     setComplaintText(complaintData?.complaint_text || '');
     setSessionHistory(historyData || []);
@@ -244,6 +253,19 @@ const PatientDetailNew = () => {
     }
 
     await logAdminAccess('view_patient', undefined, id, 'Admin viewed patient details (NEW UI)');
+  };
+
+  // Helper function to determine session payment status
+  const getSessionPaymentStatus = (session: any): 'paid' | 'nfse_issued' | 'to_pay' => {
+    if (session.paid) return 'paid';
+    
+    // Check if session is in any NFSe
+    const hasNFSe = nfseIssued.some(nfse => 
+      nfse.session_ids && nfse.session_ids.includes(session.id)
+    );
+    
+    if (hasNFSe) return 'nfse_issued';
+    return 'to_pay';
   };
 
   const filterSessions = () => {
@@ -1768,11 +1790,16 @@ Assinatura do Profissional`;
                         </p>
                         {session.status === 'missed' ? (
                           <p className="text-xs text-muted-foreground">Sem Cobrança</p>
-                        ) : session.paid ? (
-                          <Badge variant="outline" className="text-xs bg-green-500/10 text-green-600 border-green-500/20">Pago</Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-xs bg-orange-500/10 text-orange-600 border-orange-500/20">A pagar</Badge>
-                        )}
+                        ) : (() => {
+                          const paymentStatus = getSessionPaymentStatus(session);
+                          if (paymentStatus === 'paid') {
+                            return <Badge variant="outline" className="text-xs bg-green-500/10 text-green-600 border-green-500/20">Paga</Badge>;
+                          } else if (paymentStatus === 'nfse_issued') {
+                            return <Badge variant="outline" className="text-xs bg-blue-500/10 text-blue-600 border-blue-500/20">NFSe Emitida</Badge>;
+                          } else {
+                            return <Badge variant="outline" className="text-xs bg-orange-500/10 text-orange-600 border-orange-500/20">A Pagar</Badge>;
+                          }
+                        })()}
                       </div>
                       <div className="flex items-center gap-2">
                         <Switch
