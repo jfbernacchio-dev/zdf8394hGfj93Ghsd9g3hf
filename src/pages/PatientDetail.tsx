@@ -687,7 +687,7 @@ const PatientDetailNew = () => {
   };
 
   const generateInvoice = () => {
-    const unpaidSessions = allSessions.filter(s => s.status === 'attended' && !s.paid);
+    const unpaidSessions = allSessions.filter(s => s.status === 'attended' && getSessionPaymentStatus(s) === 'to_pay');
     
     if (unpaidSessions.length === 0) {
       toast({ 
@@ -1246,7 +1246,7 @@ Assinatura do Profissional`;
   const totalMonthSessions = monthSessions.length;
   const attendedMonthSessions = monthSessions.filter(s => s.status === 'attended').length;
   const scheduledMonthSessions = monthSessions.filter(s => s.status === 'scheduled' && isFuture(parseISO(s.date))).length;
-  const unpaidMonthSessions = monthSessions.filter(s => s.status === 'attended' && !s.paid).length;
+  const unpaidMonthSessions = monthSessions.filter(s => s.status === 'attended' && getSessionPaymentStatus(s) === 'to_pay').length;
   const nfseIssuedSessions = allSessions.filter(s => s.status === 'nfse_issued').length;
   
   // Additional stats for new cards
@@ -2004,18 +2004,18 @@ Assinatura do Profissional`;
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card className="p-6">
                 <p className="text-sm text-muted-foreground mb-2">Sessões em Aberto</p>
-                <p className="text-3xl font-bold">{allSessions.filter(s => s.status === 'attended' && !s.paid).length}</p>
+                <p className="text-3xl font-bold">{allSessions.filter(s => s.status === 'attended' && getSessionPaymentStatus(s) === 'to_pay').length}</p>
               </Card>
               <Card className="p-6">
                 <p className="text-sm text-muted-foreground mb-2">Valor Total em Aberto</p>
                 <p className="text-3xl font-bold">
                   {formatBrazilianCurrency(
                     patient.monthly_price ? 
-                      allSessions.filter(s => s.status === 'attended' && !s.paid).reduce((acc, session) => {
+                      allSessions.filter(s => s.status === 'attended' && getSessionPaymentStatus(s) === 'to_pay').reduce((acc, session) => {
                         const monthYear = format(parseISO(session.date), 'MM/yyyy');
                         return acc;
                       }, 0) * Number(patient.session_value) :
-                      allSessions.filter(s => s.status === 'attended' && !s.paid).reduce((sum, s) => sum + Number(s.value || 0), 0)
+                      allSessions.filter(s => s.status === 'attended' && getSessionPaymentStatus(s) === 'to_pay').reduce((sum, s) => sum + Number(s.value || 0), 0)
                   )}
                 </p>
               </Card>
@@ -2032,8 +2032,8 @@ Assinatura do Profissional`;
             <Card className="p-6">
               <h3 className="font-semibold mb-4">Sessões Não Pagas</h3>
               <div className="space-y-2">
-                {allSessions.filter(s => s.status === 'attended' && !s.paid).length > 0 ? (
-                  allSessions.filter(s => s.status === 'attended' && !s.paid).map(session => (
+                {allSessions.filter(s => s.status === 'attended' && getSessionPaymentStatus(s) === 'to_pay').length > 0 ? (
+                  allSessions.filter(s => s.status === 'attended' && getSessionPaymentStatus(s) === 'to_pay').map(session => (
                     <div key={session.id} className="flex justify-between items-center py-3 border-b last:border-0">
                       <div>
                         <p className="font-medium">{format(parseISO(session.date), 'dd/MM/yyyy')}</p>
