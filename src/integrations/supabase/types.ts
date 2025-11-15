@@ -1529,6 +1529,7 @@ export type Database = {
           created_at: string
           date: string
           id: string
+          nfse_issued_id: string | null
           notes: string | null
           paid: boolean | null
           patient_id: string
@@ -1542,6 +1543,7 @@ export type Database = {
           created_at?: string
           date: string
           id?: string
+          nfse_issued_id?: string | null
           notes?: string | null
           paid?: boolean | null
           patient_id: string
@@ -1555,6 +1557,7 @@ export type Database = {
           created_at?: string
           date?: string
           id?: string
+          nfse_issued_id?: string | null
           notes?: string | null
           paid?: boolean | null
           patient_id?: string
@@ -1565,6 +1568,13 @@ export type Database = {
           value?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "sessions_nfse_issued_id_fkey"
+            columns: ["nfse_issued_id"]
+            isOneToOne: false
+            referencedRelation: "nfse_issued"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sessions_patient_id_fkey"
             columns: ["patient_id"]
