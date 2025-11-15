@@ -1529,6 +1529,7 @@ export type Database = {
           created_at: string
           date: string
           id: string
+          manually_marked_nfse: boolean | null
           nfse_issued_id: string | null
           notes: string | null
           paid: boolean | null
@@ -1543,6 +1544,7 @@ export type Database = {
           created_at?: string
           date: string
           id?: string
+          manually_marked_nfse?: boolean | null
           nfse_issued_id?: string | null
           notes?: string | null
           paid?: boolean | null
@@ -1557,6 +1559,7 @@ export type Database = {
           created_at?: string
           date?: string
           id?: string
+          manually_marked_nfse?: boolean | null
           nfse_issued_id?: string | null
           notes?: string | null
           paid?: boolean | null
