@@ -206,10 +206,7 @@ const Patients = () => {
   });
 
   const generateGeneralInvoice = async () => {
-    // Reload data to ensure we have the latest session states
-    await loadData();
-    
-    const allUnpaidSessions = sessions.filter(s => s.status === 'attended' && !s.paid);
+    const allUnpaidSessions = sessions.filter(s => s.status === 'attended' && !s.nfse_issued_id);
     
     if (allUnpaidSessions.length === 0) {
       toast({ 
