@@ -129,13 +129,13 @@ serve(async (req) => {
       }
     }
 
-    // Load sessions (only unpaid sessions)
+    // Load sessions (only sessions without NFSe issued)
     const { data: sessionsData, error: sessionsError } = await supabase
       .from('sessions')
       .select('*')
       .in('id', sessionIds)
       .eq('patient_id', patientId)
-      .eq('paid', false);
+      .is('nfse_issued_id', null);
 
     if (sessionsError || !sessionsData || sessionsData.length === 0) {
       throw new Error('Sessões não encontradas');
@@ -470,10 +470,13 @@ Data de emissão: ${new Date().toLocaleDateString('pt-BR')}`;
       console.error('Error updating NFSe record:', updateError);
     }
 
-    // Mark sessions as nfse_issued
+    // Mark sessions as nfse_issued and link to NFSe
     const { error: sessionsUpdateError } = await supabase
       .from('sessions')
-      .update({ status: 'nfse_issued' })
+      .update({ 
+        status: 'nfse_issued',
+        nfse_issued_id: nfseRecord.id
+      })
       .in('id', sessionIds);
 
     if (sessionsUpdateError) {
