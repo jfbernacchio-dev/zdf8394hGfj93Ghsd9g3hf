@@ -80,6 +80,7 @@ export default function IssueNFSeDialog({
         .select('*')
         .eq('patient_id', patientId)
         .eq('status', 'attended')
+        .is('nfse_issued_id', null)
         .order('date', { ascending: true });
 
       if (error) throw error;
