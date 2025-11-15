@@ -129,12 +129,13 @@ serve(async (req) => {
       }
     }
 
-    // Load sessions
+    // Load sessions (only unpaid sessions)
     const { data: sessionsData, error: sessionsError } = await supabase
       .from('sessions')
       .select('*')
       .in('id', sessionIds)
-      .eq('patient_id', patientId);
+      .eq('patient_id', patientId)
+      .eq('paid', false);
 
     if (sessionsError || !sessionsData || sessionsData.length === 0) {
       throw new Error('Sessões não encontradas');

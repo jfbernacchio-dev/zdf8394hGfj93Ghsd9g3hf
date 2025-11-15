@@ -244,31 +244,6 @@ serve(async (req) => {
         // Don't fail the entire operation if PDF upload fails
       }
 
-      // Mark only the sessions included in this NFSe as paid
-      try {
-        const sessionIds = nfseRecord.session_ids || [];
-        
-        if (sessionIds.length > 0) {
-          console.log(`Marking ${sessionIds.length} sessions as paid for patient:`, nfseRecord.patient_id);
-          
-          const { error: updateError } = await supabase
-            .from('sessions')
-            .update({ paid: true })
-            .in('id', sessionIds);
-          
-          if (updateError) {
-            console.error('Error updating sessions to paid:', updateError);
-          } else {
-            console.log(`Successfully marked ${sessionIds.length} sessions as paid`);
-          }
-        } else {
-          console.log('No session IDs found in this NFSe record - skipping payment update');
-        }
-      } catch (sessionError) {
-        console.error('Error processing session payments:', sessionError);
-        // Don't fail the entire operation if session update fails
-      }
-
       // Send email automatically when NFSe is authorized
       const patientEmail = (nfseRecord.patients as any)?.email;
       if (patientEmail) {
