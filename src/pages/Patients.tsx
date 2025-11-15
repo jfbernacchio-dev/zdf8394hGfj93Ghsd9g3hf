@@ -19,6 +19,7 @@ import { getSubordinateAutonomy, AutonomyPermissions } from '@/lib/checkSubordin
 const Patients = () => {
   const [patients, setPatients] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
+  const [nfseIssued, setNfseIssued] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [showOnlyUnpaid, setShowOnlyUnpaid] = useState(false);
   const [sortBy, setSortBy] = useState<'alphabetic' | 'unpaid' | 'schedule'>('alphabetic');
@@ -81,6 +82,13 @@ const Patients = () => {
       .from('sessions')
       .select('*');
 
+    // Load NFSes issued (processing or issued status)
+    const { data: nfseData } = await supabase
+      .from('nfse_issued')
+      .select('id, session_ids, status')
+      .eq('user_id', user!.id)
+      .in('status', ['processing', 'issued']);
+
     if (user) {
       const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
       setUserProfile(profileData);
@@ -88,6 +96,20 @@ const Patients = () => {
 
     setPatients(patientsData || []);
     setSessions(sessionsData || []);
+    setNfseIssued(nfseData || []);
+  };
+
+  // Helper function to determine session payment status
+  const getSessionPaymentStatus = (session: any): 'paid' | 'nfse_issued' | 'to_pay' => {
+    if (session.paid) return 'paid';
+    
+    // Check if session is in any NFSe
+    const hasNFSe = nfseIssued.some(nfse => 
+      nfse.session_ids && nfse.session_ids.includes(session.id)
+    );
+    
+    if (hasNFSe) return 'nfse_issued';
+    return 'to_pay';
   };
 
   const getPatientStats = (patientId: string) => {
