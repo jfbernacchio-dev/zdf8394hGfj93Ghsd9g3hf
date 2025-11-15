@@ -99,8 +99,19 @@ const PatientDetailNew = () => {
     value: '',
     paid: false,
     time: '',
-    showInSchedule: true
+    showInSchedule: true,
+    nfseIssued: false,
+    manuallyMarkedNfse: false,
+    nfseIssuedId: null as string | null
   });
+
+  // Alert states for confirmation dialogs
+  const [showNfseUnmarkAlert, setShowNfseUnmarkAlert] = useState(false);
+  const [showPaidUnmarkAlert, setShowPaidUnmarkAlert] = useState(false);
+  const [pendingNfseChange, setPendingNfseChange] = useState<boolean | null>(null);
+  const [pendingPaidChange, setPendingPaidChange] = useState<boolean | null>(null);
+  const [nfseDetails, setNfseDetails] = useState<any>(null);
+  const [hasPaymentProof, setHasPaymentProof] = useState(false);
 
   useEffect(() => {
     // Load visible cards from localStorage
@@ -259,7 +270,10 @@ const PatientDetailNew = () => {
   const getSessionPaymentStatus = (session: any): 'paid' | 'nfse_issued' | 'to_pay' => {
     if (session.paid) return 'paid';
     
-    // Check if session is in any NFSe
+    // Check if session has NFSe (either real or manually marked)
+    if (session.nfse_issued_id || session.manually_marked_nfse) return 'nfse_issued';
+    
+    // Legacy check: session is in any NFSe (for backwards compatibility)
     const hasNFSe = nfseIssued.some(nfse => 
       nfse.session_ids && nfse.session_ids.includes(session.id)
     );
@@ -333,13 +347,31 @@ const PatientDetailNew = () => {
       value: patient?.session_value?.toString() || '',
       paid: false,
       time: patient?.session_time || '',
-      showInSchedule: true
+      showInSchedule: true,
+      nfseIssued: false,
+      manuallyMarkedNfse: false,
+      nfseIssuedId: null
     });
     setIsDialogOpen(true);
   };
 
-  const openEditDialog = (session: any) => {
+  const openEditDialog = async (session: any) => {
     setEditingSession(session);
+    
+    // Check if session has payment proof
+    const { data: proofFiles } = await supabase
+      .from('patient_files')
+      .select('id')
+      .eq('patient_id', id)
+      .eq('category', 'payment_proof')
+      .eq('file_name', `comprovante_${session.id}.pdf`)
+      .maybeSingle();
+    
+    setHasPaymentProof(!!proofFiles);
+    
+    // Determine NFSe state
+    const nfseIssued = !!(session.nfse_issued_id || session.manually_marked_nfse);
+    
     setFormData({
       date: session.date,
       status: session.status,
@@ -347,7 +379,10 @@ const PatientDetailNew = () => {
       value: session.value.toString(),
       paid: session.paid,
       time: session.time || patient?.session_time || '',
-      showInSchedule: session.show_in_schedule ?? true
+      showInSchedule: session.show_in_schedule ?? true,
+      nfseIssued,
+      manuallyMarkedNfse: session.manually_marked_nfse || false,
+      nfseIssuedId: session.nfse_issued_id || null
     });
     setIsDialogOpen(true);
   };
@@ -355,7 +390,7 @@ const PatientDetailNew = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const sessionData = {
+    const sessionData: any = {
       patient_id: id,
       date: formData.date,
       status: formData.status,
@@ -363,8 +398,14 @@ const PatientDetailNew = () => {
       value: parseFloat(formData.value),
       paid: formData.paid,
       time: formData.time || null,
-      show_in_schedule: formData.showInSchedule
+      show_in_schedule: formData.showInSchedule,
+      manually_marked_nfse: formData.manuallyMarkedNfse
     };
+
+    // Handle nfse_issued_id: set to null if manually unmarked
+    if (!formData.nfseIssued) {
+      sessionData.nfse_issued_id = null;
+    }
 
     if (editingSession) {
       const dateChanged = editingSession.date !== formData.date;
@@ -2001,7 +2042,7 @@ Assinatura do Profissional`;
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Valor</Label>
                 <Input
@@ -2012,13 +2053,77 @@ Assinatura do Profissional`;
                   required
                 />
               </div>
-              <div className="flex items-center space-x-2 pt-8">
-                <Switch
-                  id="paid"
-                  checked={formData.paid}
-                  onCheckedChange={(checked) => setFormData({ ...formData, paid: checked })}
-                />
-                <Label htmlFor="paid">Sessão Paga</Label>
+
+              {/* NFSe Emitida Switch */}
+              <div className="flex items-center justify-between p-3 border rounded-md">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="nfseIssued"
+                    checked={formData.nfseIssued}
+                    disabled={formData.paid}
+                    onCheckedChange={async (checked) => {
+                      if (!checked && formData.nfseIssuedId) {
+                        // Trying to unmark NFSe that has real nfse_issued_id
+                        const { data: nfseData } = await supabase
+                          .from('nfse_issued')
+                          .select('nfse_number, issue_date, status')
+                          .eq('id', formData.nfseIssuedId)
+                          .single();
+                        
+                        setNfseDetails(nfseData);
+                        setPendingNfseChange(checked);
+                        setShowNfseUnmarkAlert(true);
+                      } else {
+                        // Either marking as issued or unmarking manual mark
+                        setFormData({ 
+                          ...formData, 
+                          nfseIssued: checked,
+                          manuallyMarkedNfse: checked && !formData.nfseIssuedId
+                        });
+                      }
+                    }}
+                  />
+                  <Label htmlFor="nfseIssued" className="cursor-pointer">
+                    NFSe Emitida
+                  </Label>
+                </div>
+                {formData.paid && (
+                  <span className="text-xs text-muted-foreground">
+                    (Desabilitado - sessão já paga)
+                  </span>
+                )}
+                {formData.nfseIssuedId && (
+                  <Badge variant="outline" className="text-xs">
+                    Com NFSe Real
+                  </Badge>
+                )}
+              </div>
+
+              {/* Paga Switch */}
+              <div className="flex items-center justify-between p-3 border rounded-md">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="paid"
+                    checked={formData.paid}
+                    onCheckedChange={async (checked) => {
+                      if (!checked && hasPaymentProof) {
+                        // Trying to unmark as paid when there's a payment proof
+                        setPendingPaidChange(checked);
+                        setShowPaidUnmarkAlert(true);
+                      } else {
+                        setFormData({ ...formData, paid: checked });
+                      }
+                    }}
+                  />
+                  <Label htmlFor="paid" className="cursor-pointer">
+                    Sessão Paga
+                  </Label>
+                </div>
+                {hasPaymentProof && (
+                  <Badge variant="outline" className="text-xs">
+                    Com Comprovante
+                  </Badge>
+                )}
               </div>
             </div>
 
@@ -2180,6 +2285,90 @@ Assinatura do Profissional`;
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* NFSe Unmark Confirmation Dialog */}
+      <AlertDialog open={showNfseUnmarkAlert} onOpenChange={setShowNfseUnmarkAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>⚠️ Atenção</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>Esta sessão possui NFSe emitida:</p>
+              {nfseDetails && (
+                <div className="bg-muted p-3 rounded-md space-y-1 text-sm">
+                  <div><strong>Número:</strong> {nfseDetails.nfse_number || 'Processando...'}</div>
+                  <div><strong>Emitida em:</strong> {nfseDetails.issue_date ? format(parseISO(nfseDetails.issue_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : '-'}</div>
+                  <div><strong>Status:</strong> {nfseDetails.status}</div>
+                </div>
+              )}
+              <p className="pt-2">
+                Ao desmarcar, você estará <strong>despareando esta sessão da NFSe</strong>. 
+                A NFSe permanecerá no sistema.
+              </p>
+              <p className="text-destructive font-medium">
+                Deseja continuar?
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowNfseUnmarkAlert(false);
+              setPendingNfseChange(null);
+              setNfseDetails(null);
+            }}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              setFormData({ 
+                ...formData, 
+                nfseIssued: false,
+                manuallyMarkedNfse: false,
+                nfseIssuedId: null
+              });
+              setShowNfseUnmarkAlert(false);
+              setPendingNfseChange(null);
+              setNfseDetails(null);
+            }}>
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Paid Unmark Confirmation Dialog */}
+      <AlertDialog open={showPaidUnmarkAlert} onOpenChange={setShowPaidUnmarkAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>⚠️ Atenção</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                Esta sessão possui <strong>comprovante de pagamento anexado</strong>.
+              </p>
+              <p>
+                Ao desmarcar como paga, o comprovante permanecerá no sistema 
+                (você pode excluí-lo separadamente na aba de Arquivos se desejar).
+              </p>
+              <p className="text-destructive font-medium">
+                Deseja continuar?
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowPaidUnmarkAlert(false);
+              setPendingPaidChange(null);
+            }}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              setFormData({ ...formData, paid: false });
+              setShowPaidUnmarkAlert(false);
+              setPendingPaidChange(null);
+            }}>
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Exit Edit Mode Confirmation Dialog */}
       <AlertDialog open={isExitEditDialogOpen} onOpenChange={setIsExitEditDialogOpen}>
