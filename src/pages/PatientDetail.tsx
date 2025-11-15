@@ -224,6 +224,21 @@ const PatientDetailNew = () => {
       status: s.status
     })));
     
+    // 🔍 LOG CRÍTICO: Mostrar quais NFSes contêm quais session_ids
+    if (nfseData && nfseData.length > 0) {
+      console.log('🔍 [NFSE ANALYSIS] Analisando NFSes carregadas para paciente:', patientData?.name);
+      nfseData.forEach((nfse, index) => {
+        console.log(`   NFSe ${index + 1}:`, {
+          id: nfse.id,
+          status: nfse.status,
+          session_ids: nfse.session_ids,
+          session_ids_count: nfse.session_ids?.length || 0
+        });
+      });
+    } else {
+      console.log('🔍 [NFSE ANALYSIS] Nenhuma NFSe encontrada para este paciente');
+    }
+    
     setPatient(patientData);
     setAllSessions(sessionsData || []);
     setNfseIssued(nfseData || []);
@@ -294,6 +309,11 @@ const PatientDetailNew = () => {
       return 'to_pay';
     })();
 
+    // 🔍 LOG CRÍTICO: Mostrar QUAL NFSe contém esta sessão
+    const containingNfse = nfseIssued.find(nfse => 
+      nfse.session_ids && nfse.session_ids.includes(session.id)
+    );
+
     console.log('🏷️ [BADGE] Status calculado:', {
       sessionId: session.id,
       date: session.date,
@@ -301,6 +321,8 @@ const PatientDetailNew = () => {
       nfse_issued_id: session.nfse_issued_id,
       manually_marked_nfse: session.manually_marked_nfse,
       isInIssuedNfse: nfseIssued.some(nfse => nfse.session_ids?.includes(session.id)),
+      containingNfseId: containingNfse?.id || null,
+      containingNfseStatus: containingNfse?.status || null,
       finalStatus: status
     });
 
@@ -453,6 +475,7 @@ const PatientDetailNew = () => {
     // Handle nfse_issued_id: set to null if manually unmarked
     if (!formData.nfseIssued) {
       sessionData.nfse_issued_id = null;
+      console.log('⚠️ [SUBMIT] NFSe desmarcada - setando nfse_issued_id = null');
     }
 
     console.log('🔵 [SUBMIT DADOS] Dados que serão salvos no banco:', sessionData);
