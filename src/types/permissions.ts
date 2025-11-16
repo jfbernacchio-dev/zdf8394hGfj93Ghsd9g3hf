@@ -5,7 +5,7 @@
 /**
  * ROLES BÁSICOS DO SISTEMA
  */
-export type UserRole = 'admin' | 'subordinate' | 'accountant';
+export type UserRole = 'admin' | 'fulltherapist' | 'subordinate' | 'accountant';
 
 /**
  * DOMÍNIOS DE PERMISSÃO

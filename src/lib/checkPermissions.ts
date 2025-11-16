@@ -2,6 +2,7 @@ import { RoutePermission, UserRole } from '@/types/permissions';
 
 interface UserRoles {
   isAdmin: boolean;
+  isFullTherapist: boolean;
   isSubordinate: boolean;
   isAccountant: boolean;
 }
@@ -13,6 +14,7 @@ export function getUserRoles(flags: UserRoles): UserRole[] {
   const roles: UserRole[] = [];
   
   if (flags.isAdmin) roles.push('admin');
+  if (flags.isFullTherapist) roles.push('fulltherapist');
   if (flags.isSubordinate) roles.push('subordinate');
   if (flags.isAccountant) roles.push('accountant');
   

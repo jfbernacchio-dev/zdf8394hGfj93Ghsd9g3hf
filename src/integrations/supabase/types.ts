@@ -1955,7 +1955,7 @@ export type Database = {
       validate_cpf: { Args: { cpf_input: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "therapist" | "accountant"
+      app_role: "admin" | "therapist" | "accountant" | "fulltherapist"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2083,7 +2083,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "therapist", "accountant"],
+      app_role: ["admin", "therapist", "accountant", "fulltherapist"],
     },
   },
 } as const

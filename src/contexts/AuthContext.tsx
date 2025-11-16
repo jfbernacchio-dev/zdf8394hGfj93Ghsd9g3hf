@@ -29,6 +29,7 @@ interface AuthContextType {
   loading: boolean;
   rolesLoaded: boolean;
   isAdmin: boolean;
+  isFullTherapist: boolean;
   isAccountant: boolean;
   isSubordinate: boolean;
   signUp: (email: string, password: string, userData: Omit<Profile, 'id'>) => Promise<{ error: any }>;
@@ -58,6 +59,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [rolesLoaded, setRolesLoaded] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isFullTherapist, setIsFullTherapist] = useState(false);
   const [isAccountant, setIsAccountant] = useState(false);
   const [isSubordinate, setIsSubordinate] = useState(false);
   const { toast } = useToast();
@@ -78,6 +80,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setProfile(null);
           setRolesLoaded(false);
           setIsAdmin(false);
+          setIsFullTherapist(false);
           setIsAccountant(false);
           setIsSubordinate(false);
         }
@@ -149,6 +152,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       .maybeSingle();
 
     setIsAdmin(!!adminRoleData);
+
+    // Check if user is fulltherapist
+    const { data: fullTherapistRoleData } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .eq('role', 'fulltherapist')
+      .maybeSingle();
+
+    setIsFullTherapist(!!fullTherapistRoleData);
 
     // Check if user is accountant
     const { data: accountantRoleData } = await supabase
@@ -339,7 +352,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       profile, 
       loading,
       rolesLoaded,
-      isAdmin, 
+      isAdmin,
+      isFullTherapist,
       isAccountant,
       isSubordinate,
       signUp, 

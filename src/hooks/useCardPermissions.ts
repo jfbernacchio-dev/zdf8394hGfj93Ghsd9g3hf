@@ -25,15 +25,15 @@ import type { PermissionDomain, AccessLevel } from '@/types/permissions';
  */
 
 export function useCardPermissions() {
-  const { isAdmin, isAccountant, isSubordinate } = useAuth();
+  const { isAdmin, isFullTherapist, isAccountant, isSubordinate } = useAuth();
   const { permissions, loading } = useSubordinatePermissions();
 
   /**
    * Verifica se usuário tem acesso a um domínio específico
    */
   const hasAccess = (domain: PermissionDomain, minimumLevel: AccessLevel = 'read'): boolean => {
-    // Admin sempre tem acesso total
-    if (isAdmin) return true;
+    // Admin e FullTherapist sempre têm acesso total
+    if (isAdmin || isFullTherapist) return true;
 
     // Accountant tem acesso a domínios específicos
     if (isAccountant) {
@@ -88,8 +88,8 @@ export function useCardPermissions() {
    * Usa mapeamento interno de cards -> domínios
    */
   const canViewCard = (cardId: string): boolean => {
-    // Admin e Accountant veem tudo
-    if (isAdmin || isAccountant) return true;
+    // Admin, FullTherapist e Accountant veem tudo
+    if (isAdmin || isFullTherapist || isAccountant) return true;
 
     // Mapear card ID para domínio
     const cardDomainMap: Record<string, PermissionDomain> = {
