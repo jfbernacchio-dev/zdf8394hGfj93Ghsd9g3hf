@@ -1,4 +1,17 @@
+import type { PermissionDomain } from './permissions';
+
 export type CardCategory = 'statistics' | 'functional' | 'dashboard-cards' | 'dashboard-charts' | 'clinical';
+
+/**
+ * Configuração de permissões para cada card
+ * Define quem pode ver e interagir com o card
+ */
+export interface CardPermissionConfig {
+  domain: PermissionDomain;           // Domínio de permissão principal (clinical, financial, etc)
+  requiresFinancialAccess?: boolean;  // Requer acesso financeiro específico
+  blockedForSubordinates?: boolean;   // Bloqueado para subordinados
+  onlyForOwn?: boolean;              // Subordinados só veem dados próprios
+}
 
 export interface CardConfig {
   id: string;
@@ -9,6 +22,7 @@ export interface CardConfig {
   icon?: string;
   defaultWidth?: number;
   defaultHeight?: number;
+  permissionConfig?: CardPermissionConfig; // Configuração de permissões (opcional por enquanto)
 }
 
 export const AVAILABLE_STAT_CARDS: CardConfig[] = [
