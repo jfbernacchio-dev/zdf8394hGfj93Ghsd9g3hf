@@ -63,10 +63,10 @@ Deno.serve(async (req) => {
     }
 
     // Validar role
-    const validRoles = ['admin', 'accountant', 'therapist'];
+    const validRoles = ['admin', 'accountant', 'fulltherapist'];
     if (!validRoles.includes(role)) {
       return new Response(
-        JSON.stringify({ error: 'Role inválido. Use: admin, accountant ou therapist' }),
+        JSON.stringify({ error: 'Role inválido. Use: admin, accountant ou fulltherapist' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -78,8 +78,8 @@ Deno.serve(async (req) => {
       birth_date: birth_date || '2000-01-01',
     };
 
-    // Apenas terapeutas precisam de CRP
-    if (role === 'therapist' || role === 'admin') {
+    // Apenas terapeutas e admins precisam de CRP
+    if (role === 'fulltherapist' || role === 'admin') {
       metadata.crp = crp || '';
     }
 
