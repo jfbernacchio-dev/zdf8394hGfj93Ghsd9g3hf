@@ -73,12 +73,22 @@ const ProfileEdit = () => {
   useEffect(() => {
     const checkSubordinate = async () => {
       if (profile) {
+        console.log('🔍 [PROFILE LOAD] Dados carregados do banco:', {
+          userId: profile.id,
+          send_nfse_to_therapist: profile.send_nfse_to_therapist,
+          fullProfile: profile
+        });
+        
         setFullName(profile.full_name || '');
         setCpf(profile.cpf || '');
         setCrp(profile.crp || '');
         setPhone(profile.phone || '');
         setBirthDate(profile.birth_date || '');
-        setSendNfseToTherapist(profile.send_nfse_to_therapist ?? false);
+        
+        const sendNfseValue = profile.send_nfse_to_therapist ?? false;
+        console.log('🔄 [CHECKBOX SET] Setando checkbox para:', sendNfseValue);
+        setSendNfseToTherapist(sendNfseValue);
+        
         setClinicalApproach(profile.clinical_approach || '');
         
         setWorkDays(profile.work_days || [1, 2, 3, 4, 5]);
@@ -642,7 +652,10 @@ const ProfileEdit = () => {
                     <Checkbox
                       id="send-nfse"
                       checked={sendNfseToTherapist}
-                      onCheckedChange={(checked) => setSendNfseToTherapist(checked as boolean)}
+                      onCheckedChange={(checked) => {
+                        console.log('🖱️ [CHECKBOX CLICK] Usuário clicou no checkbox. Novo valor:', checked);
+                        setSendNfseToTherapist(checked as boolean);
+                      }}
                     />
                     <Label htmlFor="send-nfse" className="cursor-pointer">
                       Enviar NFSe para terapeuta (cópia no email e telefone)
