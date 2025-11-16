@@ -55,7 +55,7 @@ export const AccessManagement = () => {
   const [newFullName, setNewFullName] = useState('');
   const [newCpf, setNewCpf] = useState('');
   const [newCrp, setNewCrp] = useState('');
-  const [newRole, setNewRole] = useState<'accountant' | 'admin' | 'therapist'>('therapist');
+  const [newRole, setNewRole] = useState<'accountant' | 'admin' | 'fulltherapist'>('fulltherapist');
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
@@ -192,7 +192,7 @@ export const AccessManagement = () => {
       setNewFullName('');
       setNewCpf('');
       setNewCrp('');
-      setNewRole('therapist');
+      setNewRole('fulltherapist');
       setIsCreateDialogOpen(false);
       
       loadUsers();
@@ -295,7 +295,7 @@ export const AccessManagement = () => {
         return 'destructive';
       case 'accountant':
         return 'secondary';
-      case 'therapist':
+      case 'fulltherapist':
         return 'default';
       default:
         return 'outline';
@@ -308,8 +308,8 @@ export const AccessManagement = () => {
         return 'Administrador';
       case 'accountant':
         return 'Contador';
-      case 'therapist':
-        return 'Terapeuta';
+      case 'fulltherapist':
+        return 'Terapeuta Full';
       default:
         return role;
     }
@@ -455,14 +455,14 @@ export const AccessManagement = () => {
               {users.map((user) => {
                 const hasAdminRole = user.roles.includes('admin');
                 const hasAccountantRole = user.roles.includes('accountant');
-                const hasTherapistRole = user.roles.includes('therapist');
+                const hasFullTherapistRole = user.roles.includes('fulltherapist');
                 
                 // LOG DETALHADO DA RENDERIZAÇÃO
                 console.log('>>> RENDERIZANDO USUÁRIO:', user.full_name);
                 console.log('    Roles array:', user.roles);
                 console.log('    hasAdminRole:', hasAdminRole);
                 console.log('    hasAccountantRole:', hasAccountantRole);
-                console.log('    hasTherapistRole:', hasTherapistRole);
+                console.log('    hasFullTherapistRole:', hasFullTherapistRole);
                 console.log('    is_subordinate:', user.is_subordinate);
                 
                 // Determinar o tipo principal do usuário
@@ -472,13 +472,13 @@ export const AccessManagement = () => {
                 if (hasAdminRole) {
                   userType = <Badge variant="destructive">Administrador</Badge>;
                   userTypeDebug = 'ADMIN';
-                } else if (hasAccountantRole && !hasTherapistRole) {
+                } else if (hasAccountantRole && !hasFullTherapistRole) {
                   userType = <Badge variant="secondary">Contador</Badge>;
                   userTypeDebug = 'CONTADOR';
                 } else if (user.is_subordinate) {
                   userType = <Badge className="bg-yellow-500 text-white hover:bg-yellow-600">Subordinado</Badge>;
                   userTypeDebug = 'SUBORDINADO';
-                } else if (hasTherapistRole || (!hasAdminRole && !hasAccountantRole && !user.is_subordinate)) {
+                } else if (hasFullTherapistRole || (!hasAdminRole && !hasAccountantRole && !user.is_subordinate)) {
                   userType = <Badge className="bg-green-600 text-white hover:bg-green-700">Terapeuta Full</Badge>;
                   userTypeDebug = 'TERAPEUTA FULL';
                 }
