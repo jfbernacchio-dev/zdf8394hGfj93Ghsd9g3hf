@@ -61,6 +61,10 @@ export const routePermissions: RoutePermissionsConfig = {
     allowedFor: ['admin'],
   },
 
+  '/permissions': {
+    allowedFor: ['admin'],
+  },
+
   // ==================== DASHBOARD ====================
   // Dashboard específico do contador
   '/accountant-dashboard': {

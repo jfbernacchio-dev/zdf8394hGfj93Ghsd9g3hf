@@ -127,10 +127,23 @@ const TherapistManagement = () => {
             <h1 className="text-2xl md:text-3xl font-bold">Gestão de Terapeutas</h1>
             <p className="text-sm md:text-base text-muted-foreground">Gerencie e monitore seus terapeutas</p>
           </div>
-          <Button onClick={() => navigate('/create-therapist')} className="w-full sm:w-auto">
-            <UserPlus className="mr-2 h-4 w-4" />
-            Novo Terapeuta
-          </Button>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button 
+              onClick={() => navigate('/permissions')} 
+              variant="outline"
+              className="flex-1 sm:flex-initial"
+            >
+              <Users className="mr-2 h-4 w-4" />
+              Permissões
+            </Button>
+            <Button 
+              onClick={() => navigate('/create-therapist')} 
+              className="flex-1 sm:flex-initial"
+            >
+              <UserPlus className="mr-2 h-4 w-4" />
+              Novo Terapeuta
+            </Button>
+          </div>
         </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
