@@ -12,22 +12,31 @@ import { canAccessFinancial } from '@/lib/checkSubordinateAutonomy';
 interface IssueNFSeDialogProps {
   patientId: string;
   patientName: string;
+  unpaidSessions?: any[]; // Sessões já filtradas vindas do Faturamento
 }
 
 export default function IssueNFSeDialog({ 
   patientId, 
-  patientName, 
+  patientName,
+  unpaidSessions: externalUnpaidSessions,
 }: IssueNFSeDialogProps) {
   const { toast } = useToast();
   const { user, isSubordinate } = useAuth();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingSessions, setLoadingSessions] = useState(false);
-  const [unpaidSessions, setUnpaidSessions] = useState<any[]>([]);
+  const [unpaidSessions, setUnpaidSessions] = useState<any[]>(externalUnpaidSessions || []);
   const [maxSessionsPerInvoice, setMaxSessionsPerInvoice] = useState(20);
   const [isMonthlyPatient, setIsMonthlyPatient] = useState(false);
   const [patientSessionValue, setPatientSessionValue] = useState(0);
   const [hasFinancialPermission, setHasFinancialPermission] = useState(true);
+  
+  // Atualizar sessões quando a prop externa mudar
+  useEffect(() => {
+    if (externalUnpaidSessions) {
+      setUnpaidSessions(externalUnpaidSessions);
+    }
+  }, [externalUnpaidSessions]);
 
   // Validar permissões financeiras ao montar
   useEffect(() => {
@@ -52,11 +61,12 @@ export default function IssueNFSeDialog({
 
     if (open) {
       checkFinancialPermission();
-      if (hasFinancialPermission) {
+      // Só carregar sessões se não foram passadas via prop
+      if (hasFinancialPermission && !externalUnpaidSessions) {
         loadUnpaidSessions();
       }
     }
-  }, [open, user, isSubordinate]);
+  }, [open, user, isSubordinate, externalUnpaidSessions]);
 
   const loadUnpaidSessions = async () => {
     setLoadingSessions(true);
