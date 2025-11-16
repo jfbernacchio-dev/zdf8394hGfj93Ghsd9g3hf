@@ -316,6 +316,18 @@ const ProfileEdit = () => {
 
       // ⭐ Invalidar cache do React Query para forçar reload
       await queryClient.invalidateQueries({ queryKey: ['profile', user!.id] });
+      
+      // 🔄 FORÇAR RELOAD do profile no AuthContext
+      const { data: updatedProfile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user!.id)
+        .single();
+      
+      if (updatedProfile) {
+        // Disparar evento customizado para AuthContext recarregar
+        window.dispatchEvent(new CustomEvent('profile-updated', { detail: updatedProfile }));
+      }
 
       // Atualizar email se mudou
       if (email !== user?.email) {
