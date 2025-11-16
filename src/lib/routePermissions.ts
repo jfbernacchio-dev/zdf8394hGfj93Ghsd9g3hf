@@ -52,17 +52,17 @@ export const routePermissions: RoutePermissionsConfig = {
   },
 
   // ==================== GESTÃO DE TERAPEUTAS ====================
-  // Apenas Admin pode gerenciar terapeutas
+  // Admin e Full Therapists (não subordinados) podem gerenciar terapeutas
   '/therapists': {
-    allowedFor: ['admin'],
+    blockedFor: ['accountant', 'subordinate'],
   },
   
   '/create-therapist': {
-    allowedFor: ['admin'],
+    blockedFor: ['accountant', 'subordinate'],
   },
 
   '/permissions': {
-    allowedFor: ['admin'],
+    blockedFor: ['accountant', 'subordinate'],
   },
 
   // ==================== DASHBOARD ====================
