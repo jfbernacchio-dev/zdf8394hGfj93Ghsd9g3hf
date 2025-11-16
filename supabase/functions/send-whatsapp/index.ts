@@ -160,7 +160,7 @@ const handler = async (req: Request): Promise<Response> => {
       const supabase = createClient(supabaseUrl, supabaseKey);
 
       let userId: string | undefined;
-      let patientId: string | undefined;
+      let patientId: string | null | undefined;
       let contactName: string | undefined;
 
       // Se é telefone do terapeuta
@@ -173,8 +173,9 @@ const handler = async (req: Request): Promise<Response> => {
 
         if (therapist && therapist.phone?.replace(/\D/g, '') === cleanPhone) {
           userId = therapist.id;
+          patientId = null; // Conversa geral do terapeuta, não vinculada a paciente específico
           contactName = `${therapist.full_name} (Terapeuta)`;
-          console.log("📱 Therapist phone identified");
+          console.log("📱 Therapist phone identified - conversa geral do terapeuta");
         }
       }
 
@@ -213,12 +214,29 @@ const handler = async (req: Request): Promise<Response> => {
         const windowExpires = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
         // Verificar se conversa existe
-        const { data: existingConv } = await supabase
-          .from("whatsapp_conversations")
-          .select("*")
-          .eq("phone_number", cleanPhone)
-          .eq("user_id", userId)
-          .maybeSingle();
+        // Para terapeuta: buscar conversa geral (patient_id = null)
+        // Para paciente: buscar conversa específica (com patient_id)
+        let existingConv;
+        if (metadata?.phoneFieldUsed === 'therapist_phone') {
+          const { data } = await supabase
+            .from("whatsapp_conversations")
+            .select("*")
+            .eq("phone_number", cleanPhone)
+            .eq("user_id", userId)
+            .is("patient_id", null)
+            .maybeSingle();
+          existingConv = data;
+          console.log("🔍 Buscando conversa geral do terapeuta:", existingConv ? "encontrada" : "não encontrada");
+        } else {
+          const { data } = await supabase
+            .from("whatsapp_conversations")
+            .select("*")
+            .eq("phone_number", cleanPhone)
+            .eq("user_id", userId)
+            .maybeSingle();
+          existingConv = data;
+          console.log("🔍 Buscando conversa do paciente:", existingConv ? "encontrada" : "não encontrada");
+        }
 
         if (existingConv) {
           // Atualizar conversa existente - abre janela de 24h
@@ -234,7 +252,7 @@ const handler = async (req: Request): Promise<Response> => {
           console.log("✅ Conversation updated - 24h window opened");
         } else {
           // Criar nova conversa
-          await supabase
+          const { data: newConv, error: convInsertError } = await supabase
             .from("whatsapp_conversations")
             .insert({
               user_id: userId,
@@ -245,9 +263,67 @@ const handler = async (req: Request): Promise<Response> => {
               last_message_from: "therapist",
               window_expires_at: windowExpires.toISOString(),
               unread_count: 0,
-            });
+            })
+            .select()
+            .single();
           
-          console.log("✅ Conversation created - 24h window opened");
+          if (!convInsertError && newConv) {
+            existingConv = newConv;
+            console.log("✅ Conversation created - 24h window opened");
+          } else {
+            console.error("❌ Erro ao criar conversa:", convInsertError);
+          }
+        }
+
+        // ⭐ INSERIR MENSAGEM NA TABELA whatsapp_messages
+        if (existingConv?.id) {
+          // Determinar conteúdo descritivo da mensagem
+          let messageContent: string = "";
+          let messageMetadata: any = metadata || {};
+          
+          if (type === "template") {
+            const templateData = data as WhatsAppTemplateMessage;
+            messageContent = `📄 NFS-e #${messageMetadata.nfseNumber || 'Pendente'} enviada - ${new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })} (${templateData.parameters[3] || 'R$ 0,00'})`;
+            messageMetadata = {
+              ...messageMetadata,
+              type: 'nfse',
+              automatic: true,
+              templateName: templateData.templateName,
+              parameters: templateData.parameters
+            };
+          } else if (type === "document") {
+            const docData = data as WhatsAppDocumentMessage;
+            messageContent = docData.caption || `📄 Documento: ${docData.filename}`;
+            messageMetadata = {
+              ...messageMetadata,
+              filename: docData.filename,
+              documentUrl: docData.documentUrl
+            };
+          } else if (type === "text") {
+            const textData = data as WhatsAppTextMessage;
+            messageContent = textData.message;
+          }
+          
+          // Inserir mensagem apenas se houver conteúdo
+          if (messageContent) {
+            const { error: msgError } = await supabase
+              .from("whatsapp_messages")
+              .insert({
+                conversation_id: existingConv.id,
+                direction: "outbound",
+                message_type: type === "template" ? "document" : type, // Templates são documentos
+                content: messageContent,
+                status: "sent",
+                metadata: messageMetadata,
+                whatsapp_message_id: responseData.messages?.[0]?.id || null
+              });
+              
+            if (msgError) {
+              console.error("⚠️ Erro ao inserir mensagem (não crítico):", msgError);
+            } else {
+              console.log("✅ Mensagem inserida em whatsapp_messages:", messageContent);
+            }
+          }
         }
       } else {
         console.log("⚠️ No user or patient found for phone:", cleanPhone);
