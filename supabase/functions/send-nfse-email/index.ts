@@ -408,8 +408,52 @@ const handler = async (req: Request): Promise<Response> => {
     
     if (nfseDataWithTherapist.therapist?.send_nfse_to_therapist && nfseDataWithTherapist.therapist?.phone) {
       try {
-        const therapistPhone = normalizePhone(nfseDataWithTherapist.therapist.phone);
-        console.log("✅ Sending copy to therapist at:", therapistPhone);
+        // 1️⃣ Verificar se terapeuta é subordinado
+        const { data: assignment } = await supabase
+          .from('therapist_assignments')
+          .select('manager_id')
+          .eq('subordinate_id', nfseDataWithTherapist.user_id)
+          .maybeSingle();
+
+        let targetUserId = nfseDataWithTherapist.user_id;
+        let targetPhone = nfseDataWithTherapist.therapist.phone;
+        let targetName = nfseDataWithTherapist.therapist.full_name;
+
+        if (assignment) {
+          console.log("👥 Terapeuta é subordinado - verificando autonomia financeira");
+          
+          // 2️⃣ Verificar autonomia financeira
+          const { data: autonomy } = await supabase
+            .from('subordinate_autonomy_settings')
+            .select('has_financial_access')
+            .eq('subordinate_id', nfseDataWithTherapist.user_id)
+            .maybeSingle();
+
+          // 3️⃣ Se NÃO tem controle financeiro -> enviar para o Manager
+          if (!autonomy?.has_financial_access) {
+            console.log("📊 Subordinado sem controle financeiro - buscando manager");
+            
+            const { data: manager } = await supabase
+              .from('profiles')
+              .select('id, full_name, phone')
+              .eq('id', assignment.manager_id)
+              .single();
+
+            if (manager?.phone) {
+              targetUserId = manager.id;
+              targetPhone = manager.phone;
+              targetName = manager.full_name;
+              console.log(`✅ NFSe será enviada para manager: ${targetName} (${targetPhone})`);
+            } else {
+              console.warn("⚠️ Manager não tem telefone configurado - usando subordinado como fallback");
+            }
+          } else {
+            console.log("✅ Subordinado tem controle financeiro - enviando para próprio subordinado");
+          }
+        }
+
+        const normalizedTargetPhone = normalizePhone(targetPhone);
+        console.log("✅ Sending copy to:", targetName, "at:", normalizedTargetPhone);
 
         // Get the file from storage to use the correct filename
         const { data: uploadedFiles } = await supabase
@@ -436,11 +480,11 @@ const handler = async (req: Request): Promise<Response> => {
             body: JSON.stringify({
               type: "template",
               data: {
-                to: therapistPhone,
+                to: normalizedTargetPhone,
                 templateName: "nfse_envio_v2",
                 templateLanguage: "en",
                 parameters: [
-                  `${therapistName || 'Terapeuta'} (Cópia - Paciente: ${patientName})`, // ⭐ Nome correto
+                  `${targetName} (Cópia - Paciente: ${patientName})`,
                   nfseNumber,
                   issueDate,
                   serviceValue,
@@ -449,12 +493,14 @@ const handler = async (req: Request): Promise<Response> => {
                 filename: correctFilename,
               },
               metadata: {
+                type: 'nfse',
+                automatic: true,
                 patientId: nfseDataWithTherapist.patient_id,
-                userId: nfseDataWithTherapist.user_id,
+                userId: targetUserId, // ⭐ Usa userId correto (manager ou subordinado)
                 phoneFieldUsed: 'therapist_phone',
-                recipientName: `${therapistName || 'Terapeuta'} (Cópia - Paciente: ${patientName})`,
-                nfseNumber: nfseNumber, // Para usar no content da mensagem
-                isTherapistNotification: true, // 🆕 Flag para diferenciar fluxo
+                recipientName: `${targetName} (Cópia - Paciente: ${patientName})`,
+                nfseNumber: nfseNumber,
+                isTherapistNotification: true, // 🚨 Flag crítica para diferenciação
               }
             }),
           }
