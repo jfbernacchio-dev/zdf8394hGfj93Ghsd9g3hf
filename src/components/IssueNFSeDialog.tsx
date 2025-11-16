@@ -13,12 +13,14 @@ interface IssueNFSeDialogProps {
   patientId: string;
   patientName: string;
   unpaidSessions?: any[]; // Sessões já filtradas vindas do Faturamento
+  onSuccess?: () => void; // Callback após emissão bem-sucedida
 }
 
 export default function IssueNFSeDialog({ 
   patientId, 
   patientName,
   unpaidSessions: externalUnpaidSessions,
+  onSuccess,
 }: IssueNFSeDialogProps) {
   const { toast } = useToast();
   const { user, isSubordinate } = useAuth();
@@ -203,6 +205,9 @@ export default function IssueNFSeDialog({
           description,
         });
         setOpen(false);
+        
+        // Recarregar dados após sucesso
+        onSuccess?.();
       } else {
         throw new Error(data.error || 'Erro ao emitir NFSe');
       }
