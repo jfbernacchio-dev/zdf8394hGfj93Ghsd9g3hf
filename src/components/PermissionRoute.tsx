@@ -1,118 +1,185 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 import { routePermissions } from '@/lib/routePermissions';
-import { getUserRoles, checkRoutePermission } from '@/lib/checkPermissions';
-import { toast } from 'sonner';
+import { checkRoutePermission, getUserRoles } from '@/lib/checkPermissions';
+import { useSubordinatePermissions } from '@/hooks/useSubordinatePermissions';
+import type { PermissionDomain, AccessLevel } from '@/types/permissions';
+
+/**
+ * ============================================================================
+ * COMPONENT: PermissionRoute
+ * ============================================================================
+ * 
+ * Componente de proteção de rotas baseado em roles E permissões de domínio.
+ * 
+ * FLUXO:
+ * 1. Verifica autenticação (já feito por ProtectedRoute no App.tsx)
+ * 2. Carrega roles do usuário (admin, subordinate, accountant)
+ * 3. Carrega permissões de subordinado (se aplicável)
+ * 4. Verifica permissão de rota baseado em:
+ *    - allowedFor / blockedFor (role-based)
+ *    - requiresDomain + minimumAccess (permission-based)
+ * 5. Redireciona se acesso negado
+ * 
+ * CASOS ESPECIAIS:
+ * - Admin: sempre tem acesso total a todos os domínios
+ * - Subordinate: acesso baseado em subordinate_autonomy_settings
+ * - Accountant: bloqueado de rotas clínicas/financeiras
+ * 
+ * ============================================================================
+ */
 
 interface PermissionRouteProps {
   children: React.ReactNode;
   path: string;
 }
 
-export const PermissionRoute: React.FC<PermissionRouteProps> = ({ 
-  children, 
-  path 
-}) => {
-  const { isAdmin, isSubordinate, isAccountant, loading, rolesLoaded, user } = useAuth();
+export function PermissionRoute({ children, path }: PermissionRouteProps) {
+  const { user, isAdmin, isSubordinate, isAccountant, rolesLoaded } = useAuth();
+  const { permissions, loading: permissionsLoading } = useSubordinatePermissions();
   const navigate = useNavigate();
-  const [permissionChecked, setPermissionChecked] = useState(false);
+  const { toast } = useToast();
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [isRedirecting, setIsRedirecting] = useState(false);
 
-  // OPÇÃO B: Resetar estados quando a rota mudar
   useEffect(() => {
-    console.log(`[PermissionRoute] Rota mudou para: ${path}, resetando estados`);
-    setPermissionChecked(false);
-    setIsRedirecting(false);
-  }, [path]);
+    // Aguardar carregamento de autenticação e roles
+    if (!user || !rolesLoaded) {
+      return;
+    }
 
-  console.log(`[PermissionRoute DEBUG] ${path}`, {
-    loading,
-    rolesLoaded,
-    permissionChecked,
-    isRedirecting,
-    isAdmin,
-    isSubordinate,
-    isAccountant,
-    timestamp: new Date().toISOString()
-  });
+    // Aguardar carregamento de permissões de subordinado (se aplicável)
+    if (isSubordinate && permissionsLoading) {
+      return;
+    }
 
-  useEffect(() => {
-    const checkPermission = async () => {
-      console.log(`[PermissionRoute useEffect] ${path} - INÍCIO`, { loading, rolesLoaded });
+    // Obter roles do usuário
+    const userRoles = getUserRoles({ isAdmin, isSubordinate, isAccountant });
+
+    // Buscar configuração da rota
+    const routeConfig = routePermissions[path];
+
+    // ETAPA 1: Verificar permissão baseada em ROLE (allowedFor/blockedFor)
+    const roleCheck = checkRoutePermission(userRoles, routeConfig);
+    
+    if (!roleCheck.allowed) {
+      console.log(`[PermissionRoute] Access denied for ${path}: ${roleCheck.reason}`);
+      setHasPermission(false);
+      setIsRedirecting(true);
       
-      // OPÇÃO A: Aguardar carregamento do auth E dos roles
-      if (loading || !rolesLoaded) {
-        console.log(`[PermissionRoute useEffect] ${path} - Aguardando auth/roles`, { loading, rolesLoaded });
+      toast({
+        title: "Acesso negado",
+        description: roleCheck.reason || "Você não tem permissão para acessar esta página.",
+        variant: "destructive",
+      });
+
+      // Redirecionar para dashboard apropriado
+      const targetDashboard = isAccountant ? '/accountant-dashboard' : '/dashboard';
+      navigate(targetDashboard, { replace: true });
+      return;
+    }
+
+    // ETAPA 2: Verificar permissão baseada em DOMÍNIO (se especificado)
+    if (routeConfig?.requiresDomain && routeConfig?.minimumAccess) {
+      const domain = routeConfig.requiresDomain as PermissionDomain;
+      const minAccess = routeConfig.minimumAccess as AccessLevel;
+
+      // Admin sempre tem acesso total
+      if (isAdmin) {
+        setHasPermission(true);
         return;
       }
 
-      // Obter roles do usuário
-      const userRoles = getUserRoles({ isAdmin, isSubordinate, isAccountant });
-      console.log(`[PermissionRoute useEffect] ${path} - User roles:`, userRoles);
+      // Subordinado: verificar permissões específicas
+      if (isSubordinate && permissions) {
+        const domainAccess = getDomainAccess(domain, permissions);
+        const hasAccess = checkAccessLevel(domainAccess, minAccess);
 
-      // Para rota /financial, verificar autonomia de subordinados
-      if (path === '/financial' && isSubordinate && user) {
-        const { canAccessFinancial } = await import('@/lib/checkSubordinateAutonomy');
-        const hasAccess = await canAccessFinancial(user.id, true);
-        
         if (!hasAccess) {
-          console.warn(`[PermissionRoute] Subordinado sem acesso financeiro: ${path}`);
+          console.log(`[PermissionRoute] Insufficient domain access for ${path}: requires ${minAccess} on ${domain}, has ${domainAccess}`);
+          setHasPermission(false);
           setIsRedirecting(true);
-          toast.error('Acesso negado. Você não tem permissão para acessar a área financeira.');
+          
+          toast({
+            title: "Acesso restrito",
+            description: "Você não tem permissão suficiente para acessar esta funcionalidade.",
+            variant: "destructive",
+          });
+
           navigate('/dashboard', { replace: true });
           return;
         }
-        
-        // Subordinado tem acesso financeiro
-        console.log(`[PermissionRoute useEffect] ${path} - Subordinado com acesso financeiro concedido`);
-        setPermissionChecked(true);
-        return;
       }
+    }
 
-      // Buscar permissões da rota (lógica padrão)
-      const permission = routePermissions[path];
-      console.log(`[PermissionRoute useEffect] ${path} - Permission config:`, permission);
+    // Acesso permitido
+    setHasPermission(true);
+  }, [user, rolesLoaded, isAdmin, isSubordinate, isAccountant, permissionsLoading, permissions, path, navigate, toast]);
 
-      // Verificar permissão
-      const { allowed, reason } = checkRoutePermission(userRoles, permission);
-      console.log(`[PermissionRoute useEffect] ${path} - Check result:`, { allowed, reason });
-
-      if (!allowed) {
-        console.warn(`[PermissionRoute] Acesso negado: ${path}`, { reason, userRoles });
-        
-        // Marcar que está redirecionando ANTES de fazer qualquer outra coisa
-        setIsRedirecting(true);
-        console.log(`[PermissionRoute useEffect] ${path} - Iniciando redirect`);
-        
-        // Toast de feedback
-        toast.error(reason || 'Acesso negado');
-
-        // Redirecionar baseado no role
-        const targetRoute = isAccountant ? '/accountant-dashboard' : '/dashboard';
-        console.log(`[PermissionRoute useEffect] ${path} - Redirecionando para: ${targetRoute}`);
-        navigate(targetRoute, { replace: true });
-      } else {
-        console.log(`[PermissionRoute useEffect] ${path} - Permissão concedida, marcando como verificado`);
-        // Permissão concedida - marcar como verificado
-        setPermissionChecked(true);
-      }
-    };
-
-    checkPermission();
-  }, [loading, rolesLoaded, isAdmin, isSubordinate, isAccountant, path, navigate, user]);
-
-  // OPÇÃO A: Loading state durante carregamento do auth/roles ou se não verificou permissão
-  // OPÇÃO B: Sempre resetar isRedirecting quando path mudar (linha 23)
-  if (loading || !rolesLoaded || !permissionChecked || isRedirecting) {
-    console.log(`[PermissionRoute RENDER] ${path} - Mostrando loading`, { loading, rolesLoaded, permissionChecked, isRedirecting });
+  // Loading state
+  if (!user || !rolesLoaded || (isSubordinate && permissionsLoading) || hasPermission === null) {
     return (
       <div className="min-h-screen bg-[var(--gradient-soft)] flex items-center justify-center">
-        <p className="text-muted-foreground">Carregando...</p>
+        <p className="text-muted-foreground">Verificando permissões...</p>
       </div>
     );
   }
 
-  console.log(`[PermissionRoute RENDER] ${path} - Renderizando children`);
+  // Redirecting state
+  if (isRedirecting || !hasPermission) {
+    return null;
+  }
+
+  // Render protected content
   return <>{children}</>;
-};
+}
+
+/**
+ * Mapeia domínio para nível de acesso com base nas permissões do subordinado
+ */
+function getDomainAccess(
+  domain: PermissionDomain,
+  permissions: ReturnType<typeof useSubordinatePermissions>['permissions']
+): AccessLevel {
+  if (!permissions) return 'none';
+
+  switch (domain) {
+    case 'financial':
+    case 'nfse':
+      return permissions.hasFinancialAccess ? 'full' : 'none';
+    
+    case 'patients':
+      return permissions.canManageAllPatients ? 'full' : 
+             permissions.canManageOwnPatients ? 'read' : 'none';
+    
+    case 'clinical':
+      return permissions.canFullSeeClinic ? 'full' : 
+             permissions.canManageOwnPatients ? 'read' : 'none';
+    
+    case 'schedule':
+    case 'administrative':
+      // Subordinados sempre têm acesso read a agenda e administrativo
+      return 'read';
+    
+    case 'statistics':
+    case 'reports':
+      // Relatórios seguem mesma regra de finanças
+      return permissions.hasFinancialAccess ? 'read' : 'none';
+    
+    default:
+      return 'none';
+  }
+}
+
+/**
+ * Verifica se o nível de acesso atual atende ao mínimo requerido
+ */
+function checkAccessLevel(current: AccessLevel, required: AccessLevel): boolean {
+  const levels: AccessLevel[] = ['none', 'read', 'write', 'full'];
+  const currentIndex = levels.indexOf(current);
+  const requiredIndex = levels.indexOf(required);
+  
+  return currentIndex >= requiredIndex;
+}
