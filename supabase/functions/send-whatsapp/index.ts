@@ -30,6 +30,11 @@ interface WhatsAppTemplateMessage {
 interface WhatsAppRequest {
   type: "text" | "document" | "template";
   data: WhatsAppTextMessage | WhatsAppDocumentMessage | WhatsAppTemplateMessage;
+  metadata?: {
+    patientId?: string;
+    userId?: string;
+    phoneFieldUsed?: 'phone' | 'guardian_phone_1' | 'nfse_alternate_phone' | 'therapist_phone';
+  };
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -48,7 +53,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const request: WhatsAppRequest = await req.json();
-    const { type, data } = request;
+    const { type, data, metadata } = request;
 
     // Clean phone number - remove all non-digits and add country code if needed
     let cleanPhone = data.to.replace(/\D/g, "");
@@ -154,15 +159,56 @@ const handler = async (req: Request): Promise<Response> => {
       const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
       const supabase = createClient(supabaseUrl, supabaseKey);
 
-      // Buscar paciente pelo telefone normalizado
-      const { data: patient } = await supabase
-        .from("patients")
-        .select("id, user_id, name")
-        .or(`phone.eq.${cleanPhone},phone.eq.${cleanPhone.replace(/^55/, '')}`)
-        .limit(1)
-        .maybeSingle();
+      let userId: string | undefined;
+      let patientId: string | undefined;
+      let contactName: string | undefined;
 
-      if (patient) {
+      // Se é telefone do terapeuta
+      if (metadata?.phoneFieldUsed === 'therapist_phone' && metadata?.userId) {
+        const { data: therapist } = await supabase
+          .from("profiles")
+          .select("id, full_name, phone")
+          .eq("id", metadata.userId)
+          .maybeSingle();
+
+        if (therapist && therapist.phone?.replace(/\D/g, '') === cleanPhone) {
+          userId = therapist.id;
+          contactName = `${therapist.full_name} (Terapeuta)`;
+          console.log("📱 Therapist phone identified");
+        }
+      }
+
+      // Se não é terapeuta, buscar paciente em todos os campos possíveis
+      if (!userId) {
+        const { data: patient } = await supabase
+          .from("patients")
+          .select("id, user_id, name, phone, guardian_phone_1, nfse_alternate_phone, guardian_name")
+          .or(`phone.eq.${cleanPhone},phone.eq.${cleanPhone.replace(/^55/, '')},guardian_phone_1.eq.${cleanPhone},guardian_phone_1.eq.${cleanPhone.replace(/^55/, '')},nfse_alternate_phone.eq.${cleanPhone},nfse_alternate_phone.eq.${cleanPhone.replace(/^55/, '')}`)
+          .limit(1)
+          .maybeSingle();
+
+        if (patient) {
+          userId = patient.user_id;
+          patientId = patient.id;
+
+          // Determinar nome baseado no campo usado
+          const phoneNoPrefix = cleanPhone.replace(/^55/, '');
+          if (patient.guardian_phone_1?.replace(/\D/g, '') === cleanPhone || 
+              patient.guardian_phone_1?.replace(/\D/g, '') === phoneNoPrefix) {
+            contactName = patient.guardian_name || `${patient.name} (Responsável)`;
+            console.log("📱 Guardian phone identified");
+          } else if (patient.nfse_alternate_phone?.replace(/\D/g, '') === cleanPhone || 
+                     patient.nfse_alternate_phone?.replace(/\D/g, '') === phoneNoPrefix) {
+            contactName = `${patient.name} (Contato Alt.)`;
+            console.log("📱 Alternate phone identified");
+          } else {
+            contactName = patient.name;
+            console.log("📱 Patient phone identified");
+          }
+        }
+      }
+
+      if (userId) {
         const now = new Date();
         const windowExpires = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
@@ -171,7 +217,7 @@ const handler = async (req: Request): Promise<Response> => {
           .from("whatsapp_conversations")
           .select("*")
           .eq("phone_number", cleanPhone)
-          .eq("user_id", patient.user_id)
+          .eq("user_id", userId)
           .maybeSingle();
 
         if (existingConv) {
@@ -191,10 +237,10 @@ const handler = async (req: Request): Promise<Response> => {
           await supabase
             .from("whatsapp_conversations")
             .insert({
-              user_id: patient.user_id,
-              patient_id: patient.id,
+              user_id: userId,
+              patient_id: patientId, // Pode ser null para terapeutas
               phone_number: cleanPhone,
-              contact_name: patient.name,
+              contact_name: contactName,
               last_message_at: now.toISOString(),
               last_message_from: "therapist",
               window_expires_at: windowExpires.toISOString(),
@@ -203,6 +249,8 @@ const handler = async (req: Request): Promise<Response> => {
           
           console.log("✅ Conversation created - 24h window opened");
         }
+      } else {
+        console.log("⚠️ No user or patient found for phone:", cleanPhone);
       }
     } catch (convError) {
       console.error("⚠️ Error updating conversation (non-critical):", convError);
