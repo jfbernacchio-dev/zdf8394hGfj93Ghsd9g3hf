@@ -12,8 +12,16 @@ import { ThemeToggle } from './ThemeToggle';
 const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut, profile, isAdmin, isAccountant, isSubordinate } = useAuth();
+  const { signOut, profile, isAdmin, isAccountant, isSubordinate, isFullTherapist } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // 🔍 LOG DIAGNÓSTICO 5: Estados de autenticação
+  console.log('=== NAVBAR - AUTH STATUS ===');
+  console.log('isAdmin:', isAdmin);
+  console.log('isFullTherapist:', isFullTherapist);
+  console.log('isAccountant:', isAccountant);
+  console.log('isSubordinate:', isSubordinate);
+  console.log('============================');
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -88,7 +96,15 @@ const Navbar = () => {
                       <span className="font-medium">WhatsApp</span>
                     </Link>
                   )}
-                  {isAdmin && !isSubordinate && (
+                  {(() => {
+                    const shouldShow = isAdmin && !isSubordinate;
+                    // 🔍 LOG DIAGNÓSTICO 6: Visibilidade da aba Terapeutas
+                    console.log('=== TAB TERAPEUTAS - VISIBILIDADE ===');
+                    console.log('Condição atual: isAdmin && !isSubordinate');
+                    console.log('Resultado:', shouldShow);
+                    console.log('======================================');
+                    return shouldShow;
+                  })() && (
                     <Link
                       to="/therapists"
                       className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${

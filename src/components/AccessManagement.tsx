@@ -145,9 +145,30 @@ export const AccessManagement = () => {
     setCreating(true);
 
     try {
+      // 🔍 LOG DIAGNÓSTICO 1: Valor do role ANTES de enviar
+      console.log('=== LOG DIAGNÓSTICO - CREATE USER ===');
+      console.log('1. Valor de newRole no estado:', newRole);
+      console.log('2. Tipo de newRole:', typeof newRole);
+      console.log('=====================================');
+
       // Usar Edge Function para criar usuário (evita problemas com RLS)
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Sessão não encontrada');
+
+      const requestBody = {
+        email: newEmail,
+        password: newPassword,
+        full_name: newFullName,
+        cpf: newCpf,
+        crp: newCrp,
+        birth_date: '2000-01-01',
+        role: newRole,
+      };
+
+      // 🔍 LOG DIAGNÓSTICO 2: Body completo sendo enviado
+      console.log('=== REQUEST BODY ENVIADO ===');
+      console.log(JSON.stringify(requestBody, null, 2));
+      console.log('============================');
 
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user-with-role`,
@@ -157,15 +178,7 @@ export const AccessManagement = () => {
             'Authorization': `Bearer ${session.access_token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            email: newEmail,
-            password: newPassword,
-            full_name: newFullName,
-            cpf: newCpf,
-            crp: newCrp,
-            birth_date: '2000-01-01',
-            role: newRole,
-          }),
+          body: JSON.stringify(requestBody),
         }
       );
 
@@ -405,7 +418,16 @@ export const AccessManagement = () => {
 
                 <div className="grid gap-2">
                   <Label htmlFor="new-role">Tipo de Acesso*</Label>
-                  <Select value={newRole} onValueChange={(value: any) => setNewRole(value)}>
+                  <Select 
+                    value={newRole} 
+                    onValueChange={(value: any) => {
+                      // 🔍 LOG DIAGNÓSTICO 3: Mudança do Select
+                      console.log('=== SELECT CHANGED ===');
+                      console.log('Novo valor selecionado:', value);
+                      console.log('======================');
+                      setNewRole(value);
+                    }}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
