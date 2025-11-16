@@ -2024,6 +2024,7 @@ Assinatura do Profissional`;
                         .filter(s => s.status === 'attended' && getSessionPaymentStatus(s) === 'to_pay')
                         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
                       }
+                      onSuccess={loadData}
                     />
                   )}
                 </div>

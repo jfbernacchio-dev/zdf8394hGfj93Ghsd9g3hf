@@ -474,7 +474,6 @@ Data de emissão: ${new Date().toLocaleDateString('pt-BR')}`;
     const { error: sessionsUpdateError } = await supabase
       .from('sessions')
       .update({ 
-        status: 'nfse_issued',
         nfse_issued_id: nfseRecord.id
       })
       .in('id', sessionIds);

@@ -1045,6 +1045,7 @@ export type Database = {
           frequency: string
           guardian_cpf: string | null
           guardian_cpf_2: string | null
+          guardian_email: string | null
           guardian_name: string | null
           guardian_name_2: string | null
           guardian_phone_1: string | null
@@ -1086,6 +1087,7 @@ export type Database = {
           frequency: string
           guardian_cpf?: string | null
           guardian_cpf_2?: string | null
+          guardian_email?: string | null
           guardian_name?: string | null
           guardian_name_2?: string | null
           guardian_phone_1?: string | null
@@ -1127,6 +1129,7 @@ export type Database = {
           frequency?: string
           guardian_cpf?: string | null
           guardian_cpf_2?: string | null
+          guardian_email?: string | null
           guardian_name?: string | null
           guardian_name_2?: string | null
           guardian_phone_1?: string | null
