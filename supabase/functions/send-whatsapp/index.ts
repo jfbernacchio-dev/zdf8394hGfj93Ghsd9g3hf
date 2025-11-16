@@ -162,28 +162,21 @@ const handler = async (req: Request): Promise<Response> => {
       const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
       const supabase = createClient(supabaseUrl, supabaseKey);
 
-      let userId: string | undefined;
+      let userId: string = "";
       let patientId: string | null | undefined;
       let contactName: string | undefined;
 
-      // Se é telefone do terapeuta (notificação NFSe)
-      if (metadata?.isTherapistNotification === true && metadata?.userId) {
-        const { data: therapist } = await supabase
-          .from("profiles")
-          .select("id, full_name, phone")
-          .eq("id", metadata.userId)
-          .maybeSingle();
-
-        if (therapist && therapist.phone?.replace(/\D/g, '') === cleanPhone) {
-          userId = therapist.id;
-          patientId = null; // Conversa SEM paciente (notificações do terapeuta)
-          contactName = "📋 Notificações NFSe"; // Nome fixo identificável
-          console.log("📱 Therapist notification identified - creating/updating therapist conversation");
-        }
+      // 🚨 PRIORIDADE MÁXIMA: Flag de notificação do terapeuta
+      if (metadata?.isTherapistNotification === true) {
+        // ✅ NUNCA buscar paciente
+        // ✅ Usar userId do metadata (já vem correto do send-nfse-email)
+        userId = metadata.userId!;
+        patientId = null;
+        contactName = "📋 Notificações NFSe";
+        console.log("🔔 [THERAPIST NOTIFICATION] Conversa do terapeuta - patient_id = null, userId =", userId);
       }
-
-      // Se não é terapeuta, buscar paciente em todos os campos possíveis
-      if (!userId) {
+      // 📞 Fluxo normal: buscar paciente pelo telefone
+      else {
         const { data: patient } = await supabase
           .from("patients")
           .select("id, user_id, name, phone, guardian_phone_1, nfse_alternate_phone, guardian_name")
@@ -215,6 +208,12 @@ const handler = async (req: Request): Promise<Response> => {
               console.log("📱 Patient phone identified");
             }
           }
+        } else {
+          // Fallback: tentar usar metadata se disponível
+          userId = metadata?.userId || "";
+          patientId = metadata?.patientId || null;
+          contactName = metadata?.recipientName;
+          console.log("⚠️ Patient not found by phone - using metadata fallback");
         }
       }
 
