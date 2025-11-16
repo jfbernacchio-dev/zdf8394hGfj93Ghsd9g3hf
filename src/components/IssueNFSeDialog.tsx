@@ -63,17 +63,22 @@ export default function IssueNFSeDialog({
 
     if (open) {
       checkFinancialPermission();
-      // Só carregar sessões se não foram passadas via prop
-      if (hasFinancialPermission && !externalUnpaidSessions) {
-        loadUnpaidSessions();
+      
+      // SEMPRE carregar config do paciente (necessário para cálculos corretos)
+      if (hasFinancialPermission) {
+        loadPatientConfig();
+        
+        // Só carregar sessões se não foram passadas via prop
+        if (!externalUnpaidSessions) {
+          loadUnpaidSessions();
+        }
       }
     }
   }, [open, user, isSubordinate, externalUnpaidSessions]);
 
-  const loadUnpaidSessions = async () => {
-    setLoadingSessions(true);
+  // Função para carregar APENAS configurações do paciente (SEMPRE executada)
+  const loadPatientConfig = async () => {
     try {
-      // Buscar sessões não pagas e verificar se o paciente é mensal
       const { data: patient, error: patientError } = await supabase
         .from('patients')
         .select('monthly_price, nfse_max_sessions_per_invoice, session_value')
@@ -86,7 +91,20 @@ export default function IssueNFSeDialog({
       setMaxSessionsPerInvoice(patient?.nfse_max_sessions_per_invoice || 20);
       setIsMonthlyPatient(patient?.monthly_price || false);
       setPatientSessionValue(Number(patient?.session_value || 0));
+    } catch (error: any) {
+      console.error('Error loading patient config:', error);
+      toast({
+        title: 'Erro ao carregar dados do paciente',
+        description: 'Não foi possível carregar as configurações do paciente.',
+        variant: 'destructive',
+      });
+    }
+  };
 
+  // Função para carregar APENAS sessões não pagas (CONDICIONALMENTE executada)
+  const loadUnpaidSessions = async () => {
+    setLoadingSessions(true);
+    try {
       const { data: sessions, error } = await supabase
         .from('sessions')
         .select('*')
