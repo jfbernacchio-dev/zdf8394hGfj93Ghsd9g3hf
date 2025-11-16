@@ -1047,12 +1047,7 @@ const TherapistDetail = () => {
                           const monthlyPatientSessions = unpaidSessions.filter(s => s.patients?.monthly_price);
                           const regularPatientSessions = unpaidSessions.filter(s => !s.patients?.monthly_price);
                           
-                          // Para pacientes mensais: agrupar por paciente + mês
-                          const monthlyTotal = monthlyPatientSessions.reduce((total, session) => {
-                            return total;
-                          }, 0);
-                          
-                          // Agrupar por paciente + mês
+                          // Agrupar sessões mensais por paciente + mês
                           const monthlyGroups: Record<string, Set<string>> = {};
                           monthlyPatientSessions.forEach(session => {
                             const patientId = session.patient_id;
