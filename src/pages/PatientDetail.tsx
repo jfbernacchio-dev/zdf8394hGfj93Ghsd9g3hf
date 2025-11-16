@@ -113,6 +113,29 @@ const PatientDetailNew = () => {
   const [nfseDetails, setNfseDetails] = useState<any>(null);
   const [hasPaymentProof, setHasPaymentProof] = useState(false);
 
+  // 🔄 Sincronizar switches com status real da sessão
+  useEffect(() => {
+    if (editingSession && isDialogOpen) {
+      const nfseIssued = !!(editingSession.nfse_issued_id || editingSession.manually_marked_nfse);
+      
+      console.log('🔄 [SYNC SWITCHES] Sincronizando formData com editingSession:', {
+        sessionId: editingSession.id,
+        paid: editingSession.paid,
+        nfse_issued_id: editingSession.nfse_issued_id,
+        manually_marked_nfse: editingSession.manually_marked_nfse,
+        nfseIssued
+      });
+      
+      setFormData(prev => ({
+        ...prev,
+        paid: editingSession.paid,
+        nfseIssued,
+        manuallyMarkedNfse: editingSession.manually_marked_nfse || false,
+        nfseIssuedId: editingSession.nfse_issued_id || null
+      }));
+    }
+  }, [editingSession?.paid, editingSession?.nfse_issued_id, editingSession?.manually_marked_nfse, isDialogOpen]);
+
   useEffect(() => {
     // Load visible cards from localStorage
     const savedCards = localStorage.getItem('visible-cards');
