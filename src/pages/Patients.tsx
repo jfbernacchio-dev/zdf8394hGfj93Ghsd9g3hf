@@ -15,6 +15,7 @@ import { format, parseISO } from 'date-fns';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import { ConsentReminder } from '@/components/ConsentReminder';
 import { getSubordinateAutonomy, AutonomyPermissions } from '@/lib/checkSubordinateAutonomy';
+import { useCardPermissions } from '@/hooks/useCardPermissions';
 
 const Patients = () => {
   const [patients, setPatients] = useState<any[]>([]);
@@ -32,8 +33,9 @@ const Patients = () => {
   const [autonomyPermissions, setAutonomyPermissions] = useState<AutonomyPermissions | null>(null);
   const [loadingPermissions, setLoadingPermissions] = useState(true);
   const navigate = useNavigate();
-  const { user, isSubordinate } = useAuth();
+  const { user, isSubordinate, isAdmin } = useAuth();
   const { toast } = useToast();
+  const { shouldFilterToOwnData } = useCardPermissions();
 
   useEffect(() => {
     if (user) {
@@ -73,10 +75,44 @@ const Patients = () => {
   };
 
   const loadData = async () => {
-    const { data: patientsData } = await supabase
-      .from('patients')
-      .select('*')
-      .eq('user_id', user!.id);
+    // 🔐 QUERY FILTERING: Mesma lógica do Dashboard
+    const filterToOwn = shouldFilterToOwnData();
+
+    let patientsQuery = supabase.from('patients').select('*');
+    
+    if (filterToOwn) {
+      // Subordinado que gerencia apenas próprios pacientes
+      patientsQuery = patientsQuery.eq('user_id', user!.id);
+    } else {
+      // Admin/Full vê todos os pacientes (próprios + subordinados que NÃO gerem próprios)
+      const { data: subordinatesData } = await supabase
+        .from('therapist_assignments')
+        .select('subordinate_id')
+        .eq('manager_id', user!.id);
+
+      if (subordinatesData && subordinatesData.length > 0) {
+        const subordinateIds = subordinatesData.map(s => s.subordinate_id);
+        
+        // Verificar quais subordinados NÃO gerem próprios pacientes
+        const { data: autonomyData } = await supabase
+          .from('subordinate_autonomy_settings')
+          .select('subordinate_id, manages_own_patients')
+          .in('subordinate_id', subordinateIds);
+
+        const viewableSubordinates = autonomyData
+          ?.filter(a => !a.manages_own_patients)
+          .map(a => a.subordinate_id) || [];
+
+        // Incluir próprio user_id + subordinados viewable
+        const allViewableIds = [user!.id, ...viewableSubordinates];
+        patientsQuery = patientsQuery.in('user_id', allViewableIds);
+      } else {
+        // Nenhum subordinado, apenas próprios pacientes
+        patientsQuery = patientsQuery.eq('user_id', user!.id);
+      }
+    }
+
+    const { data: patientsData } = await patientsQuery;
 
     const { data: sessionsData } = await supabase
       .from('sessions')

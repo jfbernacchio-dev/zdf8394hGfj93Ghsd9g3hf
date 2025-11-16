@@ -15,11 +15,13 @@ import { ptBR } from 'date-fns/locale';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { useCardPermissions } from '@/hooks/useCardPermissions';
+import { useSubordinatePermissions } from '@/hooks/useSubordinatePermissions';
 
 const COLORS = ['hsl(100, 20%, 55%)', 'hsl(100, 25%, 65%)', 'hsl(100, 30%, 75%)', 'hsl(100, 15%, 45%)', 'hsl(100, 35%, 85%)', 'hsl(40, 35%, 75%)'];
 
 const Financial = () => {
-  const { user, isSubordinate } = useAuth();
+  const { user, isSubordinate, isAdmin } = useAuth();
   const [patients, setPatients] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
@@ -27,6 +29,10 @@ const Financial = () => {
   const [period, setPeriod] = useState('year');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
+
+  // 🔐 PERMISSIONS
+  const { permissions, loading: permissionsLoading } = useSubordinatePermissions();
+  const { canViewFullFinancial } = useCardPermissions();
 
   // Validação local de permissão financeira (camada extra de segurança)
   useEffect(() => {
@@ -45,10 +51,10 @@ const Financial = () => {
   }, [user, isSubordinate]);
 
   useEffect(() => {
-    if (user) {
+    if (user && !permissionsLoading) {
       loadData();
     }
-  }, [user]);
+  }, [user, permissionsLoading]);
 
   const loadData = async () => {
     // Load profile data
@@ -68,38 +74,65 @@ const Financial = () => {
 
     setScheduleBlocks(blocksData || []);
 
-    // Load patients (próprios + subordinados com has_financial_access = false)
-    const { data: patientsData } = await supabase
-      .from('patients')
-      .select('*')
-      .eq('user_id', user!.id);
+    // 🔐 QUERY FILTERING BASEADO EM PERMISSÕES
+    const viewFullFinancial = canViewFullFinancial();
 
-    // Load subordinates without financial access (suas sessões entram no fechamento do Full)
-    const { getSubordinatesForFinancialClosing } = await import('@/lib/checkSubordinateAutonomy');
-    const subordinateIds = await getSubordinatesForFinancialClosing(user!.id);
+    if (viewFullFinancial) {
+      // Admin/Full vê fechamento completo (próprio + subordinados sem acesso financeiro)
+      
+      // Load patients próprios
+      const { data: patientsData } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('user_id', user!.id);
 
-    // Load sessions: próprias + subordinados sem acesso financeiro
-    let sessionsQuery = supabase
-      .from('sessions')
-      .select(`
-        *,
-        patients!inner (
-          user_id,
-          name
-        )
-      `);
+      // Load subordinates without financial access (suas sessões entram no fechamento)
+      const { getSubordinatesForFinancialClosing } = await import('@/lib/checkSubordinateAutonomy');
+      const subordinateIds = await getSubordinatesForFinancialClosing(user!.id);
 
-    // Se há subordinados para incluir, adicionar filtro OR
-    if (subordinateIds.length > 0) {
-      sessionsQuery = sessionsQuery.or(`patients.user_id.eq.${user!.id},patients.user_id.in.(${subordinateIds.join(',')})`);
+      // Load sessions: próprias + subordinados sem acesso financeiro
+      let sessionsQuery = supabase
+        .from('sessions')
+        .select(`
+          *,
+          patients!inner (
+            user_id,
+            name
+          )
+        `);
+
+      // Se há subordinados para incluir, adicionar filtro OR
+      if (subordinateIds.length > 0) {
+        sessionsQuery = sessionsQuery.or(`patients.user_id.eq.${user!.id},patients.user_id.in.(${subordinateIds.join(',')})`);
+      } else {
+        sessionsQuery = sessionsQuery.eq('patients.user_id', user!.id);
+      }
+
+      const { data: sessionsData } = await sessionsQuery;
+
+      setPatients(patientsData || []);
+      setSessions(sessionsData || []);
     } else {
-      sessionsQuery = sessionsQuery.eq('patients.user_id', user!.id);
+      // Subordinado com acesso financeiro limitado - só vê seus próprios dados
+      const { data: patientsData } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('user_id', user!.id);
+
+      const { data: sessionsData } = await supabase
+        .from('sessions')
+        .select(`
+          *,
+          patients!inner (
+            user_id,
+            name
+          )
+        `)
+        .eq('patients.user_id', user!.id);
+
+      setPatients(patientsData || []);
+      setSessions(sessionsData || []);
     }
-
-    const { data: sessionsData } = await sessionsQuery;
-
-    setPatients(patientsData || []);
-    setSessions(sessionsData || []);
   };
 
   const getDateRange = () => {

@@ -51,9 +51,8 @@ const DashboardTest = () => {
   const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
 
-  // 🔐 PERMISSIONS
   const { permissions, loading: permissionsLoading } = useSubordinatePermissions();
-  const { canViewCard } = useCardPermissions();
+  const { canViewCard, shouldFilterToOwnData } = useCardPermissions();
 
   useEffect(() => {
     if (user && !permissionsLoading) {
@@ -63,20 +62,66 @@ const DashboardTest = () => {
   }, [user, permissionsLoading]);
 
   const loadData = async () => {
-    const { data: patientsData } = await supabase
-      .from('patients')
-      .select('*')
-      .eq('user_id', user!.id);
+    // 🔐 QUERY FILTERING: Subordinados com managesOwnPatients só veem seus próprios pacientes
+    const filterToOwn = shouldFilterToOwnData();
 
-    const { data: sessionsData } = await supabase
+    let patientsQuery = supabase.from('patients').select('*');
+    
+    if (filterToOwn) {
+      // Subordinado que gerencia apenas próprios pacientes
+      patientsQuery = patientsQuery.eq('user_id', user!.id);
+    } else {
+      // Admin/Full vê todos os pacientes (próprios + subordinados)
+      // Aqui vamos buscar pacientes próprios + de subordinados que NÃO gerem próprios
+      const { data: subordinatesData } = await supabase
+        .from('therapist_assignments')
+        .select('subordinate_id')
+        .eq('manager_id', user!.id);
+
+      if (subordinatesData && subordinatesData.length > 0) {
+        const subordinateIds = subordinatesData.map(s => s.subordinate_id);
+        
+        // Verificar quais subordinados NÃO gerem próprios pacientes
+        const { data: autonomyData } = await supabase
+          .from('subordinate_autonomy_settings')
+          .select('subordinate_id, manages_own_patients')
+          .in('subordinate_id', subordinateIds);
+
+        const viewableSubordinates = autonomyData
+          ?.filter(a => !a.manages_own_patients)
+          .map(a => a.subordinate_id) || [];
+
+        // Incluir próprio user_id + subordinados viewable
+        const allViewableIds = [user!.id, ...viewableSubordinates];
+        patientsQuery = patientsQuery.in('user_id', allViewableIds);
+      } else {
+        // Nenhum subordinado, apenas próprios pacientes
+        patientsQuery = patientsQuery.eq('user_id', user!.id);
+      }
+    }
+
+    const { data: patientsData } = await patientsQuery;
+
+    // 🔐 SESSIONS: Filtrar apenas sessões dos pacientes visíveis
+    const patientIds = (patientsData || []).map(p => p.id);
+    
+    let sessionsQuery = supabase
       .from('sessions')
       .select(`
         *,
         patients!inner (
           user_id
         )
-      `)
-      .eq('patients.user_id', user!.id);
+      `);
+
+    if (patientIds.length > 0) {
+      sessionsQuery = sessionsQuery.in('patient_id', patientIds);
+    } else {
+      // Nenhum paciente visível = nenhuma sessão
+      sessionsQuery = sessionsQuery.eq('patient_id', 'impossible-id');
+    }
+
+    const { data: sessionsData } = await sessionsQuery;
 
     setPatients(patientsData || []);
     setSessions(sessionsData || []);
