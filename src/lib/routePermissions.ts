@@ -22,7 +22,7 @@ import { RoutePermissionsConfig } from '@/types/permissions';
 
 export const routePermissions: RoutePermissionsConfig = {
   // ==================== ROTAS ADMINISTRATIVAS ====================
-  // Apenas Admin tem acesso
+  // APENAS Admin tem acesso (funcionalidades de sistema)
   '/admin-settings': {
     allowedFor: ['admin'],
   },
@@ -52,17 +52,17 @@ export const routePermissions: RoutePermissionsConfig = {
   },
 
   // ==================== GESTÃO DE TERAPEUTAS ====================
-  // Admin e Full Therapists (não subordinados) podem gerenciar terapeutas
+  // Admin e Full Therapists podem gerenciar terapeutas
   '/therapists': {
-    blockedFor: ['accountant', 'subordinate'],
+    allowedFor: ['admin', 'fulltherapist'],
   },
   
   '/create-therapist': {
-    blockedFor: ['accountant', 'subordinate'],
+    allowedFor: ['admin', 'fulltherapist'],
   },
 
   '/permissions': {
-    blockedFor: ['accountant', 'subordinate'],
+    allowedFor: ['admin', 'fulltherapist'],
   },
 
   // ==================== DASHBOARD ====================

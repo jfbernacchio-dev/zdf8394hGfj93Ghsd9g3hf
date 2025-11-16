@@ -37,7 +37,7 @@ interface PermissionRouteProps {
 }
 
 export function PermissionRoute({ children, path }: PermissionRouteProps) {
-  const { user, isAdmin, isSubordinate, isAccountant, rolesLoaded } = useAuth();
+  const { user, isAdmin, isFullTherapist, isSubordinate, isAccountant, rolesLoaded } = useAuth();
   const { permissions, loading: permissionsLoading } = useSubordinatePermissions();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -56,7 +56,12 @@ export function PermissionRoute({ children, path }: PermissionRouteProps) {
     }
 
     // Obter roles do usuário
-    const userRoles = getUserRoles({ isAdmin, isSubordinate, isAccountant });
+    const userRoles = getUserRoles({ 
+      isAdmin, 
+      isFullTherapist,
+      isSubordinate, 
+      isAccountant 
+    });
 
     // Buscar configuração da rota
     const routeConfig = routePermissions[path];
