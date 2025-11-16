@@ -97,10 +97,10 @@ const Navbar = () => {
                     </Link>
                   )}
                   {(() => {
-                    const shouldShow = isAdmin && !isSubordinate;
+                    const shouldShow = (isAdmin || isFullTherapist) && !isSubordinate;
                     // 🔍 LOG DIAGNÓSTICO 6: Visibilidade da aba Terapeutas
                     console.log('=== TAB TERAPEUTAS - VISIBILIDADE ===');
-                    console.log('Condição atual: isAdmin && !isSubordinate');
+                    console.log('Condição atual: (isAdmin || isFullTherapist) && !isSubordinate');
                     console.log('Resultado:', shouldShow);
                     console.log('======================================');
                     return shouldShow;
