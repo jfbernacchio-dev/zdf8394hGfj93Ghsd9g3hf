@@ -157,16 +157,28 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Sending email to:", recipientEmail);
 
     // ⭐ Determinar nome correto do destinatário baseado no campo usado
+    console.log("🔍 [RECIPIENT NAME DEBUG] Dados do paciente:", {
+      patientName,
+      guardianName,
+      is_minor: nfseDataWithTherapist.patient?.is_minor,
+      use_alternate_nfse_contact: nfseDataWithTherapist.patient?.use_alternate_nfse_contact,
+      nfse_alternate_phone: nfseDataWithTherapist.patient?.nfse_alternate_phone,
+      guardian_phone_1: nfseDataWithTherapist.patient?.guardian_phone_1,
+    });
+    
     let recipientDisplayName: string;
     if (nfseDataWithTherapist.patient?.use_alternate_nfse_contact && nfseDataWithTherapist.patient?.nfse_alternate_phone) {
       recipientDisplayName = `${patientName} (Contato Alternativo)`;
+      console.log("📱 [RECIPIENT] Usando contato alternativo:", recipientDisplayName);
     } else if (nfseDataWithTherapist.patient?.is_minor && guardianName && nfseDataWithTherapist.patient?.guardian_phone_1) {
       recipientDisplayName = `${guardianName} (Responsável por ${patientName})`;
+      console.log("👨‍👩‍👧 [RECIPIENT] Usando responsável:", recipientDisplayName);
     } else {
       recipientDisplayName = patientName;
+      console.log("👤 [RECIPIENT] Usando paciente:", recipientDisplayName);
     }
 
-    console.log("Recipient display name:", recipientDisplayName);
+    console.log("✅ [RECIPIENT FINAL] Nome final do destinatário:", recipientDisplayName);
 
     // Send email with PDF attachment
     const emailResponse = await resend.emails.send({
@@ -216,27 +228,39 @@ const handler = async (req: Request): Promise<Response> => {
     let recipientPhone: string | undefined;
     let phoneFieldUsed: 'phone' | 'guardian_phone_1' | 'nfse_alternate_phone' | undefined;
     
+    console.log("📞 [PHONE SELECTION DEBUG] Iniciando seleção de telefone:", {
+      use_alternate_nfse_contact: nfseDataWithTherapist.patient?.use_alternate_nfse_contact,
+      nfse_alternate_phone: nfseDataWithTherapist.patient?.nfse_alternate_phone,
+      is_minor: nfseDataWithTherapist.patient?.is_minor,
+      guardian_phone_1: nfseDataWithTherapist.patient?.guardian_phone_1,
+      phone: nfseDataWithTherapist.patient?.phone,
+    });
+    
     if (nfseDataWithTherapist.patient?.use_alternate_nfse_contact && nfseDataWithTherapist.patient?.nfse_alternate_phone) {
       recipientPhone = nfseDataWithTherapist.patient.nfse_alternate_phone;
       phoneFieldUsed = 'nfse_alternate_phone';
+      console.log("📱 [PHONE] Usando telefone alternativo");
     } else if (nfseDataWithTherapist.patient?.is_minor && nfseDataWithTherapist.patient?.guardian_phone_1) {
       recipientPhone = nfseDataWithTherapist.patient.guardian_phone_1;
       phoneFieldUsed = 'guardian_phone_1';
+      console.log("👨‍👩‍👧 [PHONE] Usando telefone do responsável");
     } else {
       recipientPhone = nfseDataWithTherapist.patient?.phone;
       phoneFieldUsed = 'phone';
+      console.log("👤 [PHONE] Usando telefone do paciente");
     }
     
     const normalizedPhone = recipientPhone ? normalizePhone(recipientPhone) : null;
 
-    console.log("Patient phone data:", {
+    console.log("✅ [PHONE FINAL] Dados finais do telefone:", {
       phone: nfseDataWithTherapist.patient?.phone,
       alternate: nfseDataWithTherapist.patient?.nfse_alternate_phone,
       guardian: nfseDataWithTherapist.patient?.guardian_phone_1,
       useAlternate: nfseDataWithTherapist.patient?.use_alternate_nfse_contact,
       recipientPhone,
       phoneFieldUsed,
-      normalizedPhone
+      normalizedPhone,
+      recipientDisplayName
     });
 
     if (normalizedPhone && nfseDataWithTherapist.pdf_url) {
@@ -290,13 +314,20 @@ const handler = async (req: Request): Promise<Response> => {
                   patientId: nfseDataWithTherapist.patient_id,
                   userId: nfseDataWithTherapist.user_id,
                   phoneFieldUsed: phoneFieldUsed,
-                  nfseNumber: nfseNumber, // Para usar no content da mensagem
-                  recipientName: recipientDisplayName, // ⭐ Passar nome para send-whatsapp
-                  guardianName: guardianName // ⭐ Passar guardian_name também
+                  nfseNumber: nfseNumber,
+                  recipientName: recipientDisplayName,
+                  guardianName: guardianName
                 }
               }),
             }
           );
+          
+          console.log("📤 [WHATSAPP METADATA] Metadata enviado para send-whatsapp:", {
+            patientId: nfseDataWithTherapist.patient_id,
+            phoneFieldUsed,
+            recipientName: recipientDisplayName,
+            guardianName
+          });
           
           whatsappResult = await whatsappResponse.json();
           
@@ -333,13 +364,20 @@ const handler = async (req: Request): Promise<Response> => {
                   patientId: nfseDataWithTherapist.patient_id,
                   userId: nfseDataWithTherapist.user_id,
                   phoneFieldUsed: phoneFieldUsed,
-                  nfseNumber: nfseNumber, // Para usar no content da mensagem
-                  recipientName: recipientDisplayName, // ⭐ Passar nome para send-whatsapp
-                  guardianName: guardianName // ⭐ Passar guardian_name também
+                  nfseNumber: nfseNumber,
+                  recipientName: recipientDisplayName,
+                  guardianName: guardianName
                 }
               }),
             }
           );
+          
+          console.log("📤 [WHATSAPP FALLBACK METADATA] Metadata enviado para send-whatsapp (fallback):", {
+            patientId: nfseDataWithTherapist.patient_id,
+            phoneFieldUsed,
+            recipientName: recipientDisplayName,
+            guardianName
+          });
           
           whatsappResult = await fallbackResponse.json();
         }
