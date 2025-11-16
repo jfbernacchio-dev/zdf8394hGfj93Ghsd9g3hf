@@ -42,6 +42,8 @@ import { ClinicalEvolution } from '@/components/ClinicalEvolution';
 import { getSubordinateAutonomy, AutonomyPermissions } from '@/lib/checkSubordinateAutonomy';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { canAccessPatient } from '@/lib/checkPatientAccess';
+import { useCardPermissions } from '@/hooks/useCardPermissions';
+import { useSubordinatePermissions } from '@/hooks/useSubordinatePermissions';
 
 const PatientDetailNew = () => {
   const { id } = useParams();
@@ -67,6 +69,10 @@ const PatientDetailNew = () => {
   const [showUnpaid, setShowUnpaid] = useState(false);
   const [complaint, setComplaint] = useState<any>(null);
   const [complaintText, setComplaintText] = useState('');
+
+  // 🔐 PERMISSIONS
+  const { permissions, loading: permissionsLoading } = useSubordinatePermissions();
+  const { canViewCard } = useCardPermissions();
   const [isComplaintDialogOpen, setIsComplaintDialogOpen] = useState(false);
   const [showFullHistory, setShowFullHistory] = useState(false);
   const [sessionHistory, setSessionHistory] = useState<any[]>([]);

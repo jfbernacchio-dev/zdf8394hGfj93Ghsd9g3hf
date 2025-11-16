@@ -1,3 +1,5 @@
+import type { ExtendedAutonomyPermissions } from '@/hooks/useSubordinatePermissions';
+
 // Default layout configuration for PatientEvolutionMetrics component
 export const DEFAULT_EVOLUTION_LAYOUT = {
   sectionHeights: {
@@ -32,6 +34,53 @@ export const DEFAULT_EVOLUTION_LAYOUT = {
     'evolution-chart-personality': { width: 590, height: 320, x: 619, y: -1834 },
   } as Record<string, { width: number; height: number; x: number; y: number }>,
 };
+
+/**
+ * ============================================================================
+ * FILTER LAYOUT BY PERMISSIONS
+ * ============================================================================
+ * 
+ * Remove cards não autorizados do layout baseado nas permissões do usuário.
+ * Todos os cards de evolução são clínicos, então verificamos apenas acesso clínico.
+ * 
+ * LÓGICA:
+ * 1. Filtra visibleCards removendo IDs não autorizados
+ * 2. Remove cardSizes órfãos (cards que não existem mais em visibleCards)
+ * 3. Mantém sectionHeights inalterado
+ * 
+ * RETORNA: Layout filtrado pronto para uso
+ * 
+ * ============================================================================
+ */
+export function getFilteredEvolutionLayout(
+  permissions: ExtendedAutonomyPermissions | null,
+  isAdmin: boolean,
+  canViewCard: (cardId: string) => boolean
+): typeof DEFAULT_EVOLUTION_LAYOUT {
+  // Admin vê tudo
+  if (isAdmin || !permissions) {
+    return DEFAULT_EVOLUTION_LAYOUT;
+  }
+
+  // Filtrar cards visíveis
+  const filteredVisibleCards = DEFAULT_EVOLUTION_LAYOUT.visibleCards.filter(cardId => 
+    canViewCard(cardId)
+  );
+
+  // Filtrar tamanhos de cards (remover órfãos)
+  const filteredCardSizes: Record<string, { width: number; height: number; x: number; y: number }> = {};
+  filteredVisibleCards.forEach(cardId => {
+    if (DEFAULT_EVOLUTION_LAYOUT.cardSizes[cardId]) {
+      filteredCardSizes[cardId] = DEFAULT_EVOLUTION_LAYOUT.cardSizes[cardId];
+    }
+  });
+
+  return {
+    ...DEFAULT_EVOLUTION_LAYOUT,
+    visibleCards: filteredVisibleCards,
+    cardSizes: filteredCardSizes,
+  };
+}
 
 // Function to reset layout to default
 export const resetToDefaultEvolutionLayout = () => {
