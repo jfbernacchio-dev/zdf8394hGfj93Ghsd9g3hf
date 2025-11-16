@@ -323,7 +323,7 @@ export default function IssueNFSeDialog({
                         <div key={session.id} className="flex items-center justify-between text-xs">
                           <span>{format(parseISO(session.date), 'dd/MM/yyyy')}</span>
                           <span className="text-muted-foreground">
-                            {formatBrazilianCurrency(session.value)}
+                            {formatBrazilianCurrency(isMonthlyPatient ? patientSessionValue : session.value)}
                           </span>
                         </div>
                       ))}
