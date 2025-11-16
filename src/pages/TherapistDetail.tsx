@@ -1039,11 +1039,45 @@ const TherapistDetail = () => {
                   <Card className="p-4 bg-green-500/10">
                     <p className="text-sm text-muted-foreground mb-1">Valor Total em Aberto</p>
                     <p className="text-2xl font-bold text-green-600">
-                      R$ {sessions
-                        .filter(s => s.status === 'attended' && !s.paid)
-                        .reduce((sum, s) => sum + Number(s.value || 0), 0)
-                        .toFixed(2)
-                        .replace('.', ',')}
+                      {formatBrazilianCurrency(
+                        (() => {
+                          const unpaidSessions = sessions.filter(s => s.status === 'attended' && !s.paid);
+                          
+                          // Separar sessões por tipo de paciente
+                          const monthlyPatientSessions = unpaidSessions.filter(s => s.patients?.monthly_price);
+                          const regularPatientSessions = unpaidSessions.filter(s => !s.patients?.monthly_price);
+                          
+                          // Para pacientes mensais: agrupar por paciente + mês
+                          const monthlyTotal = monthlyPatientSessions.reduce((total, session) => {
+                            return total;
+                          }, 0);
+                          
+                          // Agrupar por paciente + mês
+                          const monthlyGroups: Record<string, Set<string>> = {};
+                          monthlyPatientSessions.forEach(session => {
+                            const patientId = session.patient_id;
+                            const monthYear = format(parseISO(session.date), 'MM/yyyy');
+                            const key = `${patientId}-${monthYear}`;
+                            
+                            if (!monthlyGroups[patientId]) {
+                              monthlyGroups[patientId] = new Set();
+                            }
+                            monthlyGroups[patientId].add(monthYear);
+                          });
+                          
+                          // Calcular total mensal
+                          const monthlyValue = Object.entries(monthlyGroups).reduce((total, [patientId, months]) => {
+                            const session = monthlyPatientSessions.find(s => s.patient_id === patientId);
+                            const monthlyPrice = Number(session?.patients?.session_value || 0);
+                            return total + (months.size * monthlyPrice);
+                          }, 0);
+                          
+                          // Para pacientes regulares: somar valores individuais
+                          const regularTotal = regularPatientSessions.reduce((sum, s) => sum + Number(s.value || 0), 0);
+                          
+                          return monthlyValue + regularTotal;
+                        })()
+                      )}
                     </p>
                   </Card>
                 </div>
