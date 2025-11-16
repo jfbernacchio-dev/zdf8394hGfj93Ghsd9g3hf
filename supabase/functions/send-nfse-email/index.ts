@@ -65,6 +65,7 @@ const handler = async (req: Request): Promise<Response> => {
           cpf,
           phone,
           is_minor,
+          guardian_name,
           guardian_phone_1,
           guardian_email,
           use_alternate_nfse_contact,

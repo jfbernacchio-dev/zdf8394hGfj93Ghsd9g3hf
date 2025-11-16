@@ -96,7 +96,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    // 🔄 LISTENER para reload manual do profile
+    const handleProfileUpdate = (event: CustomEvent) => {
+      if (event.detail) {
+        setProfile(event.detail);
+      }
+    };
+    
+    window.addEventListener('profile-updated', handleProfileUpdate as EventListener);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('profile-updated', handleProfileUpdate as EventListener);
+    };
   }, []);
 
   const fetchProfile = async (userId: string) => {
