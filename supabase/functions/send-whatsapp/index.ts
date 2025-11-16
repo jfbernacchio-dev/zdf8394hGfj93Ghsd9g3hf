@@ -36,6 +36,7 @@ interface WhatsAppRequest {
     phoneFieldUsed?: 'phone' | 'guardian_phone_1' | 'nfse_alternate_phone' | 'therapist_phone';
     recipientName?: string; // ⭐ Nome formatado do destinatário
     guardianName?: string; // ⭐ Nome do responsável (se aplicável)
+    isTherapistNotification?: boolean; // 🆕 Flag para notificações NFSe ao terapeuta
   };
 }
 
@@ -165,8 +166,8 @@ const handler = async (req: Request): Promise<Response> => {
       let patientId: string | null | undefined;
       let contactName: string | undefined;
 
-      // Se é telefone do terapeuta
-      if (metadata?.phoneFieldUsed === 'therapist_phone' && metadata?.userId) {
+      // Se é telefone do terapeuta (notificação NFSe)
+      if (metadata?.isTherapistNotification === true && metadata?.userId) {
         const { data: therapist } = await supabase
           .from("profiles")
           .select("id, full_name, phone")
@@ -175,9 +176,9 @@ const handler = async (req: Request): Promise<Response> => {
 
         if (therapist && therapist.phone?.replace(/\D/g, '') === cleanPhone) {
           userId = therapist.id;
-          patientId = null; // Conversa geral do terapeuta, não vinculada a paciente específico
-          contactName = `${therapist.full_name} (Terapeuta)`;
-          console.log("📱 Therapist phone identified - conversa geral do terapeuta");
+          patientId = null; // Conversa SEM paciente (notificações do terapeuta)
+          contactName = "📋 Notificações NFSe"; // Nome fixo identificável
+          console.log("📱 Therapist notification identified - creating/updating therapist conversation");
         }
       }
 
@@ -222,10 +223,10 @@ const handler = async (req: Request): Promise<Response> => {
         const windowExpires = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
         // Verificar se conversa existe
-        // Para terapeuta: buscar conversa geral (patient_id = null)
-        // Para paciente: buscar conversa específica (com patient_id)
+        // Para notificações do terapeuta: buscar conversa SEM patient_id (patient_id = null)
+        // Para pacientes: buscar conversa específica (COM patient_id)
         let existingConv;
-        if (metadata?.phoneFieldUsed === 'therapist_phone') {
+        if (metadata?.isTherapistNotification === true) {
           const { data } = await supabase
             .from("whatsapp_conversations")
             .select("*")
@@ -234,7 +235,7 @@ const handler = async (req: Request): Promise<Response> => {
             .is("patient_id", null)
             .maybeSingle();
           existingConv = data;
-          console.log("🔍 Buscando conversa geral do terapeuta:", existingConv ? "encontrada" : "não encontrada");
+          console.log("🔍 Buscando conversa de notificações do terapeuta:", existingConv ? "encontrada" : "não encontrada");
         } else {
           const { data } = await supabase
             .from("whatsapp_conversations")

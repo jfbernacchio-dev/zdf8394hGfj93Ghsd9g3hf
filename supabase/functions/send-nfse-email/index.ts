@@ -452,7 +452,9 @@ const handler = async (req: Request): Promise<Response> => {
                 patientId: nfseDataWithTherapist.patient_id,
                 userId: nfseDataWithTherapist.user_id,
                 phoneFieldUsed: 'therapist_phone',
-                nfseNumber: nfseNumber // Para usar no content da mensagem
+                recipientName: `${therapistName || 'Terapeuta'} (Cópia - Paciente: ${patientName})`,
+                nfseNumber: nfseNumber, // Para usar no content da mensagem
+                isTherapistNotification: true, // 🆕 Flag para diferenciar fluxo
               }
             }),
           }
