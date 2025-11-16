@@ -144,6 +144,8 @@ const handler = async (req: Request): Promise<Response> => {
     );
 
     const patientName = nfseDataWithTherapist.patient.name;
+    const guardianName = nfseDataWithTherapist.patient.guardian_name;
+    const therapistName = nfseDataWithTherapist.therapist?.full_name;
     const nfseNumber = nfseDataWithTherapist.nfse_number || "Pendente";
     const issueDate = new Date(nfseDataWithTherapist.issue_date).toLocaleDateString("pt-BR");
     const issueMonth = new Date(nfseDataWithTherapist.issue_date).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
@@ -154,6 +156,20 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Sending email to:", recipientEmail);
 
+    // ⭐ Determinar nome correto do destinatário baseado no campo usado
+    let recipientDisplayName: string;
+    if (nfseDataWithTherapist.patient?.use_alternate_nfse_contact && nfseDataWithTherapist.patient?.nfse_alternate_phone) {
+      recipientDisplayName = `${patientName} (Contato Alternativo)`;
+    } else if (nfseDataWithTherapist.patient?.is_minor && nfseDataWithTherapist.patient?.guardian_phone_1) {
+      recipientDisplayName = guardianName 
+        ? `${guardianName} (Responsável por ${patientName})`
+        : patientName;
+    } else {
+      recipientDisplayName = patientName;
+    }
+
+    console.log("Recipient display name:", recipientDisplayName);
+
     // Send email with PDF attachment
     const emailResponse = await resend.emails.send({
       from: "Espaço Mindware <no-reply@espacomindware.com.br>",
@@ -163,7 +179,7 @@ const handler = async (req: Request): Promise<Response> => {
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <h2 style="color: #8B9D83; margin-bottom: 20px;">Espaço Mindware Psicologia</h2>
           
-          <p>Olá, <strong>${patientName}</strong>!</p>
+          <p>Olá, <strong>${recipientDisplayName}</strong>!</p>
           
           <p>Segue em anexo a Nota Fiscal de Serviço Eletrônica referente aos atendimentos realizados.</p>
           
@@ -264,7 +280,7 @@ const handler = async (req: Request): Promise<Response> => {
                   templateName: "nfse_envio_v2",
                   templateLanguage: "en", // Using English to avoid Meta's 4-week lock bug
                   parameters: [
-                    patientName,
+                    recipientDisplayName, // ⭐ Nome correto do destinatário
                     nfseNumber,
                     issueDate,
                     serviceValue,
@@ -275,7 +291,8 @@ const handler = async (req: Request): Promise<Response> => {
                 metadata: {
                   patientId: nfseDataWithTherapist.patient_id,
                   userId: nfseDataWithTherapist.user_id,
-                  phoneFieldUsed: phoneFieldUsed
+                  phoneFieldUsed: phoneFieldUsed,
+                  nfseNumber: nfseNumber // Para usar no content da mensagem
                 }
               }),
             }
@@ -306,15 +323,17 @@ const handler = async (req: Request): Promise<Response> => {
                   documentUrl: nfseDataWithTherapist.pdf_url,
                   filename: correctFilename, // Use the correct filename
                   caption: `📄 *Nota Fiscal Espaço Mindware*\n\n` +
+                    `*Destinatário:* ${recipientDisplayName}\n` +
                     `*Número:* ${nfseNumber}\n` +
                     `*Data:* ${issueDate}\n` +
                     `*Valor:* ${serviceValue}\n\n` +
-                    `Olá, ${patientName}! Sua nota fiscal de ${issueMonth} está anexada.`,
+                    `Olá, ${recipientDisplayName.split(' ')[0]}! Sua nota fiscal de ${issueMonth} está anexada.`,
                 },
                 metadata: {
                   patientId: nfseDataWithTherapist.patient_id,
                   userId: nfseDataWithTherapist.user_id,
-                  phoneFieldUsed: phoneFieldUsed
+                  phoneFieldUsed: phoneFieldUsed,
+                  nfseNumber: nfseNumber // Para usar no content da mensagem
                 }
               }),
             }
@@ -373,7 +392,7 @@ const handler = async (req: Request): Promise<Response> => {
                 templateName: "nfse_envio_v2",
                 templateLanguage: "en",
                 parameters: [
-                  `${patientName} (Cópia Terapeuta)`,
+                  `${therapistName || 'Terapeuta'} (Cópia - Paciente: ${patientName})`, // ⭐ Nome correto
                   nfseNumber,
                   issueDate,
                   serviceValue,
@@ -384,7 +403,8 @@ const handler = async (req: Request): Promise<Response> => {
               metadata: {
                 patientId: nfseDataWithTherapist.patient_id,
                 userId: nfseDataWithTherapist.user_id,
-                phoneFieldUsed: 'therapist_phone'
+                phoneFieldUsed: 'therapist_phone',
+                nfseNumber: nfseNumber // Para usar no content da mensagem
               }
             }),
           }

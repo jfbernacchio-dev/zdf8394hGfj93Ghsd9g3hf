@@ -76,7 +76,7 @@ const ProfileEdit = () => {
         setCrp(profile.crp || '');
         setPhone(profile.phone || '');
         setBirthDate(profile.birth_date || '');
-        setSendNfseToTherapist(profile.send_nfse_to_therapist || false);
+        setSendNfseToTherapist(profile.send_nfse_to_therapist ?? false);
         setClinicalApproach(profile.clinical_approach || '');
         
         setWorkDays(profile.work_days || [1, 2, 3, 4, 5]);
