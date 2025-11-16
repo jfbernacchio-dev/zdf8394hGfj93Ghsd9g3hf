@@ -326,7 +326,7 @@ Data de emissão: ${new Date().toLocaleDateString('pt-BR')}`;
       .insert({
         user_id: user.id,
         patient_id: patientId,
-        patient_name: invoiceName,
+        patient_name: patient.name, // Always store patient name, regardless of who receives the invoice
         patient_cpf: invoiceCpf,
         service_value: serviceValue,
         iss_value: issValue,

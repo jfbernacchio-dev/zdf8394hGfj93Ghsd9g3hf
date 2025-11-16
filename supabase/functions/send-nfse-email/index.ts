@@ -64,6 +64,9 @@ const handler = async (req: Request): Promise<Response> => {
           email,
           cpf,
           phone,
+          is_minor,
+          guardian_phone_1,
+          guardian_email,
           use_alternate_nfse_contact,
           nfse_alternate_email,
           nfse_alternate_phone
@@ -100,10 +103,18 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("NFSe PDF URL not available");
     }
 
-    // Determine which email to use: alternate if available, otherwise patient email
-    const recipientEmail = nfseDataWithTherapist.patient?.use_alternate_nfse_contact && nfseDataWithTherapist.patient?.nfse_alternate_email
-      ? nfseDataWithTherapist.patient.nfse_alternate_email
-      : nfseDataWithTherapist.patient?.email;
+    // Determine which email to use: cascade logic
+    // 1. Alternate contact (if marked)
+    // 2. Guardian email (if minor AND available)
+    // 3. Patient email
+    let recipientEmail: string | undefined;
+    if (nfseDataWithTherapist.patient?.use_alternate_nfse_contact && nfseDataWithTherapist.patient?.nfse_alternate_email) {
+      recipientEmail = nfseDataWithTherapist.patient.nfse_alternate_email;
+    } else if (nfseDataWithTherapist.patient?.is_minor && nfseDataWithTherapist.patient?.guardian_email) {
+      recipientEmail = nfseDataWithTherapist.patient.guardian_email;
+    } else {
+      recipientEmail = nfseDataWithTherapist.patient?.email;
+    }
 
     if (!recipientEmail) {
       throw new Error("Patient email not found");
@@ -184,9 +195,18 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send WhatsApp message if phone is available
     let whatsappSent = false;
-    const recipientPhone = nfseDataWithTherapist.patient?.use_alternate_nfse_contact && nfseDataWithTherapist.patient?.nfse_alternate_phone
-      ? nfseDataWithTherapist.patient.nfse_alternate_phone
-      : nfseDataWithTherapist.patient?.phone;
+    // Determine which phone to use: cascade logic
+    // 1. Alternate contact (if marked)
+    // 2. Guardian phone (if minor AND available)
+    // 3. Patient phone
+    let recipientPhone: string | undefined;
+    if (nfseDataWithTherapist.patient?.use_alternate_nfse_contact && nfseDataWithTherapist.patient?.nfse_alternate_phone) {
+      recipientPhone = nfseDataWithTherapist.patient.nfse_alternate_phone;
+    } else if (nfseDataWithTherapist.patient?.is_minor && nfseDataWithTherapist.patient?.guardian_phone_1) {
+      recipientPhone = nfseDataWithTherapist.patient.guardian_phone_1;
+    } else {
+      recipientPhone = nfseDataWithTherapist.patient?.phone;
+    }
     
     const normalizedPhone = recipientPhone ? normalizePhone(recipientPhone) : null;
 
@@ -290,65 +310,7 @@ const handler = async (req: Request): Promise<Response> => {
           console.log("WhatsApp sent successfully");
           whatsappSent = true;
           
-          // Register message in WhatsApp history
-          try {
-            const messageContent = `📄 NFS-e #${nfseNumber} enviada - ${issueMonth} (${serviceValue})`;
-            
-            // Check if conversation exists
-            let conversationId: string;
-            const { data: existingConv } = await supabase
-              .from("whatsapp_conversations")
-              .select("id")
-              .eq("user_id", nfseDataWithTherapist.user_id)
-              .eq("patient_id", nfseDataWithTherapist.patient_id)
-              .eq("phone_number", normalizedPhone)
-              .maybeSingle();
-
-            if (existingConv) {
-              conversationId = existingConv.id;
-              await supabase
-                .from("whatsapp_conversations")
-                .update({
-                  last_message_at: new Date().toISOString(),
-                  last_message_from: "therapist",
-                })
-                .eq("id", conversationId);
-            } else {
-              const { data: newConv } = await supabase
-                .from("whatsapp_conversations")
-                .insert({
-                  user_id: nfseDataWithTherapist.user_id,
-                  patient_id: nfseDataWithTherapist.patient_id,
-                  phone_number: normalizedPhone,
-                  contact_name: patientName,
-                  last_message_at: new Date().toISOString(),
-                  last_message_from: "therapist",
-                  status: "active",
-                  unread_count: 0,
-                })
-                .select("id")
-                .single();
-              conversationId = newConv!.id;
-            }
-
-            // Insert message
-            await supabase
-              .from("whatsapp_messages")
-              .insert({
-                conversation_id: conversationId,
-                direction: "outbound",
-                message_type: "document",
-                content: messageContent,
-                status: "sent",
-                metadata: {
-                  type: "nfse",
-                  nfseNumber: nfseNumber,
-                  automatic: true,
-                },
-              });
-          } catch (historyError) {
-            console.error("Error registering in history:", historyError);
-          }
+          // Conversation management is handled by send-whatsapp function
         } else {
           console.error("Failed to send WhatsApp:", whatsappResult);
         }
