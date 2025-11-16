@@ -53,9 +53,18 @@ Deno.serve(async (req) => {
     }
 
     // Pegar dados do novo usuário
-    const { email, password, full_name, cpf, crp, birth_date, role } = await req.json();
+    const requestBody = await req.json();
+    const { email, password, full_name, cpf, crp, birth_date, role } = requestBody;
+
+    // 🔍 LOG DIAGNÓSTICO 4: Request recebido na Edge Function
+    console.log('=== EDGE FUNCTION - REQUEST RECEBIDO ===');
+    console.log('Body completo:', JSON.stringify(requestBody, null, 2));
+    console.log('Role extraído:', role);
+    console.log('Tipo do role:', typeof role);
+    console.log('========================================');
 
     if (!email || !password || !role) {
+      console.log('❌ Erro: Campos obrigatórios faltando');
       return new Response(
         JSON.stringify({ error: 'Email, senha e role são obrigatórios' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -64,12 +73,18 @@ Deno.serve(async (req) => {
 
     // Validar role
     const validRoles = ['admin', 'accountant', 'fulltherapist'];
+    console.log('Roles válidos:', validRoles);
+    console.log('Role está em validRoles?', validRoles.includes(role));
+    
     if (!validRoles.includes(role)) {
+      console.log('❌ Erro: Role inválido recebido:', role);
       return new Response(
         JSON.stringify({ error: 'Role inválido. Use: admin, accountant ou fulltherapist' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('✅ Role válido! Prosseguindo...');
 
     // Criar usuário usando admin client
     const metadata: Record<string, string> = {
