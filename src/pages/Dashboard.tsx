@@ -20,7 +20,7 @@ import { ComplianceReminder } from '@/components/ComplianceReminder';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import { ResizableCard } from '@/components/ResizableCard';
 import { ResizableSection } from '@/components/ResizableSection';
-import { DEFAULT_DASHBOARD_LAYOUT, resetToDefaultDashboardLayout } from '@/lib/defaultLayoutDashboard';
+import { DEFAULT_DASHBOARD_LAYOUT, resetToDefaultDashboardLayout, getFilteredDashboardLayout } from '@/lib/defaultLayoutDashboard';
 import { toast } from 'sonner';
 import { AddCardDialog } from '@/components/AddCardDialog';
 import { CardConfig, AVAILABLE_DASHBOARD_CHARTS } from '@/types/cardTypes';
@@ -28,9 +28,11 @@ import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, Cart
 import { useChartTimeScale, generateTimeIntervals, formatTimeLabel, getIntervalBounds, getScaleLabel, TimeScale } from '@/hooks/useChartTimeScale';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import Layout from '@/components/Layout';
+import { useCardPermissions } from '@/hooks/useCardPermissions';
+import { useSubordinatePermissions } from '@/hooks/useSubordinatePermissions';
 
 const DashboardTest = () => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [patients, setPatients] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
   const [period, setPeriod] = useState('month');
@@ -49,12 +51,16 @@ const DashboardTest = () => {
   const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
 
+  // 🔐 PERMISSIONS
+  const { permissions, loading: permissionsLoading } = useSubordinatePermissions();
+  const { canViewCard } = useCardPermissions();
+
   useEffect(() => {
-    if (user) {
+    if (user && !permissionsLoading) {
       loadData();
       loadLayout();
     }
-  }, [user]);
+  }, [user, permissionsLoading]);
 
   const loadData = async () => {
     const { data: patientsData } = await supabase
@@ -77,11 +83,17 @@ const DashboardTest = () => {
   };
 
   const loadLayout = () => {
+    // 🔐 FILTRAR LAYOUT BASEADO EM PERMISSÕES
+    const filteredLayout = getFilteredDashboardLayout(permissions, isAdmin, canViewCard);
+
     const savedCards = localStorage.getItem('dashboard-visible-cards');
     if (savedCards) {
-      setVisibleCards(JSON.parse(savedCards));
+      const parsedCards = JSON.parse(savedCards);
+      // Filtrar cards salvos para remover não autorizados
+      const authorizedCards = parsedCards.filter((cardId: string) => canViewCard(cardId));
+      setVisibleCards(authorizedCards);
     } else {
-      setVisibleCards(DEFAULT_DASHBOARD_LAYOUT.visibleCards);
+      setVisibleCards(filteredLayout.visibleCards);
     }
   };
 
