@@ -34,6 +34,8 @@ interface WhatsAppRequest {
     patientId?: string;
     userId?: string;
     phoneFieldUsed?: 'phone' | 'guardian_phone_1' | 'nfse_alternate_phone' | 'therapist_phone';
+    recipientName?: string; // ⭐ Nome formatado do destinatário
+    guardianName?: string; // ⭐ Nome do responsável (se aplicável)
   };
 }
 
@@ -192,19 +194,25 @@ const handler = async (req: Request): Promise<Response> => {
           userId = patient.user_id;
           patientId = patient.id;
 
-          // Determinar nome baseado no campo usado
-          const phoneNoPrefix = cleanPhone.replace(/^55/, '');
-          if (patient.guardian_phone_1?.replace(/\D/g, '') === cleanPhone || 
-              patient.guardian_phone_1?.replace(/\D/g, '') === phoneNoPrefix) {
-            contactName = patient.guardian_name || `${patient.name} (Responsável)`;
-            console.log("📱 Guardian phone identified");
-          } else if (patient.nfse_alternate_phone?.replace(/\D/g, '') === cleanPhone || 
-                     patient.nfse_alternate_phone?.replace(/\D/g, '') === phoneNoPrefix) {
-            contactName = `${patient.name} (Contato Alt.)`;
-            console.log("📱 Alternate phone identified");
+          // ⭐ Priorizar metadata.recipientName se disponível
+          if (metadata?.recipientName) {
+            contactName = metadata.recipientName;
+            console.log("📱 Using recipientName from metadata:", contactName);
           } else {
-            contactName = patient.name;
-            console.log("📱 Patient phone identified");
+            // Fallback: determinar nome baseado no campo usado
+            const phoneNoPrefix = cleanPhone.replace(/^55/, '');
+            if (patient.guardian_phone_1?.replace(/\D/g, '') === cleanPhone || 
+                patient.guardian_phone_1?.replace(/\D/g, '') === phoneNoPrefix) {
+              contactName = metadata?.guardianName || patient.guardian_name || `${patient.name} (Responsável)`;
+              console.log("📱 Guardian phone identified");
+            } else if (patient.nfse_alternate_phone?.replace(/\D/g, '') === cleanPhone || 
+                       patient.nfse_alternate_phone?.replace(/\D/g, '') === phoneNoPrefix) {
+              contactName = `${patient.name} (Contato Alt.)`;
+              console.log("📱 Alternate phone identified");
+            } else {
+              contactName = patient.name;
+              console.log("📱 Patient phone identified");
+            }
           }
         }
       }
