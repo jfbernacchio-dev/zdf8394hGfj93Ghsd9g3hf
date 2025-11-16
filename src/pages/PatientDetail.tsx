@@ -2038,11 +2038,21 @@ Assinatura do Profissional`;
                 <p className="text-sm text-muted-foreground mb-2">Valor Total em Aberto</p>
                 <p className="text-3xl font-bold">
                   {formatBrazilianCurrency(
-                    patient.monthly_price ? 
-                      allSessions.filter(s => s.status === 'attended' && getSessionPaymentStatus(s) === 'to_pay').reduce((acc, session) => {
+                    patient.monthly_price ? (() => {
+                      // Para pacientes mensais: agrupar sessões por mês
+                      const unpaidSessions = allSessions.filter(s => s.status === 'attended' && getSessionPaymentStatus(s) === 'to_pay');
+                      const sessionsByMonth = unpaidSessions.reduce((acc, session) => {
                         const monthYear = format(parseISO(session.date), 'MM/yyyy');
+                        if (!acc[monthYear]) {
+                          acc[monthYear] = [];
+                        }
+                        acc[monthYear].push(session);
                         return acc;
-                      }, 0) * Number(patient.session_value) :
+                      }, {} as Record<string, any[]>);
+                      
+                      const monthCount = Object.keys(sessionsByMonth).length;
+                      return monthCount * Number(patient.session_value);
+                    })() :
                       allSessions.filter(s => s.status === 'attended' && getSessionPaymentStatus(s) === 'to_pay').reduce((sum, s) => sum + Number(s.value || 0), 0)
                   )}
                 </p>
@@ -2051,7 +2061,22 @@ Assinatura do Profissional`;
                 <p className="text-sm text-muted-foreground mb-2">Total Faturado</p>
                 <p className="text-3xl font-bold">
                   {formatBrazilianCurrency(
-                    sessions.filter(s => s.paid).reduce((sum, s) => sum + Number(s.value || 0), 0)
+                    patient.monthly_price ? (() => {
+                      // Para pacientes mensais: agrupar sessões pagas por mês
+                      const paidSessions = sessions.filter(s => s.paid);
+                      const sessionsByMonth = paidSessions.reduce((acc, session) => {
+                        const monthYear = format(parseISO(session.date), 'MM/yyyy');
+                        if (!acc[monthYear]) {
+                          acc[monthYear] = [];
+                        }
+                        acc[monthYear].push(session);
+                        return acc;
+                      }, {} as Record<string, any[]>);
+                      
+                      const monthCount = Object.keys(sessionsByMonth).length;
+                      return monthCount * Number(patient.session_value);
+                    })() :
+                      sessions.filter(s => s.paid).reduce((sum, s) => sum + Number(s.value || 0), 0)
                   )}
                 </p>
               </Card>
