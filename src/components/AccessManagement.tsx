@@ -191,7 +191,7 @@ export const AccessManagement = () => {
       const roleLabels = {
         admin: 'Administrador',
         accountant: 'Contador',
-        therapist: 'Terapeuta Full'
+        fulltherapist: 'Terapeuta Full'
       };
 
       toast({
@@ -432,7 +432,7 @@ export const AccessManagement = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="therapist">Terapeuta Full (pode ter subordinados e accountant)</SelectItem>
+                      <SelectItem value="fulltherapist">Terapeuta Full (pode ter subordinados e accountant)</SelectItem>
                       <SelectItem value="accountant">Contador (apenas dados financeiros)</SelectItem>
                       <SelectItem value="admin">Administrador (acesso completo)</SelectItem>
                     </SelectContent>
