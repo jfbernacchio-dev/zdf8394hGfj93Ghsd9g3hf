@@ -1997,7 +1997,10 @@ Assinatura do Profissional`;
                     <IssueNFSeDialog 
                       patientId={id!} 
                       patientName={patient.name}
-                      unpaidSessions={allSessions.filter(s => s.status === 'attended' && getSessionPaymentStatus(s) === 'to_pay')}
+                      unpaidSessions={allSessions
+                        .filter(s => s.status === 'attended' && getSessionPaymentStatus(s) === 'to_pay')
+                        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                      }
                     />
                   )}
                 </div>
