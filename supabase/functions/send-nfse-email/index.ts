@@ -160,10 +160,8 @@ const handler = async (req: Request): Promise<Response> => {
     let recipientDisplayName: string;
     if (nfseDataWithTherapist.patient?.use_alternate_nfse_contact && nfseDataWithTherapist.patient?.nfse_alternate_phone) {
       recipientDisplayName = `${patientName} (Contato Alternativo)`;
-    } else if (nfseDataWithTherapist.patient?.is_minor && nfseDataWithTherapist.patient?.guardian_phone_1) {
-      recipientDisplayName = guardianName 
-        ? `${guardianName} (Responsável por ${patientName})`
-        : patientName;
+    } else if (nfseDataWithTherapist.patient?.is_minor && guardianName && nfseDataWithTherapist.patient?.guardian_phone_1) {
+      recipientDisplayName = `${guardianName} (Responsável por ${patientName})`;
     } else {
       recipientDisplayName = patientName;
     }
@@ -292,7 +290,9 @@ const handler = async (req: Request): Promise<Response> => {
                   patientId: nfseDataWithTherapist.patient_id,
                   userId: nfseDataWithTherapist.user_id,
                   phoneFieldUsed: phoneFieldUsed,
-                  nfseNumber: nfseNumber // Para usar no content da mensagem
+                  nfseNumber: nfseNumber, // Para usar no content da mensagem
+                  recipientName: recipientDisplayName, // ⭐ Passar nome para send-whatsapp
+                  guardianName: guardianName // ⭐ Passar guardian_name também
                 }
               }),
             }
@@ -333,7 +333,9 @@ const handler = async (req: Request): Promise<Response> => {
                   patientId: nfseDataWithTherapist.patient_id,
                   userId: nfseDataWithTherapist.user_id,
                   phoneFieldUsed: phoneFieldUsed,
-                  nfseNumber: nfseNumber // Para usar no content da mensagem
+                  nfseNumber: nfseNumber, // Para usar no content da mensagem
+                  recipientName: recipientDisplayName, // ⭐ Passar nome para send-whatsapp
+                  guardianName: guardianName // ⭐ Passar guardian_name também
                 }
               }),
             }
@@ -358,10 +360,17 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send copy to therapist if configured
     let therapistWhatsappSent = false;
+    console.log("🔍 THERAPIST SEND CHECK:", {
+      hasTherapist: !!nfseDataWithTherapist.therapist,
+      therapistName: nfseDataWithTherapist.therapist?.full_name,
+      sendNfseEnabled: nfseDataWithTherapist.therapist?.send_nfse_to_therapist,
+      therapistPhone: nfseDataWithTherapist.therapist?.phone
+    });
+    
     if (nfseDataWithTherapist.therapist?.send_nfse_to_therapist && nfseDataWithTherapist.therapist?.phone) {
       try {
         const therapistPhone = normalizePhone(nfseDataWithTherapist.therapist.phone);
-        console.log("Sending copy to therapist at:", therapistPhone);
+        console.log("✅ Sending copy to therapist at:", therapistPhone);
 
         // Get the file from storage to use the correct filename
         const { data: uploadedFiles } = await supabase

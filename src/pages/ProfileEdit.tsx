@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +31,7 @@ const ProfileEdit = () => {
   const { user, profile, isAdmin, isAccountant } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient(); // ⭐ Para invalidar cache após updates
   
   // Dados Pessoais
   const [fullName, setFullName] = useState('');
@@ -301,6 +303,9 @@ const ProfileEdit = () => {
         .eq('id', user!.id);
 
       if (profileError) throw profileError;
+
+      // ⭐ Invalidar cache do React Query para forçar reload
+      await queryClient.invalidateQueries({ queryKey: ['profile', user!.id] });
 
       // Atualizar email se mudou
       if (email !== user?.email) {
