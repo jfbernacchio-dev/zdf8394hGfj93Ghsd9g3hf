@@ -200,12 +200,17 @@ const handler = async (req: Request): Promise<Response> => {
     // 2. Guardian phone (if minor AND available)
     // 3. Patient phone
     let recipientPhone: string | undefined;
+    let phoneFieldUsed: 'phone' | 'guardian_phone_1' | 'nfse_alternate_phone' | undefined;
+    
     if (nfseDataWithTherapist.patient?.use_alternate_nfse_contact && nfseDataWithTherapist.patient?.nfse_alternate_phone) {
       recipientPhone = nfseDataWithTherapist.patient.nfse_alternate_phone;
+      phoneFieldUsed = 'nfse_alternate_phone';
     } else if (nfseDataWithTherapist.patient?.is_minor && nfseDataWithTherapist.patient?.guardian_phone_1) {
       recipientPhone = nfseDataWithTherapist.patient.guardian_phone_1;
+      phoneFieldUsed = 'guardian_phone_1';
     } else {
       recipientPhone = nfseDataWithTherapist.patient?.phone;
+      phoneFieldUsed = 'phone';
     }
     
     const normalizedPhone = recipientPhone ? normalizePhone(recipientPhone) : null;
@@ -213,8 +218,10 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Patient phone data:", {
       phone: nfseDataWithTherapist.patient?.phone,
       alternate: nfseDataWithTherapist.patient?.nfse_alternate_phone,
+      guardian: nfseDataWithTherapist.patient?.guardian_phone_1,
       useAlternate: nfseDataWithTherapist.patient?.use_alternate_nfse_contact,
       recipientPhone,
+      phoneFieldUsed,
       normalizedPhone
     });
 
@@ -265,6 +272,11 @@ const handler = async (req: Request): Promise<Response> => {
                   documentUrl: nfseDataWithTherapist.pdf_url,
                   filename: correctFilename, // Add filename to template
                 },
+                metadata: {
+                  patientId: nfseDataWithTherapist.patient_id,
+                  userId: nfseDataWithTherapist.user_id,
+                  phoneFieldUsed: phoneFieldUsed
+                }
               }),
             }
           );
@@ -299,6 +311,11 @@ const handler = async (req: Request): Promise<Response> => {
                     `*Valor:* ${serviceValue}\n\n` +
                     `Olá, ${patientName}! Sua nota fiscal de ${issueMonth} está anexada.`,
                 },
+                metadata: {
+                  patientId: nfseDataWithTherapist.patient_id,
+                  userId: nfseDataWithTherapist.user_id,
+                  phoneFieldUsed: phoneFieldUsed
+                }
               }),
             }
           );
@@ -364,6 +381,11 @@ const handler = async (req: Request): Promise<Response> => {
                 documentUrl: nfseDataWithTherapist.pdf_url,
                 filename: correctFilename,
               },
+              metadata: {
+                patientId: nfseDataWithTherapist.patient_id,
+                userId: nfseDataWithTherapist.user_id,
+                phoneFieldUsed: 'therapist_phone'
+              }
             }),
           }
         );
