@@ -198,7 +198,7 @@ const Navbar = () => {
                 </DropdownMenu>
               )}
               <ThemeToggle />
-              {isAdmin && <NotificationCenter />}
+              {!isAccountant && <NotificationCenter />}
               {isAdmin && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

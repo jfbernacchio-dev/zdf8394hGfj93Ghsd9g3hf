@@ -1,9 +1,10 @@
 import { useAuth } from '@/contexts/AuthContext';
 import mindwareLogo from '@/assets/mindware-logo-new.png';
 import { ThemeToggle } from './ThemeToggle';
+import { NotificationCenter } from './NotificationCenter';
 
 const MobileHeader = () => {
-  const { profile } = useAuth();
+  const { profile, isAccountant } = useAuth();
 
   return (
     <header className="lg:hidden bg-card/95 backdrop-blur-lg border-b border-border sticky top-0 z-40 pt-safe shadow-[var(--shadow-card)]">
@@ -19,6 +20,7 @@ const MobileHeader = () => {
               </span>
             )}
             <ThemeToggle />
+            {!isAccountant && <NotificationCenter />}
           </div>
         </div>
       </div>
