@@ -26,12 +26,8 @@ const TherapistManagement = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isAdmin) {
-      navigate('/dashboard');
-      return;
-    }
     fetchTherapists();
-  }, [isAdmin, navigate, user]);
+  }, [user]);
 
   const fetchTherapists = async () => {
     if (!user) return;
@@ -118,7 +114,7 @@ const TherapistManagement = () => {
     }
   };
 
-  if (!isAdmin) return null;
+  // Permissão controlada por PermissionRoute no App.tsx
 
   return (
     <div className="container mx-auto px-4 md:px-6 py-6 space-y-6">

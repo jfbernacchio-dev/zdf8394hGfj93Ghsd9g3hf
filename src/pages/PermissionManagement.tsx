@@ -25,12 +25,8 @@ const PermissionManagement = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isAdmin) {
-      navigate('/dashboard');
-      return;
-    }
     fetchSubordinates();
-  }, [isAdmin, navigate, user]);
+  }, [user]);
 
   const fetchSubordinates = async () => {
     if (!user) return;
@@ -109,9 +105,7 @@ const PermissionManagement = () => {
     fetchSubordinates();
   };
 
-  if (!isAdmin) {
-    return null;
-  }
+  // Permissão controlada por PermissionRoute no App.tsx
 
   return (
     <div className="container mx-auto p-6 max-w-6xl">
