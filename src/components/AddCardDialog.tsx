@@ -9,6 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCardPermissions } from '@/hooks/useCardPermissions';
+import type { SectionConfig } from '@/types/sectionTypes';
 
 interface AddCardDialogProps {
   open: boolean;
@@ -17,10 +18,19 @@ interface AddCardDialogProps {
   onRemoveCard: (cardId: string) => void;
   existingCardIds: string[];
   mode?: 'patient' | 'dashboard-unified' | 'evolution';
+  sectionConfig?: SectionConfig; // FASE 3: Filtrar por seção específica
 }
 
-export const AddCardDialog = ({ open, onOpenChange, onAddCard, onRemoveCard, existingCardIds, mode = 'patient' }: AddCardDialogProps) => {
-  const { canViewCard, loading: permissionsLoading } = useCardPermissions();
+export const AddCardDialog = ({ 
+  open, 
+  onOpenChange, 
+  onAddCard, 
+  onRemoveCard, 
+  existingCardIds, 
+  mode = 'patient',
+  sectionConfig // FASE 3: Nova prop
+}: AddCardDialogProps) => {
+  const { canViewCard, getAvailableCardsForSection, loading: permissionsLoading } = useCardPermissions();
   const [selectedTab, setSelectedTab] = useState<'statistics' | 'functional' | 'metrics' | 'charts' | 'clinical'>(() => {
     if (mode === 'dashboard-unified') return 'metrics';
     if (mode === 'evolution') return 'statistics';
@@ -28,23 +38,34 @@ export const AddCardDialog = ({ open, onOpenChange, onAddCard, onRemoveCard, exi
   });
   const [viewMode, setViewMode] = useState<'available' | 'added'>('available');
 
-  // Filter cards based on permissions
-  const filterByPermissions = (cards: CardConfig[]) => cards.filter(card => canViewCard(card.id));
+  // FASE 3: Se sectionConfig fornecida, filtrar apenas cards compatíveis com a seção
+  const filterCardsForSection = (cards: CardConfig[]) => {
+    if (!sectionConfig) {
+      // Modo legado: filtrar apenas por permissão individual
+      return cards.filter(card => canViewCard(card.id));
+    }
+    
+    // FASE 3: Usar getAvailableCardsForSection para validação completa
+    const sectionCards = getAvailableCardsForSection(sectionConfig);
+    const sectionCardIds = new Set(sectionCards.map(c => c.id));
+    
+    return cards.filter(card => sectionCardIds.has(card.id));
+  };
 
-  const availableStatCards = filterByPermissions(AVAILABLE_STAT_CARDS).filter(card => !existingCardIds.includes(card.id));
-  const availableFunctionalCards = filterByPermissions(AVAILABLE_FUNCTIONAL_CARDS).filter(card => !existingCardIds.includes(card.id));
-  const availableDashboardCards = filterByPermissions(AVAILABLE_DASHBOARD_CARDS).filter(card => !existingCardIds.includes(card.id));
-  const availableDashboardCharts = filterByPermissions(AVAILABLE_DASHBOARD_CHARTS).filter(card => !existingCardIds.includes(card.id));
+  const availableStatCards = filterCardsForSection(AVAILABLE_STAT_CARDS).filter(card => !existingCardIds.includes(card.id));
+  const availableFunctionalCards = filterCardsForSection(AVAILABLE_FUNCTIONAL_CARDS).filter(card => !existingCardIds.includes(card.id));
+  const availableDashboardCards = filterCardsForSection(AVAILABLE_DASHBOARD_CARDS).filter(card => !existingCardIds.includes(card.id));
+  const availableDashboardCharts = filterCardsForSection(AVAILABLE_DASHBOARD_CHARTS).filter(card => !existingCardIds.includes(card.id));
   
   // Use dashboard-specific clinical cards for dashboard mode, regular clinical cards for evolution mode
   const clinicalCardsSource = mode === 'dashboard-unified' ? AVAILABLE_DASHBOARD_CLINICAL_CARDS : AVAILABLE_CLINICAL_CARDS;
-  const availableClinicalCards = filterByPermissions(clinicalCardsSource).filter(card => !existingCardIds.includes(card.id));
+  const availableClinicalCards = filterCardsForSection(clinicalCardsSource).filter(card => !existingCardIds.includes(card.id));
 
-  const addedStatCards = filterByPermissions(AVAILABLE_STAT_CARDS).filter(card => existingCardIds.includes(card.id));
-  const addedFunctionalCards = filterByPermissions(AVAILABLE_FUNCTIONAL_CARDS).filter(card => existingCardIds.includes(card.id));
-  const addedDashboardCards = filterByPermissions(AVAILABLE_DASHBOARD_CARDS).filter(card => existingCardIds.includes(card.id));
-  const addedDashboardCharts = filterByPermissions(AVAILABLE_DASHBOARD_CHARTS).filter(card => existingCardIds.includes(card.id));
-  const addedClinicalCards = filterByPermissions(clinicalCardsSource).filter(card => existingCardIds.includes(card.id));
+  const addedStatCards = filterCardsForSection(AVAILABLE_STAT_CARDS).filter(card => existingCardIds.includes(card.id));
+  const addedFunctionalCards = filterCardsForSection(AVAILABLE_FUNCTIONAL_CARDS).filter(card => existingCardIds.includes(card.id));
+  const addedDashboardCards = filterCardsForSection(AVAILABLE_DASHBOARD_CARDS).filter(card => existingCardIds.includes(card.id));
+  const addedDashboardCharts = filterCardsForSection(AVAILABLE_DASHBOARD_CHARTS).filter(card => existingCardIds.includes(card.id));
+  const addedClinicalCards = filterCardsForSection(clinicalCardsSource).filter(card => existingCardIds.includes(card.id));
 
   const handleAddCard = (card: CardConfig) => {
     onAddCard(card);
