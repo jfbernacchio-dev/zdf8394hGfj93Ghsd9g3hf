@@ -13,11 +13,13 @@
  * ============================================================================
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Pencil, Save, X, RotateCcw, Loader2, CheckCircle2, AlertCircle, Sparkles, GripVertical } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,9 +43,13 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function DashboardExample() {
+  const { user } = useAuth();
   const [isEditMode, setIsEditMode] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const [patients, setPatients] = useState<any[]>([]);
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [period, setPeriod] = useState('month');
 
   const {
     layout,
@@ -56,6 +62,50 @@ export default function DashboardExample() {
     saveLayout,
     resetLayout,
   } = useDashboardLayout();
+
+  useEffect(() => {
+    if (user) {
+      loadData();
+    }
+  }, [user]);
+
+  const loadData = async () => {
+    const { data: patientsData } = await supabase
+      .from('patients')
+      .select('*')
+      .eq('user_id', user!.id);
+    
+    const patientIds = (patientsData || []).map(p => p.id);
+    
+    const { data: sessionsData } = await supabase
+      .from('sessions')
+      .select('*')
+      .in('patient_id', patientIds);
+    
+    setPatients(patientsData || []);
+    setSessions(sessionsData || []);
+  };
+
+  const getDateRange = () => {
+    const now = new Date();
+    let start: Date, end: Date;
+
+    if (period === 'week') {
+      start = new Date(now);
+      start.setDate(now.getDate() - 7);
+      end = now;
+    } else if (period === 'lastMonth') {
+      start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      end = new Date(now.getFullYear(), now.getMonth(), 0);
+    } else {
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+      end = now;
+    }
+
+    return { start, end };
+  };
+
+  const { start, end } = getDateRange();
 
   /**
    * HANDLER: Salvar layout
@@ -334,9 +384,14 @@ export default function DashboardExample() {
                             }
                             isCustomized={isCustomized}
                           >
-                            {renderDashboardCard(cardLayout.cardId, {
-                              isEditMode,
-                            })}
+                  {renderDashboardCard(cardLayout.cardId, {
+                    isEditMode,
+                    patients,
+                    sessions,
+                    start,
+                    end,
+                    scale: 'week',
+                  })}
                           </ResizableCardSimple>
                         </SortableCard>
                       );
