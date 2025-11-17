@@ -17,10 +17,11 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Settings, RotateCcw, Save, X } from 'lucide-react';
+import { Settings, RotateCcw, Save, X, Plus } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { PermissionAwareSection } from '@/components/PermissionAwareSection';
+import { AddCardDialog } from '@/components/AddCardDialog';
 import { DASHBOARD_SECTIONS, DEFAULT_DASHBOARD_SECTIONS } from '@/lib/defaultSectionsDashboard';
 import { ResizableCard } from '@/components/ResizableCard';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -71,6 +72,7 @@ export default function DashboardExample() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
+  const [showAddCardDialog, setShowAddCardDialog] = useState(false); // FASE 3: Dialog único
 
   console.log('🎬 [DashboardExample] RENDER - sectionCards:', sectionCards);
 
@@ -189,13 +191,14 @@ export default function DashboardExample() {
     return migrated;
   };
 
-  const handleAddCard = (sectionId: string, card: CardConfig) => {
+  // FASE 3: Callbacks com nova assinatura (sectionId, cardId)
+  const handleAddCard = (sectionId: string, cardId: string) => {
     setSectionCards(prev => ({
       ...prev,
-      [sectionId]: [...(prev[sectionId] || []), card.id],
+      [sectionId]: [...(prev[sectionId] || []), cardId],
     }));
 
-    toast.success(`Card adicionado: ${card.name}`);
+    toast.success(`Card adicionado`);
   };
 
   const handleRemoveCard = (sectionId: string, cardId: string) => {
@@ -204,7 +207,7 @@ export default function DashboardExample() {
       [sectionId]: (prev[sectionId] || []).filter(id => id !== cardId),
     }));
 
-    toast.success("Card removido da seção");
+    toast.success("Card removido");
   };
 
   const handleToggleEditMode = () => {
@@ -275,6 +278,10 @@ export default function DashboardExample() {
           <div className="flex items-center gap-2">
             {isEditMode ? (
               <>
+                <Button variant="outline" size="sm" onClick={() => setShowAddCardDialog(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Adicionar Cards
+                </Button>
                 <Button variant="outline" size="sm" onClick={() => setShowResetDialog(true)}>
                   <RotateCcw className="w-4 h-4 mr-2" />
                   Restaurar Padrão
@@ -297,7 +304,7 @@ export default function DashboardExample() {
           </div>
         </div>
 
-        {/* FASE 5: Renderizar todas as seções usando PermissionAwareSection */}
+        {/* FASE 3: Renderizar todas as seções sem callbacks individuais */}
         {Object.keys(DASHBOARD_SECTIONS).map(sectionId => {
           console.log(`📋 Renderizando seção ${sectionId}, cards:`, sectionCards[sectionId] || []);
           return (
@@ -306,12 +313,19 @@ export default function DashboardExample() {
               sectionConfig={DASHBOARD_SECTIONS[sectionId]}
               isEditMode={isEditMode}
               existingCardIds={sectionCards[sectionId] || []}
-              onAddCard={(card) => handleAddCard(sectionId, card)}
-              onRemoveCard={(cardId) => handleRemoveCard(sectionId, cardId)}
               renderCards={renderCards}
             />
           );
         })}
+
+        {/* FASE 3: Dialog único para adicionar cards */}
+        <AddCardDialog
+          open={showAddCardDialog}
+          onOpenChange={setShowAddCardDialog}
+          onAddCard={handleAddCard}
+          onRemoveCard={handleRemoveCard}
+          sectionCards={sectionCards}
+        />
 
         {/* Dialogs de confirmação */}
         <AlertDialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
