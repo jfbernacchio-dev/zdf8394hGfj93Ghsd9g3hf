@@ -799,6 +799,79 @@ export const AVAILABLE_DASHBOARD_CLINICAL_CARDS: CardConfig[] = [];
 
 /**
  * ============================================================================
+ * MEDIA & MARKETING CARDS - SPRINT 7.4
+ * ============================================================================
+ */
+export const AVAILABLE_MEDIA_CARDS: CardConfig[] = [
+  {
+    id: 'media-website-visitors',
+    name: 'Visitantes do Site',
+    description: 'Visitas ao website no período',
+    detailedDescription: 'Total de visitantes únicos e pageviews do website institucional.',
+    category: 'dashboard-cards',
+    defaultWidth: 300,
+    defaultHeight: 180,
+    permissionConfig: {
+      domain: 'administrative',
+      requiresFinancialAccess: false,
+    },
+  },
+  {
+    id: 'media-ad-conversions',
+    name: 'Conversões de Anúncios',
+    description: 'Taxa de conversão de campanhas',
+    detailedDescription: 'Métricas de performance de anúncios online (Google Ads, Facebook, etc).',
+    category: 'dashboard-cards',
+    defaultWidth: 300,
+    defaultHeight: 180,
+    permissionConfig: {
+      domain: 'administrative',
+      requiresFinancialAccess: false,
+    },
+  },
+  {
+    id: 'media-lead-sources',
+    name: 'Origem dos Leads',
+    description: 'De onde vêm os novos pacientes',
+    detailedDescription: 'Distribuição de origem dos leads: orgânico, anúncios, indicação, redes sociais.',
+    category: 'dashboard-charts',
+    defaultWidth: 400,
+    defaultHeight: 300,
+    permissionConfig: {
+      domain: 'administrative',
+      requiresFinancialAccess: false,
+    },
+  },
+  {
+    id: 'media-contact-form-submissions',
+    name: 'Formulários de Contato',
+    description: 'Submissões de formulários no site',
+    detailedDescription: 'Total de formulários de contato preenchidos no website.',
+    category: 'dashboard-cards',
+    defaultWidth: 300,
+    defaultHeight: 180,
+    permissionConfig: {
+      domain: 'administrative',
+      requiresFinancialAccess: false,
+    },
+  },
+  {
+    id: 'media-social-engagement',
+    name: 'Engajamento Social',
+    description: 'Interações em redes sociais',
+    detailedDescription: 'Métricas de engajamento nas redes sociais (curtidas, comentários, compartilhamentos).',
+    category: 'dashboard-cards',
+    defaultWidth: 300,
+    defaultHeight: 180,
+    permissionConfig: {
+      domain: 'administrative',
+      requiresFinancialAccess: false,
+    },
+  },
+];
+
+/**
+ * ============================================================================
  * ALL CARDS - Consolidated list
  * ============================================================================
  */
@@ -809,4 +882,5 @@ export const ALL_AVAILABLE_CARDS: CardConfig[] = [
   ...AVAILABLE_DASHBOARD_CHARTS,
   ...AVAILABLE_CLINICAL_CARDS,
   ...AVAILABLE_DASHBOARD_CLINICAL_CARDS,
+  ...AVAILABLE_MEDIA_CARDS,
 ];
