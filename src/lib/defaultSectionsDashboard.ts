@@ -21,16 +21,13 @@ export const DASHBOARD_SECTIONS: Record<string, SectionConfig> = {
       requiresOwnDataOnly: true,
     },
     availableCardIds: [
-      'stat-revenue-month',
-      'stat-revenue-year',
-      'stat-pending-payments',
-      'stat-nfse-issued',
-      'stat-session-value-avg',
-      'stat-financial-overview',
-      'chart-revenue-trend',
-      'chart-revenue-by-patient',
-      'chart-payment-methods',
-      'chart-nfse-status',
+      'dashboard-expected-revenue',
+      'dashboard-actual-revenue',
+      'dashboard-unpaid-value',
+      'dashboard-payment-rate',
+      'dashboard-chart-revenue-trend',
+      'dashboard-chart-payment-status',
+      'dashboard-chart-revenue-by-therapist',
     ],
     defaultHeight: 400,
     collapsible: true,
@@ -48,15 +45,15 @@ export const DASHBOARD_SECTIONS: Record<string, SectionConfig> = {
       requiresOwnDataOnly: true,
     },
     availableCardIds: [
-      'stat-sessions-month',
-      'stat-sessions-year',
-      'stat-active-patients',
-      'stat-inactive-patients',
-      'stat-schedule-conflicts',
-      'stat-attendance-rate',
-      'chart-sessions-per-day',
-      'chart-sessions-by-status',
-      'chart-patient-frequency',
+      'dashboard-attended-sessions',
+      'dashboard-expected-sessions',
+      'dashboard-pending-sessions',
+      'dashboard-missed-sessions',
+      'dashboard-total-patients',
+      'dashboard-attendance-rate',
+      'dashboard-chart-session-types',
+      'dashboard-chart-therapist-distribution',
+      'dashboard-chart-attendance-weekly',
     ],
     defaultHeight: 350,
     collapsible: true,
@@ -74,13 +71,8 @@ export const DASHBOARD_SECTIONS: Record<string, SectionConfig> = {
       requiresOwnDataOnly: true,
     },
     availableCardIds: [
-      'stat-active-complaints',
-      'stat-pending-evolutions',
-      'stat-patients-with-diagnoses',
-      'stat-medications-prescribed',
-      'chart-complaints-by-category',
-      'chart-complaints-severity',
-      'chart-diagnoses-distribution',
+      // Nota: Cards clínicos específicos para dashboard ainda não implementados
+      // Mantendo vazio por enquanto até serem criados
     ],
     defaultHeight: 300,
     collapsible: true,
@@ -98,12 +90,8 @@ export const DASHBOARD_SECTIONS: Record<string, SectionConfig> = {
       requiresOwnDataOnly: false,
     },
     availableCardIds: [
-      'stat-website-visits',
-      'stat-contact-forms',
-      'stat-conversion-rate',
-      'chart-traffic-sources',
-      'chart-page-views',
-      'chart-contact-form-submissions',
+      // Nota: Cards de mídia/marketing ainda não implementados
+      // Mantendo vazio por enquanto até serem criados
     ],
     defaultHeight: 350,
     collapsible: true,
@@ -116,21 +104,21 @@ export const DASHBOARD_SECTIONS: Record<string, SectionConfig> = {
  */
 export const DEFAULT_DASHBOARD_SECTIONS = {
   'dashboard-financial': [
-    'stat-revenue-month',
-    'stat-pending-payments',
-    'stat-nfse-issued',
-    'chart-revenue-trend',
+    'dashboard-expected-revenue',
+    'dashboard-actual-revenue',
+    'dashboard-unpaid-value',
+    'dashboard-chart-revenue-trend',
   ],
   'dashboard-administrative': [
-    'stat-sessions-month',
-    'stat-active-patients',
-    'chart-sessions-per-day',
+    'dashboard-attended-sessions',
+    'dashboard-total-patients',
+    'dashboard-attendance-rate',
+    'dashboard-chart-session-types',
   ],
   'dashboard-clinical': [
-    'stat-active-complaints',
-    'chart-complaints-by-category',
+    // Vazio até cards clínicos serem implementados
   ],
   'dashboard-media': [
-    'stat-website-visits',
+    // Vazio até cards de mídia serem implementados
   ],
 };
