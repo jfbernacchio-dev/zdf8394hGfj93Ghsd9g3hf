@@ -117,7 +117,7 @@ const Navbar = () => {
                       <span className="font-medium">Terapeutas</span>
                     </Link>
                   )}
-                  {!isAccountant && !isSubordinate && (
+                  {!isAccountant && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button
@@ -147,7 +147,7 @@ const Navbar = () => {
                   )}
                 </>
               )}
-              {!isAccountant && !isSubordinate && (
+              {!isAccountant && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
