@@ -1,368 +1,350 @@
 /**
  * ============================================================================
- * DASHBOARD EXAMPLE - FASE 5 (IMPLEMENTAÇÃO DE REFERÊNCIA)
+ * DASHBOARD EXAMPLE - FASE 3D (COMPLETO)
  * ============================================================================
  * 
- * Este é um exemplo completo de como o Dashboard deve ser implementado
- * usando o sistema de PermissionAwareSection da FASE 5.
- * 
- * PARA MIGRAR O DASHBOARD REAL:
- * 1. Copiar esta estrutura para src/pages/Dashboard.tsx
- * 2. Adicionar a lógica de carregamento de dados existente
- * 3. Conectar os cards reais com dados da base
- * 4. Testar com todos os perfis de usuário
+ * Dashboard customizável com:
+ * - Resize horizontal de cards (ResizableCardSimple)
+ * - Drag & drop dentro de seções (SortableCard)
+ * - Persistência Supabase + localStorage (useDashboardLayout)
+ * - Filtro por permissões (PermissionAwareSection)
+ * - Sistema de seções com collapse
  * 
  * ============================================================================
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Settings, RotateCcw, Save, X, Plus } from 'lucide-react';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Pencil, Save, X, RotateCcw, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { PermissionAwareSection } from '@/components/PermissionAwareSection';
-import { AddCardDialog } from '@/components/AddCardDialog';
-import { DASHBOARD_SECTIONS, DEFAULT_DASHBOARD_SECTIONS } from '@/lib/defaultSectionsDashboard';
-import { ResizableCard } from '@/components/ResizableCard';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { useAuth } from '@/contexts/AuthContext';
-import type { CardConfig } from '@/types/cardTypes';
+import { SortableCardContainer } from '@/components/SortableCardContainer';
+import { SortableCard } from '@/components/SortableCard';
+import { ResizableCardSimple } from '@/components/ResizableCardSimple';
+import { useDashboardLayout } from '@/hooks/useDashboardLayout';
+import { renderDashboardCard } from '@/lib/dashboardCardRegistry';
+import { DASHBOARD_SECTIONS } from '@/lib/defaultSectionsDashboard';
 import Layout from '@/components/Layout';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function DashboardExample() {
-  const { user } = useAuth();
-
-  // FASE 5: Estado baseado em SEÇÕES (não mais array de cardIds)
-  const [sectionCards, setSectionCards] = useState<Record<string, string[]>>(() => {
-    console.log('🏗️ [DashboardExample] Inicializando estado...');
-    const saved = localStorage.getItem('dashboard-section-cards');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        
-        // 🔧 MIGRATION: Detectar e limpar IDs antigos (sem prefixo dashboard-)
-        let hasOldIds = false;
-        Object.values(parsed).forEach((cardIds: any) => {
-          if (Array.isArray(cardIds)) {
-            cardIds.forEach((id: string) => {
-              // Se encontrar ID tipo "stat-revenue-month" (sem "dashboard-" ou "patient-")
-              if (!id.includes('-') || (!id.startsWith('dashboard-') && !id.startsWith('patient-'))) {
-                hasOldIds = true;
-              }
-            });
-          }
-        });
-        
-        if (hasOldIds) {
-          console.warn('⚠️ IDs antigos detectados, limpando localStorage...');
-          localStorage.removeItem('dashboard-section-cards');
-          return DEFAULT_DASHBOARD_SECTIONS;
-        }
-        
-        console.log('✅ Estado inicial do localStorage:', parsed);
-        return parsed;
-      } catch {
-        console.log('❌ Erro ao parsear, usando DEFAULT');
-        return DEFAULT_DASHBOARD_SECTIONS;
-      }
-    }
-    console.log('🆕 Estado inicial DEFAULT:', DEFAULT_DASHBOARD_SECTIONS);
-    return DEFAULT_DASHBOARD_SECTIONS;
-  });
   const [isEditMode, setIsEditMode] = useState(false);
-  const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
-  const [showAddCardDialog, setShowAddCardDialog] = useState(false); // FASE 3: Dialog único
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
 
-  console.log('🎬 [DashboardExample] RENDER - sectionCards:', sectionCards);
+  const {
+    layout,
+    loading,
+    saving,
+    isModified,
+    hasUnsavedChanges,
+    updateCardWidth,
+    updateCardOrder,
+    saveLayout,
+    resetLayout,
+  } = useDashboardLayout();
 
-  // Carregar layout salvo ou usar padrão
-  useEffect(() => {
-    console.log('🔍 [DashboardExample] useEffect disparado, user:', user?.id);
-    if (!user) {
-      console.log('⚠️ Sem user, não carrega layout');
-      return;
-    }
-
-    const saved = localStorage.getItem('dashboard-section-cards');
-    console.log('💾 localStorage lido:', saved ? 'SIM' : 'NÃO');
-    
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        
-        // 🔧 MIGRATION: Detectar e limpar IDs antigos
-        let hasOldIds = false;
-        Object.values(parsed).forEach((cardIds: any) => {
-          if (Array.isArray(cardIds)) {
-            cardIds.forEach((id: string) => {
-              if (!id.includes('-') || (!id.startsWith('dashboard-') && !id.startsWith('patient-'))) {
-                hasOldIds = true;
-              }
-            });
-          }
-        });
-        
-        if (hasOldIds) {
-          console.warn('⚠️ useEffect detectou IDs antigos, usando DEFAULT');
-          localStorage.removeItem('dashboard-section-cards');
-          setSectionCards(DEFAULT_DASHBOARD_SECTIONS);
-          return;
-        }
-        
-        console.log('✅ Parsed do localStorage:', parsed);
-        console.log('🔧 ANTES de setSectionCards');
-        setSectionCards(parsed);
-        console.log('✨ DEPOIS de setSectionCards');
-      } catch (error) {
-        console.error('❌ Erro ao parsear:', error);
-        setSectionCards(DEFAULT_DASHBOARD_SECTIONS);
-      }
-    } else {
-      console.log('🆕 Usando DEFAULT:', DEFAULT_DASHBOARD_SECTIONS);
-      setSectionCards(DEFAULT_DASHBOARD_SECTIONS);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    console.log('🎨 [DashboardExample] sectionCards atualizado:', sectionCards);
-    console.log('🔢 Total de seções com cards:', Object.keys(sectionCards).filter(k => sectionCards[k].length > 0).length);
-  }, [sectionCards]);
-
-  const loadLayout = () => {
-    console.log('🔍 [DashboardExample] loadLayout chamado');
-    console.log('📦 DEFAULT_DASHBOARD_SECTIONS:', DEFAULT_DASHBOARD_SECTIONS);
-    const saved = localStorage.getItem('dashboard-section-cards');
-    console.log('💾 localStorage saved:', saved);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        console.log('✅ Carregado do localStorage:', parsed);
-        console.log('🔧 Chamando setSectionCards com:', parsed);
-        setSectionCards(parsed);
-        console.log('✨ setSectionCards chamado');
-      } catch (error) {
-        console.log('❌ Erro ao parsear:', error);
-        setSectionCards(DEFAULT_DASHBOARD_SECTIONS);
-      }
-    } else {
-      // FASE 5: Migração automática de layout antigo (se existir)
-      const oldCards = localStorage.getItem('dashboard-visible-cards');
-      if (oldCards) {
-        try {
-          const parsed: string[] = JSON.parse(oldCards);
-          const migrated = migrateOldLayout(parsed);
-          console.log('🔄 Migrado de layout antigo:', migrated);
-          setSectionCards(migrated);
-          localStorage.setItem('dashboard-section-cards', JSON.stringify(migrated));
-        } catch {
-          console.log('❌ Erro ao migrar, usando DEFAULT');
-          setSectionCards(DEFAULT_DASHBOARD_SECTIONS);
-        }
-      } else {
-        console.log('🆕 Primeira vez, usando DEFAULT:', DEFAULT_DASHBOARD_SECTIONS);
-        setSectionCards(DEFAULT_DASHBOARD_SECTIONS);
-      }
-    }
-  };
-
-  // FASE 5: Migração automática de layout antigo
-  const migrateOldLayout = (oldCards: string[]): Record<string, string[]> => {
-    const migrated: Record<string, string[]> = {
-      'dashboard-financial': [],
-      'dashboard-administrative': [],
-      'dashboard-clinical': [],
-      'dashboard-media': [],
-    };
-
-    oldCards.forEach(cardId => {
-      // Classificar cards por domínio baseado no ID
-      if (cardId.includes('revenue') || cardId.includes('payment') || cardId.includes('nfse') || cardId.includes('financial')) {
-        migrated['dashboard-financial'].push(cardId);
-      } else if (cardId.includes('session') || cardId.includes('patient') || cardId.includes('schedule')) {
-        migrated['dashboard-administrative'].push(cardId);
-      } else if (cardId.includes('complaint') || cardId.includes('diagnosis') || cardId.includes('clinical')) {
-        migrated['dashboard-clinical'].push(cardId);
-      } else if (cardId.includes('website') || cardId.includes('traffic') || cardId.includes('contact')) {
-        migrated['dashboard-media'].push(cardId);
-      }
-    });
-
-    return migrated;
-  };
-
-  // FASE 3: Callbacks com nova assinatura (sectionId, cardId)
-  const handleAddCard = (sectionId: string, cardId: string) => {
-    setSectionCards(prev => ({
-      ...prev,
-      [sectionId]: [...(prev[sectionId] || []), cardId],
-    }));
-
-    toast.success(`Card adicionado`);
-  };
-
-  const handleRemoveCard = (sectionId: string, cardId: string) => {
-    setSectionCards(prev => ({
-      ...prev,
-      [sectionId]: (prev[sectionId] || []).filter(id => id !== cardId),
-    }));
-
-    toast.success("Card removido");
-  };
-
-  const handleToggleEditMode = () => {
-    if (isEditMode) {
-      setShowSaveDialog(true);
-    } else {
-      setIsEditMode(true);
-    }
-  };
-
-  const handleSaveLayout = () => {
-    localStorage.setItem('dashboard-section-cards', JSON.stringify(sectionCards));
+  /**
+   * HANDLER: Salvar layout
+   */
+  const handleSave = async () => {
+    await saveLayout();
     setIsEditMode(false);
-    setShowSaveDialog(false);
-
-    toast.success("Layout salvo com sucesso");
+    toast.success('Layout salvo com sucesso!');
   };
 
-  const handleCancelLayout = () => {
-    loadLayout(); // Recarregar do storage
-    setIsEditMode(false);
-    setShowSaveDialog(false);
-
-    toast.info("Alterações descartadas");
+  /**
+   * HANDLER: Cancelar edição
+   */
+  const handleCancel = () => {
+    if (isModified) {
+      const confirm = window.confirm(
+        'Você tem mudanças não salvas. Deseja descartar?'
+      );
+      if (!confirm) return;
+    }
+    window.location.reload();
   };
 
-  const handleResetLayout = () => {
-    setSectionCards(DEFAULT_DASHBOARD_SECTIONS);
-    localStorage.setItem('dashboard-section-cards', JSON.stringify(DEFAULT_DASHBOARD_SECTIONS));
-    setIsEditMode(false);
+  /**
+   * HANDLER: Resetar layout
+   */
+  const handleReset = async () => {
+    await resetLayout();
     setShowResetDialog(false);
-
-    toast.success("Layout restaurado para o padrão");
+    toast.success('Layout restaurado para o padrão!');
+    setTimeout(() => window.location.reload(), 500);
   };
 
-  // Mock: Renderizar cards (na implementação real, usar dados reais)
-  const renderCards = (cards: CardConfig[]) => {
+  /**
+   * HANDLER: Toggle seção colapsada
+   */
+  const toggleSectionCollapse = (sectionId: string) => {
+    setCollapsedSections((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(sectionId)) {
+        newSet.delete(sectionId);
+      } else {
+        newSet.add(sectionId);
+      }
+      return newSet;
+    });
+  };
+
+  /**
+   * RENDER: Indicador de status
+   */
+  const renderStatusIndicator = () => {
+    if (saving) {
+      return (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>Salvando...</span>
+        </div>
+      );
+    }
+
+    if (isModified) {
+      return (
+        <div className="flex items-center gap-2 text-sm text-yellow-600">
+          <AlertCircle className="h-4 w-4" />
+          <span>Mudanças não salvas</span>
+        </div>
+      );
+    }
+
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {cards.map(card => (
-          <Card key={card.id} className="h-[200px]">
-            <CardHeader>
-              <CardTitle className="text-base">{card.name}</CardTitle>
-              <CardDescription>{card.description}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-primary">
-                {/* Aqui viria o dado real do card */}
-                --
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <CheckCircle2 className="h-4 w-4 text-green-500" />
+        <span>Layout salvo</span>
       </div>
     );
   };
 
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center space-y-4">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+            <p className="text-muted-foreground">Carregando dashboard...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
-      <div className="space-y-8 p-6">
-        {/* Header com controles de edição */}
+      <div className="space-y-6 p-6">
+        {/* Header com controles */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Dashboard</h1>
-            <p className="text-muted-foreground">Visão geral de toda a clínica</p>
+            <h1 className="text-3xl font-bold">Dashboard Customizável</h1>
+            <p className="text-muted-foreground">
+              Organize seu painel de controle
+            </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            {/* Status indicator */}
+            {renderStatusIndicator()}
+
+            {/* Controles de edição */}
             {isEditMode ? (
               <>
-                <Button variant="outline" size="sm" onClick={() => setShowAddCardDialog(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Adicionar Cards
+                <Button
+                  onClick={handleSave}
+                  disabled={saving || !isModified}
+                  size="sm"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  Salvar
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => setShowResetDialog(true)}>
-                  <RotateCcw className="w-4 h-4 mr-2" />
-                  Restaurar Padrão
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleCancelLayout}>
-                  <X className="w-4 h-4 mr-2" />
+                <Button variant="outline" onClick={handleCancel} size="sm">
+                  <X className="h-4 w-4 mr-2" />
                   Cancelar
                 </Button>
-                <Button variant="default" size="sm" onClick={handleToggleEditMode}>
-                  <Save className="w-4 h-4 mr-2" />
-                  Salvar
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowResetDialog(true)}
+                  size="sm"
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Resetar
                 </Button>
               </>
             ) : (
-              <Button variant="outline" size="sm" onClick={handleToggleEditMode}>
-                <Settings className="w-4 h-4 mr-2" />
+              <Button
+                variant="outline"
+                onClick={() => setIsEditMode(true)}
+                size="sm"
+              >
+                <Pencil className="h-4 w-4 mr-2" />
                 Editar Layout
               </Button>
             )}
           </div>
         </div>
 
-        {/* FASE 3: Renderizar todas as seções sem callbacks individuais */}
-        {Object.keys(DASHBOARD_SECTIONS).map(sectionId => {
-          console.log(`📋 Renderizando seção ${sectionId}, cards:`, sectionCards[sectionId] || []);
-          return (
-            <PermissionAwareSection
-              key={sectionId}
-              sectionConfig={DASHBOARD_SECTIONS[sectionId]}
-              isEditMode={isEditMode}
-              existingCardIds={sectionCards[sectionId] || []}
-              renderCards={renderCards}
-            />
-          );
-        })}
+        {/* Instruções em edit mode */}
+        {isEditMode && (
+          <Card className="bg-primary/5 border-primary/20">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                Modo de Edição
+              </CardTitle>
+              <div className="text-xs text-muted-foreground space-y-1 mt-2">
+                <p>• <strong>Arraste</strong> o ícone à esquerda para reordenar cards</p>
+                <p>• <strong>Redimensione</strong> usando a alça à direita do card</p>
+                <p>• Mudanças são salvas automaticamente após 2 segundos</p>
+              </div>
+            </CardHeader>
+          </Card>
+        )}
 
-        {/* FASE 3: Dialog único para adicionar cards */}
-        <AddCardDialog
-          open={showAddCardDialog}
-          onOpenChange={setShowAddCardDialog}
-          onAddCard={handleAddCard}
-          onRemoveCard={handleRemoveCard}
-          sectionCards={sectionCards}
-        />
+        {/* Renderizar seções */}
+        <div className="space-y-6">
+          {Object.entries(DASHBOARD_SECTIONS).map(([sectionId, sectionConfig]) => {
+            const section = layout[sectionId];
+            if (!section || !section.cardLayouts.length) {
+              // Seção vazia ou sem permissão
+              return null;
+            }
 
-        {/* Dialogs de confirmação */}
-        <AlertDialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Salvar alterações no layout?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Deseja salvar as configurações atuais do layout ou cancelar as alterações?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={handleCancelLayout}>
-                Cancelar alterações
-              </AlertDialogCancel>
-              <AlertDialogAction onClick={handleSaveLayout}>
-                Salvar configurações
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+            const sortedCards = [...section.cardLayouts].sort(
+              (a, b) => a.order - b.order
+            );
+            const cardIds = sortedCards.map((cl) => cl.cardId);
+            const isCollapsed = collapsedSections.has(sectionId);
 
+            return (
+              <div key={sectionId} className="space-y-3">
+                {/* Section Header */}
+                <div className="flex items-center justify-between">
+                  <button
+                    onClick={() => toggleSectionCollapse(sectionId)}
+                    className="flex items-center gap-2 group hover:opacity-80 transition-opacity"
+                  >
+                    <h2 className="text-xl font-semibold">
+                      {sectionConfig.name}
+                    </h2>
+                    {isCollapsed ? (
+                      <ChevronDown className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                    ) : (
+                      <ChevronUp className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                    )}
+                  </button>
+                  <span className="text-sm text-muted-foreground">
+                    {sortedCards.length} cards
+                  </span>
+                </div>
+
+                {/* Section Content */}
+                {!isCollapsed && (
+                  <SortableCardContainer
+                    sectionId={sectionId}
+                    cardIds={cardIds}
+                    onReorder={(newIds) => {
+                      updateCardOrder(sectionId, newIds);
+                      toast.success('Ordem atualizada!', {
+                        description: 'Salvando automaticamente...',
+                      });
+                    }}
+                    isEditMode={isEditMode}
+                    strategy="horizontal"
+                    className={cn(
+                      'flex flex-wrap gap-4 p-4 rounded-lg min-h-[200px]',
+                      isEditMode && 'bg-muted/20 border-2 border-dashed border-border'
+                    )}
+                  >
+                    {sortedCards.map((cardLayout) => {
+                      const minWidth =
+                        sectionConfig.minCardWidth || 280;
+                      const maxWidth =
+                        sectionConfig.maxCardWidth || 800;
+                      const defaultWidth =
+                        sectionConfig.defaultCardWidth || 300;
+
+                      return (
+                        <SortableCard
+                          key={cardLayout.cardId}
+                          id={cardLayout.cardId}
+                          isEditMode={isEditMode}
+                        >
+                          <ResizableCardSimple
+                            id={cardLayout.cardId}
+                            sectionId={sectionId}
+                            isEditMode={isEditMode}
+                            defaultWidth={defaultWidth}
+                            minWidth={minWidth}
+                            maxWidth={maxWidth}
+                            tempWidth={cardLayout.width}
+                            onTempWidthChange={(cardId, width) =>
+                              updateCardWidth(sectionId, cardId, width)
+                            }
+                          >
+                            {renderDashboardCard(cardLayout.cardId, {
+                              isEditMode,
+                            })}
+                          </ResizableCardSimple>
+                        </SortableCard>
+                      );
+                    })}
+                  </SortableCardContainer>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Dialog de confirmação de reset */}
         <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Restaurar layout padrão?</AlertDialogTitle>
+              <AlertDialogTitle>Resetar Layout?</AlertDialogTitle>
               <AlertDialogDescription>
-                Esta ação irá restaurar o layout para as configurações padrão. Todas as personalizações atuais serão perdidas.
+                Isso irá restaurar o layout para o padrão e remover todas as
+                suas customizações (larguras e ordem dos cards). Esta ação não
+                pode ser desfeita.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={handleResetLayout}>
-                Sim, restaurar padrão
+              <AlertDialogAction onClick={handleReset}>
+                Confirmar Reset
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Aviso de mudanças não salvas ao sair */}
+        {hasUnsavedChanges && (
+          <div className="fixed bottom-4 right-4 z-50">
+            <Card className="bg-yellow-50 border-yellow-200 shadow-lg">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2 text-sm text-yellow-800">
+                  <AlertCircle className="h-4 w-4" />
+                  <span className="font-medium">
+                    Você tem mudanças não salvas
+                  </span>
+                </div>
+              </CardHeader>
+            </Card>
+          </div>
+        )}
       </div>
     </Layout>
   );
