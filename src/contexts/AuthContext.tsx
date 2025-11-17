@@ -62,6 +62,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isFullTherapist, setIsFullTherapist] = useState(false);
   const [isAccountant, setIsAccountant] = useState(false);
   const [isSubordinate, setIsSubordinate] = useState(false);
+  const [isFetchingProfile, setIsFetchingProfile] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -115,26 +116,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const fetchProfile = async (userId: string) => {
-    console.log('🎯 [AuthContext] fetchProfile INICIADO para userId:', userId);
-    
-    // Resetar rolesLoaded ao iniciar busca
-    setRolesLoaded(false);
-    
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
-
-    console.log('📋 [AuthContext] Profile buscado:', { sucesso: !error, hasData: !!data });
-
-    if (error) {
-      console.error('Error fetching profile:', error);
-      setRolesLoaded(true); // Marcar como carregado mesmo com erro
-      return;
+    // ✅ PROTEÇÃO 1: Verificar se já está executando
+    if (isFetchingProfile) {
+      console.log('⏸️ [AuthContext] fetchProfile já em execução, ignorando chamada duplicada');
+      return; // Early return impede execução simultânea
     }
 
-    setProfile(data);
+    console.log('🎯 [AuthContext] fetchProfile INICIADO para userId:', userId);
+    
+    // ✅ PROTEÇÃO 2: Bloquear novas execuções
+    setIsFetchingProfile(true);
+    setRolesLoaded(false);
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+
+      console.log('📋 [AuthContext] Profile buscado:', { sucesso: !error, hasData: !!data });
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        setRolesLoaded(true);
+        return;
+      }
+
+      setProfile(data);
 
     // Load default layout template
     try {
@@ -192,10 +201,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     console.log('👥 [AuthContext] Subordinate check:', !!subordinateData);
     setIsSubordinate(!!subordinateData);
     
-    // Marcar roles como carregados após todas as verificações
+    // ✅ Marcar roles como carregados após todas as verificações
     setRolesLoaded(true);
     
-    // 🔍 LOG DIAGNÓSTICO COMPLETO: Todos os roles carregados
+    // ✅ LOG FINAL COMPLETO
     console.log('====================================');
     console.log('🔍 [AuthContext] ROLES CARREGADOS');
     console.log('====================================');
@@ -205,7 +214,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     console.log('isSubordinate:', !!subordinateData);
     console.log('rolesLoaded:', true);
     console.log('====================================');
-  };
+    
+  } catch (error) {
+    // ✅ PROTEÇÃO 3: Tratamento de erro
+    console.error('❌ [AuthContext] Erro em fetchProfile:', error);
+    setRolesLoaded(true); // Marcar como carregado mesmo com erro
+  } finally {
+    // ✅ PROTEÇÃO 4: SEMPRE liberar a flag (crítico!)
+    setIsFetchingProfile(false);
+    console.log('🔓 [AuthContext] fetchProfile concluído, flag liberada');
+  }
+};
 
   const signUp = async (email: string, password: string, userData: Omit<Profile, 'id'>) => {
     const redirectUrl = `${window.location.origin}/`;
