@@ -37,6 +37,8 @@ export default function DashboardExample() {
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
 
+  console.log('🎬 [DashboardExample] RENDER - sectionCards:', sectionCards);
+
   // Carregar layout salvo ou usar padrão
   useEffect(() => {
     console.log('🔍 [DashboardExample] useEffect user:', user?.id);
@@ -59,9 +61,11 @@ export default function DashboardExample() {
       try {
         const parsed = JSON.parse(saved);
         console.log('✅ Carregado do localStorage:', parsed);
+        console.log('🔧 Chamando setSectionCards com:', parsed);
         setSectionCards(parsed);
-      } catch {
-        console.log('❌ Erro ao parsear, usando DEFAULT');
+        console.log('✨ setSectionCards chamado');
+      } catch (error) {
+        console.log('❌ Erro ao parsear:', error);
         setSectionCards(DEFAULT_DASHBOARD_SECTIONS);
       }
     } else {
