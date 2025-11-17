@@ -139,19 +139,26 @@ export const ResizableCardSimple = ({
       {isEditMode && (
         <div
           className={cn(
-            "absolute top-0 right-0 h-full w-2 cursor-ew-resize z-10",
-            "hover:bg-primary/20 transition-colors",
-            "flex items-center justify-center",
-            isResizing && "bg-primary/30"
+            'absolute top-0 right-0 bottom-0 w-2 cursor-ew-resize z-10',
+            'hover:bg-primary/30 active:bg-primary/50',
+            'transition-all duration-200',
+            'opacity-0 group-hover:opacity-100',
+            isResizing && 'bg-primary/50 opacity-100'
           )}
           onMouseDown={handleMouseDown}
+          title="Arrastar para redimensionar"
         >
+          {/* Visual indicator */}
           <div className={cn(
-            "w-1 h-12 bg-border rounded-full opacity-0 hover:opacity-100 transition-opacity",
-            isResizing && "opacity-100 bg-primary"
-          )}>
-            <GripVertical className="w-4 h-4 -ml-1.5 text-muted-foreground" />
-          </div>
+            "absolute top-1/2 right-0 -translate-y-1/2 w-1 h-12 bg-primary rounded-l transition-all duration-200",
+            isResizing && "h-full animate-pulse"
+          )} />
+          {/* Grip icon */}
+          <GripVertical className={cn(
+            "absolute top-1/2 right-0.5 -translate-y-1/2 h-4 w-4 text-primary",
+            "transition-transform duration-200",
+            isResizing && "scale-125"
+          )} />
         </div>
       )}
 
