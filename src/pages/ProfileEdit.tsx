@@ -345,17 +345,48 @@ const ProfileEdit = () => {
         if (passwordError) throw passwordError;
       }
 
-      // Atualizar contador se for Terapeuta Full
-      if (!isAccountant && !isSubordinate && selectedAccountantId) {
-        // Verificar se já tem um assignment ativo
+      // FASE 2: Verificar se terapeuta está tentando remover contador
+      if (!isAccountant && !isSubordinate) {
         const { data: existingAssignment } = await supabase
           .from('accountant_therapist_assignments')
           .select('accountant_id')
           .eq('therapist_id', user!.id)
           .maybeSingle();
 
-        // Se mudou o contador ou não tinha contador
-        if (!existingAssignment || existingAssignment.accountant_id !== selectedAccountantId) {
+        // Se estava com contador e quer remover (selectedAccountantId vazio)
+        if (existingAssignment && !selectedAccountantId) {
+          // Verificar se é subordinado manager_company
+          const { data: subordinates } = await supabase
+            .from('subordinate_autonomy_settings')
+            .select('nfse_emission_mode')
+            .eq('subordinate_id', user!.id)
+            .eq('nfse_emission_mode', 'manager_company')
+            .maybeSingle();
+
+          if (subordinates) {
+            toast({
+              title: 'Não é possível remover contador',
+              description: 'Você está em modo "NFSe da Empresa do Gestor". Primeiro altere o modo de emissão de NFSe para "Própria Empresa" nas configurações de autonomia.',
+              variant: 'destructive',
+            });
+            setLoading(false);
+            return;
+          }
+
+          // Se não é manager_company, pode remover
+          await supabase
+            .from('accountant_therapist_assignments')
+            .delete()
+            .eq('therapist_id', user!.id);
+          
+          setSelectedAccountantId(null);
+          setAccountantRequestStatus(null);
+        }
+
+        // Se selecionou um contador (novo ou mudança)
+        if (selectedAccountantId) {
+          // Se mudou o contador ou não tinha contador
+          if (!existingAssignment || existingAssignment.accountant_id !== selectedAccountantId) {
           // 1. CRIAR ASSIGNMENT PRIMEIRO (permanente)
           const { error: assignmentError } = await supabase
             .from('accountant_therapist_assignments')
@@ -388,10 +419,11 @@ const ProfileEdit = () => {
           // Atualizar status para pending
           setAccountantRequestStatus('pending');
 
-          toast({
-            title: 'Pedido enviado',
-            description: 'O contador receberá uma notificação e deverá aprovar o pedido.',
-          });
+            toast({
+              title: 'Pedido enviado',
+              description: 'O contador receberá uma notificação e deverá aprovar o pedido.',
+            });
+          }
         }
       }
 

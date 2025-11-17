@@ -72,7 +72,23 @@ export function SubordinatePermissionCard({
     setHasChanges(true);
   };
 
-  const handleNfseChange = (value: 'own_company' | 'manager_company') => {
+  const handleNfseChange = async (value: 'own_company' | 'manager_company') => {
+    // FASE 2: Prevenir mudança para manager_company se tem contador
+    if (value === 'manager_company') {
+      const { data: hasAccountant } = await supabase
+        .from('accountant_therapist_assignments')
+        .select('id')
+        .eq('therapist_id', subordinate.id)
+        .maybeSingle();
+
+      if (hasAccountant) {
+        toast.error(
+          'Este subordinado possui contador atribuído. Remova o contador antes de mudar para modo "NFSe da Empresa do Gestor".'
+        );
+        return;
+      }
+    }
+
     setNfseMode(value);
     setHasChanges(true);
   };
