@@ -66,8 +66,8 @@ export function useCardPermissions() {
         return permissions.canManageOwnPatients || permissions.canFullSeeClinic;
 
       case 'nfse':
-        // Pode ver NFSe se gerencia via empresa própria
-        return permissions.nfseEmissionMode === 'own_company';
+        // Pode ver NFSe se tem acesso financeiro
+        return permissions.hasFinancialAccess;
 
       case 'schedule':
       case 'administrative':

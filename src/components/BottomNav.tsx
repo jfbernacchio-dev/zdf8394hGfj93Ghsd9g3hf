@@ -90,50 +90,46 @@ const BottomNav = () => {
                   </Button>
                   )}
                   <div className="border-t border-border my-3" />
-                  {!isSubordinate && (
-                    <>
-                      <Button
-                        variant="ghost"
-                        className="justify-start h-14 text-base rounded-xl active:scale-98 transition-transform"
-                        onClick={() => handleMenuNavigation('/financial')}
-                      >
-                        <TrendingUp className="w-5 h-5 mr-3" />
-                        Análise Financeira
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        className="justify-start h-14 text-base rounded-xl active:scale-98 transition-transform"
-                        onClick={() => handleMenuNavigation('/payment-control')}
-                      >
-                        <TrendingUp className="w-5 h-5 mr-3" />
-                        Controle de Pagamentos
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        className="justify-start h-14 text-base rounded-xl active:scale-98 transition-transform"
-                        onClick={() => handleMenuNavigation('/nfse/config')}
-                      >
-                        <FileText className="w-5 h-5 mr-3" />
-                        NFSe - Configuração
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        className="justify-start h-14 text-base rounded-xl active:scale-98 transition-transform"
-                        onClick={() => handleMenuNavigation('/nfse/history')}
-                      >
-                        <FileText className="w-5 h-5 mr-3" />
-                        NFSe - Histórico
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        className="justify-start h-14 text-base rounded-xl active:scale-98 transition-transform"
-                        onClick={() => handleMenuNavigation('/invoice-logs')}
-                      >
-                        <FileText className="w-5 h-5 mr-3" />
-                        Fechamentos
-                      </Button>
-                    </>
-                  )}
+                  <Button
+                    variant="ghost"
+                    className="justify-start h-14 text-base rounded-xl active:scale-98 transition-transform"
+                    onClick={() => handleMenuNavigation('/financial')}
+                  >
+                    <TrendingUp className="w-5 h-5 mr-3" />
+                    Análise Financeira
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="justify-start h-14 text-base rounded-xl active:scale-98 transition-transform"
+                    onClick={() => handleMenuNavigation('/payment-control')}
+                  >
+                    <TrendingUp className="w-5 h-5 mr-3" />
+                    Controle de Pagamentos
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="justify-start h-14 text-base rounded-xl active:scale-98 transition-transform"
+                    onClick={() => handleMenuNavigation('/nfse/config')}
+                  >
+                    <FileText className="w-5 h-5 mr-3" />
+                    NFSe - Configuração
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="justify-start h-14 text-base rounded-xl active:scale-98 transition-transform"
+                    onClick={() => handleMenuNavigation('/nfse/history')}
+                  >
+                    <FileText className="w-5 h-5 mr-3" />
+                    NFSe - Histórico
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="justify-start h-14 text-base rounded-xl active:scale-98 transition-transform"
+                    onClick={() => handleMenuNavigation('/invoice-logs')}
+                  >
+                    <FileText className="w-5 h-5 mr-3" />
+                    Fechamentos
+                  </Button>
                   <Button
                     variant="ghost"
                     className="justify-start h-14 text-base rounded-xl active:scale-98 transition-transform"
