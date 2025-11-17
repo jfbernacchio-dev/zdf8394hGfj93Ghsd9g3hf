@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils';
 
 interface NFSeIssued {
   id: string;
+  user_id: string;
   patient_id: string;
   patient_name: string;
   patient_cpf: string | null;
@@ -60,6 +61,13 @@ export default function NFSeHistory() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // SPRINT 7.1: Carregar autonomy settings para filtrar por nfse_emission_mode
+      const { data: autonomyData } = await supabase
+        .from('subordinate_autonomy_settings')
+        .select('nfse_emission_mode')
+        .eq('subordinate_id', user.id)
+        .maybeSingle();
+
       const { data, error } = await supabase
         .from('nfse_issued')
         .select('*')
@@ -67,7 +75,40 @@ export default function NFSeHistory() {
 
       if (error) throw error;
 
-      setNfseList((data as NFSeIssued[]) || []);
+      // SPRINT 7.1: Filtrar NFSes baseado no modo de emissão do subordinado
+      let filteredData = data as NFSeIssued[] || [];
+      
+      // Se é subordinado com configuração, aplicar filtro
+      if (autonomyData) {
+        const { data: allSubordinates } = await supabase
+          .from('subordinate_autonomy_settings')
+          .select('subordinate_id, nfse_emission_mode');
+        
+        const subordinatesByMode = allSubordinates?.reduce((acc, sub) => {
+          if (!acc[sub.nfse_emission_mode]) {
+            acc[sub.nfse_emission_mode] = [];
+          }
+          acc[sub.nfse_emission_mode].push(sub.subordinate_id);
+          return acc;
+        }, {} as Record<string, string[]>) || {};
+
+        // Filtrar apenas NFSes do próprio subordinado ou de subordinados no mesmo modo
+        if (autonomyData.nfse_emission_mode === 'own_company') {
+          // Modo own_company: vê apenas suas próprias NFSes
+          filteredData = filteredData.filter(nfse => nfse.user_id === user.id);
+        } else {
+          // Modo manager_company: vê NFSes do gestor + subordinados no mesmo modo
+          const relevantUserIds = [
+            user.id,
+            ...(subordinatesByMode['manager_company'] || [])
+          ];
+          filteredData = filteredData.filter(nfse => 
+            relevantUserIds.includes(nfse.user_id)
+          );
+        }
+      }
+
+      setNfseList(filteredData);
     } catch (error: any) {
       console.error('Error loading NFSe:', error);
       toast({

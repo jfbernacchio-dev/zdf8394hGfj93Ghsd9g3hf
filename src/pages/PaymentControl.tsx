@@ -12,6 +12,7 @@ import { Loader2, DollarSign, FileText, AlertCircle, Download, Eye } from 'lucid
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { getSubordinatesForFinancialClosing } from '@/lib/checkSubordinateAutonomy';
 
 interface NFSeWithStatus {
   id: string;
@@ -71,6 +72,10 @@ const PaymentControl = () => {
   const loadPendingNFSes = async () => {
     if (!user) return;
 
+    // SPRINT 7.2: Obter subordinados que entram no fechamento financeiro
+    const subordinateIds = await getSubordinatesForFinancialClosing(user.id);
+    const allUserIds = [user.id, ...subordinateIds];
+
     const { data: nfses, error: nfseError } = await supabase
       .from('nfse_issued')
       .select(`
@@ -79,9 +84,10 @@ const PaymentControl = () => {
         issue_date,
         net_value,
         status,
+        user_id,
         patients!nfse_issued_patient_id_fkey (name)
       `)
-      .eq('user_id', user.id)
+      .in('user_id', allUserIds)
       .eq('status', 'issued')
       .order('issue_date', { ascending: false });
 
@@ -119,6 +125,10 @@ const PaymentControl = () => {
   const loadPayments = async () => {
     if (!user) return;
 
+    // SPRINT 7.2: Obter subordinados que entram no fechamento financeiro
+    const subordinateIds = await getSubordinatesForFinancialClosing(user.id);
+    const allUserIds = [user.id, ...subordinateIds];
+
     const { data, error } = await supabase
       .from('nfse_payments')
       .select(`
@@ -138,7 +148,7 @@ const PaymentControl = () => {
           )
         )
       `)
-      .eq('user_id', user.id)
+      .in('user_id', allUserIds)
       .order('payment_date', { ascending: false });
 
     if (error) throw error;

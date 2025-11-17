@@ -1,3 +1,21 @@
+// ============================================================================
+// TherapistDetail.tsx - Detalhes e Gestão de Terapeuta Subordinado
+// ============================================================================
+// 
+// SPRINT 7.3 - FUTURO: Layouts Customizáveis
+// TODO: Adicionar PermissionAwareSection e cards customizáveis
+// TODO: Permitir que Full personalize visualização do dashboard do subordinado
+// TODO: Integrar com sistema de templates de layout
+//
+// Por enquanto, mantém funcionalidades existentes que incluem:
+// - Visualização de perfil e dados do terapeuta
+// - Configurações de autonomia (manages_own_patients, has_financial_access)
+// - Gestão de pacientes do subordinado
+// - Controle financeiro (se includeInFullFinancial = true)
+// - Agenda e bloqueios
+// - Sistema de notificações
+// ============================================================================
+
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
