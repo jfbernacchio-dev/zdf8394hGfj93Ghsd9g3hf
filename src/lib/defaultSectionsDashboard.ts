@@ -48,11 +48,11 @@ export const DASHBOARD_SECTIONS: Record<string, SectionConfig> = {
       requiresOwnDataOnly: true,
     },
     availableCardIds: [
+      'dashboard-total-patients',
       'dashboard-attended-sessions',
       'dashboard-expected-sessions',
       'dashboard-pending-sessions',
       'dashboard-missed-sessions',
-      'dashboard-total-patients',
       'dashboard-attendance-rate',
       'dashboard-chart-session-types',
       'dashboard-chart-therapist-distribution',
@@ -77,8 +77,8 @@ export const DASHBOARD_SECTIONS: Record<string, SectionConfig> = {
       requiresOwnDataOnly: true,
     },
     availableCardIds: [
-      // Nota: Cards clínicos específicos para dashboard ainda não implementados
-      // Mantendo vazio por enquanto até serem criados
+      'dashboard-active-complaints',
+      'dashboard-no-diagnosis',
     ],
     defaultHeight: 300,
     collapsible: true,
@@ -99,8 +99,7 @@ export const DASHBOARD_SECTIONS: Record<string, SectionConfig> = {
       requiresOwnDataOnly: false,
     },
     availableCardIds: [
-      // Nota: Cards de mídia/marketing ainda não implementados
-      // Mantendo vazio por enquanto até serem criados
+      'dashboard-whatsapp-unread',
     ],
     defaultHeight: 350,
     collapsible: true,
@@ -121,8 +120,8 @@ export const DASHBOARD_SECTIONS: Record<string, SectionConfig> = {
       requiresOwnDataOnly: false,
     },
     availableCardIds: [
-      // Nota: Cards gerais ainda não implementados
-      // Esta seção está pronta para receber cards com domain 'general'
+      'dashboard-quick-actions',
+      'dashboard-recent-sessions',
     ],
     defaultHeight: 300,
     collapsible: true,

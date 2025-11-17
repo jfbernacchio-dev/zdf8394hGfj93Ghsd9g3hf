@@ -58,6 +58,7 @@ export const DEFAULT_DASHBOARD_EXAMPLE_LAYOUT: DashboardExampleLayout = {
       { cardId: 'dashboard-attended-sessions', width: 300, order: 2 },
       { cardId: 'dashboard-missed-sessions', width: 300, order: 3 },
       { cardId: 'dashboard-pending-sessions', width: 300, order: 4 },
+      { cardId: 'dashboard-attendance-rate', width: 300, order: 5 },
     ],
   },
   'dashboard-clinical': {
