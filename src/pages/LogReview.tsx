@@ -41,6 +41,9 @@ export default function LogReview() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    // SECURITY: Revisão de logs de auditoria é funcionalidade EXCLUSIVAMENTE administrativa (compliance)
+    // e não deve ser controlada pelo sistema de permissões operacionais.
+    // Apenas o admin (dono do sistema) tem acesso.
     if (!isAdmin) {
       toast.error('Acesso negado');
       navigate('/dashboard');

@@ -79,6 +79,9 @@ export default function SecurityIncidents() {
   });
 
   useEffect(() => {
+    // SECURITY: Gestão de incidentes de segurança é funcionalidade EXCLUSIVAMENTE administrativa (LGPD/ANPD)
+    // e não deve ser controlada pelo sistema de permissões operacionais.
+    // Apenas o admin (dono do sistema) tem acesso.
     if (!isAdmin) {
       navigate('/dashboard');
       return;

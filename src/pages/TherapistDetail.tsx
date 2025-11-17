@@ -90,10 +90,6 @@ const TherapistDetail = () => {
   });
 
   useEffect(() => {
-    if (!isAdmin) {
-      navigate('/dashboard');
-      return;
-    }
     loadTherapistData();
     loadNotifications();
     loadPreferences();
@@ -644,7 +640,7 @@ const TherapistDetail = () => {
     }
   };
 
-  if (!isAdmin) return null;
+  // Permissão controlada por PermissionRoute no App.tsx
   if (loading) return <div className="container mx-auto p-6">Carregando...</div>;
   if (!therapist) return <div className="container mx-auto p-6">Terapeuta não encontrado</div>;
 

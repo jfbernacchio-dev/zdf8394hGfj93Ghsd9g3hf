@@ -48,6 +48,9 @@ export default function PermissionReview() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    // SECURITY: Revisão de permissões é funcionalidade EXCLUSIVAMENTE administrativa (compliance)
+    // e não deve ser controlada pelo sistema de permissões operacionais.
+    // Apenas o admin (dono do sistema) tem acesso.
     if (!isAdmin) {
       toast.error('Acesso negado');
       navigate('/dashboard');

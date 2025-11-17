@@ -84,10 +84,7 @@ const CreateTherapist = () => {
     checkManagerCNPJ();
   }, [user?.id]);
 
-  if (!isAdmin) {
-    navigate('/dashboard');
-    return null;
-  }
+  // Permissão controlada por PermissionRoute no App.tsx
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
