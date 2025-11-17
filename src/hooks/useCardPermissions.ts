@@ -39,11 +39,12 @@ import { ALL_AVAILABLE_CARDS } from '@/types/cardTypes';
 
 export function useCardPermissions() {
   const authContext = useAuth();
-  const { isAdmin, isFullTherapist, isAccountant, isSubordinate, user } = authContext;
+  const { isAdmin, isFullTherapist, isAccountant, isSubordinate, user, rolesLoaded } = authContext;
   const { permissions, loading: permissionsLoading } = useSubordinatePermissions();
 
-  console.log('🔐 [useCardPermissions] Estado do Auth:', {
+  console.log('🔐 [useCardPermissions] HOOK EXECUTOU:', {
     user: user?.id,
+    rolesLoaded,
     isAdmin,
     isFullTherapist,
     isAccountant,
