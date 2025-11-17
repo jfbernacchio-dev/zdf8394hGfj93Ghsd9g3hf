@@ -61,13 +61,21 @@ export default function NFSeHistory() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // SPRINT 7.1: Carregar autonomy settings para filtrar por nfse_emission_mode
-      const { data: autonomyData } = await supabase
-        .from('subordinate_autonomy_settings')
-        .select('nfse_emission_mode')
-        .eq('subordinate_id', user.id)
-        .maybeSingle();
+      // FASE 1: Buscar role do usuário
+      const { data: userRole } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .single();
 
+      if (!userRole) return;
+
+      const role = userRole.role;
+      const isSubordinate = role === 'therapist';
+      const isFullOrAdmin = role === 'fulltherapist' || role === 'admin';
+      const isAccountant = role === 'accountant';
+
+      // Buscar todas as NFSes
       const { data, error } = await supabase
         .from('nfse_issued')
         .select('*')
@@ -75,38 +83,52 @@ export default function NFSeHistory() {
 
       if (error) throw error;
 
-      // SPRINT 7.1: Filtrar NFSes baseado no modo de emissão do subordinado
       let filteredData = data as NFSeIssued[] || [];
-      
-      // Se é subordinado com configuração, aplicar filtro
-      if (autonomyData) {
-        const { data: allSubordinates } = await supabase
-          .from('subordinate_autonomy_settings')
-          .select('subordinate_id, nfse_emission_mode');
-        
-        const subordinatesByMode = allSubordinates?.reduce((acc, sub) => {
-          if (!acc[sub.nfse_emission_mode]) {
-            acc[sub.nfse_emission_mode] = [];
-          }
-          acc[sub.nfse_emission_mode].push(sub.subordinate_id);
-          return acc;
-        }, {} as Record<string, string[]>) || {};
+      let allowedUserIds: string[] = [];
 
-        // Filtrar apenas NFSes do próprio subordinado ou de subordinados no mesmo modo
-        if (autonomyData.nfse_emission_mode === 'own_company') {
-          // Modo own_company: vê apenas suas próprias NFSes
-          filteredData = filteredData.filter(nfse => nfse.user_id === user.id);
-        } else {
-          // Modo manager_company: vê NFSes do gestor + subordinados no mesmo modo
-          const relevantUserIds = [
-            user.id,
-            ...(subordinatesByMode['manager_company'] || [])
-          ];
-          filteredData = filteredData.filter(nfse => 
-            relevantUserIds.includes(nfse.user_id)
-          );
+      if (isSubordinate) {
+        // SUBORDINADO: Sempre vê apenas suas próprias NFSes
+        allowedUserIds = [user.id];
+      } else if (isFullOrAdmin) {
+        // FULL/ADMIN: Vê suas próprias + subordinados manager_company
+        allowedUserIds = [user.id];
+
+        // Buscar subordinados em modo manager_company
+        const { data: managerCompanySubordinates } = await supabase
+          .from('subordinate_autonomy_settings')
+          .select('subordinate_id')
+          .eq('manager_id', user.id)
+          .eq('nfse_emission_mode', 'manager_company');
+
+        if (managerCompanySubordinates) {
+          allowedUserIds.push(...managerCompanySubordinates.map(s => s.subordinate_id));
+        }
+      } else if (isAccountant) {
+        // ACCOUNTANT: Vê terapeutas atribuídos + subordinados manager_company deles
+        const { data: assignedTherapists } = await supabase
+          .from('accountant_therapist_assignments')
+          .select('therapist_id')
+          .eq('accountant_id', user.id);
+
+        if (assignedTherapists) {
+          const therapistIds = assignedTherapists.map(a => a.therapist_id);
+          allowedUserIds.push(...therapistIds);
+
+          // Buscar subordinados manager_company dos terapeutas atribuídos
+          const { data: subordinatesOfTherapists } = await supabase
+            .from('subordinate_autonomy_settings')
+            .select('subordinate_id')
+            .in('manager_id', therapistIds)
+            .eq('nfse_emission_mode', 'manager_company');
+
+          if (subordinatesOfTherapists) {
+            allowedUserIds.push(...subordinatesOfTherapists.map(s => s.subordinate_id));
+          }
         }
       }
+
+      // Aplicar filtro
+      filteredData = filteredData.filter(nfse => allowedUserIds.includes(nfse.user_id));
 
       setNfseList(filteredData);
     } catch (error: any) {
