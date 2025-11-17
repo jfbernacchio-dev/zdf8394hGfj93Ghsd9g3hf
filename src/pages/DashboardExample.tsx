@@ -32,7 +32,22 @@ export default function DashboardExample() {
   const { user } = useAuth();
 
   // FASE 5: Estado baseado em SEÇÕES (não mais array de cardIds)
-  const [sectionCards, setSectionCards] = useState<Record<string, string[]>>({});
+  const [sectionCards, setSectionCards] = useState<Record<string, string[]>>(() => {
+    console.log('🏗️ [DashboardExample] Inicializando estado...');
+    const saved = localStorage.getItem('dashboard-section-cards');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        console.log('✅ Estado inicial do localStorage:', parsed);
+        return parsed;
+      } catch {
+        console.log('❌ Erro ao parsear, usando DEFAULT');
+        return DEFAULT_DASHBOARD_SECTIONS;
+      }
+    }
+    console.log('🆕 Estado inicial DEFAULT:', DEFAULT_DASHBOARD_SECTIONS);
+    return DEFAULT_DASHBOARD_SECTIONS;
+  });
   const [isEditMode, setIsEditMode] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
