@@ -3,13 +3,43 @@ import type { PermissionDomain } from './permissions';
 export type CardCategory = 'statistics' | 'functional' | 'dashboard-cards' | 'dashboard-charts' | 'clinical';
 
 /**
- * Configuração de permissões para cada card
+ * Configuração de permissões para cada card - FASE 1
+ * Define regras granulares de acesso baseadas em domínios e roles
  */
 export interface CardPermissionConfig {
+  /**
+   * Domínio do card (classifica pela ORIGEM dos dados)
+   * - 'financial': Valores, NFSe, pagamentos
+   * - 'administrative': Sessões, agenda, notificações
+   * - 'clinical': Queixas, evoluções, diagnósticos
+   * - 'media': Google Ads, website, analytics
+   * - 'general': Sem restrição (contato, perfil)
+   */
   domain: PermissionDomain;
+  
+  /**
+   * Se true, requer hasFinancialAccess === true
+   * Usado para cards financeiros de subordinados
+   */
   requiresFinancialAccess?: boolean;
-  blockedForSubordinates?: boolean;
-  onlyForOwn?: boolean;
+  
+  /**
+   * Se true, requer canFullSeeClinic === true OU ser paciente próprio
+   * Usado para dados clínicos sensíveis
+   */
+  requiresFullClinicalAccess?: boolean;
+  
+  /**
+   * Roles bloqueadas para este card
+   * Ex: ['subordinate'] para cards de mídia
+   */
+  blockedFor?: ('admin' | 'fulltherapist' | 'subordinate' | 'accountant')[];
+  
+  /**
+   * Nível mínimo de acesso requerido
+   * 'read', 'write', 'full'
+   */
+  minimumAccess?: 'read' | 'write' | 'full';
 }
 
 export interface CardConfig {
@@ -35,12 +65,11 @@ export const AVAILABLE_STAT_CARDS: CardConfig[] = [
     name: 'Total no Mês',
     description: 'Total de sessões no mês atual',
     detailedDescription: 'Contagem de todas as sessões deste paciente no mês civil corrente.',
-    category: 'statistics',
+    category: 'statistics', // DEPRECATED
     defaultWidth: 200,
     defaultHeight: 120,
     permissionConfig: {
-      domain: 'patients',
-      onlyForOwn: true,
+      domain: 'administrative', // Métrica administrativa de sessões
     },
   },
   {
@@ -48,12 +77,11 @@ export const AVAILABLE_STAT_CARDS: CardConfig[] = [
     name: 'Comparecidas',
     description: 'Sessões comparecidas no mês',
     detailedDescription: 'Sessões onde o paciente compareceu ao atendimento.',
-    category: 'statistics',
+    category: 'statistics', // DEPRECATED
     defaultWidth: 200,
     defaultHeight: 120,
     permissionConfig: {
-      domain: 'patients',
-      onlyForOwn: true,
+      domain: 'administrative', // Métrica administrativa de sessões
     },
   },
   {
@@ -61,12 +89,11 @@ export const AVAILABLE_STAT_CARDS: CardConfig[] = [
     name: 'Agendadas',
     description: 'Sessões agendadas no mês',
     detailedDescription: 'Sessões futuras já marcadas na agenda do paciente.',
-    category: 'statistics',
+    category: 'statistics', // DEPRECATED
     defaultWidth: 200,
     defaultHeight: 120,
     permissionConfig: {
-      domain: 'schedule',
-      onlyForOwn: true,
+      domain: 'administrative', // Métrica administrativa de agendamentos
     },
   },
   {
@@ -74,13 +101,12 @@ export const AVAILABLE_STAT_CARDS: CardConfig[] = [
     name: 'A Pagar',
     description: 'Sessões não pagas no mês',
     detailedDescription: 'Sessões realizadas mas sem registro de pagamento confirmado.',
-    category: 'statistics',
+    category: 'statistics', // DEPRECATED
     defaultWidth: 200,
     defaultHeight: 120,
     permissionConfig: {
-      domain: 'financial',
+      domain: 'financial', // Métrica financeira de inadimplência
       requiresFinancialAccess: true,
-      onlyForOwn: true,
     },
   },
   {
@@ -88,12 +114,11 @@ export const AVAILABLE_STAT_CARDS: CardConfig[] = [
     name: 'NFSe Emitida',
     description: 'Sessões com NFSe emitida',
     detailedDescription: 'Sessões que possuem Nota Fiscal de Serviço Eletrônica emitida.',
-    category: 'statistics',
+    category: 'statistics', // DEPRECATED
     defaultWidth: 200,
     defaultHeight: 120,
     permissionConfig: {
-      domain: 'nfse',
-      onlyForOwn: true,
+      domain: 'financial', // NFSe é financeiro
     },
   },
   {
@@ -101,12 +126,11 @@ export const AVAILABLE_STAT_CARDS: CardConfig[] = [
     name: 'Total Geral',
     description: 'Todas as sessões registradas',
     detailedDescription: 'Contagem histórica total desde a primeira sessão até hoje.',
-    category: 'statistics',
+    category: 'statistics', // DEPRECATED
     defaultWidth: 200,
     defaultHeight: 120,
     permissionConfig: {
-      domain: 'patients',
-      onlyForOwn: true,
+      domain: 'administrative', // Métrica administrativa de pacientes
     },
   },
   {
@@ -114,13 +138,12 @@ export const AVAILABLE_STAT_CARDS: CardConfig[] = [
     name: 'Faturamento do Mês',
     description: 'Valor total faturado no mês',
     detailedDescription: 'Soma dos valores de todas as sessões do paciente no mês.',
-    category: 'statistics',
+    category: 'statistics', // DEPRECATED
     defaultWidth: 200,
     defaultHeight: 120,
     permissionConfig: {
-      domain: 'financial',
+      domain: 'financial', // Métrica financeira de receita
       requiresFinancialAccess: true,
-      onlyForOwn: true,
     },
   },
   {

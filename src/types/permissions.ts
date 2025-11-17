@@ -8,18 +8,18 @@
 export type UserRole = 'admin' | 'fulltherapist' | 'subordinate' | 'accountant';
 
 /**
- * DOMÍNIOS DE PERMISSÃO
+ * DOMÍNIOS DE PERMISSÃO - FASE 1
  * Define as áreas funcionais do sistema para controle granular
+ * 
+ * IMPORTANTE: Cards estatísticos são classificados pela ORIGEM dos dados,
+ * não por serem "estatísticos". Ex: um gráfico de receita é 'financial'.
  */
 export type PermissionDomain = 
-  | 'clinical'      // Dados clínicos (queixas, evoluções, diagnósticos)
-  | 'financial'     // Dados financeiros (sessões pagas, valores, NFSe)
-  | 'administrative'// Dados administrativos (agendas, bloqueios, notificações)
-  | 'patients'      // Gestão de pacientes
-  | 'statistics'    // Estatísticas e métricas
-  | 'nfse'          // Emissão e gestão de NFSe
-  | 'schedule'      // Agenda e horários
-  | 'reports';      // Relatórios e exportações
+  | 'financial'       // Valores, NFSe, pagamentos, métricas financeiras
+  | 'administrative'  // Sessões, agenda, notificações, métricas administrativas
+  | 'clinical'        // Queixas, evoluções, diagnósticos, métricas clínicas
+  | 'media'           // Google Ads, website, analytics, métricas de marketing
+  | 'general';        // Sem restrição (contato, perfil, informações básicas)
 
 /**
  * NÍVEIS DE ACESSO
@@ -47,18 +47,15 @@ export interface ExtendedAutonomyPermissions {
 }
 
 /**
- * PERMISSÕES POR DOMÍNIO
+ * PERMISSÕES POR DOMÍNIO - FASE 1
  * Define o nível de acesso em cada domínio específico
  */
 export interface DomainPermissions {
-  clinical: AccessLevel;
   financial: AccessLevel;
   administrative: AccessLevel;
-  patients: AccessLevel;
-  statistics: AccessLevel;
-  nfse: AccessLevel;
-  schedule: AccessLevel;
-  reports: AccessLevel;
+  clinical: AccessLevel;
+  media: AccessLevel;
+  general: AccessLevel;
 }
 
 /**

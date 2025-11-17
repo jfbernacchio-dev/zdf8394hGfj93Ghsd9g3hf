@@ -190,26 +190,20 @@ function getDomainAccess(
 
   switch (domain) {
     case 'financial':
-    case 'nfse':
       return permissions.hasFinancialAccess ? 'full' : 'none';
-    
-    case 'patients':
-      return permissions.canManageAllPatients ? 'full' : 
-             permissions.canManageOwnPatients ? 'read' : 'none';
     
     case 'clinical':
       return permissions.canFullSeeClinic ? 'full' : 
              permissions.canManageOwnPatients ? 'read' : 'none';
     
-    case 'schedule':
     case 'administrative':
-      // Subordinados sempre têm acesso read a agenda e administrativo
       return 'read';
     
-    case 'statistics':
-    case 'reports':
-      // Relatórios seguem mesma regra de finanças
-      return permissions.hasFinancialAccess ? 'read' : 'none';
+    case 'media':
+      return 'none';
+    
+    case 'general':
+      return 'read';
     
     default:
       return 'none';
