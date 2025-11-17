@@ -185,23 +185,45 @@ export function useCardPermissions() {
    * Filtra por: availableCardIds, permissões individuais, compatibilidade de domínio
    */
   const getAvailableCardsForSection = (sectionConfig: SectionConfig): CardConfig[] => {
+    console.log('🔍 [getAvailableCardsForSection] INICIADO para:', sectionConfig.id);
+    console.log('📋 [getAvailableCardsForSection] availableCardIds:', sectionConfig.availableCardIds);
+    console.log('📦 [getAvailableCardsForSection] Total cards no sistema:', ALL_AVAILABLE_CARDS.length);
+    
     // Buscar cards pelos IDs disponíveis na seção
     const sectionCards = ALL_AVAILABLE_CARDS.filter(card =>
       sectionConfig.availableCardIds.includes(card.id)
     );
+    console.log('✅ [getAvailableCardsForSection] FILTRO 1 (IDs) - Cards encontrados:', sectionCards.length);
+    console.log('   Cards:', sectionCards.map(c => c.id));
 
     // Filtrar por permissão individual de cada card
-    const visibleCards = sectionCards.filter(card => canViewCard(card.id));
+    const visibleCards = sectionCards.filter(card => {
+      const canView = canViewCard(card.id);
+      console.log(`   🔐 canViewCard("${card.id}") =`, canView);
+      return canView;
+    });
+    console.log('✅ [getAvailableCardsForSection] FILTRO 2 (Permissões) - Cards visíveis:', visibleCards.length);
+    console.log('   Cards:', visibleCards.map(c => c.id));
 
     // Filtrar por compatibilidade de domínio (primary + secondary)
     const allowedDomains = [
       sectionConfig.permissionConfig.primaryDomain,
       ...(sectionConfig.permissionConfig.secondaryDomains || []),
     ];
+    console.log('🏷️ [getAvailableCardsForSection] Domínios permitidos:', allowedDomains);
 
-    return visibleCards.filter(card =>
-      card.permissionConfig && allowedDomains.includes(card.permissionConfig.domain)
-    );
+    const finalCards = visibleCards.filter(card => {
+      const hasConfig = !!card.permissionConfig;
+      const domainMatch = card.permissionConfig && allowedDomains.includes(card.permissionConfig.domain);
+      console.log(`   🏷️ Card "${card.id}": hasConfig=${hasConfig}, domain="${card.permissionConfig?.domain}", match=${domainMatch}`);
+      return hasConfig && domainMatch;
+    });
+    
+    console.log('✅ [getAvailableCardsForSection] FILTRO 3 (Domínio) - Cards finais:', finalCards.length);
+    console.log('   Cards:', finalCards.map(c => c.id));
+    console.log('🏁 [getAvailableCardsForSection] RETORNANDO:', finalCards.length, 'cards');
+    
+    return finalCards;
   };
 
   /**
