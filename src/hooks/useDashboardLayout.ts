@@ -36,6 +36,8 @@ interface UseDashboardLayoutReturn {
   isModified: boolean;
   updateCardWidth: (sectionId: string, cardId: string, width: number) => void;
   updateCardOrder: (sectionId: string, cardIds: string[]) => void;
+  addCard: (sectionId: string, cardId: string) => void;
+  removeCard: (sectionId: string, cardId: string) => void;
   saveLayout: () => Promise<void>;
   resetLayout: () => Promise<void>;
   hasUnsavedChanges: boolean;
@@ -200,6 +202,87 @@ export const useDashboardLayout = (): UseDashboardLayoutReturn => {
   }, []);
 
   /**
+   * ADD CARD
+   * Adiciona um card a uma seção
+   */
+  const addCard = useCallback((sectionId: string, cardId: string) => {
+    console.log(`[useDashboardLayout] Adicionando card ${cardId} à seção ${sectionId}`);
+    
+    setLayout((prev) => {
+      const section = prev[sectionId];
+      if (!section) {
+        console.warn(`[useDashboardLayout] Seção ${sectionId} não encontrada`);
+        return prev;
+      }
+
+      // Verificar se o card já existe
+      if (section.cardLayouts.some(cl => cl.cardId === cardId)) {
+        console.warn(`[useDashboardLayout] Card ${cardId} já existe na seção ${sectionId}`);
+        return prev;
+      }
+
+      // Determinar a ordem do novo card (maior ordem + 1)
+      const maxOrder = section.cardLayouts.length > 0
+        ? Math.max(...section.cardLayouts.map(cl => cl.order))
+        : -1;
+
+      // Obter configuração padrão da seção para width padrão
+      const defaultWidth = 300; // width padrão
+
+      const newCard: CardLayout = {
+        cardId,
+        order: maxOrder + 1,
+        width: defaultWidth,
+      };
+
+      console.log(`[useDashboardLayout] Novo card criado:`, newCard);
+
+      return {
+        ...prev,
+        [sectionId]: {
+          ...section,
+          cardLayouts: [...section.cardLayouts, newCard],
+        },
+      };
+    });
+  }, []);
+
+  /**
+   * REMOVE CARD
+   * Remove um card de uma seção
+   */
+  const removeCard = useCallback((sectionId: string, cardId: string) => {
+    console.log(`[useDashboardLayout] Removendo card ${cardId} da seção ${sectionId}`);
+    
+    setLayout((prev) => {
+      const section = prev[sectionId];
+      if (!section) {
+        console.warn(`[useDashboardLayout] Seção ${sectionId} não encontrada`);
+        return prev;
+      }
+
+      // Filtrar o card
+      const filteredCards = section.cardLayouts.filter(cl => cl.cardId !== cardId);
+
+      // Remover do localStorage
+      const widthKey = `card-width-${sectionId}-${cardId}`;
+      const orderKey = `card-order-${sectionId}-${cardId}`;
+      localStorage.removeItem(widthKey);
+      localStorage.removeItem(orderKey);
+
+      console.log(`[useDashboardLayout] Cards restantes:`, filteredCards);
+
+      return {
+        ...prev,
+        [sectionId]: {
+          ...section,
+          cardLayouts: filteredCards,
+        },
+      };
+    });
+  }, []);
+
+  /**
    * SAVE LAYOUT TO SUPABASE
    * Persiste layout atual no banco de dados
    */
@@ -323,6 +406,8 @@ export const useDashboardLayout = (): UseDashboardLayoutReturn => {
     isModified,
     updateCardWidth,
     updateCardOrder,
+    addCard,
+    removeCard,
     saveLayout,
     resetLayout,
     hasUnsavedChanges,

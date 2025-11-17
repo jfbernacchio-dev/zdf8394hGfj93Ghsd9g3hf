@@ -17,9 +17,10 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Pencil, Save, X, RotateCcw, Loader2, CheckCircle2, AlertCircle, Sparkles, GripVertical } from 'lucide-react';
+import { Pencil, Save, X, RotateCcw, Loader2, CheckCircle2, AlertCircle, Sparkles, GripVertical, Plus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { AddCardDialog } from '@/components/AddCardDialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,6 +47,7 @@ export default function DashboardExample() {
   const { user } = useAuth();
   const [isEditMode, setIsEditMode] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
+  const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [patients, setPatients] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
@@ -59,6 +61,8 @@ export default function DashboardExample() {
     hasUnsavedChanges,
     updateCardWidth,
     updateCardOrder,
+    addCard,
+    removeCard,
     saveLayout,
     resetLayout,
   } = useDashboardLayout();
@@ -232,6 +236,14 @@ export default function DashboardExample() {
             {/* Controles de edição */}
             {isEditMode ? (
               <>
+                <Button
+                  onClick={() => setIsAddCardDialogOpen(true)}
+                  variant="default"
+                  size="sm"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar Card
+                </Button>
                 <Button
                   onClick={handleSave}
                   disabled={saving || !isModified}
@@ -439,6 +451,26 @@ export default function DashboardExample() {
             </Card>
           </div>
         )}
+
+        {/* Dialog para adicionar cards */}
+        <AddCardDialog
+          open={isAddCardDialogOpen}
+          onOpenChange={setIsAddCardDialogOpen}
+          onAddCard={(sectionId: string, cardId: string) => {
+            addCard(sectionId, cardId);
+            toast.success('Card adicionado!');
+          }}
+          onRemoveCard={(sectionId: string, cardId: string) => {
+            removeCard(sectionId, cardId);
+            toast.success('Card removido!');
+          }}
+          sectionCards={Object.fromEntries(
+            Object.entries(layout).map(([sectionId, section]) => [
+              sectionId,
+              section.cardLayouts.map(cl => cl.cardId)
+            ])
+          )}
+        />
       </div>
     </Layout>
   );
