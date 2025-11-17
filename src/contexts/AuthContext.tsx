@@ -205,7 +205,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       console.log('🔍 [LOG 18] DEPOIS da query fulltherapist');
       console.log('🧑‍⚕️ [AuthContext] FullTherapist check:', !!fullTherapistRoleData);
-      setIsFullTherapist(!!fullTherapistRoleData);
+      console.log('🔍 [LOG 18.5] ANTES de setIsFullTherapist');
+      try {
+        setIsFullTherapist(!!fullTherapistRoleData);
+        console.log('🔍 [LOG 18.7] DENTRO do try após setIsFullTherapist');
+      } catch (e) {
+        console.error('🚨 [LOG 18.8] ERRO em setIsFullTherapist:', e);
+      }
       console.log('🔍 [LOG 19] DEPOIS de setIsFullTherapist');
 
       console.log('🔍 [LOG 20] ANTES da query accountant');
