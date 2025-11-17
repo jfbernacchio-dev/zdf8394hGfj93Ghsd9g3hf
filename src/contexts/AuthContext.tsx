@@ -123,17 +123,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     console.log('🎯 [AuthContext] fetchProfile INICIADO para userId:', userId);
+    console.log('🔍 [LOG 1] ANTES de setIsFetchingProfile(true)');
     
     // ✅ PROTEÇÃO 2: Bloquear novas execuções
     setIsFetchingProfile(true);
-    setRolesLoaded(false);
+    console.log('🔍 [LOG 2] DEPOIS de setIsFetchingProfile(true)');
     
+    setRolesLoaded(false);
+    console.log('🔍 [LOG 3] DEPOIS de setRolesLoaded(false)');
+    
+    console.log('🔍 [LOG 4] ANTES do bloco try');
     try {
+      console.log('🔍 [LOG 5] DENTRO do bloco try');
+      console.log('🔍 [LOG 6] ANTES da query profiles');
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .maybeSingle();
+      
+      console.log('🔍 [LOG 7] DEPOIS da query profiles', { hasData: !!data, hasError: !!error });
 
       console.log('📋 [AuthContext] Profile buscado:', { sucesso: !error, hasData: !!data });
 
@@ -142,89 +152,114 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setRolesLoaded(true);
         return;
       }
-
+      
+      console.log('🔍 [LOG 8] ANTES de setProfile(data)');
       setProfile(data);
+      console.log('🔍 [LOG 9] DEPOIS de setProfile(data)');
 
-    // Load default layout template
-    try {
-      const defaultTemplate = await getDefaultTemplate(userId);
-      if (defaultTemplate && defaultTemplate.layout_snapshot) {
-        applyLayoutSnapshot(defaultTemplate.layout_snapshot as Record<string, string>);
-        console.log('[AuthContext] Template padrão carregado:', defaultTemplate.template_name);
+      console.log('🔍 [LOG 10] ANTES de carregar template padrão');
+      // Load default layout template
+      try {
+        const defaultTemplate = await getDefaultTemplate(userId);
+        console.log('🔍 [LOG 11] Template carregado:', { hasTemplate: !!defaultTemplate });
+        if (defaultTemplate && defaultTemplate.layout_snapshot) {
+          applyLayoutSnapshot(defaultTemplate.layout_snapshot as Record<string, string>);
+          console.log('[AuthContext] Template padrão carregado:', defaultTemplate.template_name);
+        }
+      } catch (error) {
+        console.error('[AuthContext] Erro ao carregar template padrão:', error);
       }
+      console.log('🔍 [LOG 12] DEPOIS de carregar template padrão');
+
+      console.log('🔍 [LOG 13] Iniciando verificação de roles...');
+
+      console.log('🔍 [LOG 14] ANTES da query admin');
+      // Check if user is admin
+      const { data: adminRoleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .eq('role', 'admin')
+        .maybeSingle();
+
+      console.log('🔍 [LOG 15] DEPOIS da query admin');
+      console.log('👑 [AuthContext] Admin check:', !!adminRoleData);
+      setIsAdmin(!!adminRoleData);
+      console.log('🔍 [LOG 16] DEPOIS de setIsAdmin');
+
+      console.log('🔍 [LOG 17] ANTES da query fulltherapist');
+      // Check if user is fulltherapist
+      const { data: fullTherapistRoleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .eq('role', 'fulltherapist')
+        .maybeSingle();
+
+      console.log('🔍 [LOG 18] DEPOIS da query fulltherapist');
+      console.log('🧑‍⚕️ [AuthContext] FullTherapist check:', !!fullTherapistRoleData);
+      setIsFullTherapist(!!fullTherapistRoleData);
+      console.log('🔍 [LOG 19] DEPOIS de setIsFullTherapist');
+
+      console.log('🔍 [LOG 20] ANTES da query accountant');
+      // Check if user is accountant
+      const { data: accountantRoleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .eq('role', 'accountant')
+        .maybeSingle();
+
+      console.log('🔍 [LOG 21] DEPOIS da query accountant');
+      console.log('💼 [AuthContext] Accountant check:', !!accountantRoleData);
+      setIsAccountant(!!accountantRoleData);
+      console.log('🔍 [LOG 22] DEPOIS de setIsAccountant');
+
+      console.log('🔍 [LOG 23] ANTES da query subordinate');
+      // Check if user is subordinate (has a manager)
+      const { data: subordinateData } = await supabase
+        .from('therapist_assignments')
+        .select('manager_id')
+        .eq('subordinate_id', userId)
+        .maybeSingle();
+
+      console.log('🔍 [LOG 24] DEPOIS da query subordinate');
+      console.log('👥 [AuthContext] Subordinate check:', !!subordinateData);
+      setIsSubordinate(!!subordinateData);
+      console.log('🔍 [LOG 25] DEPOIS de setIsSubordinate');
+      
+      console.log('🔍 [LOG 26] ANTES de setRolesLoaded(true)');
+      // ✅ Marcar roles como carregados após todas as verificações
+      setRolesLoaded(true);
+      console.log('🔍 [LOG 27] DEPOIS de setRolesLoaded(true)');
+      
+      // ✅ LOG FINAL COMPLETO
+      console.log('====================================');
+      console.log('🔍 [AuthContext] ROLES CARREGADOS');
+      console.log('====================================');
+      console.log('isAdmin:', !!adminRoleData);
+      console.log('isFullTherapist:', !!fullTherapistRoleData);
+      console.log('isAccountant:', !!accountantRoleData);
+      console.log('isSubordinate:', !!subordinateData);
+      console.log('rolesLoaded:', true);
+      console.log('====================================');
+      console.log('🔍 [LOG 28] FIM do bloco try (sucesso)');
+      
     } catch (error) {
-      console.error('[AuthContext] Erro ao carregar template padrão:', error);
+      // ✅ PROTEÇÃO 3: Tratamento de erro
+      console.log('🔍 [LOG 29] DENTRO do bloco catch');
+      console.error('❌ [AuthContext] Erro em fetchProfile:', error);
+      setRolesLoaded(true); // Marcar como carregado mesmo com erro
+      console.log('🔍 [LOG 30] FIM do bloco catch');
+    } finally {
+      // ✅ PROTEÇÃO 4: SEMPRE liberar a flag (crítico!)
+      console.log('🔍 [LOG 31] DENTRO do bloco finally');
+      setIsFetchingProfile(false);
+      console.log('🔓 [AuthContext] fetchProfile concluído, flag liberada');
+      console.log('🔍 [LOG 32] FIM do bloco finally');
     }
-
-    console.log('🔍 [AuthContext] Iniciando verificação de roles...');
-
-    // Check if user is admin
-    const { data: adminRoleData } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId)
-      .eq('role', 'admin')
-      .maybeSingle();
-
-    console.log('👑 [AuthContext] Admin check:', !!adminRoleData);
-    setIsAdmin(!!adminRoleData);
-
-    // Check if user is fulltherapist
-    const { data: fullTherapistRoleData } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId)
-      .eq('role', 'fulltherapist')
-      .maybeSingle();
-
-    console.log('🧑‍⚕️ [AuthContext] FullTherapist check:', !!fullTherapistRoleData);
-    setIsFullTherapist(!!fullTherapistRoleData);
-
-    // Check if user is accountant
-    const { data: accountantRoleData } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId)
-      .eq('role', 'accountant')
-      .maybeSingle();
-
-    console.log('💼 [AuthContext] Accountant check:', !!accountantRoleData);
-    setIsAccountant(!!accountantRoleData);
-
-    // Check if user is subordinate (has a manager)
-    const { data: subordinateData } = await supabase
-      .from('therapist_assignments')
-      .select('manager_id')
-      .eq('subordinate_id', userId)
-      .maybeSingle();
-
-    console.log('👥 [AuthContext] Subordinate check:', !!subordinateData);
-    setIsSubordinate(!!subordinateData);
-    
-    // ✅ Marcar roles como carregados após todas as verificações
-    setRolesLoaded(true);
-    
-    // ✅ LOG FINAL COMPLETO
-    console.log('====================================');
-    console.log('🔍 [AuthContext] ROLES CARREGADOS');
-    console.log('====================================');
-    console.log('isAdmin:', !!adminRoleData);
-    console.log('isFullTherapist:', !!fullTherapistRoleData);
-    console.log('isAccountant:', !!accountantRoleData);
-    console.log('isSubordinate:', !!subordinateData);
-    console.log('rolesLoaded:', true);
-    console.log('====================================');
-    
-  } catch (error) {
-    // ✅ PROTEÇÃO 3: Tratamento de erro
-    console.error('❌ [AuthContext] Erro em fetchProfile:', error);
-    setRolesLoaded(true); // Marcar como carregado mesmo com erro
-  } finally {
-    // ✅ PROTEÇÃO 4: SEMPRE liberar a flag (crítico!)
-    setIsFetchingProfile(false);
-    console.log('🔓 [AuthContext] fetchProfile concluído, flag liberada');
-  }
-};
+    console.log('🔍 [LOG 33] FIM ABSOLUTO da função fetchProfile');
+  };
 
   const signUp = async (email: string, password: string, userData: Omit<Profile, 'id'>) => {
     const redirectUrl = `${window.location.origin}/`;
