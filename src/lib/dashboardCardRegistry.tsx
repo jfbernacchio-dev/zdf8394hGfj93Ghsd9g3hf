@@ -15,198 +15,400 @@
  */
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, TrendingDown, Users, Calendar, AlertCircle, DollarSign, FileText, Activity } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, Calendar, AlertCircle, DollarSign, FileText, Activity, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
+import { parseISO, format } from 'date-fns';
+import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { TimeScale } from '@/hooks/useChartTimeScale';
 
 interface CardProps {
   isEditMode?: boolean;
   className?: string;
+  patients?: any[];
+  sessions?: any[];
+  start?: Date;
+  end?: Date;
+  scale?: TimeScale;
 }
 
 /**
  * FINANCIAL CARDS
  */
 
-export const DashboardExpectedRevenue = ({ isEditMode, className }: CardProps) => (
-  <Card className={cn('h-full', className)}>
-    <CardHeader className="pb-3">
-      <CardTitle className="text-sm font-medium flex items-center gap-2">
-        <DollarSign className="h-4 w-4 text-primary" />
-        Receita Esperada
-      </CardTitle>
-      <CardDescription className="text-xs">Este mês</CardDescription>
-    </CardHeader>
-    <CardContent>
-      <div className="text-2xl font-bold text-primary">R$ 25.400,00</div>
-      <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-        <TrendingUp className="h-3 w-3 text-green-500" />
-        +12% vs mês anterior
-      </p>
-    </CardContent>
-  </Card>
-);
+export const DashboardExpectedRevenue = ({ isEditMode, className, patients = [], sessions = [], start, end }: CardProps) => {
+  const periodSessions = sessions.filter(s => {
+    if (!s.date || !start || !end) return false;
+    try {
+      const sessionDate = parseISO(s.date);
+      return sessionDate >= start && sessionDate <= end;
+    } catch {
+      return false;
+    }
+  });
 
-export const DashboardActualRevenue = ({ isEditMode, className }: CardProps) => (
-  <Card className={cn('h-full', className)}>
-    <CardHeader className="pb-3">
-      <CardTitle className="text-sm font-medium flex items-center gap-2">
-        <DollarSign className="h-4 w-4 text-green-600" />
-        Receita Realizada
-      </CardTitle>
-      <CardDescription className="text-xs">Este mês</CardDescription>
-    </CardHeader>
-    <CardContent>
-      <div className="text-2xl font-bold text-green-600">R$ 18.750,00</div>
-      <p className="text-xs text-muted-foreground mt-1">
-        74% da receita esperada
-      </p>
-    </CardContent>
-  </Card>
-);
+  const monthlyPatientsInPeriod = new Map<string, Set<string>>();
+  const expectedRevenue = periodSessions.reduce((sum, s) => {
+    const patient = patients.find(p => p.id === s.patient_id);
+    if (!patient) return sum;
+    
+    if (patient.monthly_price) {
+      const monthKey = format(parseISO(s.date), 'yyyy-MM');
+      if (!monthlyPatientsInPeriod.has(monthKey)) {
+        monthlyPatientsInPeriod.set(monthKey, new Set());
+      }
+      const patientsSet = monthlyPatientsInPeriod.get(monthKey)!;
+      if (!patientsSet.has(patient.id)) {
+        patientsSet.add(patient.id);
+        return sum + patient.session_value;
+      }
+      return sum;
+    } else {
+      return sum + s.value;
+    }
+  }, 0);
 
-export const DashboardUnpaidValue = ({ isEditMode, className }: CardProps) => (
-  <Card className={cn('h-full', className)}>
-    <CardHeader className="pb-3">
-      <CardTitle className="text-sm font-medium flex items-center gap-2">
-        <AlertCircle className="h-4 w-4 text-red-500" />
-        Valores Pendentes
-      </CardTitle>
-      <CardDescription className="text-xs">A receber</CardDescription>
-    </CardHeader>
-    <CardContent>
-      <div className="text-2xl font-bold text-red-500">R$ 6.650,00</div>
-      <p className="text-xs text-muted-foreground mt-1">
-        8 sessões não pagas
-      </p>
-    </CardContent>
-  </Card>
-);
+  return (
+    <Card className={cn('h-full', className)}>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium flex items-center gap-2">
+          <DollarSign className="h-4 w-4 text-primary" />
+          Receita Esperada
+        </CardTitle>
+        <CardDescription className="text-xs">Período selecionado</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold text-primary">{formatBrazilianCurrency(expectedRevenue)}</div>
+        <p className="text-xs text-muted-foreground mt-1">
+          {periodSessions.length} sessões
+        </p>
+      </CardContent>
+    </Card>
+  );
+};
 
-export const DashboardPaymentRate = ({ isEditMode, className }: CardProps) => (
-  <Card className={cn('h-full', className)}>
-    <CardHeader className="pb-3">
-      <CardTitle className="text-sm font-medium">Taxa de Pagamento</CardTitle>
-      <CardDescription className="text-xs">Este mês</CardDescription>
-    </CardHeader>
-    <CardContent>
-      <div className="text-2xl font-bold">82%</div>
-      <p className="text-xs text-muted-foreground mt-1">
-        32 de 39 sessões pagas
-      </p>
-    </CardContent>
-  </Card>
-);
+export const DashboardActualRevenue = ({ isEditMode, className, patients = [], sessions = [], start, end }: CardProps) => {
+  const periodSessions = sessions.filter(s => {
+    if (!s.date || !start || !end) return false;
+    try {
+      const sessionDate = parseISO(s.date);
+      return sessionDate >= start && sessionDate <= end && (s.status === 'attended' || s.paid);
+    } catch {
+      return false;
+    }
+  });
+
+  const monthlyPatientsInPeriod = new Map<string, Set<string>>();
+  const actualRevenue = periodSessions.reduce((sum, s) => {
+    const patient = patients.find(p => p.id === s.patient_id);
+    if (!patient) return sum;
+    
+    if (patient.monthly_price) {
+      const monthKey = format(parseISO(s.date), 'yyyy-MM');
+      if (!monthlyPatientsInPeriod.has(monthKey)) {
+        monthlyPatientsInPeriod.set(monthKey, new Set());
+      }
+      const patientsSet = monthlyPatientsInPeriod.get(monthKey)!;
+      if (!patientsSet.has(patient.id)) {
+        patientsSet.add(patient.id);
+        return sum + patient.session_value;
+      }
+      return sum;
+    } else {
+      return sum + s.value;
+    }
+  }, 0);
+
+  return (
+    <Card className={cn('h-full', className)}>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium flex items-center gap-2">
+          <DollarSign className="h-4 w-4 text-green-600" />
+          Receita Realizada
+        </CardTitle>
+        <CardDescription className="text-xs">Período selecionado</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold text-green-600">{formatBrazilianCurrency(actualRevenue)}</div>
+        <p className="text-xs text-muted-foreground mt-1">
+          {periodSessions.length} sessões realizadas
+        </p>
+      </CardContent>
+    </Card>
+  );
+};
+
+export const DashboardUnpaidValue = ({ isEditMode, className, patients = [], sessions = [], start, end }: CardProps) => {
+  const periodSessions = sessions.filter(s => {
+    if (!s.date || !start || !end) return false;
+    try {
+      const sessionDate = parseISO(s.date);
+      return sessionDate >= start && sessionDate <= end && !s.paid && s.status === 'attended';
+    } catch {
+      return false;
+    }
+  });
+
+  const monthlyPatientsInPeriod = new Map<string, Set<string>>();
+  const unpaidValue = periodSessions.reduce((sum, s) => {
+    const patient = patients.find(p => p.id === s.patient_id);
+    if (!patient) return sum;
+    
+    if (patient.monthly_price) {
+      const monthKey = format(parseISO(s.date), 'yyyy-MM');
+      if (!monthlyPatientsInPeriod.has(monthKey)) {
+        monthlyPatientsInPeriod.set(monthKey, new Set());
+      }
+      const patientsSet = monthlyPatientsInPeriod.get(monthKey)!;
+      if (!patientsSet.has(patient.id)) {
+        patientsSet.add(patient.id);
+        return sum + patient.session_value;
+      }
+      return sum;
+    } else {
+      return sum + s.value;
+    }
+  }, 0);
+
+  return (
+    <Card className={cn('h-full', className)}>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium flex items-center gap-2">
+          <AlertCircle className="h-4 w-4 text-red-500" />
+          Valores Pendentes
+        </CardTitle>
+        <CardDescription className="text-xs">A receber</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold text-red-500">{formatBrazilianCurrency(unpaidValue)}</div>
+        <p className="text-xs text-muted-foreground mt-1">
+          {periodSessions.length} sessões não pagas
+        </p>
+      </CardContent>
+    </Card>
+  );
+};
+
+export const DashboardPaymentRate = ({ isEditMode, className, patients = [], sessions = [], start, end }: CardProps) => {
+  const periodSessions = sessions.filter(s => {
+    if (!s.date || !start || !end) return false;
+    try {
+      const sessionDate = parseISO(s.date);
+      return sessionDate >= start && sessionDate <= end && s.status === 'attended';
+    } catch {
+      return false;
+    }
+  });
+
+  const paidSessions = periodSessions.filter(s => s.paid).length;
+  const totalSessions = periodSessions.length;
+  const paymentRate = totalSessions > 0 ? Math.round((paidSessions / totalSessions) * 100) : 0;
+
+  return (
+    <Card className={cn('h-full', className)}>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium">Taxa de Pagamento</CardTitle>
+        <CardDescription className="text-xs">Período selecionado</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{paymentRate}%</div>
+        <p className="text-xs text-muted-foreground mt-1">
+          {paidSessions} de {totalSessions} sessões pagas
+        </p>
+      </CardContent>
+    </Card>
+  );
+};
 
 /**
  * ADMINISTRATIVE CARDS
  */
 
-export const DashboardTotalPatients = ({ isEditMode, className }: CardProps) => (
-  <Card className={cn('h-full', className)}>
-    <CardHeader className="pb-3">
-      <CardTitle className="text-sm font-medium flex items-center gap-2">
-        <Users className="h-4 w-4 text-primary" />
-        Pacientes Ativos
-      </CardTitle>
-      <CardDescription className="text-xs">Total</CardDescription>
-    </CardHeader>
-    <CardContent>
-      <div className="text-2xl font-bold">28</div>
-      <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-        <TrendingUp className="h-3 w-3 text-green-500" />
-        +3 novos este mês
-      </p>
-    </CardContent>
-  </Card>
-);
+export const DashboardTotalPatients = ({ isEditMode, className, patients = [] }: CardProps) => {
+  const activePatients = patients.filter(p => p.status === 'active').length;
 
-export const DashboardExpectedSessions = ({ isEditMode, className }: CardProps) => (
-  <Card className={cn('h-full', className)}>
-    <CardHeader className="pb-3">
-      <CardTitle className="text-sm font-medium flex items-center gap-2">
-        <Calendar className="h-4 w-4 text-primary" />
-        Sessões Esperadas
-      </CardTitle>
-      <CardDescription className="text-xs">Este mês</CardDescription>
-    </CardHeader>
-    <CardContent>
-      <div className="text-2xl font-bold">112</div>
-      <p className="text-xs text-muted-foreground mt-1">
-        4 sessões/paciente (média)
-      </p>
-    </CardContent>
-  </Card>
-);
+  return (
+    <Card className={cn('h-full', className)}>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium flex items-center gap-2">
+          <Users className="h-4 w-4 text-primary" />
+          Pacientes Ativos
+        </CardTitle>
+        <CardDescription className="text-xs">Total</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{activePatients}</div>
+        <p className="text-xs text-muted-foreground mt-1">
+          Pacientes em tratamento
+        </p>
+      </CardContent>
+    </Card>
+  );
+};
 
-export const DashboardAttendedSessions = ({ isEditMode, className }: CardProps) => (
-  <Card className={cn('h-full', className)}>
-    <CardHeader className="pb-3">
-      <CardTitle className="text-sm font-medium flex items-center gap-2">
-        <Activity className="h-4 w-4 text-green-600" />
-        Sessões Realizadas
-      </CardTitle>
-      <CardDescription className="text-xs">Este mês</CardDescription>
-    </CardHeader>
-    <CardContent>
-      <div className="text-2xl font-bold text-green-600">87</div>
-      <p className="text-xs text-muted-foreground mt-1">
-        78% das esperadas
-      </p>
-    </CardContent>
-  </Card>
-);
+export const DashboardExpectedSessions = ({ isEditMode, className, sessions = [], start, end }: CardProps) => {
+  const periodSessions = sessions.filter(s => {
+    if (!s.date || !start || !end) return false;
+    try {
+      const sessionDate = parseISO(s.date);
+      return sessionDate >= start && sessionDate <= end;
+    } catch {
+      return false;
+    }
+  });
 
-export const DashboardMissedSessions = ({ isEditMode, className }: CardProps) => (
-  <Card className={cn('h-full', className)}>
-    <CardHeader className="pb-3">
-      <CardTitle className="text-sm font-medium flex items-center gap-2">
-        <AlertCircle className="h-4 w-4 text-red-500" />
-        Faltas
-      </CardTitle>
-      <CardDescription className="text-xs">Este mês</CardDescription>
-    </CardHeader>
-    <CardContent>
-      <div className="text-2xl font-bold text-red-500">12</div>
-      <p className="text-xs text-muted-foreground mt-1">
-        11% de faltas
-      </p>
-    </CardContent>
-  </Card>
-);
+  return (
+    <Card className={cn('h-full', className)}>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-primary" />
+          Sessões Esperadas
+        </CardTitle>
+        <CardDescription className="text-xs">Período selecionado</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{periodSessions.length}</div>
+        <p className="text-xs text-muted-foreground mt-1">
+          Total de sessões
+        </p>
+      </CardContent>
+    </Card>
+  );
+};
 
-export const DashboardPendingSessions = ({ isEditMode, className }: CardProps) => (
-  <Card className={cn('h-full', className)}>
-    <CardHeader className="pb-3">
-      <CardTitle className="text-sm font-medium flex items-center gap-2">
-        <Calendar className="h-4 w-4 text-yellow-600" />
-        Sessões Pendentes
-      </CardTitle>
-      <CardDescription className="text-xs">Aguardando</CardDescription>
-    </CardHeader>
-    <CardContent>
-      <div className="text-2xl font-bold text-yellow-600">13</div>
-      <p className="text-xs text-muted-foreground mt-1">
-        Restante do mês
-      </p>
-    </CardContent>
-  </Card>
-);
+export const DashboardAttendedSessions = ({ isEditMode, className, sessions = [], start, end }: CardProps) => {
+  const periodSessions = sessions.filter(s => {
+    if (!s.date || !start || !end) return false;
+    try {
+      const sessionDate = parseISO(s.date);
+      return sessionDate >= start && sessionDate <= end;
+    } catch {
+      return false;
+    }
+  });
 
-export const DashboardAttendanceRate = ({ isEditMode, className }: CardProps) => (
-  <Card className={cn('h-full', className)}>
-    <CardHeader className="pb-3">
-      <CardTitle className="text-sm font-medium">Taxa de Comparecimento</CardTitle>
-      <CardDescription className="text-xs">Este mês</CardDescription>
-    </CardHeader>
-    <CardContent>
-      <div className="text-2xl font-bold">88%</div>
-      <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-        <TrendingDown className="h-3 w-3 text-red-500" />
-        -3% vs mês anterior
-      </p>
-    </CardContent>
-  </Card>
-);
+  const attendedSessions = periodSessions.filter(s => s.status === 'attended');
+  const percentage = periodSessions.length > 0 
+    ? Math.round((attendedSessions.length / periodSessions.length) * 100) 
+    : 0;
+
+  return (
+    <Card className={cn('h-full', className)}>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium flex items-center gap-2">
+          <CheckCircle2 className="h-4 w-4 text-green-600" />
+          Sessões Realizadas
+        </CardTitle>
+        <CardDescription className="text-xs">Período selecionado</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold text-green-600">{attendedSessions.length}</div>
+        <p className="text-xs text-muted-foreground mt-1">
+          {percentage}% das esperadas
+        </p>
+      </CardContent>
+    </Card>
+  );
+};
+
+export const DashboardMissedSessions = ({ isEditMode, className, sessions = [], start, end }: CardProps) => {
+  const periodSessions = sessions.filter(s => {
+    if (!s.date || !start || !end) return false;
+    try {
+      const sessionDate = parseISO(s.date);
+      return sessionDate >= start && sessionDate <= end;
+    } catch {
+      return false;
+    }
+  });
+
+  const missedSessions = periodSessions.filter(s => s.status === 'missed');
+  const percentage = periodSessions.length > 0 
+    ? Math.round((missedSessions.length / periodSessions.length) * 100) 
+    : 0;
+
+  return (
+    <Card className={cn('h-full', className)}>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium flex items-center gap-2">
+          <XCircle className="h-4 w-4 text-red-500" />
+          Faltas
+        </CardTitle>
+        <CardDescription className="text-xs">Período selecionado</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold text-red-500">{missedSessions.length}</div>
+        <p className="text-xs text-muted-foreground mt-1">
+          {percentage}% de faltas
+        </p>
+      </CardContent>
+    </Card>
+  );
+};
+
+export const DashboardPendingSessions = ({ isEditMode, className, sessions = [], start, end }: CardProps) => {
+  const now = new Date();
+  const periodSessions = sessions.filter(s => {
+    if (!s.date || !start || !end) return false;
+    try {
+      const sessionDate = parseISO(s.date);
+      return sessionDate >= start && sessionDate <= end && sessionDate >= now && s.status === 'scheduled';
+    } catch {
+      return false;
+    }
+  });
+
+  return (
+    <Card className={cn('h-full', className)}>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium flex items-center gap-2">
+          <Clock className="h-4 w-4 text-yellow-600" />
+          Sessões Pendentes
+        </CardTitle>
+        <CardDescription className="text-xs">Futuras</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold text-yellow-600">{periodSessions.length}</div>
+        <p className="text-xs text-muted-foreground mt-1">
+          Agendadas
+        </p>
+      </CardContent>
+    </Card>
+  );
+};
+
+export const DashboardAttendanceRate = ({ isEditMode, className, sessions = [], start, end }: CardProps) => {
+  const periodSessions = sessions.filter(s => {
+    if (!s.date || !start || !end) return false;
+    try {
+      const sessionDate = parseISO(s.date);
+      return sessionDate >= start && sessionDate <= end;
+    } catch {
+      return false;
+    }
+  });
+
+  const completedSessions = periodSessions.filter(s => s.status === 'attended' || s.status === 'missed');
+  const attendedSessions = periodSessions.filter(s => s.status === 'attended');
+  const attendanceRate = completedSessions.length > 0 
+    ? Math.round((attendedSessions.length / completedSessions.length) * 100) 
+    : 0;
+
+  return (
+    <Card className={cn('h-full', className)}>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium">Taxa de Comparecimento</CardTitle>
+        <CardDescription className="text-xs">Período selecionado</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{attendanceRate}%</div>
+        <p className="text-xs text-muted-foreground mt-1">
+          {attendedSessions.length} de {completedSessions.length} sessões
+        </p>
+      </CardContent>
+    </Card>
+  );
+};
 
 /**
  * CLINICAL CARDS (placeholders)

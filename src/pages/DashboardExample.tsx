@@ -390,7 +390,7 @@ export default function DashboardExample() {
                     sessions,
                     start,
                     end,
-                    scale: 'week',
+                    scale: 'weekly' as const,
                   })}
                           </ResizableCardSimple>
                         </SortableCard>
