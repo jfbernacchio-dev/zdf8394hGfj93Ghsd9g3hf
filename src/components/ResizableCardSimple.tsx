@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, Sparkles } from 'lucide-react';
 
 interface ResizableCardSimpleProps {
   id: string;
@@ -14,6 +15,7 @@ interface ResizableCardSimpleProps {
   maxWidth?: number;
   tempWidth?: number | null;
   onTempWidthChange?: (cardId: string, width: number) => void;
+  isCustomized?: boolean;
 }
 
 /**
@@ -43,6 +45,7 @@ export const ResizableCardSimple = ({
   maxWidth = 800,
   tempWidth,
   onTempWidthChange,
+  isCustomized = false,
 }: ResizableCardSimpleProps) => {
   const [savedWidth, setSavedWidth] = useState(defaultWidth);
   const [isResizing, setIsResizing] = useState(false);
@@ -103,8 +106,8 @@ export const ResizableCardSimple = ({
   return (
     <div
       className={cn(
-        "relative transition-all duration-200",
-        isResizing && "z-50",
+        "relative transition-all duration-200 group",
+        isResizing && "z-50 scale-[1.02]",
         className
       )}
       style={{ 
@@ -114,11 +117,21 @@ export const ResizableCardSimple = ({
     >
       <Card 
         className={cn(
-          "h-full overflow-hidden",
-          isEditMode && "ring-2 ring-primary/20 hover:ring-primary/40",
-          isResizing && "ring-2 ring-primary shadow-lg"
+          "h-full overflow-hidden transition-all duration-300",
+          isEditMode && "ring-2 ring-primary/20 hover:ring-primary/40 hover:shadow-lg",
+          isResizing && "ring-2 ring-primary shadow-xl scale-100"
         )}
       >
+        {/* Customization badge */}
+        {isCustomized && !isEditMode && (
+          <Badge 
+            variant="secondary" 
+            className="absolute top-2 right-2 z-10 text-xs flex items-center gap-1 animate-fade-in"
+          >
+            <Sparkles className="h-3 w-3" />
+            Personalizado
+          </Badge>
+        )}
         {children}
       </Card>
 
