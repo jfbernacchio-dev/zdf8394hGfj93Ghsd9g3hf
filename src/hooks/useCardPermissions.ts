@@ -53,9 +53,9 @@ export function useCardPermissions() {
     hasAllFalse: !isAdmin && !isFullTherapist && !isAccountant && !isSubordinate
   });
 
-  // Só considerar loading se for subordinado e ainda não carregou permissões
-  // Admin, FullTherapist e Accountant não precisam esperar permissões
-  const loading = isSubordinate && permissionsLoading;
+  // ✅ CORREÇÃO CRÍTICA: Aguardar roles carregarem antes de calcular permissões
+  // Se roles não carregaram, DEVE aguardar (evita permissões vazias)
+  const loading = !rolesLoaded || (isSubordinate && permissionsLoading);
 
   console.log('🔐 [useCardPermissions] Calculado loading:', loading);
 
