@@ -38,6 +38,26 @@ export default function DashboardExample() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
+        
+        // 🔧 MIGRATION: Detectar e limpar IDs antigos (sem prefixo dashboard-)
+        let hasOldIds = false;
+        Object.values(parsed).forEach((cardIds: any) => {
+          if (Array.isArray(cardIds)) {
+            cardIds.forEach((id: string) => {
+              // Se encontrar ID tipo "stat-revenue-month" (sem "dashboard-" ou "patient-")
+              if (!id.includes('-') || (!id.startsWith('dashboard-') && !id.startsWith('patient-'))) {
+                hasOldIds = true;
+              }
+            });
+          }
+        });
+        
+        if (hasOldIds) {
+          console.warn('⚠️ IDs antigos detectados, limpando localStorage...');
+          localStorage.removeItem('dashboard-section-cards');
+          return DEFAULT_DASHBOARD_SECTIONS;
+        }
+        
         console.log('✅ Estado inicial do localStorage:', parsed);
         return parsed;
       } catch {
@@ -68,6 +88,26 @@ export default function DashboardExample() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
+        
+        // 🔧 MIGRATION: Detectar e limpar IDs antigos
+        let hasOldIds = false;
+        Object.values(parsed).forEach((cardIds: any) => {
+          if (Array.isArray(cardIds)) {
+            cardIds.forEach((id: string) => {
+              if (!id.includes('-') || (!id.startsWith('dashboard-') && !id.startsWith('patient-'))) {
+                hasOldIds = true;
+              }
+            });
+          }
+        });
+        
+        if (hasOldIds) {
+          console.warn('⚠️ useEffect detectou IDs antigos, usando DEFAULT');
+          localStorage.removeItem('dashboard-section-cards');
+          setSectionCards(DEFAULT_DASHBOARD_SECTIONS);
+          return;
+        }
+        
         console.log('✅ Parsed do localStorage:', parsed);
         console.log('🔧 ANTES de setSectionCards');
         setSectionCards(parsed);
