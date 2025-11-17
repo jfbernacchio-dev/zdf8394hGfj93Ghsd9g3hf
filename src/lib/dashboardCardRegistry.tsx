@@ -15,12 +15,14 @@
  */
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, TrendingDown, Users, Calendar, AlertCircle, DollarSign, FileText, Activity, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, Calendar, AlertCircle, DollarSign, FileText, Activity, CheckCircle2, XCircle, Clock, Settings2 } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import { parseISO, format } from 'date-fns';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { TimeScale } from '@/hooks/useChartTimeScale';
+import { TimeScale, getScaleLabel, generateTimeIntervals, formatTimeLabel, getIntervalBounds } from '@/hooks/useChartTimeScale';
 
 interface CardProps {
   isEditMode?: boolean;
@@ -29,7 +31,11 @@ interface CardProps {
   sessions?: any[];
   start?: Date;
   end?: Date;
-  scale?: TimeScale;
+  automaticScale?: TimeScale;
+  getScale?: (chartId: string) => TimeScale;
+  setScaleOverride?: (chartId: string, scale: TimeScale | null) => void;
+  clearOverride?: (chartId: string) => void;
+  hasOverride?: (chartId: string) => boolean;
   aggregatedData?: Array<{
     label: string;
     interval: Date;
@@ -536,13 +542,308 @@ const ChartPlaceholder = ({ title, description }: { title: string; description: 
   </Card>
 );
 
-export const DashboardChartRevenueTrend = (props: CardProps) => (
-  <ChartPlaceholder title="Tendência de Receita" description="Últimos 6 meses" />
-);
+/**
+ * CHART CARDS
+ * Gráficos com sistema de escala embutido
+ */
 
-export const DashboardChartPaymentStatus = (props: CardProps) => (
-  <ChartPlaceholder title="Status de Pagamentos" description="Distribuição" />
-);
+export const DashboardChartRevenueTrend = ({ 
+  isEditMode, 
+  className, 
+  patients = [], 
+  sessions = [], 
+  start, 
+  end, 
+  automaticScale = 'weekly',
+  getScale,
+  setScaleOverride,
+  clearOverride,
+  hasOverride,
+  aggregatedData = []
+}: CardProps) => {
+  const chartId = 'dashboard-chart-revenue-trend';
+  const currentScale = getScale ? getScale(chartId) : automaticScale;
+  
+  // Gerar dados específicos para este gráfico usando a escala correta
+  const chartData = start && end 
+    ? generateTimeIntervals(start, end, currentScale).map(intervalDate => {
+        const bounds = getIntervalBounds(intervalDate, currentScale);
+        const intervalSessions = sessions.filter(session => {
+          const sessionDate = new Date(session.date);
+          return sessionDate >= bounds.start && sessionDate <= bounds.end;
+        });
+
+        const totalRevenue = intervalSessions
+          .filter(s => s.status === 'attended')
+          .reduce((sum, s) => sum + (s.value || 0), 0);
+
+        return {
+          label: formatTimeLabel(intervalDate, currentScale),
+          value: totalRevenue,
+        };
+      })
+    : [];
+
+  return (
+    <Card className={cn('h-full', className)}>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-primary" />
+              Tendência de Receita
+            </CardTitle>
+            <CardDescription className="text-xs">Evolução temporal</CardDescription>
+          </div>
+          {setScaleOverride && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <Settings2 className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem 
+                  onClick={() => clearOverride?.(chartId)}
+                  className={cn(
+                    "cursor-pointer",
+                    !hasOverride?.(chartId) && "bg-accent"
+                  )}
+                >
+                  Automática ({getScaleLabel(automaticScale)})
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={() => setScaleOverride(chartId, 'daily')}
+                  className={cn(
+                    "cursor-pointer",
+                    currentScale === 'daily' && hasOverride?.(chartId) && "bg-accent"
+                  )}
+                >
+                  Diária
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => setScaleOverride(chartId, 'weekly')}
+                  className={cn(
+                    "cursor-pointer",
+                    currentScale === 'weekly' && hasOverride?.(chartId) && "bg-accent"
+                  )}
+                >
+                  Semanal
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => setScaleOverride(chartId, 'monthly')}
+                  className={cn(
+                    "cursor-pointer",
+                    currentScale === 'monthly' && hasOverride?.(chartId) && "bg-accent"
+                  )}
+                >
+                  Mensal
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        <ResponsiveContainer width="100%" height={200}>
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+            <XAxis 
+              dataKey="label" 
+              className="text-xs"
+              tick={{ fontSize: 11 }}
+            />
+            <YAxis 
+              className="text-xs"
+              tick={{ fontSize: 11 }}
+              tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+            />
+            <Tooltip 
+              formatter={(value: number) => formatBrazilianCurrency(value)}
+              contentStyle={{ fontSize: '12px' }}
+            />
+            <Line 
+              type="monotone" 
+              dataKey="value" 
+              stroke="hsl(var(--primary))" 
+              strokeWidth={2}
+              dot={{ fill: 'hsl(var(--primary))', r: 3 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </CardContent>
+    </Card>
+  );
+};
+
+export const DashboardChartPaymentStatus = ({ 
+  isEditMode, 
+  className, 
+  aggregatedData = []
+}: CardProps) => {
+  const pieData = aggregatedData.length > 0 
+    ? [
+        { name: 'Pagos', value: aggregatedData.reduce((sum, d) => sum + d.paid, 0) },
+        { name: 'Não Pagos', value: aggregatedData.reduce((sum, d) => sum + d.unpaid, 0) },
+      ]
+    : [];
+
+  const COLORS = ['hsl(var(--primary))', 'hsl(var(--destructive))'];
+
+  return (
+    <Card className={cn('h-full', className)}>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium flex items-center gap-2">
+          <DollarSign className="h-4 w-4 text-primary" />
+          Status de Pagamentos
+        </CardTitle>
+        <CardDescription className="text-xs">Distribuição</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ResponsiveContainer width="100%" height={200}>
+          <PieChart>
+            <Pie
+              data={pieData}
+              cx="50%"
+              cy="50%"
+              labelLine={false}
+              label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+              outerRadius={80}
+              fill="#8884d8"
+              dataKey="value"
+            >
+              {pieData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip />
+          </PieChart>
+        </ResponsiveContainer>
+      </CardContent>
+    </Card>
+  );
+};
+
+export const DashboardChartAttendanceWeekly = ({ 
+  isEditMode, 
+  className, 
+  patients = [], 
+  sessions = [], 
+  start, 
+  end, 
+  automaticScale = 'weekly',
+  getScale,
+  setScaleOverride,
+  clearOverride,
+  hasOverride,
+  aggregatedData = []
+}: CardProps) => {
+  const chartId = 'dashboard-chart-attendance-weekly';
+  const currentScale = getScale ? getScale(chartId) : automaticScale;
+  
+  const chartData = start && end 
+    ? generateTimeIntervals(start, end, currentScale).map(intervalDate => {
+        const bounds = getIntervalBounds(intervalDate, currentScale);
+        const intervalSessions = sessions.filter(session => {
+          const sessionDate = new Date(session.date);
+          return sessionDate >= bounds.start && sessionDate <= bounds.end;
+        });
+
+        return {
+          label: formatTimeLabel(intervalDate, currentScale),
+          attended: intervalSessions.filter(s => s.status === 'attended').length,
+          missed: intervalSessions.filter(s => s.status === 'missed').length,
+          pending: intervalSessions.filter(s => s.status === 'pending').length,
+        };
+      })
+    : [];
+
+  return (
+    <Card className={cn('h-full', className)}>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-primary" />
+              Comparecimento
+            </CardTitle>
+            <CardDescription className="text-xs">Por período</CardDescription>
+          </div>
+          {setScaleOverride && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <Settings2 className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem 
+                  onClick={() => clearOverride?.(chartId)}
+                  className={cn(
+                    "cursor-pointer",
+                    !hasOverride?.(chartId) && "bg-accent"
+                  )}
+                >
+                  Automática ({getScaleLabel(automaticScale)})
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={() => setScaleOverride(chartId, 'daily')}
+                  className={cn(
+                    "cursor-pointer",
+                    currentScale === 'daily' && hasOverride?.(chartId) && "bg-accent"
+                  )}
+                >
+                  Diária
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => setScaleOverride(chartId, 'weekly')}
+                  className={cn(
+                    "cursor-pointer",
+                    currentScale === 'weekly' && hasOverride?.(chartId) && "bg-accent"
+                  )}
+                >
+                  Semanal
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => setScaleOverride(chartId, 'monthly')}
+                  className={cn(
+                    "cursor-pointer",
+                    currentScale === 'monthly' && hasOverride?.(chartId) && "bg-accent"
+                  )}
+                >
+                  Mensal
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        <ResponsiveContainer width="100%" height={200}>
+          <BarChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+            <XAxis 
+              dataKey="label" 
+              className="text-xs"
+              tick={{ fontSize: 11 }}
+            />
+            <YAxis 
+              className="text-xs"
+              tick={{ fontSize: 11 }}
+            />
+            <Tooltip contentStyle={{ fontSize: '12px' }} />
+            <Legend wrapperStyle={{ fontSize: '11px' }} />
+            <Bar dataKey="attended" fill="hsl(var(--primary))" name="Compareceram" />
+            <Bar dataKey="missed" fill="hsl(var(--destructive))" name="Faltaram" />
+            <Bar dataKey="pending" fill="hsl(var(--muted))" name="Pendentes" />
+          </BarChart>
+        </ResponsiveContainer>
+      </CardContent>
+    </Card>
+  );
+};
 
 export const DashboardChartMonthlyComparison = (props: CardProps) => (
   <ChartPlaceholder title="Comparação Mensal" description="Receita vs Esperado" />
@@ -558,10 +859,6 @@ export const DashboardChartSessionTypes = (props: CardProps) => (
 
 export const DashboardChartTherapistDistribution = (props: CardProps) => (
   <ChartPlaceholder title="Distribuição por Terapeuta" description="Pacientes" />
-);
-
-export const DashboardChartAttendanceWeekly = (props: CardProps) => (
-  <ChartPlaceholder title="Comparecimento Semanal" description="Últimas 4 semanas" />
 );
 
 export const DashboardChartPatientGrowth = (props: CardProps) => (
