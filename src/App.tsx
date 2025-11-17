@@ -9,6 +9,7 @@ import { ThemeProvider } from "./components/ThemeProvider";
 import { PermissionRoute } from "./components/PermissionRoute";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
+import DashboardExample from "./pages/DashboardExample";
 import DashboardOLD from "./pages/DashboardOLD";
 import AccountantDashboard from "./pages/AccountantDashboard";
 import Financial from "./pages/Financial";
@@ -131,6 +132,7 @@ const App = () => (
             
             {/* Sistema de Gestão */}
             <Route path="/dashboard" element={<ProtectedRoute><PermissionRoute path="/dashboard"><DashboardRoute /></PermissionRoute></ProtectedRoute>} />
+            <Route path="/dashboard-example" element={<ProtectedRoute><Layout><DashboardExample /></Layout></ProtectedRoute>} />
             <Route path="/accountant-dashboard" element={<ProtectedRoute><PermissionRoute path="/accountant-dashboard"><Layout><AccountantDashboard /></Layout></PermissionRoute></ProtectedRoute>} />
             <Route path="/dashboard-old" element={<ProtectedRoute><Layout><DashboardOLD /></Layout></ProtectedRoute>} />
             <Route path="/install" element={<Install />} />
