@@ -17,10 +17,18 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Pencil, Save, X, RotateCcw, Loader2, CheckCircle2, AlertCircle, Sparkles, GripVertical, Plus } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Pencil, Save, X, RotateCcw, Loader2, CheckCircle2, AlertCircle, Sparkles, GripVertical, Plus, CalendarIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { AddCardDialog } from '@/components/AddCardDialog';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
+import { useChartTimeScale, generateTimeIntervals, formatTimeLabel, getIntervalBounds, TimeScale } from '@/hooks/useChartTimeScale';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,7 +49,6 @@ import { DASHBOARD_SECTIONS } from '@/lib/defaultSectionsDashboard';
 import Layout from '@/components/Layout';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 export default function DashboardExample() {
   const { user } = useAuth();
@@ -52,6 +59,9 @@ export default function DashboardExample() {
   const [patients, setPatients] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
   const [period, setPeriod] = useState('month');
+  const [customStartDate, setCustomStartDate] = useState<Date>();
+  const [customEndDate, setCustomEndDate] = useState<Date>();
+  const [manualScale, setManualScale] = useState<TimeScale | null>(null);
 
   const {
     layout,
@@ -94,7 +104,10 @@ export default function DashboardExample() {
     const now = new Date();
     let start: Date, end: Date;
 
-    if (period === 'week') {
+    if (period === 'custom' && customStartDate && customEndDate) {
+      start = customStartDate;
+      end = customEndDate;
+    } else if (period === 'week') {
       start = new Date(now);
       start.setDate(now.getDate() - 7);
       end = now;
@@ -102,6 +115,7 @@ export default function DashboardExample() {
       start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       end = new Date(now.getFullYear(), now.getMonth(), 0);
     } else {
+      // month (padrão)
       start = new Date(now.getFullYear(), now.getMonth(), 1);
       end = now;
     }
@@ -110,6 +124,55 @@ export default function DashboardExample() {
   };
 
   const { start, end } = getDateRange();
+  
+  // Hook para determinar escala automática baseada no período
+  const { automaticScale } = useChartTimeScale({ startDate: start, endDate: end });
+  const scale = manualScale || automaticScale;
+  
+  /**
+   * AGREGAÇÃO DE DADOS PARA GRÁFICOS
+   * Gera intervalos de tempo e calcula métricas para cada intervalo
+   */
+  const aggregatedData = generateTimeIntervals(start, end, scale).map(intervalDate => {
+    const bounds = getIntervalBounds(intervalDate, scale);
+    
+    const intervalSessions = sessions.filter(session => {
+      const sessionDate = new Date(session.date);
+      return sessionDate >= bounds.start && sessionDate <= bounds.end;
+    });
+
+    const attendedCount = intervalSessions.filter(s => s.status === 'attended').length;
+    const missedCount = intervalSessions.filter(s => s.status === 'missed').length;
+    const pendingCount = intervalSessions.filter(s => s.status === 'pending').length;
+    const paidCount = intervalSessions.filter(s => s.paid).length;
+    const unpaidCount = intervalSessions.filter(s => !s.paid && s.status === 'attended').length;
+    
+    const totalRevenue = intervalSessions
+      .filter(s => s.status === 'attended')
+      .reduce((sum, s) => sum + (s.value || 0), 0);
+    
+    const paidRevenue = intervalSessions
+      .filter(s => s.paid)
+      .reduce((sum, s) => sum + (s.value || 0), 0);
+    
+    const unpaidRevenue = intervalSessions
+      .filter(s => !s.paid && s.status === 'attended')
+      .reduce((sum, s) => sum + (s.value || 0), 0);
+
+    return {
+      label: formatTimeLabel(intervalDate, scale),
+      interval: intervalDate,
+      attended: attendedCount,
+      missed: missedCount,
+      pending: pendingCount,
+      paid: paidCount,
+      unpaid: unpaidCount,
+      totalRevenue,
+      paidRevenue,
+      unpaidRevenue,
+      total: intervalSessions.length,
+    };
+  });
 
   /**
    * HANDLER: Salvar layout
@@ -221,17 +284,18 @@ export default function DashboardExample() {
     <Layout>
       <div className="space-y-6 p-6 animate-fade-in">
         {/* Header com controles */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Dashboard Customizável</h1>
-            <p className="text-muted-foreground">
-              Organize seu painel de controle
-            </p>
-          </div>
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold">Dashboard Customizável</h1>
+              <p className="text-muted-foreground">
+                Organize seu painel de controle
+              </p>
+            </div>
 
-          <div className="flex items-center gap-3">
-            {/* Status indicator */}
-            {renderStatusIndicator()}
+            <div className="flex items-center gap-3">
+              {/* Status indicator */}
+              {renderStatusIndicator()}
 
             {/* Controles de edição */}
             {isEditMode ? (
@@ -275,7 +339,103 @@ export default function DashboardExample() {
                 Editar Layout
               </Button>
             )}
+            </div>
           </div>
+
+          {/* Controles de Período */}
+          <Card className="p-4">
+            <div className="flex flex-wrap items-end gap-4">
+              <div className="flex-1 min-w-[200px]">
+                <Label htmlFor="period-select">Período</Label>
+                <Select value={period} onValueChange={setPeriod}>
+                  <SelectTrigger id="period-select">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="week">Última Semana</SelectItem>
+                    <SelectItem value="month">Mês Atual</SelectItem>
+                    <SelectItem value="lastMonth">Mês Anterior</SelectItem>
+                    <SelectItem value="custom">Período Personalizado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {period === 'custom' && (
+                <>
+                  <div className="flex-1 min-w-[200px]">
+                    <Label>Data Inicial</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            'w-full justify-start text-left font-normal',
+                            !customStartDate && 'text-muted-foreground'
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {customStartDate ? format(customStartDate, 'PPP', { locale: ptBR }) : 'Selecione a data'}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarComponent
+                          mode="single"
+                          selected={customStartDate}
+                          onSelect={setCustomStartDate}
+                          initialFocus
+                          className="pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  <div className="flex-1 min-w-[200px]">
+                    <Label>Data Final</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            'w-full justify-start text-left font-normal',
+                            !customEndDate && 'text-muted-foreground'
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {customEndDate ? format(customEndDate, 'PPP', { locale: ptBR }) : 'Selecione a data'}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarComponent
+                          mode="single"
+                          selected={customEndDate}
+                          onSelect={setCustomEndDate}
+                          initialFocus
+                          className="pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </>
+              )}
+
+              <div className="flex-1 min-w-[200px]">
+                <Label htmlFor="scale-select">Escala dos Gráficos</Label>
+                <Select 
+                  value={scale} 
+                  onValueChange={(value: TimeScale) => setManualScale(value)}
+                >
+                  <SelectTrigger id="scale-select">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="daily">Diário</SelectItem>
+                    <SelectItem value="weekly">Semanal</SelectItem>
+                    <SelectItem value="monthly">Mensal</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </Card>
         </div>
 
         {/* Instruções em edit mode */}
@@ -402,7 +562,8 @@ export default function DashboardExample() {
                     sessions,
                     start,
                     end,
-                    scale: 'weekly' as const,
+                    scale,
+                    aggregatedData,
                   })}
                           </ResizableCardSimple>
                         </SortableCard>
