@@ -54,6 +54,18 @@ const SECTION_ICONS = {
   'dashboard-media': BarChart3,
 } as const;
 
+/**
+ * Mapeamento de domínios para labels em português
+ */
+const DOMAIN_LABELS: Record<string, string> = {
+  financial: 'Financeiro',
+  administrative: 'Administrativo',
+  clinical: 'Clínico',
+  media: 'Mídia',
+  general: 'Geral',
+  charts: 'Gráficos',
+};
+
 export const AddCardDialog = ({ 
   open, 
   onOpenChange, 
@@ -147,7 +159,7 @@ export const AddCardDialog = ({
             </p>
             {card.permissionConfig && (
               <Badge variant="outline" className="mt-2 text-xs">
-                {card.permissionConfig.domain}
+                {DOMAIN_LABELS[card.permissionConfig.domain] || card.permissionConfig.domain}
               </Badge>
             )}
           </div>
