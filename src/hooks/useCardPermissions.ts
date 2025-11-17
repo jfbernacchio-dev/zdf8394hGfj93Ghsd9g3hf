@@ -39,7 +39,11 @@ import { ALL_AVAILABLE_CARDS } from '@/types/cardTypes';
 
 export function useCardPermissions() {
   const { isAdmin, isFullTherapist, isAccountant, isSubordinate } = useAuth();
-  const { permissions, loading } = useSubordinatePermissions();
+  const { permissions, loading: permissionsLoading } = useSubordinatePermissions();
+
+  // Só considerar loading se for subordinado e ainda não carregou permissões
+  // Admin, FullTherapist e Accountant não precisam esperar permissões
+  const loading = isSubordinate && permissionsLoading;
 
   // Derivar role atual baseado nos flags booleanos
   const currentRole: UserRole | null = 
