@@ -137,18 +137,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('🔍 [LOG 5] DENTRO do bloco try');
       console.log('🔍 [LOG 6] ANTES da query profiles');
       
-      // ✅ PROTEÇÃO 2: Timeout na query (15 segundos)
-      const queryPromise = supabase
+      // ✅ PROTEÇÃO 2: Query simples e direta (sem timeout complexo)
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .maybeSingle();
-      
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Query timeout after 15s')), 15000)
-      );
-      
-      const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
       
       console.log('🔍 [LOG 7] DEPOIS da query profiles', { hasData: !!data, hasError: !!error });
 
