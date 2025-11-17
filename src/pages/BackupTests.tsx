@@ -30,6 +30,9 @@ export default function BackupTests() {
   const [running, setRunning] = useState(false);
 
   useEffect(() => {
+    // SECURITY: Testes de backup são funcionalidade EXCLUSIVAMENTE administrativa (infraestrutura)
+    // e não devem ser controlados pelo sistema de permissões operacionais.
+    // Apenas o admin (dono do sistema) tem acesso.
     if (!isAdmin) {
       toast.error('Acesso negado');
       navigate('/dashboard');
