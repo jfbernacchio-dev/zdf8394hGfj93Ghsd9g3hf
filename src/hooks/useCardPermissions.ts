@@ -229,9 +229,15 @@ export function useCardPermissions() {
   /**
    * FASE 2: Decide se a seção deve ser renderizada
    * Seção só aparece se: (1) usuário tem permissão E (2) existem cards visíveis
+   * 
+   * FASE 3 (EDIT MODE): No modo de edição, mostra seção mesmo vazia
+   * para permitir adicionar o primeiro card
    */
-  const shouldShowSection = (sectionConfig: SectionConfig): boolean => {
+  const shouldShowSection = (sectionConfig: SectionConfig, isEditMode?: boolean): boolean => {
     if (!canViewSection(sectionConfig)) return false;
+    
+    // No modo de edição, mostrar seção mesmo sem cards
+    if (isEditMode) return true;
     
     const availableCards = getAvailableCardsForSection(sectionConfig);
     return availableCards.length > 0;
