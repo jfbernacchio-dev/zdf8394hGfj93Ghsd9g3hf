@@ -184,7 +184,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     // Marcar roles como carregados após todas as verificações
     setRolesLoaded(true);
-    console.log('[AuthContext] Roles carregados:', { isAdmin: !!adminRoleData, isAccountant: !!accountantRoleData, isSubordinate: !!subordinateData });
+    
+    // 🔍 LOG DIAGNÓSTICO COMPLETO: Todos os roles carregados
+    console.log('====================================');
+    console.log('🔍 [AuthContext] ROLES CARREGADOS');
+    console.log('====================================');
+    console.log('isAdmin:', !!adminRoleData);
+    console.log('isFullTherapist:', !!fullTherapistRoleData);
+    console.log('isAccountant:', !!accountantRoleData);
+    console.log('isSubordinate:', !!subordinateData);
+    console.log('rolesLoaded:', true);
+    console.log('====================================');
   };
 
   const signUp = async (email: string, password: string, userData: Omit<Profile, 'id'>) => {

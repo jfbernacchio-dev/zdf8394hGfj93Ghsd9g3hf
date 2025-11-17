@@ -11,12 +11,21 @@ interface UserRoles {
  * Converte flags booleanas em array de roles
  */
 export function getUserRoles(flags: UserRoles): UserRole[] {
+  // 🔍 LOG DIAGNÓSTICO: Flags recebidas
+  console.log('====================================');
+  console.log('🔍 [getUserRoles] FLAGS RECEBIDAS');
+  console.log('====================================');
+  console.log('Input flags:', JSON.stringify(flags, null, 2));
+  
   const roles: UserRole[] = [];
   
   if (flags.isAdmin) roles.push('admin');
   if (flags.isFullTherapist) roles.push('fulltherapist');
   if (flags.isSubordinate) roles.push('subordinate');
   if (flags.isAccountant) roles.push('accountant');
+  
+  console.log('Roles geradas:', roles);
+  console.log('====================================');
   
   return roles;
 }
