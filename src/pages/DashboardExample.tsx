@@ -39,17 +39,29 @@ export default function DashboardExample() {
 
   // Carregar layout salvo ou usar padrão
   useEffect(() => {
+    console.log('🔍 [DashboardExample] useEffect user:', user?.id);
     if (user) {
       loadLayout();
     }
   }, [user]);
 
+  useEffect(() => {
+    console.log('🎨 [DashboardExample] sectionCards atualizado:', sectionCards);
+    console.log('🔢 Total de seções com cards:', Object.keys(sectionCards).filter(k => sectionCards[k].length > 0).length);
+  }, [sectionCards]);
+
   const loadLayout = () => {
+    console.log('🔍 [DashboardExample] loadLayout chamado');
+    console.log('📦 DEFAULT_DASHBOARD_SECTIONS:', DEFAULT_DASHBOARD_SECTIONS);
     const saved = localStorage.getItem('dashboard-section-cards');
+    console.log('💾 localStorage saved:', saved);
     if (saved) {
       try {
-        setSectionCards(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        console.log('✅ Carregado do localStorage:', parsed);
+        setSectionCards(parsed);
       } catch {
+        console.log('❌ Erro ao parsear, usando DEFAULT');
         setSectionCards(DEFAULT_DASHBOARD_SECTIONS);
       }
     } else {
@@ -59,12 +71,15 @@ export default function DashboardExample() {
         try {
           const parsed: string[] = JSON.parse(oldCards);
           const migrated = migrateOldLayout(parsed);
+          console.log('🔄 Migrado de layout antigo:', migrated);
           setSectionCards(migrated);
           localStorage.setItem('dashboard-section-cards', JSON.stringify(migrated));
         } catch {
+          console.log('❌ Erro ao migrar, usando DEFAULT');
           setSectionCards(DEFAULT_DASHBOARD_SECTIONS);
         }
       } else {
+        console.log('🆕 Primeira vez, usando DEFAULT:', DEFAULT_DASHBOARD_SECTIONS);
         setSectionCards(DEFAULT_DASHBOARD_SECTIONS);
       }
     }
@@ -204,17 +219,20 @@ export default function DashboardExample() {
         </div>
 
         {/* FASE 5: Renderizar todas as seções usando PermissionAwareSection */}
-        {Object.keys(DASHBOARD_SECTIONS).map(sectionId => (
-          <PermissionAwareSection
-            key={sectionId}
-            sectionConfig={DASHBOARD_SECTIONS[sectionId]}
-            isEditMode={isEditMode}
-            existingCardIds={sectionCards[sectionId] || []}
-            onAddCard={(card) => handleAddCard(sectionId, card)}
-            onRemoveCard={(cardId) => handleRemoveCard(sectionId, cardId)}
-            renderCards={renderCards}
-          />
-        ))}
+        {Object.keys(DASHBOARD_SECTIONS).map(sectionId => {
+          console.log(`📋 Renderizando seção ${sectionId}, cards:`, sectionCards[sectionId] || []);
+          return (
+            <PermissionAwareSection
+              key={sectionId}
+              sectionConfig={DASHBOARD_SECTIONS[sectionId]}
+              isEditMode={isEditMode}
+              existingCardIds={sectionCards[sectionId] || []}
+              onAddCard={(card) => handleAddCard(sectionId, card)}
+              onRemoveCard={(cardId) => handleRemoveCard(sectionId, cardId)}
+              renderCards={renderCards}
+            />
+          );
+        })}
 
         {/* Dialogs de confirmação */}
         <AlertDialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
