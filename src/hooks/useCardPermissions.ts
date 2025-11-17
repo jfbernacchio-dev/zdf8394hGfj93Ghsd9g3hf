@@ -1,6 +1,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubordinatePermissions } from './useSubordinatePermissions';
 import type { PermissionDomain, AccessLevel } from '@/types/permissions';
+import { ALL_AVAILABLE_CARDS } from '@/types/cardTypes';
 
 /**
  * ============================================================================
@@ -37,7 +38,7 @@ export function useCardPermissions() {
 
     // Accountant tem acesso a domínios específicos
     if (isAccountant) {
-      const accountantDomains: PermissionDomain[] = ['financial', 'nfse', 'reports', 'statistics'];
+      const accountantDomains: PermissionDomain[] = ['financial'];
       return accountantDomains.includes(domain);
     }
 
@@ -49,34 +50,20 @@ export function useCardPermissions() {
 
     switch (domain) {
       case 'clinical':
-        // Pode ver clínico se: gerencia próprios OU pode ver tudo
         return permissions.canManageOwnPatients || permissions.canFullSeeClinic;
 
       case 'financial':
-        // Pode ver financeiro apenas se tem acesso financeiro
         if (minimumLevel === 'none') return false;
         return permissions.canViewOwnFinancial;
 
-      case 'patients':
-        // Sempre pode ver pacientes (próprios ou todos)
-        return true;
-
-      case 'statistics':
-        // Pode ver estatísticas se gerencia próprios pacientes
-        return permissions.canManageOwnPatients || permissions.canFullSeeClinic;
-
-      case 'nfse':
-        // Pode ver NFSe se tem acesso financeiro
-        return permissions.hasFinancialAccess;
-
-      case 'schedule':
       case 'administrative':
-        // Sempre tem acesso a agenda e administrativo
         return true;
 
-      case 'reports':
-        // Pode gerar relatórios se tem acesso financeiro
-        return permissions.canViewOwnFinancial;
+      case 'media':
+        return false; // Subordinados não veem mídia
+
+      case 'general':
+        return true;
 
       default:
         return false;
@@ -91,43 +78,11 @@ export function useCardPermissions() {
     // Admin, FullTherapist e Accountant veem tudo
     if (isAdmin || isFullTherapist || isAccountant) return true;
 
-    // Mapear card ID para domínio
-    const cardDomainMap: Record<string, PermissionDomain> = {
-      // Cards financeiros
-      'patient-stat-revenue-month': 'financial',
-      'patient-stat-revenue-total': 'financial',
-      'patient-stat-unpaid': 'financial',
-      'financial-closing': 'financial',
-      'payment-methods': 'financial',
-      'nfse-summary': 'nfse',
-      
-      // Cards clínicos
-      'clinical-complaints': 'clinical',
-      'clinical-evolution': 'clinical',
-      'session-evaluation': 'clinical',
-      
-      // Cards de pacientes
-      'patient-list': 'patients',
-      'patient-stat-total': 'patients',
-      'patient-stat-attended': 'patients',
-      'patient-stat-scheduled': 'patients',
-      
-      // Cards estatísticos (sempre liberados para subordinados com pacientes)
-      'revenue-chart': 'statistics',
-      'sessions-chart': 'statistics',
-      'attendance-rate': 'statistics',
-      
-      // Cards administrativos (sempre liberados)
-      'schedule-view': 'schedule',
-      'appointments': 'schedule',
-      'notifications': 'administrative',
-    };
+    // FASE 1: Usar permissionConfig dos cards
+    const card = ALL_AVAILABLE_CARDS.find(c => c.id === cardId);
+    if (!card) return true; // Se não encontrado, libera
 
-    const domain = cardDomainMap[cardId];
-    if (!domain) {
-      // Se não mapeado, libera (é funcionalidade básica)
-      return true;
-    }
+    const domain = card.permissionConfig.domain;
 
     return hasAccess(domain);
   };

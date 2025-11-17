@@ -87,13 +87,13 @@ export const routePermissions: RoutePermissionsConfig = {
   
   '/nfse/config': {
     blockedFor: ['accountant'],
-    requiresDomain: 'nfse',
+    requiresDomain: 'financial',
     minimumAccess: 'write',
   },
   
   '/nfse/history': {
     blockedFor: ['accountant'],
-    requiresDomain: 'nfse',
+    requiresDomain: 'financial',
     minimumAccess: 'read',
   },
   
@@ -113,19 +113,19 @@ export const routePermissions: RoutePermissionsConfig = {
   // Pacientes acessíveis por Admin e Subordinate (filtragem de dados acontece na query)
   '/patients': {
     blockedFor: ['accountant'],
-    requiresDomain: 'patients',
+    requiresDomain: 'administrative',
     minimumAccess: 'read',
   },
   
   '/patients/new': {
     blockedFor: ['accountant'],
-    requiresDomain: 'patients',
+    requiresDomain: 'administrative',
     minimumAccess: 'write',
   },
   
   '/schedule': {
     blockedFor: ['accountant'],
-    requiresDomain: 'schedule',
+    requiresDomain: 'administrative',
     minimumAccess: 'read',
   },
   
