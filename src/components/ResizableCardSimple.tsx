@@ -1,0 +1,153 @@
+import { useState, useEffect } from 'react';
+import { Card } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
+import { GripVertical } from 'lucide-react';
+
+interface ResizableCardSimpleProps {
+  id: string;
+  sectionId: string;
+  children: React.ReactNode;
+  className?: string;
+  isEditMode: boolean;
+  defaultWidth?: number;
+  minWidth?: number;
+  maxWidth?: number;
+  tempWidth?: number | null;
+  onTempWidthChange?: (cardId: string, width: number) => void;
+}
+
+/**
+ * RESIZABLE CARD SIMPLE
+ * 
+ * Versão simplificada do ResizableCard para uso em seções sequenciais.
+ * 
+ * DIFERENÇAS EM RELAÇÃO AO ResizableCard ORIGINAL:
+ * - Apenas resize HORIZONTAL (largura)
+ * - SEM drag & drop de posição (x, y)
+ * - SEM alignment guides
+ * - Comportamento em GRID RESPONSIVO ao invés de absolute positioning
+ * 
+ * USO:
+ * - Dentro de seções que usam grid/flex layout
+ * - Cards mantêm ordem sequencial definida por array
+ * - Largura é relativa ao container (não pixels absolutos)
+ */
+export const ResizableCardSimple = ({ 
+  id, 
+  sectionId,
+  children, 
+  className, 
+  isEditMode,
+  defaultWidth = 400,
+  minWidth = 280,
+  maxWidth = 800,
+  tempWidth,
+  onTempWidthChange,
+}: ResizableCardSimpleProps) => {
+  const [savedWidth, setSavedWidth] = useState(defaultWidth);
+  const [isResizing, setIsResizing] = useState(false);
+
+  // Load saved width from localStorage on mount
+  useEffect(() => {
+    const storageKey = `card-width-${sectionId}-${id}`;
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      const parsedWidth = parseInt(saved, 10);
+      if (!isNaN(parsedWidth)) {
+        setSavedWidth(parsedWidth);
+      }
+    }
+  }, [id, sectionId]);
+
+  // Use tempWidth if in edit mode and available, otherwise use savedWidth
+  const currentWidth = isEditMode && tempWidth !== null && tempWidth !== undefined ? tempWidth : savedWidth;
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!isEditMode) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    setIsResizing(true);
+    
+    const startX = e.clientX;
+    const startWidth = currentWidth;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const deltaX = moveEvent.clientX - startX;
+      const newWidth = Math.max(minWidth, Math.min(maxWidth, startWidth + deltaX));
+      
+      if (onTempWidthChange) {
+        onTempWidthChange(id, newWidth);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  // Save to localStorage when exiting edit mode
+  useEffect(() => {
+    if (!isEditMode && tempWidth !== null && tempWidth !== undefined && tempWidth !== savedWidth) {
+      const storageKey = `card-width-${sectionId}-${id}`;
+      localStorage.setItem(storageKey, tempWidth.toString());
+      setSavedWidth(tempWidth);
+    }
+  }, [isEditMode, tempWidth, savedWidth, id, sectionId]);
+
+  return (
+    <div
+      className={cn(
+        "relative transition-all duration-200",
+        isResizing && "z-50",
+        className
+      )}
+      style={{ 
+        width: `${currentWidth}px`,
+        flexShrink: 0,
+      }}
+    >
+      <Card 
+        className={cn(
+          "h-full overflow-hidden",
+          isEditMode && "ring-2 ring-primary/20 hover:ring-primary/40",
+          isResizing && "ring-2 ring-primary shadow-lg"
+        )}
+      >
+        {children}
+      </Card>
+
+      {/* Resize Handle - Right Edge */}
+      {isEditMode && (
+        <div
+          className={cn(
+            "absolute top-0 right-0 h-full w-2 cursor-ew-resize z-10",
+            "hover:bg-primary/20 transition-colors",
+            "flex items-center justify-center",
+            isResizing && "bg-primary/30"
+          )}
+          onMouseDown={handleMouseDown}
+        >
+          <div className={cn(
+            "w-1 h-12 bg-border rounded-full opacity-0 hover:opacity-100 transition-opacity",
+            isResizing && "opacity-100 bg-primary"
+          )}>
+            <GripVertical className="w-4 h-4 -ml-1.5 text-muted-foreground" />
+          </div>
+        </div>
+      )}
+
+      {/* Width Indicator (shown during resize) */}
+      {isEditMode && isResizing && (
+        <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-2 py-1 rounded text-xs font-medium whitespace-nowrap z-50">
+          {currentWidth}px
+        </div>
+      )}
+    </div>
+  );
+};
