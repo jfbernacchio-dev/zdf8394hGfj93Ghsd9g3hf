@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -62,7 +62,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isFullTherapist, setIsFullTherapist] = useState(false);
   const [isAccountant, setIsAccountant] = useState(false);
   const [isSubordinate, setIsSubordinate] = useState(false);
-  const [isFetchingProfile, setIsFetchingProfile] = useState(false);
+  const isFetchingProfileRef = useRef(false); // ✅ Mutex síncrono
   const { toast } = useToast();
 
   useEffect(() => {
@@ -116,18 +116,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const fetchProfile = async (userId: string) => {
-    // ✅ PROTEÇÃO 1: Verificar se já está executando
-    if (isFetchingProfile) {
+    // ✅ PROTEÇÃO 1: Mutex síncrono com useRef
+    if (isFetchingProfileRef.current) {
       console.log('⏸️ [AuthContext] fetchProfile já em execução, ignorando chamada duplicada');
-      return; // Early return impede execução simultânea
+      return;
     }
 
     console.log('🎯 [AuthContext] fetchProfile INICIADO para userId:', userId);
-    console.log('🔍 [LOG 1] ANTES de setIsFetchingProfile(true)');
+    console.log('🔍 [LOG 1] ANTES de bloquear mutex');
     
-    // ✅ PROTEÇÃO 2: Bloquear novas execuções
-    setIsFetchingProfile(true);
-    console.log('🔍 [LOG 2] DEPOIS de setIsFetchingProfile(true)');
+    // ✅ Bloquear novas execuções INSTANTANEAMENTE
+    isFetchingProfileRef.current = true;
+    console.log('🔍 [LOG 2] DEPOIS de bloquear mutex');
     
     setRolesLoaded(false);
     console.log('🔍 [LOG 3] DEPOIS de setRolesLoaded(false)');
@@ -137,11 +137,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('🔍 [LOG 5] DENTRO do bloco try');
       console.log('🔍 [LOG 6] ANTES da query profiles');
       
-      const { data, error } = await supabase
+      // ✅ PROTEÇÃO 2: Timeout na query (15 segundos)
+      const queryPromise = supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .maybeSingle();
+      
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Query timeout after 15s')), 15000)
+      );
+      
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
       
       console.log('🔍 [LOG 7] DEPOIS da query profiles', { hasData: !!data, hasError: !!error });
 
@@ -254,7 +261,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } finally {
       // ✅ PROTEÇÃO 4: SEMPRE liberar a flag (crítico!)
       console.log('🔍 [LOG 31] DENTRO do bloco finally');
-      setIsFetchingProfile(false);
+      isFetchingProfileRef.current = false;
       console.log('🔓 [AuthContext] fetchProfile concluído, flag liberada');
       console.log('🔍 [LOG 32] FIM do bloco finally');
     }
