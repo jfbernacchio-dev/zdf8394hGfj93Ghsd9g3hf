@@ -115,6 +115,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const fetchProfile = async (userId: string) => {
+    console.log('🎯 [AuthContext] fetchProfile INICIADO para userId:', userId);
+    
     // Resetar rolesLoaded ao iniciar busca
     setRolesLoaded(false);
     
@@ -123,6 +125,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       .select('*')
       .eq('id', userId)
       .maybeSingle();
+
+    console.log('📋 [AuthContext] Profile buscado:', { sucesso: !error, hasData: !!data });
 
     if (error) {
       console.error('Error fetching profile:', error);
@@ -143,6 +147,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.error('[AuthContext] Erro ao carregar template padrão:', error);
     }
 
+    console.log('🔍 [AuthContext] Iniciando verificação de roles...');
+
     // Check if user is admin
     const { data: adminRoleData } = await supabase
       .from('user_roles')
@@ -151,6 +157,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       .eq('role', 'admin')
       .maybeSingle();
 
+    console.log('👑 [AuthContext] Admin check:', !!adminRoleData);
     setIsAdmin(!!adminRoleData);
 
     // Check if user is fulltherapist
@@ -161,6 +168,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       .eq('role', 'fulltherapist')
       .maybeSingle();
 
+    console.log('🧑‍⚕️ [AuthContext] FullTherapist check:', !!fullTherapistRoleData);
     setIsFullTherapist(!!fullTherapistRoleData);
 
     // Check if user is accountant
@@ -171,6 +179,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       .eq('role', 'accountant')
       .maybeSingle();
 
+    console.log('💼 [AuthContext] Accountant check:', !!accountantRoleData);
     setIsAccountant(!!accountantRoleData);
 
     // Check if user is subordinate (has a manager)
@@ -180,6 +189,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       .eq('subordinate_id', userId)
       .maybeSingle();
 
+    console.log('👥 [AuthContext] Subordinate check:', !!subordinateData);
     setIsSubordinate(!!subordinateData);
     
     // Marcar roles como carregados após todas as verificações

@@ -78,11 +78,12 @@ export const PermissionAwareSection = ({
   const [isCollapsed, setIsCollapsed] = useState(sectionConfig.startCollapsed || false);
   const [showAddDialog, setShowAddDialog] = useState(false);
 
-  console.log(`🔐 [PermissionAwareSection] ${sectionConfig.id}:`, {
+  console.log(`🔐 [PermissionAwareSection] ${sectionConfig.id} RENDERIZOU:`, {
     permissionsLoading,
     shouldShow: shouldShowSection(sectionConfig),
     existingCardIds: existingCardIds.length,
-    isEditMode
+    isEditMode,
+    renderNumber: Date.now() // Para ver quantas vezes renderiza
   });
 
   // FASE 3: Validação automática de permissões
