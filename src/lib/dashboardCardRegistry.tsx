@@ -30,6 +30,19 @@ interface CardProps {
   start?: Date;
   end?: Date;
   scale?: TimeScale;
+  aggregatedData?: Array<{
+    label: string;
+    interval: Date;
+    attended: number;
+    missed: number;
+    pending: number;
+    paid: number;
+    unpaid: number;
+    totalRevenue: number;
+    paidRevenue: number;
+    unpaidRevenue: number;
+    total: number;
+  }>;
 }
 
 /**
