@@ -28,7 +28,7 @@ import { AddCardDialog } from '@/components/AddCardDialog';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { useChartTimeScale, generateTimeIntervals, formatTimeLabel, getIntervalBounds, TimeScale } from '@/hooks/useChartTimeScale';
+import { useChartTimeScale, generateTimeIntervals, formatTimeLabel, getIntervalBounds, getScaleLabel, TimeScale } from '@/hooks/useChartTimeScale';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -59,9 +59,8 @@ export default function DashboardExample() {
   const [patients, setPatients] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
   const [period, setPeriod] = useState('month');
-  const [customStartDate, setCustomStartDate] = useState<Date>();
-  const [customEndDate, setCustomEndDate] = useState<Date>();
-  const [manualScale, setManualScale] = useState<TimeScale | null>(null);
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
 
   const {
     layout,
@@ -104,20 +103,53 @@ export default function DashboardExample() {
     const now = new Date();
     let start: Date, end: Date;
 
-    if (period === 'custom' && customStartDate && customEndDate) {
-      start = customStartDate;
-      end = customEndDate;
+    if (period === 'custom') {
+      start = new Date(customStartDate);
+      end = new Date(customEndDate);
     } else if (period === 'week') {
       start = new Date(now);
       start.setDate(now.getDate() - 7);
       end = now;
+    } else if (period === 'thisWeek') {
+      // Esta Semana (domingo a sábado)
+      const dayOfWeek = now.getDay();
+      start = new Date(now);
+      start.setDate(now.getDate() - dayOfWeek);
+      start.setHours(0, 0, 0, 0);
+      end = now;
     } else if (period === 'lastMonth') {
       start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       end = new Date(now.getFullYear(), now.getMonth(), 0);
-    } else {
-      // month (padrão)
-      start = new Date(now.getFullYear(), now.getMonth(), 1);
+    } else if (period === 'last2Months') {
+      start = new Date(now.getFullYear(), now.getMonth() - 2, 1);
       end = now;
+    } else if (period === 'q1') {
+      // Q1: Janeiro a Março
+      start = new Date(now.getFullYear(), 0, 1);
+      end = new Date(now.getFullYear(), 2, 31);
+    } else if (period === 'q2') {
+      // Q2: Abril a Junho
+      start = new Date(now.getFullYear(), 3, 1);
+      end = new Date(now.getFullYear(), 5, 30);
+    } else if (period === 'q3') {
+      // Q3: Julho a Setembro
+      start = new Date(now.getFullYear(), 6, 1);
+      end = new Date(now.getFullYear(), 8, 30);
+    } else if (period === 'q4') {
+      // Q4: Outubro a Dezembro
+      start = new Date(now.getFullYear(), 9, 1);
+      end = new Date(now.getFullYear(), 11, 31);
+    } else if (period === 'year') {
+      start = new Date(now.getFullYear(), 0, 1);
+      end = now;
+    } else if (period === 'all' || period === 'allTime') {
+      // Todo período: desde a primeira sessão até hoje
+      start = new Date('2020-01-01');
+      end = now;
+    } else {
+      // month (padrão) - MÊS COMPLETO
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+      end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     }
 
     return { start, end };
@@ -126,15 +158,20 @@ export default function DashboardExample() {
   const { start, end } = getDateRange();
   
   // Hook para determinar escala automática baseada no período
-  const { automaticScale } = useChartTimeScale({ startDate: start, endDate: end });
-  const scale = manualScale || automaticScale;
+  const { 
+    automaticScale, 
+    getScale, 
+    setScaleOverride, 
+    clearOverride, 
+    hasOverride 
+  } = useChartTimeScale({ startDate: start, endDate: end });
   
   /**
    * AGREGAÇÃO DE DADOS PARA GRÁFICOS
    * Gera intervalos de tempo e calcula métricas para cada intervalo
    */
-  const aggregatedData = generateTimeIntervals(start, end, scale).map(intervalDate => {
-    const bounds = getIntervalBounds(intervalDate, scale);
+  const aggregatedData = generateTimeIntervals(start, end, automaticScale).map(intervalDate => {
+    const bounds = getIntervalBounds(intervalDate, automaticScale);
     
     const intervalSessions = sessions.filter(session => {
       const sessionDate = new Date(session.date);
@@ -160,7 +197,7 @@ export default function DashboardExample() {
       .reduce((sum, s) => sum + (s.value || 0), 0);
 
     return {
-      label: formatTimeLabel(intervalDate, scale),
+      label: formatTimeLabel(intervalDate, automaticScale),
       interval: intervalDate,
       attended: attendedCount,
       missed: missedCount,
@@ -352,10 +389,16 @@ export default function DashboardExample() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="week">Última Semana</SelectItem>
-                    <SelectItem value="month">Mês Atual</SelectItem>
-                    <SelectItem value="lastMonth">Mês Anterior</SelectItem>
-                    <SelectItem value="custom">Período Personalizado</SelectItem>
+                    <SelectItem value="month">Este Mês</SelectItem>
+                    <SelectItem value="thisWeek">Esta Semana</SelectItem>
+                    <SelectItem value="lastMonth">Último Mês</SelectItem>
+                    <SelectItem value="last2Months">Últimos 2 Meses</SelectItem>
+                    <SelectItem value="q1">Q1 (Jan-Mar)</SelectItem>
+                    <SelectItem value="q2">Q2 (Abr-Jun)</SelectItem>
+                    <SelectItem value="q3">Q3 (Jul-Set)</SelectItem>
+                    <SelectItem value="q4">Q4 (Out-Dez)</SelectItem>
+                    <SelectItem value="custom">Personalizado</SelectItem>
+                    <SelectItem value="all">Todo Período</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -374,14 +417,16 @@ export default function DashboardExample() {
                           )}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {customStartDate ? format(customStartDate, 'PPP', { locale: ptBR }) : 'Selecione a data'}
+                          {customStartDate ? format(new Date(customStartDate + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione'}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
                         <CalendarComponent
                           mode="single"
-                          selected={customStartDate}
-                          onSelect={setCustomStartDate}
+                          selected={customStartDate ? new Date(customStartDate + 'T00:00:00') : undefined}
+                          onSelect={(date) => {
+                            if (date) setCustomStartDate(format(date, 'yyyy-MM-dd'));
+                          }}
                           initialFocus
                           className="pointer-events-auto"
                         />
@@ -401,14 +446,16 @@ export default function DashboardExample() {
                           )}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {customEndDate ? format(customEndDate, 'PPP', { locale: ptBR }) : 'Selecione a data'}
+                          {customEndDate ? format(new Date(customEndDate + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione'}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
                         <CalendarComponent
                           mode="single"
-                          selected={customEndDate}
-                          onSelect={setCustomEndDate}
+                          selected={customEndDate ? new Date(customEndDate + 'T00:00:00') : undefined}
+                          onSelect={(date) => {
+                            if (date) setCustomEndDate(format(date, 'yyyy-MM-dd'));
+                          }}
                           initialFocus
                           className="pointer-events-auto"
                         />
@@ -417,23 +464,6 @@ export default function DashboardExample() {
                   </div>
                 </>
               )}
-
-              <div className="flex-1 min-w-[200px]">
-                <Label htmlFor="scale-select">Escala dos Gráficos</Label>
-                <Select 
-                  value={scale} 
-                  onValueChange={(value: TimeScale) => setManualScale(value)}
-                >
-                  <SelectTrigger id="scale-select">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="daily">Diário</SelectItem>
-                    <SelectItem value="weekly">Semanal</SelectItem>
-                    <SelectItem value="monthly">Mensal</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
           </Card>
         </div>
@@ -562,7 +592,11 @@ export default function DashboardExample() {
                     sessions,
                     start,
                     end,
-                    scale,
+                    automaticScale,
+                    getScale,
+                    setScaleOverride,
+                    clearOverride,
+                    hasOverride,
                     aggregatedData,
                   })}
                           </ResizableCardSimple>
