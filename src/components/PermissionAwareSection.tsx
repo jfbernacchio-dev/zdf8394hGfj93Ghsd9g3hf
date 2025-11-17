@@ -111,9 +111,11 @@ export const PermissionAwareSection = ({
 
   // Se não há cards visíveis e não está em modo de edição, não renderizar
   if (addedCards.length === 0 && !isEditMode) {
-    console.log(`📭 [${sectionConfig.id}] Sem cards para mostrar`);
+    console.log(`📭📭📭 [${sectionConfig.id}] RETORNANDO NULL: addedCards=0 e isEditMode=false`);
     return null;
   }
+  
+  console.log(`🎉🎉🎉 [${sectionConfig.id}] VAI RENDERIZAR A SEÇÃO!`);
 
   const handleToggleCollapse = () => {
     if (sectionConfig.collapsible) {
