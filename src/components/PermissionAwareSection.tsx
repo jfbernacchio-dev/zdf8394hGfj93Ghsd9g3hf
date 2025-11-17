@@ -78,13 +78,22 @@ export const PermissionAwareSection = ({
   const [isCollapsed, setIsCollapsed] = useState(sectionConfig.startCollapsed || false);
   const [showAddDialog, setShowAddDialog] = useState(false);
 
+  console.log(`🔐 [PermissionAwareSection] ${sectionConfig.id}:`, {
+    permissionsLoading,
+    shouldShow: shouldShowSection(sectionConfig),
+    existingCardIds: existingCardIds.length,
+    isEditMode
+  });
+
   // FASE 3: Validação automática de permissões
   if (permissionsLoading) {
+    console.log(`⏳ [${sectionConfig.id}] Loading permissions...`);
     return null; // Ou skeleton loader se preferir
   }
 
   // FASE 3: Ocultar seção se usuário não tiver permissão
   if (!shouldShowSection(sectionConfig)) {
+    console.log(`🚫 [${sectionConfig.id}] Sem permissão para ver seção`);
     return null;
   }
 
@@ -93,8 +102,15 @@ export const PermissionAwareSection = ({
   const addedCards = visibleCards.filter(card => existingCardIds.includes(card.id));
   const availableCards = visibleCards.filter(card => !existingCardIds.includes(card.id));
 
+  console.log(`✅ [${sectionConfig.id}] Vai renderizar:`, {
+    visibleCards: visibleCards.length,
+    addedCards: addedCards.length,
+    availableCards: availableCards.length
+  });
+
   // Se não há cards visíveis e não está em modo de edição, não renderizar
   if (addedCards.length === 0 && !isEditMode) {
+    console.log(`📭 [${sectionConfig.id}] Sem cards para mostrar`);
     return null;
   }
 
