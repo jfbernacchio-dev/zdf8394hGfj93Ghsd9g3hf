@@ -80,7 +80,7 @@ export const PermissionAwareSection = ({
 
   console.log(`🔐 [PermissionAwareSection] ${sectionConfig.id} RENDERIZOU:`, {
     permissionsLoading,
-    shouldShow: shouldShowSection(sectionConfig),
+    shouldShow: shouldShowSection(sectionConfig, isEditMode),
     existingCardIds: existingCardIds.length,
     isEditMode,
     renderNumber: Date.now() // Para ver quantas vezes renderiza
@@ -93,7 +93,8 @@ export const PermissionAwareSection = ({
   }
 
   // FASE 3: Ocultar seção se usuário não tiver permissão
-  if (!shouldShowSection(sectionConfig)) {
+  // IMPORTANTE: Passar isEditMode para permitir seções vazias no modo de edição
+  if (!shouldShowSection(sectionConfig, isEditMode)) {
     console.log(`🚫 [${sectionConfig.id}] Sem permissão para ver seção`);
     return null;
   }
