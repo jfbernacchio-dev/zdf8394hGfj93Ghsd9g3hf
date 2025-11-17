@@ -36,15 +36,26 @@ export function useSubordinatePermissions() {
   const [permissions, setPermissions] = useState<ExtendedAutonomyPermissions | null>(null);
   const [loading, setLoading] = useState(true);
 
+  console.log('🎫 [useSubordinatePermissions] Estado:', {
+    userId: user?.id,
+    isSubordinate,
+    loading,
+    hasPermissions: !!permissions
+  });
+
   useEffect(() => {
     async function loadPermissions() {
+      console.log('🎫 [useSubordinatePermissions] loadPermissions chamado:', { user: user?.id, isSubordinate });
+      
       if (!user) {
+        console.log('🎫 [useSubordinatePermissions] Sem user, setLoading(false)');
         setLoading(false);
         return;
       }
 
       // Se não é subordinado, tem todas as permissões (é Full)
       if (!isSubordinate) {
+        console.log('🎫 [useSubordinatePermissions] NÃO é subordinado, setando permissões completas');
         setPermissions({
           managesOwnPatients: false, // Full gerencia todos
           hasFinancialAccess: true,
