@@ -103,6 +103,10 @@ export function useCardPermissions() {
       case 'general':
         return true;
 
+      case 'charts':
+        // Acesso a gráficos: verifica os domínios secundários
+        return true;
+
       default:
         return false;
     }

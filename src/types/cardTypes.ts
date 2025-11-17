@@ -52,6 +52,7 @@ export interface CardConfig {
   defaultWidth?: number;
   defaultHeight?: number;
   permissionConfig?: CardPermissionConfig;
+  isChart?: boolean; // FASE 2B: Flag para identificar cards gráficos
 }
 
 /**
@@ -500,6 +501,7 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
     category: 'dashboard-charts',
     defaultWidth: 600,
     defaultHeight: 400,
+    isChart: true,
     permissionConfig: {
       domain: 'financial',
       requiresFinancialAccess: true,
@@ -513,6 +515,7 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
     category: 'dashboard-charts',
     defaultWidth: 500,
     defaultHeight: 400,
+    isChart: true,
     permissionConfig: {
       domain: 'administrative',
     },
@@ -525,6 +528,7 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
     category: 'dashboard-charts',
     defaultWidth: 600,
     defaultHeight: 400,
+    isChart: true,
     permissionConfig: {
       domain: 'administrative',
       blockedFor: ['subordinate'],
@@ -538,6 +542,7 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
     category: 'dashboard-charts',
     defaultWidth: 600,
     defaultHeight: 400,
+    isChart: true,
     permissionConfig: {
       domain: 'clinical',
     },
@@ -550,6 +555,7 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
     category: 'dashboard-charts',
     defaultWidth: 500,
     defaultHeight: 400,
+    isChart: true,
     permissionConfig: {
       domain: 'financial',
       requiresFinancialAccess: true,
@@ -563,6 +569,7 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
     category: 'dashboard-charts',
     defaultWidth: 600,
     defaultHeight: 400,
+    isChart: true,
     permissionConfig: {
       domain: 'financial',
       requiresFinancialAccess: true,
@@ -576,6 +583,7 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
     category: 'dashboard-charts',
     defaultWidth: 600,
     defaultHeight: 400,
+    isChart: true,
     permissionConfig: {
       domain: 'financial',
       requiresFinancialAccess: true,
@@ -590,6 +598,7 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
     category: 'dashboard-charts',
     defaultWidth: 600,
     defaultHeight: 400,
+    isChart: true,
     permissionConfig: {
       domain: 'financial',
       requiresFinancialAccess: true,
@@ -603,6 +612,7 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
     category: 'dashboard-charts',
     defaultWidth: 600,
     defaultHeight: 400,
+    isChart: true,
     permissionConfig: {
       domain: 'administrative',
     },
@@ -615,6 +625,7 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
     category: 'dashboard-charts',
     defaultWidth: 500,
     defaultHeight: 400,
+    isChart: true,
     permissionConfig: {
       domain: 'administrative',
     },
