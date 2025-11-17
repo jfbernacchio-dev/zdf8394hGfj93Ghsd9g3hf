@@ -97,6 +97,25 @@ export const DASHBOARD_SECTIONS: Record<string, SectionConfig> = {
     collapsible: true,
     startCollapsed: true,
   },
+
+  'dashboard-general': {
+    id: 'dashboard-general',
+    name: 'Visão Geral',
+    description: 'Cards gerais e informações do sistema',
+    permissionConfig: {
+      primaryDomain: 'general',
+      secondaryDomains: [],
+      blockedFor: [],
+      requiresOwnDataOnly: false,
+    },
+    availableCardIds: [
+      // Nota: Cards gerais ainda não implementados
+      // Esta seção está pronta para receber cards com domain 'general'
+    ],
+    defaultHeight: 300,
+    collapsible: true,
+    startCollapsed: false,
+  },
 };
 
 /**
@@ -120,5 +139,8 @@ export const DEFAULT_DASHBOARD_SECTIONS = {
   ],
   'dashboard-media': [
     // Vazio até cards de mídia serem implementados
+  ],
+  'dashboard-general': [
+    // Vazio até cards gerais serem implementados
   ],
 };

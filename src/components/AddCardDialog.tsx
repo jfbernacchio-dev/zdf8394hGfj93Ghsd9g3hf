@@ -23,7 +23,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
-import { Plus, X, DollarSign, Calendar, Activity, BarChart3 } from 'lucide-react';
+import { Plus, X, DollarSign, Calendar, Activity, BarChart3, Settings } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { useCardPermissions } from '@/hooks/useCardPermissions';
@@ -52,6 +52,7 @@ const SECTION_ICONS = {
   'dashboard-administrative': Calendar,
   'dashboard-clinical': Activity,
   'dashboard-media': BarChart3,
+  'dashboard-general': Settings,
 } as const;
 
 /**
