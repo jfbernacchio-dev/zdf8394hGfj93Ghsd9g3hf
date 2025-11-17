@@ -116,6 +116,36 @@ export const DASHBOARD_SECTIONS: Record<string, SectionConfig> = {
     collapsible: true,
     startCollapsed: false,
   },
+
+  'dashboard-charts': {
+    id: 'dashboard-charts',
+    name: 'Visão Gráfica',
+    description: 'Gráficos consolidados de todas as áreas',
+    permissionConfig: {
+      primaryDomain: 'charts',
+      secondaryDomains: ['financial', 'administrative', 'clinical', 'media'],
+      blockedFor: [],
+      requiresOwnDataOnly: true,
+    },
+    availableCardIds: [
+      // Gráficos financeiros
+      'dashboard-chart-revenue-trend',
+      'dashboard-chart-payment-status',
+      'dashboard-chart-revenue-by-therapist',
+      'dashboard-chart-attendance-weekly',
+      'dashboard-chart-patient-growth',
+      // Gráficos administrativos
+      'dashboard-chart-session-types',
+      'dashboard-chart-therapist-distribution',
+      'dashboard-chart-hourly-distribution',
+      'dashboard-chart-cancellation-reasons',
+      // Gráficos clínicos
+      'dashboard-chart-monthly-comparison',
+    ],
+    defaultHeight: 400,
+    collapsible: true,
+    startCollapsed: false,
+  },
 };
 
 /**
@@ -142,5 +172,11 @@ export const DEFAULT_DASHBOARD_SECTIONS = {
   ],
   'dashboard-general': [
     // Vazio até cards gerais serem implementados
+  ],
+  'dashboard-charts': [
+    'dashboard-chart-revenue-trend',
+    'dashboard-chart-session-types',
+    'dashboard-chart-payment-status',
+    'dashboard-chart-therapist-distribution',
   ],
 };

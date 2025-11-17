@@ -23,7 +23,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
-import { Plus, X, DollarSign, Calendar, Activity, BarChart3, Settings } from 'lucide-react';
+import { Plus, X, DollarSign, Calendar, Activity, BarChart3, Settings, TrendingUp } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { useCardPermissions } from '@/hooks/useCardPermissions';
@@ -53,6 +53,7 @@ const SECTION_ICONS = {
   'dashboard-clinical': Activity,
   'dashboard-media': BarChart3,
   'dashboard-general': Settings,
+  'dashboard-charts': TrendingUp,
 } as const;
 
 /**
@@ -87,6 +88,9 @@ export const AddCardDialog = ({
   
   // Estado: dentro da seção, qual sub-tab (disponível ou adicionados)
   const [viewMode, setViewMode] = useState<'available' | 'added'>('available');
+  
+  // FASE 2B: Estado para sub-domínio quando em seção de gráficos
+  const [selectedChartDomain, setSelectedChartDomain] = useState<string>('financial');
 
   /**
    * Wrapper para onAddCard que suporta ambas as assinaturas
@@ -139,6 +143,26 @@ export const AddCardDialog = ({
       config: sectionConfig,
       availableCards: notAddedCards,
       addedCards,
+    };
+  };
+
+  /**
+   * FASE 2B: Filtra gráficos por domínio (para seção de charts)
+   */
+  const getChartsForDomain = (domain: string, sectionData: ReturnType<typeof getSectionData>) => {
+    if (!sectionData) return { availableCards: [], addedCards: [] };
+    
+    const availableFiltered = sectionData.availableCards.filter(
+      card => card.isChart && card.permissionConfig?.domain === domain
+    );
+    
+    const addedFiltered = sectionData.addedCards.filter(
+      card => card.isChart && card.permissionConfig?.domain === domain
+    );
+    
+    return {
+      availableCards: availableFiltered,
+      addedCards: addedFiltered,
     };
   };
 
@@ -252,57 +276,130 @@ export const AddCardDialog = ({
                     <p className="text-xs text-muted-foreground">{config.description}</p>
                   </div>
 
-                  {/* Sub-tabs: Disponível vs Adicionados */}
-                  <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'available' | 'added')}>
-                    <TabsList className="grid w-full grid-cols-2 mb-4">
-                      <TabsTrigger value="available">
-                        Disponível ({availableCards.length})
-                      </TabsTrigger>
-                      <TabsTrigger value="added">
-                        Adicionados ({addedCards.length})
-                      </TabsTrigger>
-                    </TabsList>
+                  {/* FASE 2B: Renderização condicional - 3 níveis para charts, 2 níveis para outras */}
+                  {sectionId === 'dashboard-charts' ? (
+                    /* TRÊS NÍVEIS: Tab de domínio → Tab disponível/adicionados */
+                    <Tabs value={selectedChartDomain} onValueChange={setSelectedChartDomain}>
+                      <TabsList className="grid w-full grid-cols-4 mb-4">
+                        <TabsTrigger value="financial">Financeiros</TabsTrigger>
+                        <TabsTrigger value="administrative">Administrativos</TabsTrigger>
+                        <TabsTrigger value="clinical">Clínicos</TabsTrigger>
+                        <TabsTrigger value="media">Mídia</TabsTrigger>
+                      </TabsList>
 
-                    {/* Cards disponíveis para adicionar */}
-                    <TabsContent value="available">
-                      <ScrollArea className="h-[400px] pr-4">
-                        {availableCards.length === 0 ? (
-                          <div className="text-center py-8 text-muted-foreground">
-                            <p>Nenhum card disponível para adicionar</p>
-                            <p className="text-xs mt-2">
-                              Todos os cards desta seção já foram adicionados
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="space-y-3">
-                            {availableCards.map(card => 
-                              renderCardItem(card, sectionId, 'add')
-                            )}
-                          </div>
-                        )}
-                      </ScrollArea>
-                    </TabsContent>
+                      {['financial', 'administrative', 'clinical', 'media'].map(domain => {
+                        const chartsData = getChartsForDomain(domain, sectionData);
+                        
+                        return (
+                          <TabsContent key={domain} value={domain}>
+                            {/* Segundo nível: Disponível vs Adicionados */}
+                            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'available' | 'added')}>
+                              <TabsList className="grid w-full grid-cols-2 mb-4">
+                                <TabsTrigger value="available">
+                                  Disponível ({chartsData.availableCards.length})
+                                </TabsTrigger>
+                                <TabsTrigger value="added">
+                                  Adicionados ({chartsData.addedCards.length})
+                                </TabsTrigger>
+                              </TabsList>
 
-                    {/* Cards já adicionados */}
-                    <TabsContent value="added">
-                      <ScrollArea className="h-[400px] pr-4">
-                        {addedCards.length === 0 ? (
-                          <div className="text-center py-8 text-muted-foreground">
-                            <p>Nenhum card adicionado ainda</p>
-                            <p className="text-xs mt-2">
-                              Vá para a aba "Disponível" para adicionar cards
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="space-y-3">
-                            {addedCards.map(card => 
-                              renderCardItem(card, sectionId, 'remove')
-                            )}
-                          </div>
-                        )}
-                      </ScrollArea>
-                    </TabsContent>
-                  </Tabs>
+                              {/* Cards disponíveis */}
+                              <TabsContent value="available">
+                                <ScrollArea className="h-[400px] pr-4">
+                                  {chartsData.availableCards.length === 0 ? (
+                                    <div className="text-center py-8 text-muted-foreground">
+                                      <p>Nenhum gráfico {DOMAIN_LABELS[domain].toLowerCase()} disponível</p>
+                                      <p className="text-xs mt-2">
+                                        Todos os gráficos desta categoria já foram adicionados
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <div className="space-y-3">
+                                      {chartsData.availableCards.map(card => 
+                                        renderCardItem(card, sectionId, 'add')
+                                      )}
+                                    </div>
+                                  )}
+                                </ScrollArea>
+                              </TabsContent>
+
+                              {/* Cards adicionados */}
+                              <TabsContent value="added">
+                                <ScrollArea className="h-[400px] pr-4">
+                                  {chartsData.addedCards.length === 0 ? (
+                                    <div className="text-center py-8 text-muted-foreground">
+                                      <p>Nenhum gráfico {DOMAIN_LABELS[domain].toLowerCase()} adicionado</p>
+                                      <p className="text-xs mt-2">
+                                        Vá para a aba "Disponível" para adicionar gráficos
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <div className="space-y-3">
+                                      {chartsData.addedCards.map(card => 
+                                        renderCardItem(card, sectionId, 'remove')
+                                      )}
+                                    </div>
+                                  )}
+                                </ScrollArea>
+                              </TabsContent>
+                            </Tabs>
+                          </TabsContent>
+                        );
+                      })}
+                    </Tabs>
+                  ) : (
+                    /* DOIS NÍVEIS: Sistema atual para outras seções */
+                    <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'available' | 'added')}>
+                      <TabsList className="grid w-full grid-cols-2 mb-4">
+                        <TabsTrigger value="available">
+                          Disponível ({availableCards.length})
+                        </TabsTrigger>
+                        <TabsTrigger value="added">
+                          Adicionados ({addedCards.length})
+                        </TabsTrigger>
+                      </TabsList>
+
+                      {/* Cards disponíveis para adicionar */}
+                      <TabsContent value="available">
+                        <ScrollArea className="h-[400px] pr-4">
+                          {availableCards.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground">
+                              <p>Nenhum card disponível para adicionar</p>
+                              <p className="text-xs mt-2">
+                                Todos os cards desta seção já foram adicionados
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="space-y-3">
+                              {availableCards.map(card => 
+                                renderCardItem(card, sectionId, 'add')
+                              )}
+                            </div>
+                          )}
+                        </ScrollArea>
+                      </TabsContent>
+
+                      {/* Cards já adicionados */}
+                      <TabsContent value="added">
+                        <ScrollArea className="h-[400px] pr-4">
+                          {addedCards.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground">
+                              <p>Nenhum card adicionado ainda</p>
+                              <p className="text-xs mt-2">
+                                Vá para a aba "Disponível" para adicionar cards
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="space-y-3">
+                              {addedCards.map(card => 
+                                renderCardItem(card, sectionId, 'remove')
+                              )}
+                            </div>
+                          )}
+                        </ScrollArea>
+                      </TabsContent>
+                    </Tabs>
+                  )}
                 </TabsContent>
               );
             })}

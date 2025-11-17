@@ -19,7 +19,8 @@ export type PermissionDomain =
   | 'administrative'  // Sessões, agenda, notificações, métricas administrativas
   | 'clinical'        // Queixas, evoluções, diagnósticos, métricas clínicas
   | 'media'           // Google Ads, website, analytics, métricas de marketing
-  | 'general';        // Sem restrição (contato, perfil, informações básicas)
+  | 'general'         // Sem restrição (contato, perfil, informações básicas)
+  | 'charts';         // FASE 2B: Seção especial que agrega gráficos de todos os domínios
 
 /**
  * NÍVEIS DE ACESSO
@@ -56,6 +57,7 @@ export interface DomainPermissions {
   clinical: AccessLevel;
   media: AccessLevel;
   general: AccessLevel;
+  charts: AccessLevel;
 }
 
 /**
