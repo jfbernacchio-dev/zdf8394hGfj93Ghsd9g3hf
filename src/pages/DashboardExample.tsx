@@ -15,7 +15,9 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Pencil, Save, X, RotateCcw, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Pencil, Save, X, RotateCcw, Loader2, CheckCircle2, AlertCircle, Sparkles, GripVertical } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -135,11 +137,27 @@ export default function DashboardExample() {
   if (loading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center space-y-4">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-            <p className="text-muted-foreground">Carregando dashboard...</p>
+        <div className="space-y-6 p-6 animate-fade-in">
+          {/* Header skeleton */}
+          <div className="flex items-center justify-between">
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-64" />
+              <Skeleton className="h-4 w-48" />
+            </div>
+            <Skeleton className="h-10 w-32" />
           </div>
+          
+          {/* Sections skeleton */}
+          {[1, 2].map((i) => (
+            <div key={i} className="space-y-3">
+              <Skeleton className="h-6 w-48" />
+              <div className="flex gap-4">
+                <Skeleton className="h-64 w-80" />
+                <Skeleton className="h-64 w-80" />
+                <Skeleton className="h-64 w-80" />
+              </div>
+            </div>
+          ))}
         </div>
       </Layout>
     );
@@ -147,7 +165,7 @@ export default function DashboardExample() {
 
   return (
     <Layout>
-      <div className="space-y-6 p-6">
+      <div className="space-y-6 p-6 animate-fade-in">
         {/* Header com controles */}
         <div className="flex items-center justify-between">
           <div>
@@ -200,16 +218,19 @@ export default function DashboardExample() {
 
         {/* Instruções em edit mode */}
         {isEditMode && (
-          <Card className="bg-primary/5 border-primary/20">
+          <Card className="bg-primary/5 border-primary/20 animate-scale-in">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <AlertCircle className="h-4 w-4" />
-                Modo de Edição
+                <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+                Modo de Edição Ativo
               </CardTitle>
               <div className="text-xs text-muted-foreground space-y-1 mt-2">
-                <p>• <strong>Arraste</strong> o ícone à esquerda para reordenar cards</p>
+                <p>• <strong>Arraste</strong> o ícone 
+                  <GripVertical className="inline h-3 w-3 mx-1" /> 
+                  à esquerda para reordenar cards
+                </p>
                 <p>• <strong>Redimensione</strong> usando a alça à direita do card</p>
-                <p>• Mudanças são salvas automaticamente após 2 segundos</p>
+                <p>• <strong>Auto-save</strong> ativado - mudanças são salvas automaticamente após 2s</p>
               </div>
             </CardHeader>
           </Card>
@@ -236,24 +257,27 @@ export default function DashboardExample() {
                 <div className="flex items-center justify-between">
                   <button
                     onClick={() => toggleSectionCollapse(sectionId)}
-                    className="flex items-center gap-2 group hover:opacity-80 transition-opacity"
+                    className="flex items-center gap-2 group hover:opacity-80 transition-all duration-200"
                   >
-                    <h2 className="text-xl font-semibold">
+                    <h2 className="text-xl font-semibold group-hover:text-primary transition-colors">
                       {sectionConfig.name}
                     </h2>
                     {isCollapsed ? (
-                      <ChevronDown className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                      <ChevronDown className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-all duration-200 group-hover:scale-110" />
                     ) : (
-                      <ChevronUp className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+                      <ChevronUp className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-all duration-200 group-hover:scale-110" />
                     )}
                   </button>
-                  <span className="text-sm text-muted-foreground">
-                    {sortedCards.length} cards
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs">
+                      {sortedCards.length} {sortedCards.length === 1 ? 'card' : 'cards'}
+                    </Badge>
+                  </div>
                 </div>
 
                 {/* Section Content */}
                 {!isCollapsed && (
+                  <div className="animate-accordion-down">
                   <SortableCardContainer
                     sectionId={sectionId}
                     cardIds={cardIds}
@@ -266,10 +290,20 @@ export default function DashboardExample() {
                     isEditMode={isEditMode}
                     strategy="horizontal"
                     className={cn(
-                      'flex flex-wrap gap-4 p-4 rounded-lg min-h-[200px]',
-                      isEditMode && 'bg-muted/20 border-2 border-dashed border-border'
+                      'flex flex-wrap gap-4 p-4 rounded-lg min-h-[200px] transition-all duration-300',
+                      isEditMode && 'bg-muted/20 border-2 border-dashed border-primary/30 shadow-inner'
                     )}
                   >
+                    {sortedCards.length === 0 && (
+                      <div className="w-full flex flex-col items-center justify-center py-12 text-center">
+                        <div className="rounded-full bg-muted p-4 mb-4">
+                          <AlertCircle className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Nenhum card disponível nesta seção
+                        </p>
+                      </div>
+                    )}
                     {sortedCards.map((cardLayout) => {
                       const minWidth =
                         sectionConfig.minCardWidth || 280;
@@ -277,6 +311,9 @@ export default function DashboardExample() {
                         sectionConfig.maxCardWidth || 800;
                       const defaultWidth =
                         sectionConfig.defaultCardWidth || 300;
+                      
+                      // Check if card was customized
+                      const isCustomized = cardLayout.width !== defaultWidth;
 
                       return (
                         <SortableCard
@@ -295,6 +332,7 @@ export default function DashboardExample() {
                             onTempWidthChange={(cardId, width) =>
                               updateCardWidth(sectionId, cardId, width)
                             }
+                            isCustomized={isCustomized}
                           >
                             {renderDashboardCard(cardLayout.cardId, {
                               isEditMode,
@@ -304,6 +342,7 @@ export default function DashboardExample() {
                       );
                     })}
                   </SortableCardContainer>
+                  </div>
                 )}
               </div>
             );
@@ -332,11 +371,11 @@ export default function DashboardExample() {
 
         {/* Aviso de mudanças não salvas ao sair */}
         {hasUnsavedChanges && (
-          <div className="fixed bottom-4 right-4 z-50">
-            <Card className="bg-yellow-50 border-yellow-200 shadow-lg">
+          <div className="fixed bottom-4 right-4 z-50 animate-slide-in-right">
+            <Card className="bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 shadow-lg backdrop-blur-sm">
               <CardHeader className="pb-3">
-                <div className="flex items-center gap-2 text-sm text-yellow-800">
-                  <AlertCircle className="h-4 w-4" />
+                <div className="flex items-center gap-2 text-sm text-yellow-800 dark:text-yellow-200">
+                  <AlertCircle className="h-4 w-4 animate-pulse" />
                   <span className="font-medium">
                     Você tem mudanças não salvas
                   </span>
