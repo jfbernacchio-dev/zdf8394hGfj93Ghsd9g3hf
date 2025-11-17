@@ -81,6 +81,25 @@ export interface SectionConfig {
    * Se true, a seção inicia colapsada
    */
   startCollapsed?: boolean;
+  
+  /**
+   * Configurações de layout para cards dentro da seção (FASE 3A)
+   */
+  
+  /**
+   * Largura mínima permitida para cards (em px)
+   */
+  minCardWidth?: number;
+  
+  /**
+   * Largura máxima permitida para cards (em px)
+   */
+  maxCardWidth?: number;
+  
+  /**
+   * Largura padrão para novos cards (em px)
+   */
+  defaultCardWidth?: number;
 }
 
 /**

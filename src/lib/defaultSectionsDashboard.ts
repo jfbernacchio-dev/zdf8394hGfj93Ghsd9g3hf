@@ -29,10 +29,13 @@ export const DASHBOARD_SECTIONS: Record<string, SectionConfig> = {
       'dashboard-chart-payment-status',
       'dashboard-chart-revenue-by-therapist',
     ],
-    defaultHeight: 400,
-    collapsible: true,
-    startCollapsed: false,
-  },
+  defaultHeight: 400,
+  collapsible: true,
+  startCollapsed: false,
+  minCardWidth: 280,
+  maxCardWidth: 800,
+  defaultCardWidth: 300,
+},
 
   'dashboard-administrative': {
     id: 'dashboard-administrative',
@@ -58,6 +61,9 @@ export const DASHBOARD_SECTIONS: Record<string, SectionConfig> = {
     defaultHeight: 350,
     collapsible: true,
     startCollapsed: false,
+    minCardWidth: 280,
+    maxCardWidth: 800,
+    defaultCardWidth: 300,
   },
 
   'dashboard-clinical': {
@@ -77,6 +83,9 @@ export const DASHBOARD_SECTIONS: Record<string, SectionConfig> = {
     defaultHeight: 300,
     collapsible: true,
     startCollapsed: false,
+    minCardWidth: 280,
+    maxCardWidth: 800,
+    defaultCardWidth: 300,
   },
 
   'dashboard-media': {
@@ -96,6 +105,9 @@ export const DASHBOARD_SECTIONS: Record<string, SectionConfig> = {
     defaultHeight: 350,
     collapsible: true,
     startCollapsed: true,
+    minCardWidth: 280,
+    maxCardWidth: 800,
+    defaultCardWidth: 300,
   },
 
   'dashboard-general': {
@@ -115,6 +127,9 @@ export const DASHBOARD_SECTIONS: Record<string, SectionConfig> = {
     defaultHeight: 300,
     collapsible: true,
     startCollapsed: false,
+    minCardWidth: 280,
+    maxCardWidth: 800,
+    defaultCardWidth: 300,
   },
 
   'dashboard-charts': {
@@ -142,10 +157,14 @@ export const DASHBOARD_SECTIONS: Record<string, SectionConfig> = {
       // Gráficos clínicos
       'dashboard-chart-monthly-comparison',
     ],
-    defaultHeight: 400,
-    collapsible: true,
-    startCollapsed: false,
-  },
+  defaultHeight: 400,
+  collapsible: true,
+  startCollapsed: false,
+  // Layout config for ResizableCardSimple - charts são maiores
+  minCardWidth: 400,
+  maxCardWidth: 1000,
+  defaultCardWidth: 450,
+},
 };
 
 /**
