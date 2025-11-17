@@ -41,9 +41,29 @@ export default function DashboardExample() {
 
   // Carregar layout salvo ou usar padrão
   useEffect(() => {
-    console.log('🔍 [DashboardExample] useEffect user:', user?.id);
-    if (user) {
-      loadLayout();
+    console.log('🔍 [DashboardExample] useEffect disparado, user:', user?.id);
+    if (!user) {
+      console.log('⚠️ Sem user, não carrega layout');
+      return;
+    }
+
+    const saved = localStorage.getItem('dashboard-section-cards');
+    console.log('💾 localStorage lido:', saved ? 'SIM' : 'NÃO');
+    
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        console.log('✅ Parsed do localStorage:', parsed);
+        console.log('🔧 ANTES de setSectionCards');
+        setSectionCards(parsed);
+        console.log('✨ DEPOIS de setSectionCards');
+      } catch (error) {
+        console.error('❌ Erro ao parsear:', error);
+        setSectionCards(DEFAULT_DASHBOARD_SECTIONS);
+      }
+    } else {
+      console.log('🆕 Usando DEFAULT:', DEFAULT_DASHBOARD_SECTIONS);
+      setSectionCards(DEFAULT_DASHBOARD_SECTIONS);
     }
   }, [user]);
 
