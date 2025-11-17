@@ -157,7 +157,6 @@ export const AVAILABLE_STAT_CARDS: CardConfig[] = [
     permissionConfig: {
       domain: 'financial',
       requiresFinancialAccess: true,
-      onlyForOwn: true,
     },
   },
   {
@@ -169,8 +168,7 @@ export const AVAILABLE_STAT_CARDS: CardConfig[] = [
     defaultWidth: 200,
     defaultHeight: 120,
     permissionConfig: {
-      domain: 'patients',
-      onlyForOwn: true,
+      domain: 'administrative',
     },
   },
   {
@@ -182,8 +180,7 @@ export const AVAILABLE_STAT_CARDS: CardConfig[] = [
     defaultWidth: 200,
     defaultHeight: 120,
     permissionConfig: {
-      domain: 'statistics',
-      onlyForOwn: true,
+      domain: 'administrative',
     },
   },
   {
@@ -195,8 +192,7 @@ export const AVAILABLE_STAT_CARDS: CardConfig[] = [
     defaultWidth: 200,
     defaultHeight: 120,
     permissionConfig: {
-      domain: 'schedule',
-      onlyForOwn: true,
+      domain: 'administrative',
     },
   },
 ];
@@ -216,8 +212,7 @@ export const AVAILABLE_FUNCTIONAL_CARDS: CardConfig[] = [
     defaultWidth: 350,
     defaultHeight: 220,
     permissionConfig: {
-      domain: 'schedule',
-      onlyForOwn: true,
+      domain: 'administrative',
     },
   },
   {
@@ -229,8 +224,7 @@ export const AVAILABLE_FUNCTIONAL_CARDS: CardConfig[] = [
     defaultWidth: 350,
     defaultHeight: 200,
     permissionConfig: {
-      domain: 'patients',
-      onlyForOwn: true,
+      domain: 'general',
     },
   },
   {
@@ -244,7 +238,6 @@ export const AVAILABLE_FUNCTIONAL_CARDS: CardConfig[] = [
     permissionConfig: {
       domain: 'financial',
       requiresFinancialAccess: true,
-      onlyForOwn: true,
     },
   },
   {
@@ -256,8 +249,7 @@ export const AVAILABLE_FUNCTIONAL_CARDS: CardConfig[] = [
     defaultWidth: 350,
     defaultHeight: 200,
     permissionConfig: {
-      domain: 'patients',
-      onlyForOwn: true,
+      domain: 'administrative',
     },
   },
   {
@@ -270,7 +262,6 @@ export const AVAILABLE_FUNCTIONAL_CARDS: CardConfig[] = [
     defaultHeight: 300,
     permissionConfig: {
       domain: 'clinical',
-      onlyForOwn: true,
     },
   },
   {
@@ -282,8 +273,7 @@ export const AVAILABLE_FUNCTIONAL_CARDS: CardConfig[] = [
     defaultWidth: 450,
     defaultHeight: 350,
     permissionConfig: {
-      domain: 'patients',
-      onlyForOwn: true,
+      domain: 'administrative',
     },
   },
   {
@@ -295,8 +285,7 @@ export const AVAILABLE_FUNCTIONAL_CARDS: CardConfig[] = [
     defaultWidth: 600,
     defaultHeight: 400,
     permissionConfig: {
-      domain: 'patients',
-      onlyForOwn: true,
+      domain: 'clinical',
     },
   },
   {
@@ -309,7 +298,6 @@ export const AVAILABLE_FUNCTIONAL_CARDS: CardConfig[] = [
     defaultHeight: 180,
     permissionConfig: {
       domain: 'administrative',
-      onlyForOwn: true,
     },
   },
   {
@@ -321,8 +309,7 @@ export const AVAILABLE_FUNCTIONAL_CARDS: CardConfig[] = [
     defaultWidth: 500,
     defaultHeight: 350,
     permissionConfig: {
-      domain: 'nfse',
-      onlyForOwn: true,
+      domain: 'financial',
     },
   },
   {
@@ -334,8 +321,7 @@ export const AVAILABLE_FUNCTIONAL_CARDS: CardConfig[] = [
     defaultWidth: 500,
     defaultHeight: 400,
     permissionConfig: {
-      domain: 'patients',
-      onlyForOwn: true,
+      domain: 'clinical',
     },
   },
 ];
@@ -355,8 +341,7 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
     defaultWidth: 280,
     defaultHeight: 160,
     permissionConfig: {
-      domain: 'patients',
-      onlyForOwn: true,
+      domain: 'clinical',
     },
   },
   {
@@ -370,7 +355,6 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
     permissionConfig: {
       domain: 'financial',
       requiresFinancialAccess: true,
-      onlyForOwn: true,
     },
   },
   {
@@ -384,7 +368,6 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
     permissionConfig: {
       domain: 'financial',
       requiresFinancialAccess: true,
-      onlyForOwn: true,
     },
   },
   {
@@ -396,8 +379,7 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
     defaultWidth: 280,
     defaultHeight: 160,
     permissionConfig: {
-      domain: 'statistics',
-      onlyForOwn: true,
+      domain: 'administrative',
     },
   },
   {
@@ -409,8 +391,7 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
     defaultWidth: 280,
     defaultHeight: 160,
     permissionConfig: {
-      domain: 'statistics',
-      onlyForOwn: true,
+      domain: 'administrative',
     },
   },
   {
@@ -422,8 +403,8 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
     defaultWidth: 280,
     defaultHeight: 160,
     permissionConfig: {
-      domain: 'statistics',
-      onlyForOwn: true,
+      domain: 'financial',
+      requiresFinancialAccess: true,
     },
   },
   {
@@ -435,8 +416,7 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
     defaultWidth: 280,
     defaultHeight: 160,
     permissionConfig: {
-      domain: 'schedule',
-      onlyForOwn: true,
+      domain: 'administrative',
     },
   },
   {
@@ -450,7 +430,6 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
     permissionConfig: {
       domain: 'financial',
       requiresFinancialAccess: true,
-      onlyForOwn: true,
     },
   },
   {
@@ -463,7 +442,7 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
     defaultHeight: 160,
     permissionConfig: {
       domain: 'administrative',
-      blockedForSubordinates: true, // Apenas Full/Admin veem
+      blockedFor: ['subordinate'],
     },
   },
   {
@@ -475,8 +454,8 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
     defaultWidth: 280,
     defaultHeight: 160,
     permissionConfig: {
-      domain: 'statistics',
-      onlyForOwn: true,
+      domain: 'media',
+      blockedFor: ['subordinate'],
     },
   },
   {
@@ -488,8 +467,8 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
     defaultWidth: 280,
     defaultHeight: 160,
     permissionConfig: {
-      domain: 'statistics',
-      onlyForOwn: true,
+      domain: 'media',
+      blockedFor: ['subordinate'],
     },
   },
   {
@@ -503,7 +482,6 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
     permissionConfig: {
       domain: 'financial',
       requiresFinancialAccess: true,
-      onlyForOwn: true,
     },
   },
 ];
@@ -525,7 +503,6 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
     permissionConfig: {
       domain: 'financial',
       requiresFinancialAccess: true,
-      onlyForOwn: true,
     },
   },
   {
@@ -537,8 +514,7 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
     defaultWidth: 500,
     defaultHeight: 400,
     permissionConfig: {
-      domain: 'statistics',
-      onlyForOwn: true,
+      domain: 'administrative',
     },
   },
   {
@@ -551,7 +527,7 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
     defaultHeight: 400,
     permissionConfig: {
       domain: 'administrative',
-      blockedForSubordinates: true, // Apenas Full/Admin
+      blockedFor: ['subordinate'],
     },
   },
   {
@@ -563,8 +539,7 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
     defaultWidth: 600,
     defaultHeight: 400,
     permissionConfig: {
-      domain: 'statistics',
-      onlyForOwn: true,
+      domain: 'clinical',
     },
   },
   {
@@ -578,7 +553,6 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
     permissionConfig: {
       domain: 'financial',
       requiresFinancialAccess: true,
-      onlyForOwn: true,
     },
   },
   {
@@ -590,8 +564,8 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
     defaultWidth: 600,
     defaultHeight: 400,
     permissionConfig: {
-      domain: 'statistics',
-      onlyForOwn: true,
+      domain: 'financial',
+      requiresFinancialAccess: true,
     },
   },
   {
@@ -605,7 +579,7 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
     permissionConfig: {
       domain: 'financial',
       requiresFinancialAccess: true,
-      blockedForSubordinates: true, // Apenas Full/Admin
+      blockedFor: ['subordinate'],
     },
   },
   {
@@ -617,8 +591,8 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
     defaultWidth: 600,
     defaultHeight: 400,
     permissionConfig: {
-      domain: 'statistics',
-      onlyForOwn: true,
+      domain: 'financial',
+      requiresFinancialAccess: true,
     },
   },
   {
@@ -630,8 +604,7 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
     defaultWidth: 600,
     defaultHeight: 400,
     permissionConfig: {
-      domain: 'schedule',
-      onlyForOwn: true,
+      domain: 'administrative',
     },
   },
   {
@@ -643,8 +616,7 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
     defaultWidth: 500,
     defaultHeight: 400,
     permissionConfig: {
-      domain: 'statistics',
-      onlyForOwn: true,
+      domain: 'administrative',
     },
   },
 ];
@@ -665,7 +637,6 @@ export const AVAILABLE_CLINICAL_CARDS: CardConfig[] = [
     defaultHeight: 400,
     permissionConfig: {
       domain: 'clinical',
-      onlyForOwn: true,
     },
   },
   {
@@ -678,7 +649,6 @@ export const AVAILABLE_CLINICAL_CARDS: CardConfig[] = [
     defaultHeight: 400,
     permissionConfig: {
       domain: 'clinical',
-      onlyForOwn: true,
     },
   },
   {
@@ -691,7 +661,6 @@ export const AVAILABLE_CLINICAL_CARDS: CardConfig[] = [
     defaultHeight: 400,
     permissionConfig: {
       domain: 'clinical',
-      onlyForOwn: true,
     },
   },
   {
@@ -704,7 +673,6 @@ export const AVAILABLE_CLINICAL_CARDS: CardConfig[] = [
     defaultHeight: 400,
     permissionConfig: {
       domain: 'clinical',
-      onlyForOwn: true,
     },
   },
   {
@@ -717,7 +685,6 @@ export const AVAILABLE_CLINICAL_CARDS: CardConfig[] = [
     defaultHeight: 400,
     permissionConfig: {
       domain: 'clinical',
-      onlyForOwn: true,
     },
   },
   {
@@ -730,7 +697,6 @@ export const AVAILABLE_CLINICAL_CARDS: CardConfig[] = [
     defaultHeight: 400,
     permissionConfig: {
       domain: 'clinical',
-      onlyForOwn: true,
     },
   },
   {
@@ -743,7 +709,6 @@ export const AVAILABLE_CLINICAL_CARDS: CardConfig[] = [
     defaultHeight: 400,
     permissionConfig: {
       domain: 'clinical',
-      onlyForOwn: true,
     },
   },
   {
@@ -756,7 +721,6 @@ export const AVAILABLE_CLINICAL_CARDS: CardConfig[] = [
     defaultHeight: 400,
     permissionConfig: {
       domain: 'clinical',
-      onlyForOwn: true,
     },
   },
   {
@@ -769,7 +733,6 @@ export const AVAILABLE_CLINICAL_CARDS: CardConfig[] = [
     defaultHeight: 400,
     permissionConfig: {
       domain: 'clinical',
-      onlyForOwn: true,
     },
   },
   {
@@ -782,7 +745,6 @@ export const AVAILABLE_CLINICAL_CARDS: CardConfig[] = [
     defaultHeight: 400,
     permissionConfig: {
       domain: 'clinical',
-      onlyForOwn: true,
     },
   },
   {
@@ -795,7 +757,6 @@ export const AVAILABLE_CLINICAL_CARDS: CardConfig[] = [
     defaultHeight: 400,
     permissionConfig: {
       domain: 'clinical',
-      onlyForOwn: true,
     },
   },
   {
@@ -808,7 +769,6 @@ export const AVAILABLE_CLINICAL_CARDS: CardConfig[] = [
     defaultHeight: 400,
     permissionConfig: {
       domain: 'clinical',
-      onlyForOwn: true,
     },
   },
 ];
