@@ -13,6 +13,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { parseISO, format } from 'date-fns';
+import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 
 // ============================================================================
 // INTERFACE CARDPROPS (mesma do dashboardCardRegistry.tsx)
@@ -111,7 +112,7 @@ export const DashboardExpectedRevenueTeam = ({
         <div className="flex items-center gap-2">
           <TrendingUp className="h-4 w-4 text-primary" />
           <div className="text-2xl font-bold">
-            {expectedRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            {formatBrazilianCurrency(expectedRevenue)}
           </div>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
@@ -184,7 +185,7 @@ export const DashboardActualRevenueTeam = ({
         <div className="flex items-center gap-2">
           <DollarSign className="h-4 w-4 text-green-500" />
           <div className="text-2xl font-bold text-green-600">
-            {actualRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            {formatBrazilianCurrency(actualRevenue)}
           </div>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
@@ -257,7 +258,7 @@ export const DashboardUnpaidValueTeam = ({
         <div className="flex items-center gap-2">
           <AlertCircle className="h-4 w-4 text-orange-500" />
           <div className="text-2xl font-bold text-orange-600">
-            {unpaidValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            {formatBrazilianCurrency(unpaidValue)}
           </div>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
