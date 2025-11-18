@@ -89,6 +89,14 @@ export const DEFAULT_DASHBOARD_EXAMPLE_LAYOUT: DashboardExampleLayout = {
       { cardId: 'dashboard-chart-attendance-weekly', width: 450, order: 6 },
     ],
   },
+  'dashboard-team': {
+    cardLayouts: [
+      { cardId: 'dashboard-team-therapists', width: 300, order: 0 },
+      { cardId: 'dashboard-team-revenue-distribution', width: 450, order: 1 },
+      { cardId: 'dashboard-team-session-distribution', width: 450, order: 2 },
+      { cardId: 'dashboard-team-performance', width: 450, order: 3 },
+    ],
+  },
 };
 
 /**
