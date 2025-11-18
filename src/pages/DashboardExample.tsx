@@ -83,6 +83,28 @@ export default function DashboardExample() {
     resetLayout,
   } = useDashboardLayout();
 
+  // Check if layout is customized
+  const isLayoutCustomized = useMemo(() => {
+    if (!layout) return false;
+    
+    const defaultLayout = require('@/lib/defaultLayoutDashboardExample').DEFAULT_DASHBOARD_GRID_LAYOUT;
+    return Object.keys(layout).some(sectionId => {
+      const currentCards = layout[sectionId]?.cardLayouts || [];
+      const defaultCards = defaultLayout[sectionId]?.cardLayouts || [];
+      
+      if (currentCards.length !== defaultCards.length) return true;
+      
+      return currentCards.some((card: any) => {
+        const defaultCard = defaultCards.find((c: any) => c.i === card.i);
+        if (!defaultCard) return true;
+        return card.x !== defaultCard.x || 
+               card.y !== defaultCard.y || 
+               card.w !== defaultCard.w || 
+               card.h !== defaultCard.h;
+      });
+    });
+  }, [layout]);
+
   useEffect(() => {
     if (user) {
       loadData();
@@ -458,6 +480,13 @@ export default function DashboardExample() {
           </div>
 
             <div className="flex items-center gap-3">
+              {/* Badge Personalizado */}
+              {isLayoutCustomized && (
+                <Badge variant="secondary" className="text-xs">
+                  Personalizado
+                </Badge>
+              )}
+
               {/* Status indicator */}
               {renderStatusIndicator()}
 
@@ -566,9 +595,20 @@ export default function DashboardExample() {
                 {!isCollapsed && (
                   <div className="animate-accordion-down">
                     <div className={cn(
-                      'p-4 rounded-lg min-h-[200px] transition-all duration-300',
+                      'p-4 rounded-lg min-h-[200px] transition-all duration-300 relative',
                       isEditMode && 'bg-muted/20 border-2 border-dashed border-primary/30 shadow-inner'
                     )}>
+                      {/* Grid de fundo em edit mode */}
+                      {isEditMode && (
+                        <div 
+                          className="absolute inset-0 pointer-events-none opacity-10 z-0 rounded-lg"
+                          style={{
+                            backgroundImage: 'linear-gradient(hsl(var(--border)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px)',
+                            backgroundSize: '100px 60px',
+                          }}
+                        />
+                      )}
+                      
                       <GridCardContainer
                         sectionId={sectionId}
                         layout={cardLayouts}
