@@ -1,0 +1,785 @@
+# 🎯 PLANO DE IMPLEMENTAÇÃO - SEÇÃO TEAM (EQUIPE)
+
+## 📊 DIAGNÓSTICO COMPLETO
+
+### Problema Identificado
+
+A seção `dashboard-team` e seus cards foram parcialmente implementados, mas apresentam **múltiplos problemas críticos**:
+
+1. **Cards Team não recebem `start`/`end`**: Filtram dados históricos completos, ignorando período selecionado
+2. **Fórmulas incorretas**: Lógica simplificada que não replica a complexidade dos cards principais
+3. **Props interface ignorada**: Usam `any` ao invés de `CardProps` tipada
+4. **Formatação inconsistente**: Não usam `formatBrazilianCurrency()`
+5. **Tooltips genéricos**: Faltam descrições detalhadas presentes nos cards originais
+6. **Dados não chegam**: A seção pode não estar recebendo `teamPatients`/`teamSessions` corretamente
+7. **Seção não renderiza**: Possível problema de visibilidade ou filtro de permissões
+
+---
+
+## 🎯 OBJETIVO FINAL
+
+Implementar **corretamente** a seção `dashboard-team` que:
+
+1. ✅ Exibe dados **agregados da equipe** (subordinados)
+2. ✅ Respeita **filtro de período** (start/end)
+3. ✅ Replica **exatamente** as fórmulas dos cards principais
+4. ✅ Usa **tipos corretos** (`CardProps`)
+5. ✅ Formata valores com **helpers existentes**
+6. ✅ Possui **tooltips detalhados** idênticos aos originais
+7. ✅ Aparece **visível** para usuários com permissões adequadas
+
+---
+
+## 📁 ARQUIVOS ENVOLVIDOS
+
+### Arquivos a LER (Referência)
+1. `src/pages/Dashboard.tsx` - Implementação de referência
+2. `src/lib/dashboardCardRegistry.tsx` - Cards principais (copiar fórmulas)
+3. `src/lib/defaultSectionsDashboard.ts` - Configuração de seções
+4. `src/hooks/useTeamData.ts` - Hook de dados da equipe
+5. `src/hooks/useOwnData.ts` - Hook de dados próprios
+6. `src/types/cardTypes.ts` - Interface CardProps
+7. `src/types/sectionTypes.ts` - Interface SectionConfig
+
+### Arquivos a MODIFICAR
+1. `src/lib/dashboardCardRegistryTeam.tsx` - Corrigir cards team
+2. `src/lib/defaultSectionsDashboard.ts` - Verificar configuração `dashboard-team`
+3. `src/pages/Dashboard.tsx` - Garantir passagem correta de props
+
+---
+
+## 🔄 PLANO EM FASES
+
+### ✅ **FASE 0: PRÉ-VALIDAÇÃO** (5 min)
+
+**Objetivo**: Verificar estado atual e confirmar diagnóstico
+
+**Ações**:
+1. Ler `src/lib/defaultSectionsDashboard.ts` completo
+2. Verificar se `dashboard-team` existe e está configurada corretamente
+3. Verificar `availableCardIds` da seção team
+4. Confirmar que hooks `useTeamData` funcionam
+5. Verificar se `Dashboard.tsx` renderiza a seção team
+
+**Arquivos a verificar**:
+- `src/lib/defaultSectionsDashboard.ts`
+- `src/pages/Dashboard.tsx` (buscar por "dashboard-team")
+- `src/hooks/useTeamData.ts`
+
+**Critérios de sucesso**:
+- [ ] Seção `dashboard-team` existe em `DASHBOARD_SECTIONS`
+- [ ] `availableCardIds` estão corretos
+- [ ] `permissionConfig` está adequado
+- [ ] Dashboard.tsx renderiza a seção
+
+**⚠️ SE FALHAR**: Documentar o que falta e criar/corrigir antes de prosseguir
+
+---
+
+### ✅ **FASE 1: CORRIGIR INTERFACE E TIPOS** (10 min)
+
+**Objetivo**: Fazer cards Team usarem interface `CardProps` correta
+
+**Ações**:
+1. Abrir `src/lib/dashboardCardRegistryTeam.tsx`
+2. Importar `CardProps` de `src/lib/dashboardCardRegistry.tsx`
+3. Substituir `any` por `CardProps` em TODOS os cards
+4. Garantir que props essenciais estão desestruturadas:
+   ```typescript
+   export const DashboardExpectedRevenueTeam = ({ 
+     patients = [], 
+     sessions = [], 
+     start, 
+     end,
+     isEditMode,
+     className 
+   }: CardProps) => {
+   ```
+
+**Arquivos a modificar**:
+- `src/lib/dashboardCardRegistryTeam.tsx`
+
+**Parâmetros corretos**:
+```typescript
+interface CardProps {
+  isEditMode?: boolean;
+  className?: string;
+  patients?: any[];
+  sessions?: any[];
+  start?: Date;              // ← CRÍTICO
+  end?: Date;                // ← CRÍTICO
+  automaticScale?: TimeScale;
+  getScale?: (chartId: string) => TimeScale;
+  setScaleOverride?: (chartId: string, scale: TimeScale | null) => void;
+  clearOverride?: (chartId: string) => void;
+  hasOverride?: (chartId: string) => boolean;
+  aggregatedData?: Array<{...}>;
+}
+```
+
+**Critérios de sucesso**:
+- [ ] Todos os 6 cards Team usam `CardProps`
+- [ ] Props `start` e `end` estão desestruturadas
+- [ ] TypeScript não gera erros
+
+---
+
+### ✅ **FASE 2: IMPLEMENTAR FILTRAGEM POR PERÍODO** (15 min)
+
+**Objetivo**: Fazer cards filtrarem sessões pelo período (start/end)
+
+**Ações**:
+1. Para cada card em `dashboardCardRegistryTeam.tsx`
+2. Adicionar filtro de período no início:
+   ```typescript
+   const periodSessions = sessions.filter(s => {
+     if (!s.date || !start || !end) return false;
+     try {
+       const sessionDate = parseISO(s.date);
+       return sessionDate >= start && sessionDate <= end;
+     } catch {
+       return false;
+     }
+   });
+   ```
+3. Usar `periodSessions` nos cálculos ao invés de `sessions` diretamente
+
+**Referência**: `src/lib/dashboardCardRegistry.tsx` linha 70-78 (DashboardExpectedRevenue)
+
+**Arquivos a modificar**:
+- `src/lib/dashboardCardRegistryTeam.tsx` (todos os 6 cards)
+
+**Imports necessários**:
+```typescript
+import { parseISO, format } from 'date-fns';
+```
+
+**Critérios de sucesso**:
+- [ ] Todos os cards filtram por `start` e `end`
+- [ ] `periodSessions` é usado nos cálculos
+- [ ] Trata casos onde `start`/`end` são undefined
+
+---
+
+### ✅ **FASE 3: CORRIGIR FÓRMULAS DE CÁLCULO** (30 min)
+
+**Objetivo**: Replicar EXATAMENTE a lógica dos cards principais
+
+#### **FASE 3A: DashboardExpectedRevenueTeam**
+
+**Referência**: `src/lib/dashboardCardRegistry.tsx` linha 69-97
+
+**Lógica correta**:
+```typescript
+const monthlyPatientsInPeriod = new Map<string, Set<string>>();
+const expectedRevenue = periodSessions.reduce((sum, s) => {
+  const patient = patients.find(p => p.id === s.patient_id);
+  if (!patient) return sum;
+  
+  if (patient.monthly_price) {
+    const monthKey = format(parseISO(s.date), 'yyyy-MM');
+    if (!monthlyPatientsInPeriod.has(monthKey)) {
+      monthlyPatientsInPeriod.set(monthKey, new Set());
+    }
+    const patientsSet = monthlyPatientsInPeriod.get(monthKey)!;
+    if (!patientsSet.has(patient.id)) {
+      patientsSet.add(patient.id);
+      return sum + patient.session_value;
+    }
+    return sum;
+  } else {
+    return sum + s.value;
+  }
+}, 0);
+```
+
+**Critérios**:
+- [ ] Considera `monthly_price` corretamente
+- [ ] Usa `Map<monthKey, Set<patientId>>` para tracking
+- [ ] Soma `patient.session_value` para mensalistas
+- [ ] Soma `s.value` para não-mensalistas
+
+#### **FASE 3B: DashboardActualRevenueTeam**
+
+**Referência**: `src/lib/dashboardCardRegistry.tsx` linha 135-171
+
+**Lógica correta**:
+```typescript
+const monthlyPatientsTracked = new Map<string, Set<string>>();
+const actualRevenue = periodSessions
+  .filter(s => s.status === 'attended')
+  .reduce((sum, s) => {
+    const patient = patients.find(p => p.id === s.patient_id);
+    if (!patient) return sum;
+    
+    if (patient.monthly_price) {
+      const monthKey = format(parseISO(s.date), 'yyyy-MM');
+      if (!monthlyPatientsTracked.has(s.patient_id)) {
+        monthlyPatientsTracked.set(s.patient_id, new Set());
+      }
+      const months = monthlyPatientsTracked.get(s.patient_id)!;
+      if (!months.has(monthKey)) {
+        months.add(monthKey);
+        return sum + Number(s.value);
+      }
+      return sum;
+    }
+    return sum + Number(s.value);
+  }, 0);
+```
+
+**Critérios**:
+- [ ] Filtra por `status === 'attended'`
+- [ ] Considera `monthly_price`
+- [ ] Usa tracking similar
+
+#### **FASE 3C: DashboardUnpaidValueTeam**
+
+**Referência**: `src/lib/dashboardCardRegistry.tsx` linha 173-208
+
+**Lógica correta**:
+```typescript
+const unpaidSessions = periodSessions.filter(s => 
+  s.status === 'attended' && !s.paid
+);
+
+const unpaidMonthlyTracked = new Map<string, Set<string>>();
+const unpaidValue = unpaidSessions.reduce((sum, s) => {
+  const patient = patients.find(p => p.id === s.patient_id);
+  if (!patient) return sum;
+  
+  if (patient.monthly_price) {
+    const monthKey = format(parseISO(s.date), 'yyyy-MM');
+    if (!unpaidMonthlyTracked.has(s.patient_id)) {
+      unpaidMonthlyTracked.set(s.patient_id, new Set());
+    }
+    const months = unpaidMonthlyTracked.get(s.patient_id)!;
+    if (!months.has(monthKey)) {
+      months.add(monthKey);
+      return sum + Number(s.value);
+    }
+    return sum;
+  }
+  return sum + Number(s.value);
+}, 0);
+```
+
+**Critérios**:
+- [ ] Filtra `attended && !paid`
+- [ ] Considera `monthly_price`
+
+#### **FASE 3D: DashboardPaymentRateTeam**
+
+**Referência**: `src/lib/dashboardCardRegistry.tsx` linha 210-261
+
+**Lógica correta**:
+```typescript
+const attendedSessions = periodSessions.filter(s => s.status === 'attended');
+
+const monthlyPaidTracked = new Map<string, Set<string>>();
+const totalRevenue = attendedSessions.reduce((sum, s) => {
+  const patient = patients.find(p => p.id === s.patient_id);
+  if (!patient) return sum;
+  
+  if (patient.monthly_price) {
+    const monthKey = format(parseISO(s.date), 'yyyy-MM');
+    if (!monthlyPaidTracked.has(s.patient_id)) {
+      monthlyPaidTracked.set(s.patient_id, new Set());
+    }
+    const months = monthlyPaidTracked.get(s.patient_id)!;
+    if (!months.has(monthKey)) {
+      months.add(monthKey);
+      return sum + Number(s.value);
+    }
+    return sum;
+  }
+  return sum + Number(s.value);
+}, 0);
+
+const paidSessions = attendedSessions.filter(s => s.paid);
+const monthlyPaidOnly = new Map<string, Set<string>>();
+const paidRevenue = paidSessions.reduce((sum, s) => {
+  // mesma lógica...
+}, 0);
+
+const paymentRate = totalRevenue > 0 ? (paidRevenue / totalRevenue) * 100 : 0;
+```
+
+**Critérios**:
+- [ ] Calcula taxa de pagamento corretamente
+- [ ] Considera `monthly_price` em ambos totais
+
+#### **FASE 3E: DashboardTotalPatientsTeam**
+
+**Lógica**:
+```typescript
+const uniquePatientIds = new Set(
+  periodSessions.map(s => s.patient_id)
+);
+const activePatients = uniquePatientIds.size;
+```
+
+**Critérios**:
+- [ ] Conta pacientes únicos no período
+
+#### **FASE 3F: DashboardAttendedSessionsTeam**
+
+**Lógica**:
+```typescript
+const attendedCount = periodSessions.filter(s => 
+  s.status === 'attended'
+).length;
+```
+
+**Critérios**:
+- [ ] Conta sessões atendidas no período
+
+---
+
+### ✅ **FASE 4: CORRIGIR FORMATAÇÃO** (10 min)
+
+**Objetivo**: Usar helpers de formatação existentes
+
+**Ações**:
+1. Importar `formatBrazilianCurrency` de `@/lib/brazilianFormat`
+2. Substituir TODOS os `.toLocaleString('pt-BR', ...)` por:
+   ```typescript
+   {formatBrazilianCurrency(value)}
+   ```
+
+**Exemplo antes**:
+```typescript
+{totalExpected.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+```
+
+**Exemplo depois**:
+```typescript
+{formatBrazilianCurrency(totalExpected)}
+```
+
+**Arquivos a modificar**:
+- `src/lib/dashboardCardRegistryTeam.tsx` (todos os cards com valores monetários)
+
+**Critérios de sucesso**:
+- [ ] Nenhum card usa `.toLocaleString()` diretamente
+- [ ] Todos valores monetários usam `formatBrazilianCurrency()`
+
+---
+
+### ✅ **FASE 5: ADICIONAR TOOLTIPS DETALHADOS** (20 min)
+
+**Objetivo**: Copiar descrições detalhadas dos cards originais
+
+**Referência**: `src/lib/dashboardCardRegistry.tsx`
+
+**Template**:
+```typescript
+<TooltipProvider>
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+    </TooltipTrigger>
+    <TooltipContent className="max-w-xs">
+      <p><strong>Receita Esperada - Equipe</strong></p>
+      <p className="mt-1">Valor total esperado baseado nas sessões agendadas...</p>
+      <div className="mt-2 space-y-1 text-xs">
+        <p><strong>Cálculo:</strong></p>
+        <p>• Pacientes mensalistas: 1x por mês</p>
+        <p>• Demais: valor por sessão</p>
+      </div>
+    </TooltipContent>
+  </Tooltip>
+</TooltipProvider>
+```
+
+**Para cada card**:
+1. Localizar tooltip correspondente no card principal
+2. Copiar estrutura completa
+3. Adaptar texto para "Equipe"
+4. Manter explicação de cálculo
+
+**Critérios de sucesso**:
+- [ ] Todos os cards têm tooltip com Info icon
+- [ ] Tooltips explicam o cálculo detalhadamente
+- [ ] Consistente com cards principais
+
+---
+
+### ✅ **FASE 6: CONFIGURAR SEÇÃO NO DASHBOARD** (15 min)
+
+**Objetivo**: Garantir que seção Team está corretamente configurada
+
+#### **FASE 6A: Verificar defaultSectionsDashboard.ts**
+
+**Arquivo**: `src/lib/defaultSectionsDashboard.ts`
+
+**Verificar/Adicionar**:
+```typescript
+'dashboard-team': {
+  id: 'dashboard-team',
+  name: 'Equipe',
+  description: 'Dados agregados dos subordinados',
+  permissionConfig: {
+    primaryDomain: 'team',
+    secondaryDomains: [],
+    blockedFor: ['subordinate'],  // Subordinados não veem dados de outros
+    requiresOwnDataOnly: false,    // Admin/Full veem dados agregados
+  },
+  availableCardIds: [
+    'dashboard-expected-revenue-team',
+    'dashboard-actual-revenue-team',
+    'dashboard-unpaid-value-team',
+    'dashboard-payment-rate-team',
+    'dashboard-total-patients-team',
+    'dashboard-attended-sessions-team',
+  ],
+  defaultHeight: 350,
+  collapsible: true,
+  startCollapsed: false,
+  minCardWidth: 280,
+  maxCardWidth: 800,
+  defaultCardWidth: 300,
+},
+```
+
+**Critérios**:
+- [ ] Seção existe
+- [ ] `availableCardIds` correspondem aos IDs dos cards Team
+- [ ] `permissionConfig` adequado
+
+#### **FASE 6B: Adicionar no layout padrão**
+
+**Arquivo**: `src/lib/defaultSectionsDashboard.ts`
+
+**Verificar/Adicionar em `DEFAULT_DASHBOARD_SECTIONS`**:
+```typescript
+export const DEFAULT_DASHBOARD_SECTIONS: Record<string, string[]> = {
+  'dashboard-financial': [...],
+  'dashboard-administrative': [...],
+  'dashboard-clinical': [...],
+  'dashboard-media': [...],
+  'dashboard-general': [...],
+  'dashboard-charts': [...],
+  'dashboard-team': [
+    'dashboard-expected-revenue-team',
+    'dashboard-actual-revenue-team',
+    'dashboard-unpaid-value-team',
+    'dashboard-payment-rate-team',
+    'dashboard-total-patients-team',
+    'dashboard-attended-sessions-team',
+  ],
+};
+```
+
+**Critérios**:
+- [ ] Seção team tem cards padrão definidos
+
+---
+
+### ✅ **FASE 7: INTEGRAR NO DASHBOARD.TSX** (20 min)
+
+**Objetivo**: Garantir que Dashboard renderiza seção Team com dados corretos
+
+**Arquivo**: `src/pages/Dashboard.tsx`
+
+#### **FASE 7A: Verificar hooks de dados**
+
+**Localizar** (provavelmente após linha 56):
+```typescript
+const { permissions, loading: permissionsLoading } = useSubordinatePermissions();
+const { canViewCard, shouldFilterToOwnData } = useCardPermissions();
+```
+
+**Adicionar após**:
+```typescript
+const { 
+  teamPatients, 
+  teamSessions, 
+  subordinateIds, 
+  loading: teamLoading 
+} = useTeamData();
+```
+
+**Critérios**:
+- [ ] `useTeamData` está importado
+- [ ] Hook está sendo chamado
+
+#### **FASE 7B: Verificar renderização da seção**
+
+**Buscar** no código onde seções são renderizadas (geralmente em `return` do componente)
+
+**Exemplo de renderização** (verificar se existe):
+```typescript
+{canViewCard('dashboard-team') && (
+  <ResizableSection
+    id="dashboard-team"
+    title={DASHBOARD_SECTIONS['dashboard-team'].name}
+    description={DASHBOARD_SECTIONS['dashboard-team'].description}
+    collapsible={true}
+    startCollapsed={false}
+    height={getSavedSectionHeight('dashboard-team')}
+    isEditMode={isEditMode}
+    onHeightChange={(h) => handleTempSectionHeightChange('dashboard-team', h)}
+  >
+    {visibleCards
+      .filter(id => DASHBOARD_SECTIONS['dashboard-team'].availableCardIds.includes(id))
+      .map(cardId => (
+        <ResizableCard
+          key={cardId}
+          id={cardId}
+          defaultSize={getSavedCardSize(cardId)}
+          isEditMode={isEditMode}
+          onSizeChange={(size) => handleTempCardSizeChange(cardId, size)}
+          onRemove={() => handleRemoveCard(cardId)}
+        >
+          {renderTeamCard(cardId)}
+        </ResizableCard>
+      ))
+    }
+  </ResizableSection>
+)}
+```
+
+**Critérios**:
+- [ ] Seção está sendo renderizada
+- [ ] Filtro de visibilidade baseado em permissões
+
+#### **FASE 7C: Criar/Verificar função renderTeamCard**
+
+**Adicionar função** (se não existir):
+```typescript
+const renderTeamCard = (id: string) => {
+  const commonProps = {
+    patients: teamPatients,          // ← DADOS DA EQUIPE
+    sessions: teamSessions,          // ← DADOS DA EQUIPE
+    start,
+    end,
+    isEditMode,
+    automaticScale,
+    getScale,
+    setScaleOverride,
+    clearOverride,
+    hasOverride,
+  };
+
+  switch (id) {
+    case 'dashboard-expected-revenue-team':
+      return <DashboardExpectedRevenueTeam {...commonProps} />;
+    case 'dashboard-actual-revenue-team':
+      return <DashboardActualRevenueTeam {...commonProps} />;
+    case 'dashboard-unpaid-value-team':
+      return <DashboardUnpaidValueTeam {...commonProps} />;
+    case 'dashboard-payment-rate-team':
+      return <DashboardPaymentRateTeam {...commonProps} />;
+    case 'dashboard-total-patients-team':
+      return <DashboardTotalPatientsTeam {...commonProps} />;
+    case 'dashboard-attended-sessions-team':
+      return <DashboardAttendedSessionsTeam {...commonProps} />;
+    default:
+      return null;
+  }
+};
+```
+
+**Imports necessários**:
+```typescript
+import {
+  DashboardExpectedRevenueTeam,
+  DashboardActualRevenueTeam,
+  DashboardUnpaidValueTeam,
+  DashboardPaymentRateTeam,
+  DashboardTotalPatientsTeam,
+  DashboardAttendedSessionsTeam,
+} from '@/lib/dashboardCardRegistryTeam';
+```
+
+**Critérios**:
+- [ ] Função existe e renderiza todos os cards Team
+- [ ] Props `teamPatients` e `teamSessions` são passadas
+- [ ] Props `start` e `end` são passadas
+- [ ] Todos os cards Team estão importados
+
+---
+
+### ✅ **FASE 8: REGISTRAR CARDS NO REGISTRY PRINCIPAL** (10 min)
+
+**Objetivo**: Adicionar cards Team em `AVAILABLE_DASHBOARD_CARDS`
+
+**Arquivo**: `src/types/cardTypes.ts`
+
+**Adicionar ao array `AVAILABLE_DASHBOARD_CARDS`**:
+```typescript
+{
+  id: 'dashboard-expected-revenue-team',
+  name: 'Receita Esperada - Equipe',
+  description: 'Valor esperado baseado nas sessões agendadas da equipe',
+  detailedDescription: 'Valor total esperado de todas as sessões agendadas dos subordinados no período, considerando o valor por sessão de cada paciente.',
+  category: 'dashboard-cards',
+  defaultWidth: 300,
+  defaultHeight: 160,
+  permissionConfig: {
+    domain: 'team',
+    blockedFor: ['subordinate'],
+  },
+},
+{
+  id: 'dashboard-actual-revenue-team',
+  name: 'Receita Realizada - Equipe',
+  description: 'Valor das sessões realizadas pela equipe',
+  detailedDescription: 'Soma do valor de todas as sessões com status "comparecida" realizadas pelos subordinados no período.',
+  category: 'dashboard-cards',
+  defaultWidth: 300,
+  defaultHeight: 160,
+  permissionConfig: {
+    domain: 'team',
+    blockedFor: ['subordinate'],
+  },
+},
+// ... repetir para os outros 4 cards
+```
+
+**Critérios**:
+- [ ] Todos os 6 cards Team estão registrados
+- [ ] IDs correspondem aos usados no código
+- [ ] `permissionConfig` correto (domain: 'team', blockedFor: ['subordinate'])
+
+---
+
+### ✅ **FASE 9: VALIDAÇÃO E TESTES** (20 min)
+
+**Objetivo**: Verificar se tudo funciona
+
+#### **Checklist de Validação**:
+
+**Visual**:
+- [ ] Seção "Equipe" aparece no Dashboard
+- [ ] Cards Team são renderizados
+- [ ] Valores são exibidos corretamente formatados
+- [ ] Tooltips aparecem e explicam os cálculos
+
+**Funcional**:
+- [ ] Mudar período filtra dados corretamente
+- [ ] Cards mostram valores diferentes para períodos diferentes
+- [ ] Valores são coerentes (não negativos, não NaN)
+- [ ] Pacientes mensalistas são contados 1x por mês
+
+**Permissões**:
+- [ ] Admin vê seção Team
+- [ ] FullTherapist vê seção Team (se tem subordinados)
+- [ ] Subordinate NÃO vê seção Team
+- [ ] Accountant vê/não vê conforme configuração
+
+**Dados**:
+- [ ] `teamPatients` contém pacientes dos subordinados
+- [ ] `teamSessions` contém sessões dos pacientes da equipe
+- [ ] Dados filtrados por período estão corretos
+
+**TypeScript**:
+- [ ] Sem erros de tipo
+- [ ] Props tipadas corretamente
+
+#### **Testes Manuais**:
+
+1. **Teste 1: Período Mensal**
+   - Selecionar "Mês Atual"
+   - Verificar valores
+   - Comparar com sessões reais no banco
+
+2. **Teste 2: Período Customizado**
+   - Selecionar período específico (ex: 01/11 a 15/11)
+   - Verificar que apenas sessões nesse range são contadas
+
+3. **Teste 3: Pacientes Mensalistas**
+   - Verificar paciente com `monthly_price = true`
+   - Confirmar que é contado 1x por mês, não por sessão
+
+4. **Teste 4: Dados Vazios**
+   - Testar com usuário sem subordinados
+   - Seção deve aparecer vazia ou não aparecer
+
+---
+
+### ✅ **FASE 10: DOCUMENTAÇÃO** (10 min)
+
+**Objetivo**: Documentar o que foi implementado
+
+**Ações**:
+1. Atualizar `ARQUITETURA_SISTEMA_REFERENCE.md` se necessário
+2. Adicionar comentários nos cards Team explicando lógica
+3. Documentar IDs dos cards e seção para referência futura
+
+**Critérios**:
+- [ ] Código está comentado onde necessário
+- [ ] README atualizado se relevante
+
+---
+
+## 📊 RESUMO DE IMPLEMENTAÇÃO
+
+### Arquivos Modificados
+
+| Arquivo | Modificações |
+|---------|--------------|
+| `src/lib/dashboardCardRegistryTeam.tsx` | Corrigir interface, filtragem, fórmulas, formatação, tooltips |
+| `src/lib/defaultSectionsDashboard.ts` | Adicionar/verificar configuração `dashboard-team` |
+| `src/pages/Dashboard.tsx` | Adicionar hook useTeamData, renderização da seção, função renderTeamCard |
+| `src/types/cardTypes.ts` | Registrar cards Team em AVAILABLE_DASHBOARD_CARDS |
+
+### Dependências entre Fases
+
+```
+FASE 0 (pré-validação)
+  ↓
+FASE 1 (tipos) → FASE 2 (filtragem) → FASE 3 (fórmulas) → FASE 4 (formatação) → FASE 5 (tooltips)
+  ↓
+FASE 6 (configuração seção)
+  ↓
+FASE 7 (integração Dashboard.tsx)
+  ↓
+FASE 8 (registry)
+  ↓
+FASE 9 (validação)
+  ↓
+FASE 10 (documentação)
+```
+
+### Tempo Estimado Total
+
+**~3h** distribuídas em:
+- Fases 0-5: ~1.5h (correção de código)
+- Fases 6-7: ~0.5h (integração)
+- Fase 8: ~0.2h (registry)
+- Fases 9-10: ~0.5h (validação e documentação)
+
+---
+
+## ⚠️ PONTOS CRÍTICOS DE ATENÇÃO
+
+1. **NUNCA ignorar `start`/`end`**: Todos os cards DEVEM filtrar por período
+2. **SEMPRE considerar `monthly_price`**: Usar tracking Map<monthKey, Set<patientId>>
+3. **Usar helpers existentes**: `formatBrazilianCurrency()`, não `.toLocaleString()`
+4. **Copiar fórmulas EXATAMENTE**: Não simplificar, não inventar lógica nova
+5. **Props corretas**: `teamPatients` e `teamSessions` para dados da equipe
+6. **Permissões**: `domain: 'team'`, `blockedFor: ['subordinate']`
+
+---
+
+## 🎯 CRITÉRIOS DE CONCLUSÃO
+
+A implementação está COMPLETA quando:
+
+✅ Todos os 6 cards Team renderizam corretamente
+✅ Valores mudam ao trocar período
+✅ Fórmulas replicam exatamente os cards principais
+✅ Formatação usa helpers existentes
+✅ Tooltips são detalhados e informativos
+✅ Seção aparece para Admin/Full, oculta para Subordinate
+✅ TypeScript sem erros
+✅ Código testado manualmente
+✅ Documentação atualizada
+
+---
+
+**Última atualização**: 2025-11-18
+**Versão**: 1.0
+**Autor**: Análise diagnóstica completa
