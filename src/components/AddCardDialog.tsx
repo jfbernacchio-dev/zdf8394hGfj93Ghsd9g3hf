@@ -23,7 +23,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
-import { Plus, X, DollarSign, Calendar, Activity, BarChart3, Settings, TrendingUp } from 'lucide-react';
+import { Plus, X, DollarSign, Calendar, Activity, BarChart3, Settings, TrendingUp, Users } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { useCardPermissions } from '@/hooks/useCardPermissions';
@@ -54,18 +54,20 @@ const SECTION_ICONS = {
   'dashboard-media': BarChart3,
   'dashboard-general': Settings,
   'dashboard-charts': TrendingUp,
+  'dashboard-team': Users,
 } as const;
 
 /**
  * Mapeamento de domínios para labels em português
  */
 const DOMAIN_LABELS: Record<string, string> = {
-  financial: 'Financeiro',
-  administrative: 'Administrativo',
-  clinical: 'Clínico',
-  media: 'Mídia',
+  financial: 'Financeira',
+  administrative: 'Administrativa',
+  clinical: 'Clínica',
+  media: 'Marketing',
   general: 'Geral',
   charts: 'Gráficos',
+  team: 'Equipe',
 };
 
 export const AddCardDialog = ({ 

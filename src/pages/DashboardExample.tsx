@@ -21,7 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import { Pencil, Save, X, RotateCcw, Loader2, CheckCircle2, AlertCircle, Sparkles, GripVertical, Plus, CalendarIcon } from 'lucide-react';
+import { Pencil, Save, X, RotateCcw, Loader2, CheckCircle2, AlertCircle, Sparkles, GripVertical, Plus, CalendarIcon, Settings } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { AddCardDialog } from '@/components/AddCardDialog';
