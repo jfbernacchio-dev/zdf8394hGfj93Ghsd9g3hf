@@ -91,10 +91,12 @@ export const DEFAULT_DASHBOARD_EXAMPLE_LAYOUT: DashboardExampleLayout = {
   },
   'dashboard-team': {
     cardLayouts: [
-      { cardId: 'dashboard-team-therapists', width: 300, order: 0 },
-      { cardId: 'dashboard-team-revenue-distribution', width: 450, order: 1 },
-      { cardId: 'dashboard-team-session-distribution', width: 450, order: 2 },
-      { cardId: 'dashboard-team-performance', width: 450, order: 3 },
+      { cardId: 'dashboard-expected-revenue-team', width: 300, order: 0 },
+      { cardId: 'dashboard-actual-revenue-team', width: 300, order: 1 },
+      { cardId: 'dashboard-unpaid-value-team', width: 300, order: 2 },
+      { cardId: 'dashboard-payment-rate-team', width: 300, order: 3 },
+      { cardId: 'dashboard-total-patients-team', width: 300, order: 4 },
+      { cardId: 'dashboard-attended-sessions-team', width: 300, order: 5 },
     ],
   },
 };
