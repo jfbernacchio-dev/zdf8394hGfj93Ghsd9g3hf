@@ -12,7 +12,7 @@ import type { SectionConfig } from '@/types/sectionTypes';
 export const DASHBOARD_SECTIONS: Record<string, SectionConfig> = {
   'dashboard-financial': {
     id: 'dashboard-financial',
-    name: 'Visão Geral Financeira',
+    name: 'Financeira',
     description: 'Receitas, pagamentos pendentes e NFSe',
     permissionConfig: {
       primaryDomain: 'financial',
@@ -39,7 +39,7 @@ export const DASHBOARD_SECTIONS: Record<string, SectionConfig> = {
 
   'dashboard-administrative': {
     id: 'dashboard-administrative',
-    name: 'Visão Administrativa',
+    name: 'Administrativa',
     description: 'Sessões, pacientes e agendamentos',
     permissionConfig: {
       primaryDomain: 'administrative',
@@ -68,7 +68,7 @@ export const DASHBOARD_SECTIONS: Record<string, SectionConfig> = {
 
   'dashboard-clinical': {
     id: 'dashboard-clinical',
-    name: 'Visão Clínica',
+    name: 'Clínica',
     description: 'Queixas, evoluções e diagnósticos',
     permissionConfig: {
       primaryDomain: 'clinical',
@@ -90,7 +90,7 @@ export const DASHBOARD_SECTIONS: Record<string, SectionConfig> = {
 
   'dashboard-media': {
     id: 'dashboard-media',
-    name: 'Analytics & Marketing',
+    name: 'Marketing',
     description: 'Métricas de site e campanhas',
     permissionConfig: {
       primaryDomain: 'media',
@@ -111,7 +111,7 @@ export const DASHBOARD_SECTIONS: Record<string, SectionConfig> = {
 
   'dashboard-general': {
     id: 'dashboard-general',
-    name: 'Visão Geral',
+    name: 'Geral',
     description: 'Cards gerais e informações do sistema',
     permissionConfig: {
       primaryDomain: 'general',
@@ -133,7 +133,7 @@ export const DASHBOARD_SECTIONS: Record<string, SectionConfig> = {
 
   'dashboard-charts': {
     id: 'dashboard-charts',
-    name: 'Visão Gráfica',
+    name: 'Gráficos',
     description: 'Gráficos consolidados de todas as áreas',
     permissionConfig: {
       primaryDomain: 'charts',
@@ -164,6 +164,38 @@ export const DASHBOARD_SECTIONS: Record<string, SectionConfig> = {
   maxCardWidth: 1000,
   defaultCardWidth: 450,
 },
+
+  'dashboard-team': {
+    id: 'dashboard-team',
+    name: 'Equipe',
+    description: 'Dados dos subordinados',
+    permissionConfig: {
+      primaryDomain: 'team',
+      secondaryDomains: ['financial', 'administrative', 'clinical'],
+      blockedFor: ['subordinate'],
+      requiresOwnDataOnly: false,
+    },
+    availableCardIds: [
+      'dashboard-expected-revenue-team',
+      'dashboard-actual-revenue-team',
+      'dashboard-unpaid-value-team',
+      'dashboard-payment-rate-team',
+      'dashboard-total-patients-team',
+      'dashboard-attended-sessions-team',
+      'dashboard-expected-sessions-team',
+      'dashboard-pending-sessions-team',
+      'dashboard-missed-sessions-team',
+      'dashboard-attendance-rate-team',
+      'dashboard-active-complaints-team',
+      'dashboard-no-diagnosis-team',
+    ],
+    defaultHeight: 400,
+    collapsible: true,
+    startCollapsed: false,
+    minCardWidth: 280,
+    maxCardWidth: 800,
+    defaultCardWidth: 300,
+  },
 };
 
 /**
