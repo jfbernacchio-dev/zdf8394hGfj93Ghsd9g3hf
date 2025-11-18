@@ -429,16 +429,13 @@ const attendedCount = periodSessions.filter(s =>
 
 ---
 
-### ✅ **FASE 4: CORRIGIR FORMATAÇÃO** (10 min)
+### ✅ **FASE 4: CORRIGIR FORMATAÇÃO** (10 min) ✅ **CONCLUÍDA**
 
 **Objetivo**: Usar helpers de formatação existentes
 
-**Ações**:
-1. Importar `formatBrazilianCurrency` de `@/lib/brazilianFormat`
-2. Substituir TODOS os `.toLocaleString('pt-BR', ...)` por:
-   ```typescript
-   {formatBrazilianCurrency(value)}
-   ```
+**Ações implementadas**:
+1. ✅ Importado `formatBrazilianCurrency` de `@/lib/brazilianFormat`
+2. ✅ Substituído TODOS os `.toLocaleString('pt-BR', ...)` por `formatBrazilianCurrency(value)`
 
 **Exemplo antes**:
 ```typescript
@@ -450,12 +447,25 @@ const attendedCount = periodSessions.filter(s =>
 {formatBrazilianCurrency(totalExpected)}
 ```
 
-**Arquivos a modificar**:
-- `src/lib/dashboardCardRegistryTeam.tsx` (todos os cards com valores monetários)
+**Arquivos modificados**:
+- ✅ `src/lib/dashboardCardRegistryTeam.tsx`
 
-**Critérios de sucesso**:
-- [ ] Nenhum card usa `.toLocaleString()` diretamente
-- [ ] Todos valores monetários usam `formatBrazilianCurrency()`
+**Cards atualizados**:
+1. ✅ DashboardExpectedRevenueTeam - linha 114 
+2. ✅ DashboardActualRevenueTeam - linha 187
+3. ✅ DashboardUnpaidValueTeam - linha 260
+
+**Import adicionado**:
+```typescript
+import { formatBrazilianCurrency } from '@/lib/brazilianFormat'; ✅
+```
+
+**Critérios de sucesso** (todos atendidos):
+- ✅ Nenhum card usa `.toLocaleString()` diretamente
+- ✅ Todos valores monetários usam `formatBrazilianCurrency()`
+- ✅ Formatação consistente com cards principais
+
+**Status**: ✅ **FASE 4 CONCLUÍDA COM SUCESSO - FORMATAÇÃO BRASILEIRA APLICADA**
 
 ---
 
