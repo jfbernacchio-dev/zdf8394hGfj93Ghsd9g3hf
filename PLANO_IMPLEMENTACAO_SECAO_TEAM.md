@@ -617,37 +617,137 @@ export const DEFAULT_DASHBOARD_SECTIONS = {
 
 ---
 
-### ✅ **FASE 7: VERIFICAR INTEGRAÇÃO NO DASHBOARDEXAMPLE.TSX** (10 min)
+### ✅ **FASE 7: VERIFICAR INTEGRAÇÃO NO DASHBOARDEXAMPLE.TSX** (10 min) ✅ **CONCLUÍDA**
 
 **Objetivo**: Confirmar que DashboardExample.tsx já está correto
 
-**Arquivo**: `src/pages/DashboardExample.tsx` (📖 APENAS VERIFICAÇÃO - JÁ IMPLEMENTADO)
+**Arquivo verificado**: `src/pages/DashboardExample.tsx` (📖 JÁ IMPLEMENTADO)
 
-#### **FASE 7A: Verificar hooks de dados (JÁ IMPLEMENTADO)**
+#### **FASE 7A: Verificar hooks de dados** ✅
 
-**Verificar que já existe** em `DashboardExample.tsx`:
+**Código encontrado** em `DashboardExample.tsx` (linha 70):
 ```typescript
-const { 
-  teamPatients, 
-  teamSessions, 
-  subordinateIds, 
-  loading: teamLoading 
-} = useTeamData();
+// Buscar dados da equipe
+const { teamPatients, teamSessions, subordinateIds, loading: teamLoading } = useTeamData();
 ```
 
-**Critérios**:
-- ✅ `useTeamData` está importado
-- ✅ Hook está sendo chamado
-- ✅ Dados team estão disponíveis
+**Critérios verificados** (todos atendidos):
+- ✅ `useTeamData` está importado (linha 55)
+- ✅ Hook está sendo chamado corretamente (linha 70)
+- ✅ Dados team (teamPatients, teamSessions) estão disponíveis
+- ✅ subordinateIds estão sendo extraídos
 
-#### **FASE 7B: Verificar renderização da seção (JÁ IMPLEMENTADO)**
+#### **FASE 7B: Verificar agregação de dados team** ✅
 
-**Confirmar que já existe** em DashboardExample.tsx a renderização da seção team com os dados corretos:
+**Código encontrado** em `DashboardExample.tsx` (linhas 228-269):
 ```typescript
-{canViewCard('dashboard-team') && (
-  <ResizableSection
-    id="dashboard-team"
-    title={DASHBOARD_SECTIONS['dashboard-team'].name}
+/**
+ * AGREGAÇÃO DE DADOS DA EQUIPE
+ */
+const teamAggregatedData = useMemo(() => {
+  return generateTimeIntervals(start, end, automaticScale).map(intervalDate => {
+    const bounds = getIntervalBounds(intervalDate, automaticScale);
+    
+    const intervalSessions = teamSessions.filter(session => {
+      const sessionDate = new Date(session.date);
+      return sessionDate >= bounds.start && sessionDate <= bounds.end;
+    });
+
+    // ... cálculos de attended, missed, pending, paid, unpaid ...
+    // ... cálculos de totalRevenue, paidRevenue, unpaidRevenue ...
+
+    return {
+      label: formatTimeLabel(intervalDate, automaticScale),
+      interval: intervalDate,
+      attended: attendedCount,
+      missed: missedCount,
+      pending: pendingCount,
+      paid: paidCount,
+      unpaid: unpaidCount,
+      totalRevenue,
+      paidRevenue,
+      unpaidRevenue,
+      total: intervalSessions.length,
+    };
+  });
+}, [start, end, automaticScale, teamSessions]);
+```
+
+**Critérios verificados** (todos atendidos):
+- ✅ `teamAggregatedData` está sendo calculado
+- ✅ Usa `teamSessions` como fonte
+- ✅ Respeita intervalo de tempo (start/end)
+- ✅ Estrutura idêntica ao `aggregatedData` (dados próprios)
+
+#### **FASE 7C: Verificar renderização da seção team** ✅
+
+**Código encontrado** em `DashboardExample.tsx` (linhas 525-640):
+
+1. **Loop de seções** (linha 525):
+```typescript
+{Object.entries(DASHBOARD_SECTIONS).map(([sectionId, sectionConfig]) => {
+  const section = layout[sectionId];
+  if (!section || !section.cardLayouts.length) {
+    // Seção vazia ou sem permissão
+    return null;
+  }
+  // ... renderiza seção
+})}
+```
+
+2. **Passagem condicional de dados team** (linhas 621-633):
+```typescript
+{renderDashboardCard(cardLayout.cardId, {
+  isEditMode,
+  patients: sectionId === 'dashboard-team' ? teamPatients : ownPatients,
+  sessions: sectionId === 'dashboard-team' ? teamSessions : ownSessions,
+  start,
+  end,
+  automaticScale,
+  getScale,
+  setScaleOverride,
+  clearOverride,
+  hasOverride,
+  aggregatedData: sectionId === 'dashboard-team' ? teamAggregatedData : aggregatedData,
+})}
+```
+
+**Critérios verificados** (todos atendidos):
+- ✅ Seção team é renderizada no loop de seções
+- ✅ Dados team são passados condicionalmente: 
+  - ✅ `teamPatients` quando `sectionId === 'dashboard-team'` (linha 623)
+  - ✅ `teamSessions` quando `sectionId === 'dashboard-team'` (linha 624)
+  - ✅ `teamAggregatedData` quando `sectionId === 'dashboard-team'` (linha 632)
+- ✅ Filtro de permissão funciona via layout (linha 527)
+- ✅ Props completas: start, end, automaticScale, getScale, etc.
+
+#### **FASE 7D: Verificar filtro de dados próprios** ✅
+
+**Código encontrado** em `DashboardExample.tsx` (linhas 72-73):
+```typescript
+// Filtrar dados próprios (excluindo subordinados)
+const { ownPatients, ownSessions } = useOwnData(allPatients, allSessions, subordinateIds);
+```
+
+**Critérios verificados** (todos atendidos):
+- ✅ `useOwnData` filtra dados próprios excluindo subordinados
+- ✅ `subordinateIds` do `useTeamData` é usado para filtrar
+- ✅ Evita duplicação de dados entre próprio e equipe
+
+---
+
+**Status**: ✅ **FASE 7 CONCLUÍDA COM SUCESSO - INTEGRAÇÃO 100% CORRETA**
+
+**Resultado da validação**:
+- ✅ useTeamData funcionando corretamente
+- ✅ teamAggregatedData calculado adequadamente
+- ✅ Dados team passados condicionalmente aos cards
+- ✅ Separação correta entre dados próprios e da equipe
+- ✅ Todas as props necessárias sendo passadas (start, end, etc.)
+- ✅ Sistema de permissões funcionando via layout
+- ✅ **NENHUMA alteração necessária**
+
+---
     description={DASHBOARD_SECTIONS['dashboard-team'].description}
     collapsible={true}
     startCollapsed={false}
@@ -965,8 +1065,6 @@ A implementação está COMPLETA quando:
   - ✅ AttendedSessionsTeam: calcula % de realização
 
 ### 🔜 PRÓXIMAS FASES (Aguardando aval)
-**FASE 6**: Verificar configuração da seção (15 min)
-**FASE 7**: Verificar integração no DashboardExample.tsx (10 min)
 **FASE 8**: Registrar cards no Registry (10 min)
 **FASE 9**: Validação final (30 min)
 **FASE 10**: Documentação (15 min)
@@ -996,19 +1094,23 @@ Sistema validado, arquitetura correta, problema diagnosticado
 ### ✅ FASE 6: CONFIGURAR SEÇÃO NO DASHBOARD - CONCLUÍDA
 Seção 'dashboard-team' verificada e confirmada como correta
 
+### ✅ FASE 7: VERIFICAR INTEGRAÇÃO NO DASHBOARDEXAMPLE.TSX - CONCLUÍDA
+useTeamData funcionando, dados team passados corretamente aos cards
+
 ---
 
-## 🎯 PRÓXIMO PASSO: FASE 7
+## 🎯 PRÓXIMO PASSO: FASE 8
 
-**A Fase 6 foi concluída com sucesso!** 
+**A Fase 7 foi concluída com sucesso!** 
 
-A seção Team já estava corretamente configurada:
-- ✅ Permissões adequadas (team domain, bloqueada para subordinates)
-- ✅ Todos os 6 cards implementados registrados
-- ✅ Layout padrão definido
-- ✅ Configurações de altura e largura apropriadas
+A integração no DashboardExample.tsx está perfeita:
+- ✅ Hook useTeamData implementado e funcionando
+- ✅ teamAggregatedData calculado adequadamente
+- ✅ Dados team condicionalmente passados aos cards (linha 623-624, 632)
+- ✅ Separação correta entre dados próprios e da equipe
+- ✅ Todas as props necessárias presentes (start, end, scales, etc.)
 
-**Pronto para prosseguir com a Fase 7**: Verificar integração no DashboardExample.tsx
+**Pronto para prosseguir com a Fase 8**: Registrar cards no Registry
 **FASE 7**: Verificar integração DashboardExample (10 min)
 **FASE 8**: Registrar cards principais (5 min)
 **FASE 9**: Validação e testes (30 min)
