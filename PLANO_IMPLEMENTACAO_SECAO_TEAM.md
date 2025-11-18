@@ -835,47 +835,66 @@ import {
 
 ---
 
-### ✅ **FASE 8: REGISTRAR CARDS NO REGISTRY PRINCIPAL** (10 min)
+### ✅ **FASE 8: REGISTRAR CARDS NO REGISTRY PRINCIPAL** (10 min) ✅ **CONCLUÍDA**
 
-**Objetivo**: Adicionar cards Team em `AVAILABLE_DASHBOARD_CARDS`
+**Objetivo**: Adicionar cards Team em `AVAILABLE_DASHBOARD_CARDS` e registrar no sistema
 
-**Arquivo**: `src/types/cardTypes.ts`
+**Arquivos modificados**:
+1. ✅ `src/types/cardTypes.ts` - Adicionada seção `AVAILABLE_TEAM_CARDS`
+2. ✅ `src/lib/dashboardCardRegistry.tsx` - Cards já importados e registrados
 
-**Adicionar ao array `AVAILABLE_DASHBOARD_CARDS`**:
+**Validação realizada**:
+
+#### 1. ✅ Registry Map (`dashboardCardRegistry.tsx`)
+**Linhas 1009-1054**: DASHBOARD_CARD_COMPONENTS já continha todos os 6 cards team:
 ```typescript
-{
-  id: 'dashboard-expected-revenue-team',
-  name: 'Receita Esperada - Equipe',
-  description: 'Valor esperado baseado nas sessões agendadas da equipe',
-  detailedDescription: 'Valor total esperado de todas as sessões agendadas dos subordinados no período, considerando o valor por sessão de cada paciente.',
-  category: 'dashboard-cards',
-  defaultWidth: 300,
-  defaultHeight: 160,
-  permissionConfig: {
-    domain: 'team',
-    blockedFor: ['subordinate'],
-  },
-},
-{
-  id: 'dashboard-actual-revenue-team',
-  name: 'Receita Realizada - Equipe',
-  description: 'Valor das sessões realizadas pela equipe',
-  detailedDescription: 'Soma do valor de todas as sessões com status "comparecida" realizadas pelos subordinados no período.',
-  category: 'dashboard-cards',
-  defaultWidth: 300,
-  defaultHeight: 160,
-  permissionConfig: {
-    domain: 'team',
-    blockedFor: ['subordinate'],
-  },
-},
-// ... repetir para os outros 4 cards
+// Team (Equipe)
+'dashboard-expected-revenue-team': DashboardExpectedRevenueTeam,
+'dashboard-actual-revenue-team': DashboardActualRevenueTeam,
+'dashboard-unpaid-value-team': DashboardUnpaidValueTeam,
+'dashboard-payment-rate-team': DashboardPaymentRateTeam,
+'dashboard-total-patients-team': DashboardTotalPatientsTeam,
+'dashboard-attended-sessions-team': DashboardAttendedSessionsTeam,
 ```
 
-**Critérios**:
-- [ ] Todos os 6 cards Team estão registrados
-- [ ] IDs correspondem aos usados no código
-- [ ] `permissionConfig` correto (domain: 'team', blockedFor: ['subordinate'])
+**Linhas 27-34**: Imports corretos do arquivo `dashboardCardRegistryTeam`:
+```typescript
+import {
+  DashboardExpectedRevenueTeam,
+  DashboardActualRevenueTeam,
+  DashboardUnpaidValueTeam,
+  DashboardPaymentRateTeam,
+  DashboardTotalPatientsTeam,
+  DashboardAttendedSessionsTeam,
+} from './dashboardCardRegistryTeam';
+```
+
+#### 2. ✅ Card Metadata (`cardTypes.ts`)
+**Adicionada nova seção**: `AVAILABLE_TEAM_CARDS` (após linha 633)
+
+Todos os 6 cards team foram registrados com:
+- ✅ IDs corretos (`dashboard-*-team`)
+- ✅ Nomes descritivos com "(Equipe)"
+- ✅ Descrições e detailedDescriptions apropriadas
+- ✅ `category: 'dashboard-cards'`
+- ✅ Dimensões padrão (280x160)
+- ✅ `permissionConfig` adequado:
+  - `domain: 'team'`
+  - `blockedFor: ['subordinate']`
+
+**AVAILABLE_TEAM_CARDS incluído em ALL_AVAILABLE_CARDS**
+
+**Verificação de integridade**:
+- ✅ 6 cards exportados em `dashboardCardRegistryTeam.tsx`
+- ✅ 6 cards importados em `dashboardCardRegistry.tsx`
+- ✅ 6 cards registrados no mapa `DASHBOARD_CARD_COMPONENTS`
+- ✅ 6 cards configurados em `AVAILABLE_TEAM_CARDS`
+- ✅ Cards disponíveis via `renderDashboardCard()`
+- ✅ Cards listados em `ALL_AVAILABLE_CARDS`
+
+**Status**: ✅ **FASE 8 CONCLUÍDA COM SUCESSO**
+
+**Pronto para Fase 9**: Validação final e testes
 
 ---
 
@@ -1064,9 +1083,29 @@ A implementação está COMPLETA quando:
   - ✅ TotalPatientsTeam: filtra status==='active'
   - ✅ AttendedSessionsTeam: calcula % de realização
 
+### ✅ FASE 4: CONCLUÍDA
+- Formatação monetária usando formatBrazilianCurrency()
+- 3 cards monetários formatados corretamente
+
+### ✅ FASE 5: CONCLUÍDA
+- Tooltips detalhados em todos os 6 cards
+- Descrições completas das fórmulas
+
+### ✅ FASE 6: CONCLUÍDA
+- Seção 'dashboard-team' configurada corretamente
+- availableCardIds verificados
+
+### ✅ FASE 7: CONCLUÍDA
+- DashboardExample.tsx integração verificada
+- useTeamData funcionando corretamente
+
+### ✅ FASE 8: CONCLUÍDA
+- Cards registrados em AVAILABLE_TEAM_CARDS
+- Cards importados e mapeados no registry principal
+- ALL_AVAILABLE_CARDS atualizado
+
 ### 🔜 PRÓXIMAS FASES (Aguardando aval)
-**FASE 8**: Registrar cards no Registry (10 min)
-**FASE 9**: Validação final (30 min)
+**FASE 9**: Validação final e testes (30 min)
 **FASE 10**: Documentação (15 min)
 
 ---
@@ -1097,26 +1136,29 @@ Seção 'dashboard-team' verificada e confirmada como correta
 ### ✅ FASE 7: VERIFICAR INTEGRAÇÃO NO DASHBOARDEXAMPLE.TSX - CONCLUÍDA
 useTeamData funcionando, dados team passados corretamente aos cards
 
+### ✅ FASE 8: REGISTRAR CARDS NO REGISTRY PRINCIPAL - CONCLUÍDA
+Cards team adicionados ao AVAILABLE_TEAM_CARDS e ALL_AVAILABLE_CARDS
+
 ---
 
-## 🎯 PRÓXIMO PASSO: FASE 8
+## 🎯 PRÓXIMO PASSO: FASE 9
 
-**A Fase 7 foi concluída com sucesso!** 
+**A Fase 8 foi concluída com sucesso!** 
 
-A integração no DashboardExample.tsx está perfeita:
-- ✅ Hook useTeamData implementado e funcionando
-- ✅ teamAggregatedData calculado adequadamente
-- ✅ Dados team condicionalmente passados aos cards (linha 623-624, 632)
-- ✅ Separação correta entre dados próprios e da equipe
-- ✅ Todas as props necessárias presentes (start, end, scales, etc.)
+Todos os 6 cards team foram registrados:
+- ✅ Nova seção `AVAILABLE_TEAM_CARDS` criada em `cardTypes.ts`
+- ✅ 6 cards com metadata completa (id, name, description, permissionConfig)
+- ✅ `domain: 'team'` e `blockedFor: ['subordinate']` configurados
+- ✅ Cards já importados em `dashboardCardRegistry.tsx` (linhas 27-34)
+- ✅ Cards já mapeados em `DASHBOARD_CARD_COMPONENTS` (linhas 1047-1053)
+- ✅ `AVAILABLE_TEAM_CARDS` incluído em `ALL_AVAILABLE_CARDS`
+- ✅ Sistema pronto para renderização via `renderDashboardCard()`
 
-**Pronto para prosseguir com a Fase 8**: Registrar cards no Registry
-**FASE 7**: Verificar integração DashboardExample (10 min)
-**FASE 8**: Registrar cards principais (5 min)
+**Pronto para prosseguir com a Fase 9**: Validação final e testes
 **FASE 9**: Validação e testes (30 min)
 **FASE 10**: Documentação (15 min)
 
-**Tempo total estimado**: ~3h
+**Tempo total estimado restante**: ~45 min
 
 ---
 

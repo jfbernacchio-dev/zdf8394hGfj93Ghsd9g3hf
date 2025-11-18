@@ -634,6 +634,92 @@ export const AVAILABLE_DASHBOARD_CHARTS: CardConfig[] = [
 
 /**
  * ============================================================================
+ * TEAM CARDS - Dashboard Team Section (Equipe)
+ * ============================================================================
+ */
+export const AVAILABLE_TEAM_CARDS: CardConfig[] = [
+  {
+    id: 'dashboard-expected-revenue-team',
+    name: 'Receita Esperada (Equipe)',
+    description: 'Receita total esperada da equipe no período',
+    detailedDescription: 'Soma de todas as sessões agendadas da equipe (subordinados). Considera mensalidades uma vez por mês.',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+    permissionConfig: {
+      domain: 'team',
+      blockedFor: ['subordinate'],
+    },
+  },
+  {
+    id: 'dashboard-actual-revenue-team',
+    name: 'Receita Realizada (Equipe)',
+    description: 'Receita efetivamente realizada pela equipe',
+    detailedDescription: 'Soma das sessões comparecidas da equipe. Considera mensalidades uma vez por mês.',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+    permissionConfig: {
+      domain: 'team',
+      blockedFor: ['subordinate'],
+    },
+  },
+  {
+    id: 'dashboard-unpaid-value-team',
+    name: 'A Receber (Equipe)',
+    description: 'Valor pendente de pagamento da equipe',
+    detailedDescription: 'Soma das sessões comparecidas mas não pagas da equipe. Considera mensalidades uma vez por mês.',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+    permissionConfig: {
+      domain: 'team',
+      blockedFor: ['subordinate'],
+    },
+  },
+  {
+    id: 'dashboard-payment-rate-team',
+    name: 'Taxa de Pagamento (Equipe)',
+    description: 'Percentual de sessões pagas da equipe',
+    detailedDescription: 'Percentual de sessões comparecidas que foram pagas pela equipe.',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+    permissionConfig: {
+      domain: 'team',
+      blockedFor: ['subordinate'],
+    },
+  },
+  {
+    id: 'dashboard-total-patients-team',
+    name: 'Total de Pacientes (Equipe)',
+    description: 'Pacientes ativos da equipe',
+    detailedDescription: 'Contagem de pacientes com status ativo gerenciados pela equipe.',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+    permissionConfig: {
+      domain: 'team',
+      blockedFor: ['subordinate'],
+    },
+  },
+  {
+    id: 'dashboard-attended-sessions-team',
+    name: 'Sessões Realizadas (Equipe)',
+    description: 'Sessões comparecidas pela equipe',
+    detailedDescription: 'Contagem e percentual de sessões comparecidas em relação ao total esperado da equipe.',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+    permissionConfig: {
+      domain: 'team',
+      blockedFor: ['subordinate'],
+    },
+  },
+];
+
+/**
+ * ============================================================================
  * CLINICAL CARDS - Evolution Page
  * ============================================================================
  */
@@ -874,6 +960,7 @@ export const ALL_AVAILABLE_CARDS: CardConfig[] = [
   ...AVAILABLE_FUNCTIONAL_CARDS,
   ...AVAILABLE_DASHBOARD_CARDS,
   ...AVAILABLE_DASHBOARD_CHARTS,
+  ...AVAILABLE_TEAM_CARDS,
   ...AVAILABLE_CLINICAL_CARDS,
   ...AVAILABLE_DASHBOARD_CLINICAL_CARDS,
   ...AVAILABLE_MEDIA_CARDS,
