@@ -1,27 +1,40 @@
 import type { ExtendedAutonomyPermissions } from '@/hooks/useSubordinatePermissions';
 import { DASHBOARD_SECTIONS } from './defaultSectionsDashboard';
+import type { GridCardLayout } from '@/types/cardTypes';
 
 /**
  * LAYOUT STRUCTURE FOR DASHBOARD EXAMPLE
  * 
- * Diferença fundamental do Dashboard original:
- * - Dashboard original: free-form absolute positioning (x, y, width, height)
- * - Dashboard Example: section-based sequential ordering (width, order)
+ * FASE 2: Migração para React Grid Layout
+ * 
+ * SISTEMA ANTIGO (DEPRECATED):
+ * - section-based sequential ordering (width, order)
+ * - Apenas horizontal, sem controle vertical
+ * 
+ * SISTEMA NOVO (React Grid Layout):
+ * - Grid de 12 colunas
+ * - Posicionamento livre 2D (x, y, w, h)
+ * - Resize bidirecional
+ * - Reflow automático
  * 
  * ESTRUTURA:
  * {
  *   sectionId: {
  *     cardLayouts: [
- *       { cardId: string, width: number, order: number }
+ *       { i: cardId, x: col, y: row, w: cols, h: rows, minW, minH }
  *     ]
  *   }
  * }
  */
 
+// ============================================================================
+// TIPOS LEGADOS (mantidos para compatibilidade durante migração)
+// ============================================================================
+
 export interface CardLayout {
   cardId: string;
   width: number;
-  order: number; // posição sequencial dentro da seção (0, 1, 2, ...)
+  order: number;
 }
 
 export interface SectionLayout {
@@ -29,6 +42,16 @@ export interface SectionLayout {
 }
 
 export type DashboardExampleLayout = Record<string, SectionLayout>;
+
+// ============================================================================
+// TIPOS NOVOS (React Grid Layout) - FASE 2
+// ============================================================================
+
+export interface GridSectionLayout {
+  cardLayouts: GridCardLayout[];
+}
+
+export type DashboardGridLayout = Record<string, GridSectionLayout>;
 
 /**
  * DEFAULT LAYOUT FOR DASHBOARD EXAMPLE
@@ -43,6 +66,10 @@ export type DashboardExampleLayout = Record<string, SectionLayout>;
  * NOTA: Apenas cards ATIVOS (visibleCardIds) são incluídos aqui.
  * Cards disponíveis mas não adicionados NÃO aparecem no layout.
  */
+// ============================================================================
+// LAYOUT LEGADO (DEPRECATED) - Mantido para compatibilidade
+// ============================================================================
+
 export const DEFAULT_DASHBOARD_EXAMPLE_LAYOUT: DashboardExampleLayout = {
   'dashboard-financial': {
     cardLayouts: [
@@ -97,6 +124,98 @@ export const DEFAULT_DASHBOARD_EXAMPLE_LAYOUT: DashboardExampleLayout = {
       { cardId: 'dashboard-payment-rate-team', width: 300, order: 3 },
       { cardId: 'dashboard-total-patients-team', width: 300, order: 4 },
       { cardId: 'dashboard-attended-sessions-team', width: 300, order: 5 },
+    ],
+  },
+};
+
+// ============================================================================
+// GRID LAYOUT PADRÃO (React Grid Layout) - FASE 2
+// ============================================================================
+
+/**
+ * DEFAULT GRID LAYOUT FOR DASHBOARD EXAMPLE
+ * 
+ * Layout baseado em grid de 12 colunas para React Grid Layout.
+ * 
+ * DIMENSIONAMENTO:
+ * - Cards pequenos (métricas): 3 cols (25% da largura) × 2 rows (120px)
+ * - Cards médios (ações): 4-6 cols (33-50%) × 2-3 rows (120-180px)
+ * - Cards grandes (gráficos): 6-12 cols (50-100%) × 4-6 rows (240-360px)
+ * 
+ * REGRAS:
+ * - minW: 2 cols (mínimo para legibilidade)
+ * - minH: 1 row (mínimo vertical)
+ * - maxW: 12 cols (largura total do grid)
+ * - Cards de gráficos: altura maior (4-6 rows)
+ * - Cards de métricas: altura padrão (2 rows)
+ */
+export const DEFAULT_DASHBOARD_GRID_LAYOUT: DashboardGridLayout = {
+  // SEÇÃO FINANCIAL: 3 cards de métricas em linha
+  'dashboard-financial': {
+    cardLayouts: [
+      { i: 'dashboard-expected-revenue', x: 0, y: 0, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
+      { i: 'dashboard-actual-revenue', x: 3, y: 0, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
+      { i: 'dashboard-unpaid-value', x: 6, y: 0, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
+    ],
+  },
+  
+  // SEÇÃO ADMINISTRATIVE: 6 cards de métricas (2 linhas de 3)
+  'dashboard-administrative': {
+    cardLayouts: [
+      { i: 'dashboard-total-patients', x: 0, y: 0, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
+      { i: 'dashboard-expected-sessions', x: 3, y: 0, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
+      { i: 'dashboard-attended-sessions', x: 6, y: 0, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
+      { i: 'dashboard-missed-sessions', x: 9, y: 0, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
+      { i: 'dashboard-pending-sessions', x: 0, y: 2, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
+      { i: 'dashboard-attendance-rate', x: 3, y: 2, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
+    ],
+  },
+  
+  // SEÇÃO CLINICAL: 2 cards de métricas em linha
+  'dashboard-clinical': {
+    cardLayouts: [
+      { i: 'dashboard-active-complaints', x: 0, y: 0, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
+      { i: 'dashboard-no-diagnosis', x: 3, y: 0, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
+    ],
+  },
+  
+  // SEÇÃO MEDIA: 1 card de métrica
+  'dashboard-media': {
+    cardLayouts: [
+      { i: 'dashboard-whatsapp-unread', x: 0, y: 0, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
+    ],
+  },
+  
+  // SEÇÃO GENERAL: 2 cards (ações médio + lista maior)
+  'dashboard-general': {
+    cardLayouts: [
+      { i: 'dashboard-quick-actions', x: 0, y: 0, w: 4, h: 3, minW: 3, minH: 2, maxW: 12 },
+      { i: 'dashboard-recent-sessions', x: 4, y: 0, w: 8, h: 4, minW: 4, minH: 3, maxW: 12 },
+    ],
+  },
+  
+  // SEÇÃO CHARTS: 7 gráficos (2 por linha, altura maior)
+  'dashboard-charts': {
+    cardLayouts: [
+      { i: 'dashboard-chart-revenue-trend', x: 0, y: 0, w: 6, h: 4, minW: 4, minH: 3, maxW: 12 },
+      { i: 'dashboard-chart-payment-status', x: 6, y: 0, w: 6, h: 4, minW: 4, minH: 3, maxW: 12 },
+      { i: 'dashboard-chart-monthly-comparison', x: 0, y: 4, w: 6, h: 4, minW: 4, minH: 3, maxW: 12 },
+      { i: 'dashboard-chart-revenue-by-therapist', x: 6, y: 4, w: 6, h: 4, minW: 4, minH: 3, maxW: 12 },
+      { i: 'dashboard-chart-session-types', x: 0, y: 8, w: 6, h: 4, minW: 4, minH: 3, maxW: 12 },
+      { i: 'dashboard-chart-therapist-distribution', x: 6, y: 8, w: 6, h: 4, minW: 4, minH: 3, maxW: 12 },
+      { i: 'dashboard-chart-attendance-weekly', x: 0, y: 12, w: 12, h: 5, minW: 6, minH: 4, maxW: 12 },
+    ],
+  },
+  
+  // SEÇÃO TEAM: 6 cards de métricas (2 linhas de 3)
+  'dashboard-team': {
+    cardLayouts: [
+      { i: 'dashboard-expected-revenue-team', x: 0, y: 0, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
+      { i: 'dashboard-actual-revenue-team', x: 3, y: 0, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
+      { i: 'dashboard-unpaid-value-team', x: 6, y: 0, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
+      { i: 'dashboard-payment-rate-team', x: 9, y: 0, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
+      { i: 'dashboard-total-patients-team', x: 0, y: 2, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
+      { i: 'dashboard-attended-sessions-team', x: 3, y: 2, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
     ],
   },
 };
