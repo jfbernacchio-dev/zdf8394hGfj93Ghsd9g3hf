@@ -24,6 +24,14 @@ import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import { parseISO, format } from 'date-fns';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import { TimeScale, getScaleLabel, generateTimeIntervals, formatTimeLabel, getIntervalBounds } from '@/hooks/useChartTimeScale';
+import {
+  DashboardExpectedRevenueTeam,
+  DashboardActualRevenueTeam,
+  DashboardUnpaidValueTeam,
+  DashboardPaymentRateTeam,
+  DashboardTotalPatientsTeam,
+  DashboardAttendedSessionsTeam,
+} from './dashboardCardRegistryTeam';
 
 interface CardProps {
   isEditMode?: boolean;
@@ -1035,6 +1043,14 @@ export const DASHBOARD_CARD_COMPONENTS: Record<string, React.ComponentType<CardP
   'dashboard-chart-patient-growth': DashboardChartPatientGrowth,
   'dashboard-chart-hourly-distribution': DashboardChartHourlyDistribution,
   'dashboard-chart-cancellation-reasons': DashboardChartCancellationReasons,
+
+  // Team (Equipe)
+  'dashboard-expected-revenue-team': DashboardExpectedRevenueTeam,
+  'dashboard-actual-revenue-team': DashboardActualRevenueTeam,
+  'dashboard-unpaid-value-team': DashboardUnpaidValueTeam,
+  'dashboard-payment-rate-team': DashboardPaymentRateTeam,
+  'dashboard-total-patients-team': DashboardTotalPatientsTeam,
+  'dashboard-attended-sessions-team': DashboardAttendedSessionsTeam,
 };
 
 /**
