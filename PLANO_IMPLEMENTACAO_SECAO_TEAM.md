@@ -523,35 +523,41 @@ import { formatBrazilianCurrency } from '@/lib/brazilianFormat'; ✅
 
 ---
 
-### ✅ **FASE 6: CONFIGURAR SEÇÃO NO DASHBOARD** (15 min)
+### ✅ **FASE 6: CONFIGURAR SEÇÃO NO DASHBOARD** (15 min) ✅ **CONCLUÍDA**
 
 **Objetivo**: Garantir que seção Team está corretamente configurada
 
-#### **FASE 6A: Verificar defaultSectionsDashboard.ts**
+#### **FASE 6A: Verificar defaultSectionsDashboard.ts** ✅
 
-**Arquivo**: `src/lib/defaultSectionsDashboard.ts`
+**Arquivo verificado**: `src/lib/defaultSectionsDashboard.ts` (linhas 168-198)
 
-**Verificar/Adicionar**:
+**Configuração encontrada**:
 ```typescript
 'dashboard-team': {
   id: 'dashboard-team',
   name: 'Equipe',
-  description: 'Dados agregados dos subordinados',
+  description: 'Dados dos subordinados',
   permissionConfig: {
     primaryDomain: 'team',
-    secondaryDomains: [],
-    blockedFor: ['subordinate'],  // Subordinados não veem dados de outros
-    requiresOwnDataOnly: false,    // Admin/Full veem dados agregados
+    secondaryDomains: ['financial', 'administrative', 'clinical'],
+    blockedFor: ['subordinate'],  // ✅ Subordinados não veem dados de outros
+    requiresOwnDataOnly: false,    // ✅ Admin/Full veem dados agregados
   },
   availableCardIds: [
-    'dashboard-expected-revenue-team',
-    'dashboard-actual-revenue-team',
-    'dashboard-unpaid-value-team',
-    'dashboard-payment-rate-team',
-    'dashboard-total-patients-team',
-    'dashboard-attended-sessions-team',
+    'dashboard-expected-revenue-team',      // ✅ Implementado
+    'dashboard-actual-revenue-team',        // ✅ Implementado
+    'dashboard-unpaid-value-team',          // ✅ Implementado
+    'dashboard-payment-rate-team',          // ✅ Implementado
+    'dashboard-total-patients-team',        // ✅ Implementado
+    'dashboard-attended-sessions-team',     // ✅ Implementado
+    'dashboard-expected-sessions-team',     // ⏭️ Futuro
+    'dashboard-pending-sessions-team',      // ⏭️ Futuro
+    'dashboard-missed-sessions-team',       // ⏭️ Futuro
+    'dashboard-attendance-rate-team',       // ⏭️ Futuro
+    'dashboard-active-complaints-team',     // ⏭️ Futuro
+    'dashboard-no-diagnosis-team',          // ⏭️ Futuro
   ],
-  defaultHeight: 350,
+  defaultHeight: 400,
   collapsible: true,
   startCollapsed: false,
   minCardWidth: 280,
@@ -560,37 +566,54 @@ import { formatBrazilianCurrency } from '@/lib/brazilianFormat'; ✅
 },
 ```
 
-**Critérios**:
-- [ ] Seção existe
-- [ ] `availableCardIds` correspondem aos IDs dos cards Team
-- [ ] `permissionConfig` adequado
+**Critérios verificados** (todos atendidos):
+- ✅ Seção existe
+- ✅ `availableCardIds` incluem os 6 cards implementados
+- ✅ `permissionConfig` adequado:
+  - ✅ `primaryDomain: 'team'` correto
+  - ✅ `secondaryDomains` apropriados
+  - ✅ `blockedFor: ['subordinate']` correto (subordinados não veem equipe)
+  - ✅ `requiresOwnDataOnly: false` correto (dados agregados)
 
-#### **FASE 6B: Adicionar no layout padrão**
+#### **FASE 6B: Verificar layout padrão** ✅
 
-**Arquivo**: `src/lib/defaultSectionsDashboard.ts`
+**Arquivo verificado**: `src/lib/defaultSectionsDashboard.ts` (linhas 221-228)
 
-**Verificar/Adicionar em `DEFAULT_DASHBOARD_SECTIONS`**:
+**Configuração encontrada**:
 ```typescript
-export const DEFAULT_DASHBOARD_SECTIONS: Record<string, string[]> = {
+export const DEFAULT_DASHBOARD_SECTIONS = {
   'dashboard-financial': [...],
   'dashboard-administrative': [...],
   'dashboard-clinical': [...],
+  'dashboard-team': [
+    'dashboard-expected-revenue-team',      // ✅
+    'dashboard-actual-revenue-team',        // ✅
+    'dashboard-unpaid-value-team',          // ✅
+    'dashboard-payment-rate-team',          // ✅
+    'dashboard-total-patients-team',        // ✅
+    'dashboard-attended-sessions-team',     // ✅
+  ],
   'dashboard-media': [...],
   'dashboard-general': [...],
   'dashboard-charts': [...],
-  'dashboard-team': [
-    'dashboard-expected-revenue-team',
-    'dashboard-actual-revenue-team',
-    'dashboard-unpaid-value-team',
-    'dashboard-payment-rate-team',
-    'dashboard-total-patients-team',
-    'dashboard-attended-sessions-team',
-  ],
 };
 ```
 
-**Critérios**:
-- [ ] Seção team tem cards padrão definidos
+**Critérios verificados** (todos atendidos):
+- ✅ Seção team tem cards padrão definidos
+- ✅ Todos os 6 cards implementados estão no layout padrão
+- ✅ Ordem lógica: financeiros (3) → taxa (1) → administrativos (2)
+
+---
+
+**Status**: ✅ **FASE 6 CONCLUÍDA COM SUCESSO - SEÇÃO JÁ ESTAVA CORRETAMENTE CONFIGURADA**
+
+**Resultado da validação**:
+- ✅ Configuração da seção está 100% correta
+- ✅ Todos os 6 cards implementados estão registrados
+- ✅ Permissões adequadas para team data
+- ✅ Layout padrão inclui os cards principais
+- ✅ Nenhuma alteração necessária
 
 ---
 
@@ -970,19 +993,22 @@ Sistema validado, arquitetura correta, problema diagnosticado
 ### ✅ FASE 5: ADICIONAR TOOLTIPS DETALHADOS - CONCLUÍDA
 6 cards com tooltips completos e informativos
 
+### ✅ FASE 6: CONFIGURAR SEÇÃO NO DASHBOARD - CONCLUÍDA
+Seção 'dashboard-team' verificada e confirmada como correta
+
 ---
 
-## 🎯 PRÓXIMO PASSO: FASE 6
+## 🎯 PRÓXIMO PASSO: FASE 7
 
-**A Fase 5 foi concluída com sucesso!** 
+**A Fase 6 foi concluída com sucesso!** 
 
-Todos os cards da equipe agora têm:
-- ✅ Filtros de período corretos
-- ✅ Fórmulas de cálculo exatas
-- ✅ Formatação brasileira
-- ✅ Tooltips detalhados
+A seção Team já estava corretamente configurada:
+- ✅ Permissões adequadas (team domain, bloqueada para subordinates)
+- ✅ Todos os 6 cards implementados registrados
+- ✅ Layout padrão definido
+- ✅ Configurações de altura e largura apropriadas
 
-**Pronto para prosseguir com a Fase 6**: Verificar configuração da seção no defaultSectionsDashboard.ts
+**Pronto para prosseguir com a Fase 7**: Verificar integração no DashboardExample.tsx
 **FASE 7**: Verificar integração DashboardExample (10 min)
 **FASE 8**: Registrar cards principais (5 min)
 **FASE 9**: Validação e testes (30 min)
