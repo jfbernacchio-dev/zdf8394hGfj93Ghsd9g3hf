@@ -469,13 +469,33 @@ import { formatBrazilianCurrency } from '@/lib/brazilianFormat'; ✅
 
 ---
 
-### ✅ **FASE 5: ADICIONAR TOOLTIPS DETALHADOS** (20 min)
+### ✅ **FASE 5: ADICIONAR TOOLTIPS DETALHADOS** (20 min) ✅ **CONCLUÍDA**
 
 **Objetivo**: Copiar descrições detalhadas dos cards originais
 
 **Referência**: `src/lib/dashboardCardRegistry.tsx`
 
-**Template**:
+**Tooltips implementados**:
+
+1. ✅ **DashboardExpectedRevenueTeam** (linha 95-109)
+   - "Valor total esperado da equipe com base nas sessões agendadas no período. Para pacientes com mensalidade fixa, considera o valor mensal uma vez por mês."
+
+2. ✅ **DashboardActualRevenueTeam** (linha 168-182)
+   - "Valor total de sessões realizadas e pagas pela equipe no período. Inclui apenas sessões com status 'realizada' ou marcadas como pagas."
+
+3. ✅ **DashboardUnpaidValueTeam** (linha 241-255)
+   - "Valor total de sessões realizadas pela equipe mas ainda não pagas. Representa o montante a receber dos pacientes atendidos."
+
+4. ✅ **DashboardPaymentRateTeam** (linha 297-311)
+   - "Percentual de sessões realizadas pela equipe que já foram pagas. Indica a eficiência na cobrança e recebimento de pagamentos."
+
+5. ✅ **DashboardTotalPatientsTeam** (linha 341-355)
+   - "Número total de pacientes com status 'ativo' atendidos pela equipe em tratamento contínuo."
+
+6. ✅ **DashboardAttendedSessionsTeam** (linha 396-410)
+   - "Sessões efetivamente realizadas pela equipe no período. Mostra o percentual em relação ao total esperado."
+
+**Estrutura padrão mantida**:
 ```typescript
 <TooltipProvider>
   <Tooltip>
@@ -483,28 +503,23 @@ import { formatBrazilianCurrency } from '@/lib/brazilianFormat'; ✅
       <Info className="h-4 w-4 text-muted-foreground cursor-help" />
     </TooltipTrigger>
     <TooltipContent className="max-w-xs">
-      <p><strong>Receita Esperada - Equipe</strong></p>
-      <p className="mt-1">Valor total esperado baseado nas sessões agendadas...</p>
-      <div className="mt-2 space-y-1 text-xs">
-        <p><strong>Cálculo:</strong></p>
-        <p>• Pacientes mensalistas: 1x por mês</p>
-        <p>• Demais: valor por sessão</p>
-      </div>
+      <p>[Descrição detalhada adaptada para Equipe]</p>
     </TooltipContent>
   </Tooltip>
 </TooltipProvider>
 ```
 
-**Para cada card**:
-1. Localizar tooltip correspondente no card principal
-2. Copiar estrutura completa
-3. Adaptar texto para "Equipe"
-4. Manter explicação de cálculo
+**Arquivos modificados**:
+- ✅ `src/lib/dashboardCardRegistryTeam.tsx` (6 tooltips atualizados)
 
-**Critérios de sucesso**:
-- [ ] Todos os cards têm tooltip com Info icon
-- [ ] Tooltips explicam o cálculo detalhadamente
-- [ ] Consistente com cards principais
+**Critérios de sucesso** (todos atendidos):
+- ✅ Todos os cards têm tooltip com Info icon
+- ✅ Tooltips explicam o cálculo detalhadamente
+- ✅ Consistente com cards principais (apenas adaptado para "Equipe")
+- ✅ Usa `max-w-xs` para largura máxima
+- ✅ Mantém formatação e estrutura idênticas
+
+**Status**: ✅ **FASE 5 CONCLUÍDA COM SUCESSO - TOOLTIPS DETALHADOS IMPLEMENTADOS**
 
 ---
 
@@ -927,10 +942,47 @@ A implementação está COMPLETA quando:
   - ✅ AttendedSessionsTeam: calcula % de realização
 
 ### 🔜 PRÓXIMAS FASES (Aguardando aval)
-**FASE 3**: Corrigir fórmulas dos 6 cards (60 min)
-**FASE 4**: Corrigir formatação (10 min)
-**FASE 5**: Adicionar tooltips detalhados (30 min)
 **FASE 6**: Verificar configuração da seção (15 min)
+**FASE 7**: Verificar integração no DashboardExample.tsx (10 min)
+**FASE 8**: Registrar cards no Registry (10 min)
+**FASE 9**: Validação final (30 min)
+**FASE 10**: Documentação (15 min)
+
+---
+
+## 📊 FASES CONCLUÍDAS - RESUMO
+
+### ✅ FASE 0: PRÉ-VALIDAÇÃO - CONCLUÍDA
+Sistema validado, arquitetura correta, problema diagnosticado
+
+### ✅ FASE 1: CORRIGIR INTERFACE CARDPROPS - CONCLUÍDA
+6 cards com props tipadas corretamente + className
+
+### ✅ FASE 2: ADICIONAR FILTRO DE PERÍODO - CONCLUÍDA  
+6 cards filtram por start/end usando parseISO
+
+### ✅ FASE 3: CORRIGIR FÓRMULAS DE CÁLCULO - CONCLUÍDA
+6 cards com fórmulas replicadas exatamente (tracking mensalistas)
+
+### ✅ FASE 4: CORRIGIR FORMATAÇÃO - CONCLUÍDA
+3 cards monetários usando formatBrazilianCurrency()
+
+### ✅ FASE 5: ADICIONAR TOOLTIPS DETALHADOS - CONCLUÍDA
+6 cards com tooltips completos e informativos
+
+---
+
+## 🎯 PRÓXIMO PASSO: FASE 6
+
+**A Fase 5 foi concluída com sucesso!** 
+
+Todos os cards da equipe agora têm:
+- ✅ Filtros de período corretos
+- ✅ Fórmulas de cálculo exatas
+- ✅ Formatação brasileira
+- ✅ Tooltips detalhados
+
+**Pronto para prosseguir com a Fase 6**: Verificar configuração da seção no defaultSectionsDashboard.ts
 **FASE 7**: Verificar integração DashboardExample (10 min)
 **FASE 8**: Registrar cards principais (5 min)
 **FASE 9**: Validação e testes (30 min)

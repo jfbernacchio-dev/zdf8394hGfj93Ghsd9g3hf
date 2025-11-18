@@ -102,7 +102,7 @@ export const DashboardExpectedRevenueTeam = ({
                 <Info className="h-4 w-4 text-muted-foreground cursor-help" />
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
-                <p>Receita esperada total da equipe considerando todas as sessões agendadas (excluindo faltadas)</p>
+                <p>Valor total esperado da equipe com base nas sessões agendadas no período. Para pacientes com mensalidade fixa, considera o valor mensal uma vez por mês.</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -175,7 +175,7 @@ export const DashboardActualRevenueTeam = ({
                 <Info className="h-4 w-4 text-muted-foreground cursor-help" />
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
-                <p>Valor total das sessões realizadas pela equipe no período</p>
+                <p>Valor total de sessões realizadas e pagas pela equipe no período. Inclui apenas sessões com status "realizada" ou marcadas como pagas.</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -241,14 +241,14 @@ export const DashboardUnpaidValueTeam = ({
     <Card className={cn('h-full', className)}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium">Valores a Receber - Equipe</CardTitle>
+          <CardTitle className="text-sm font-medium">Valores Pendentes - Equipe</CardTitle>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Info className="h-4 w-4 text-muted-foreground cursor-help" />
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
-                <p>Valor total de sessões realizadas pela equipe mas ainda não pagas</p>
+                <p>Valor total de sessões realizadas pela equipe mas ainda não pagas. Representa o montante a receber dos pacientes atendidos.</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -304,7 +304,7 @@ export const DashboardPaymentRateTeam = ({
                 <Info className="h-4 w-4 text-muted-foreground cursor-help" />
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
-                <p>Percentual de sessões realizadas pela equipe que já foram pagas</p>
+                <p>Percentual de sessões realizadas pela equipe que já foram pagas. Indica a eficiência na cobrança e recebimento de pagamentos.</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -348,7 +348,7 @@ export const DashboardTotalPatientsTeam = ({
                 <Info className="h-4 w-4 text-muted-foreground cursor-help" />
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
-                <p>Total de pacientes ativos atendidos pela equipe</p>
+                <p>Número total de pacientes com status "ativo" atendidos pela equipe em tratamento contínuo.</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -403,7 +403,7 @@ export const DashboardAttendedSessionsTeam = ({
                 <Info className="h-4 w-4 text-muted-foreground cursor-help" />
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
-                <p>Total de sessões que foram realizadas pela equipe no período</p>
+                <p>Sessões efetivamente realizadas pela equipe no período. Mostra o percentual em relação ao total esperado.</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
