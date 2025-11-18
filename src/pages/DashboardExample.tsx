@@ -321,14 +321,78 @@ export default function DashboardExample() {
     <Layout>
       <div className="space-y-6 p-6 animate-fade-in">
         {/* Header com controles */}
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
             <div>
               <h1 className="text-3xl font-bold">Dashboard Customizável</h1>
               <p className="text-muted-foreground">
                 Organize seu painel de controle
               </p>
             </div>
+
+            {/* Period Filter - Compacto */}
+            <Select value={period} onValueChange={setPeriod}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="z-50 bg-background">
+                <SelectItem value="month">Este Mês</SelectItem>
+                <SelectItem value="thisWeek">Esta Semana</SelectItem>
+                <SelectItem value="lastMonth">Último Mês</SelectItem>
+                <SelectItem value="last2Months">Últimos 2 Meses</SelectItem>
+                <SelectItem value="q1">Q1 (Jan-Mar)</SelectItem>
+                <SelectItem value="q2">Q2 (Abr-Jun)</SelectItem>
+                <SelectItem value="q3">Q3 (Jul-Set)</SelectItem>
+                <SelectItem value="q4">Q4 (Out-Dez)</SelectItem>
+                <SelectItem value="custom">Personalizado</SelectItem>
+                <SelectItem value="all">Todo Período</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {period === 'custom' && (
+              <>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="w-[130px] justify-start text-left font-normal">
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {customStartDate ? format(new Date(customStartDate + 'T00:00:00'), 'dd/MM', { locale: ptBR }) : 'Início'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 z-50 bg-background" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={customStartDate ? new Date(customStartDate + 'T00:00:00') : undefined}
+                      onSelect={(date) => {
+                        if (date) setCustomStartDate(format(date, 'yyyy-MM-dd'));
+                      }}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="w-[130px] justify-start text-left font-normal">
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {customEndDate ? format(new Date(customEndDate + 'T00:00:00'), 'dd/MM', { locale: ptBR }) : 'Fim'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0 z-50 bg-background" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={customEndDate ? new Date(customEndDate + 'T00:00:00') : undefined}
+                      onSelect={(date) => {
+                        if (date) setCustomEndDate(format(date, 'yyyy-MM-dd'));
+                      }}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </>
+            )}
+          </div>
 
             <div className="flex items-center gap-3">
               {/* Status indicator */}
@@ -378,95 +442,6 @@ export default function DashboardExample() {
             )}
             </div>
           </div>
-
-          {/* Controles de Período */}
-          <Card className="p-4">
-            <div className="flex flex-wrap items-end gap-4">
-              <div className="flex-1 min-w-[200px]">
-                <Label htmlFor="period-select">Período</Label>
-                <Select value={period} onValueChange={setPeriod}>
-                  <SelectTrigger id="period-select">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="month">Este Mês</SelectItem>
-                    <SelectItem value="thisWeek">Esta Semana</SelectItem>
-                    <SelectItem value="lastMonth">Último Mês</SelectItem>
-                    <SelectItem value="last2Months">Últimos 2 Meses</SelectItem>
-                    <SelectItem value="q1">Q1 (Jan-Mar)</SelectItem>
-                    <SelectItem value="q2">Q2 (Abr-Jun)</SelectItem>
-                    <SelectItem value="q3">Q3 (Jul-Set)</SelectItem>
-                    <SelectItem value="q4">Q4 (Out-Dez)</SelectItem>
-                    <SelectItem value="custom">Personalizado</SelectItem>
-                    <SelectItem value="all">Todo Período</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {period === 'custom' && (
-                <>
-                  <div className="flex-1 min-w-[200px]">
-                    <Label>Data Inicial</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            'w-full justify-start text-left font-normal',
-                            !customStartDate && 'text-muted-foreground'
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {customStartDate ? format(new Date(customStartDate + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione'}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <CalendarComponent
-                          mode="single"
-                          selected={customStartDate ? new Date(customStartDate + 'T00:00:00') : undefined}
-                          onSelect={(date) => {
-                            if (date) setCustomStartDate(format(date, 'yyyy-MM-dd'));
-                          }}
-                          initialFocus
-                          className="pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-
-                  <div className="flex-1 min-w-[200px]">
-                    <Label>Data Final</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            'w-full justify-start text-left font-normal',
-                            !customEndDate && 'text-muted-foreground'
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {customEndDate ? format(new Date(customEndDate + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione'}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <CalendarComponent
-                          mode="single"
-                          selected={customEndDate ? new Date(customEndDate + 'T00:00:00') : undefined}
-                          onSelect={(date) => {
-                            if (date) setCustomEndDate(format(date, 'yyyy-MM-dd'));
-                          }}
-                          initialFocus
-                          className="pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </>
-              )}
-            </div>
-          </Card>
-        </div>
 
         {/* Instruções em edit mode */}
         {isEditMode && (
