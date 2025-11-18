@@ -32,47 +32,60 @@ Implementar **corretamente** a seção `dashboard-team` que:
 
 ## 📁 ARQUIVOS ENVOLVIDOS
 
-### Arquivos a LER (Referência)
-1. `src/pages/Dashboard.tsx` - Implementação de referência
-2. `src/lib/dashboardCardRegistry.tsx` - Cards principais (copiar fórmulas)
+### ⚠️ CONTEXTO CRÍTICO
+- **`/dashboard` (src/pages/Dashboard.tsx)** = 📖 **REFERÊNCIA SOMENTE** (NÃO TOCAR!)
+  - Contém as fórmulas corretas nos cards principais
+  - Serve como modelo para copiar a lógica de cálculo
+  
+- **`/dashboard-example` (src/pages/DashboardExample.tsx)** = 🔧 **ARQUIVO DE TRABALHO**
+  - Já implementado com permissões e `useTeamData`
+  - Precisa ter as fórmulas dos cards team corrigidas
+  - Após validação, substituirá o dashboard atual
+
+### Arquivos a LER (📖 REFERÊNCIA - Não modificar)
+1. **`src/pages/Dashboard.tsx`** - Dashboard atual (referência de implementação)
+2. **`src/lib/dashboardCardRegistry.tsx`** - Cards principais com fórmulas corretas
 3. `src/lib/defaultSectionsDashboard.ts` - Configuração de seções
-4. `src/hooks/useTeamData.ts` - Hook de dados da equipe
+4. `src/hooks/useTeamData.ts` - Hook de dados da equipe (já funcional)
 5. `src/hooks/useOwnData.ts` - Hook de dados próprios
 6. `src/types/cardTypes.ts` - Interface CardProps
 7. `src/types/sectionTypes.ts` - Interface SectionConfig
 
-### Arquivos a MODIFICAR
-1. `src/lib/dashboardCardRegistryTeam.tsx` - Corrigir cards team
-2. `src/lib/defaultSectionsDashboard.ts` - Verificar configuração `dashboard-team`
-3. `src/pages/Dashboard.tsx` - Garantir passagem correta de props
+### Arquivos a MODIFICAR (🔧 TRABALHO)
+1. **`src/lib/dashboardCardRegistryTeam.tsx`** - Corrigir fórmulas dos cards team
+2. `src/lib/defaultSectionsDashboard.ts` - Verificar configuração `dashboard-team` (se necessário)
+3. **`src/pages/DashboardExample.tsx`** - Verificar que dados team chegam corretamente (já implementado)
 
 ---
 
 ## 🔄 PLANO EM FASES
 
-### ✅ **FASE 0: PRÉ-VALIDAÇÃO** (5 min)
+### ✅ **FASE 0: PRÉ-VALIDAÇÃO** (5 min) ✅ **CONCLUÍDA**
 
 **Objetivo**: Verificar estado atual e confirmar diagnóstico
 
 **Ações**:
-1. Ler `src/lib/defaultSectionsDashboard.ts` completo
-2. Verificar se `dashboard-team` existe e está configurada corretamente
-3. Verificar `availableCardIds` da seção team
-4. Confirmar que hooks `useTeamData` funcionam
-5. Verificar se `Dashboard.tsx` renderiza a seção team
+1. ✅ Ler `src/lib/defaultSectionsDashboard.ts` completo
+2. ✅ Verificar se `dashboard-team` existe e está configurada corretamente
+3. ✅ Verificar `availableCardIds` da seção team
+4. ✅ Confirmar que hooks `useTeamData` funcionam
+5. ✅ Verificar se `DashboardExample.tsx` renderiza a seção team
 
-**Arquivos a verificar**:
-- `src/lib/defaultSectionsDashboard.ts`
-- `src/pages/Dashboard.tsx` (buscar por "dashboard-team")
-- `src/hooks/useTeamData.ts`
+**Arquivos verificados**:
+- ✅ `src/lib/defaultSectionsDashboard.ts` - Seção team configurada corretamente
+- ✅ `src/pages/DashboardExample.tsx` - Implementação completa com useTeamData
+- ✅ `src/hooks/useTeamData.ts` - Hook funcional
+- ✅ `src/App.tsx` - Rota `/dashboard-example` existe
 
-**Critérios de sucesso**:
-- [ ] Seção `dashboard-team` existe em `DASHBOARD_SECTIONS`
-- [ ] `availableCardIds` estão corretos
-- [ ] `permissionConfig` está adequado
-- [ ] Dashboard.tsx renderiza a seção
+**Resultado da validação**:
+- ✅ Seção `dashboard-team` existe em `DASHBOARD_SECTIONS`
+- ✅ `availableCardIds` estão corretos (6 cards team)
+- ✅ `permissionConfig` está adequado
+- ✅ DashboardExample.tsx já tem useTeamData implementado
+- ✅ DashboardExample.tsx já renderiza seção team corretamente
+- ⚠️ **PROBLEMA CONFIRMADO**: Fórmulas dos cards team em `dashboardCardRegistryTeam.tsx` estão incorretas
 
-**⚠️ SE FALHAR**: Documentar o que falta e criar/corrigir antes de prosseguir
+**Status**: ✅ **FASE 0 CONCLUÍDA** - Sistema arquiteturalmente correto, apenas fórmulas precisam ser corrigidas
 
 ---
 
@@ -476,21 +489,15 @@ export const DEFAULT_DASHBOARD_SECTIONS: Record<string, string[]> = {
 
 ---
 
-### ✅ **FASE 7: INTEGRAR NO DASHBOARD.TSX** (20 min)
+### ✅ **FASE 7: VERIFICAR INTEGRAÇÃO NO DASHBOARDEXAMPLE.TSX** (10 min)
 
-**Objetivo**: Garantir que Dashboard renderiza seção Team com dados corretos
+**Objetivo**: Confirmar que DashboardExample.tsx já está correto
 
-**Arquivo**: `src/pages/Dashboard.tsx`
+**Arquivo**: `src/pages/DashboardExample.tsx` (📖 APENAS VERIFICAÇÃO - JÁ IMPLEMENTADO)
 
-#### **FASE 7A: Verificar hooks de dados**
+#### **FASE 7A: Verificar hooks de dados (JÁ IMPLEMENTADO)**
 
-**Localizar** (provavelmente após linha 56):
-```typescript
-const { permissions, loading: permissionsLoading } = useSubordinatePermissions();
-const { canViewCard, shouldFilterToOwnData } = useCardPermissions();
-```
-
-**Adicionar após**:
+**Verificar que já existe** em `DashboardExample.tsx`:
 ```typescript
 const { 
   teamPatients, 
@@ -501,14 +508,13 @@ const {
 ```
 
 **Critérios**:
-- [ ] `useTeamData` está importado
-- [ ] Hook está sendo chamado
+- ✅ `useTeamData` está importado
+- ✅ Hook está sendo chamado
+- ✅ Dados team estão disponíveis
 
-#### **FASE 7B: Verificar renderização da seção**
+#### **FASE 7B: Verificar renderização da seção (JÁ IMPLEMENTADO)**
 
-**Buscar** no código onde seções são renderizadas (geralmente em `return` do componente)
-
-**Exemplo de renderização** (verificar se existe):
+**Confirmar que já existe** em DashboardExample.tsx a renderização da seção team com os dados corretos:
 ```typescript
 {canViewCard('dashboard-team') && (
   <ResizableSection
@@ -777,6 +783,63 @@ A implementação está COMPLETA quando:
 ✅ TypeScript sem erros
 ✅ Código testado manualmente
 ✅ Documentação atualizada
+
+---
+
+## 📋 RESUMO DAS ALTERAÇÕES NO PLANO
+
+### O que foi corrigido:
+
+1. **Contexto arquitetural esclarecido**:
+   - ✅ `Dashboard.tsx` = 📖 REFERÊNCIA (não modificar)
+   - ✅ `DashboardExample.tsx` = 🔧 TRABALHO (onde implementamos)
+
+2. **Fase 0 concluída com sucesso**:
+   - ✅ Sistema arquiteturalmente correto
+   - ✅ DashboardExample.tsx já tem useTeamData
+   - ✅ Seção team já renderiza
+   - ⚠️ Problema confirmado: fórmulas incorretas em `dashboardCardRegistryTeam.tsx`
+
+3. **Fase 7 atualizada**:
+   - Mudou de "Integrar no Dashboard.tsx" para "Verificar DashboardExample.tsx"
+   - Reconhece que já está implementado, apenas precisa verificação
+
+---
+
+## 🎯 STATUS ATUAL DA IMPLEMENTAÇÃO
+
+### ✅ FASE 0: CONCLUÍDA
+- Sistema validado
+- Arquitetura correta
+- Problema diagnosticado com precisão
+
+### 🔜 PRÓXIMAS FASES (Aguardando aval)
+
+**FASE 1**: Corrigir interface e tipos (10 min)
+**FASE 2**: Implementar filtro de período (15 min)
+**FASE 3**: Corrigir fórmulas dos 6 cards (60 min)
+**FASE 4**: Corrigir formatação (10 min)
+**FASE 5**: Adicionar tooltips detalhados (30 min)
+**FASE 6**: Verificar configuração da seção (15 min)
+**FASE 7**: Verificar integração DashboardExample (10 min)
+**FASE 8**: Registrar cards principais (5 min)
+**FASE 9**: Validação e testes (30 min)
+**FASE 10**: Documentação (15 min)
+
+**Tempo total estimado**: ~3h
+
+---
+
+## 🚀 PRONTO PARA CONTINUAR
+
+**Arquivos que serão modificados**:
+- ✅ `src/lib/dashboardCardRegistryTeam.tsx` (principal)
+- ✅ `src/lib/defaultSectionsDashboard.ts` (verificação)
+- ✅ `src/pages/DashboardExample.tsx` (verificação apenas)
+
+**Arquivos de referência** (não serão modificados):
+- 📖 `src/pages/Dashboard.tsx`
+- 📖 `src/lib/dashboardCardRegistry.tsx`
 
 ---
 
