@@ -40,9 +40,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { SortableCardContainer } from '@/components/SortableCardContainer';
-import { SortableCard } from '@/components/SortableCard';
-import { ResizableCardSimple } from '@/components/ResizableCardSimple';
+import { GridCardContainer } from '@/components/GridCardContainer';
+import { Card as UICard, CardContent } from '@/components/ui/card';
 import { useDashboardLayout } from '@/hooks/useDashboardLayout';
 import { renderDashboardCard } from '@/lib/dashboardCardRegistry';
 import { DASHBOARD_SECTIONS } from '@/lib/defaultSectionsDashboard';
@@ -77,8 +76,7 @@ export default function DashboardExample() {
     saving,
     isModified,
     hasUnsavedChanges,
-    updateCardWidth,
-    updateCardOrder,
+    updateLayout,
     addCard,
     removeCard,
     saveLayout,
@@ -537,10 +535,7 @@ export default function DashboardExample() {
               return null;
             }
 
-            const sortedCards = [...section.cardLayouts].sort(
-              (a, b) => a.order - b.order
-            );
-            const cardIds = sortedCards.map((cl) => cl.cardId);
+            const cardLayouts = section.cardLayouts;
             const isCollapsed = collapsedSections.has(sectionId);
 
             return (
@@ -562,7 +557,7 @@ export default function DashboardExample() {
                   </button>
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className="text-xs">
-                      {sortedCards.length} {sortedCards.length === 1 ? 'card' : 'cards'}
+                      {cardLayouts.length} {cardLayouts.length === 1 ? 'card' : 'cards'}
                     </Badge>
                   </div>
                 </div>
@@ -570,81 +565,66 @@ export default function DashboardExample() {
                 {/* Section Content */}
                 {!isCollapsed && (
                   <div className="animate-accordion-down">
-                  <SortableCardContainer
-                    sectionId={sectionId}
-                    cardIds={cardIds}
-                    onReorder={(newIds) => {
-                      updateCardOrder(sectionId, newIds);
-                      toast.success('Ordem atualizada!', {
-                        description: 'Salvando automaticamente...',
-                      });
-                    }}
-                    isEditMode={isEditMode}
-                    strategy="horizontal"
-                    className={cn(
-                      'flex flex-wrap gap-4 p-4 rounded-lg min-h-[200px] transition-all duration-300',
+                    <div className={cn(
+                      'p-4 rounded-lg min-h-[200px] transition-all duration-300',
                       isEditMode && 'bg-muted/20 border-2 border-dashed border-primary/30 shadow-inner'
-                    )}
-                  >
-                    {sortedCards.length === 0 && (
-                      <div className="w-full flex flex-col items-center justify-center py-12 text-center">
-                        <div className="rounded-full bg-muted p-4 mb-4">
-                          <AlertCircle className="h-8 w-8 text-muted-foreground" />
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          Nenhum card disponível nesta seção
-                        </p>
-                      </div>
-                    )}
-                    {sortedCards.map((cardLayout) => {
-                      const minWidth =
-                        sectionConfig.minCardWidth || 280;
-                      const maxWidth =
-                        sectionConfig.maxCardWidth || 800;
-                      const defaultWidth =
-                        sectionConfig.defaultCardWidth || 300;
-                      
-                      // Check if card was customized
-                      const isCustomized = cardLayout.width !== defaultWidth;
-
-                      return (
-                        <SortableCard
-                          key={cardLayout.cardId}
-                          id={cardLayout.cardId}
-                          isEditMode={isEditMode}
-                        >
-                          <ResizableCardSimple
-                            id={cardLayout.cardId}
-                            sectionId={sectionId}
-                            isEditMode={isEditMode}
-                            defaultWidth={defaultWidth}
-                            minWidth={minWidth}
-                            maxWidth={maxWidth}
-                            tempWidth={cardLayout.width}
-                            onTempWidthChange={(cardId, width) =>
-                              updateCardWidth(sectionId, cardId, width)
-                            }
-                            isCustomized={isCustomized}
-                          >
-                  {renderDashboardCard(cardLayout.cardId, {
-                    isEditMode,
-                    patients: sectionId === 'dashboard-team' ? teamPatients : ownPatients,
-                    sessions: sectionId === 'dashboard-team' ? teamSessions : ownSessions,
-                    profiles,
-                    start,
-                    end,
-                    automaticScale,
-                    getScale,
-                    setScaleOverride,
-                    clearOverride,
-                    hasOverride,
-                    aggregatedData: sectionId === 'dashboard-team' ? teamAggregatedData : aggregatedData,
-                  })}
-                          </ResizableCardSimple>
-                        </SortableCard>
-                      );
-                    })}
-                  </SortableCardContainer>
+                    )}>
+                      <GridCardContainer
+                        sectionId={sectionId}
+                        layout={cardLayouts}
+                        onLayoutChange={(newLayout) => {
+                          updateLayout(sectionId, newLayout);
+                          toast.success('Layout atualizado!', {
+                            description: 'Salvando automaticamente...',
+                          });
+                        }}
+                        isEditMode={isEditMode}
+                        width={1200}
+                      >
+                        {cardLayouts.length === 0 && (
+                          <div className="w-full flex flex-col items-center justify-center py-12 text-center">
+                            <div className="rounded-full bg-muted p-4 mb-4">
+                              <AlertCircle className="h-8 w-8 text-muted-foreground" />
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              Nenhum card disponível nesta seção
+                            </p>
+                          </div>
+                        )}
+                        {cardLayouts.map((cardLayout) => (
+                          <div key={cardLayout.i} data-grid={cardLayout}>
+                            <UICard className="h-full flex flex-col shadow-md hover:shadow-lg transition-shadow">
+                              {isEditMode && (
+                                <div className="drag-handle cursor-move bg-primary/10 hover:bg-primary/20 active:bg-primary/30 p-2 border-b flex items-center justify-center group transition-colors">
+                                  <GripVertical className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
+                                </div>
+                              )}
+                              <CardContent className="p-4 flex-1 overflow-auto">
+                                {renderDashboardCard(cardLayout.i, {
+                                  isEditMode,
+                                  patients: sectionId === 'dashboard-team' ? teamPatients : ownPatients,
+                                  sessions: sectionId === 'dashboard-team' ? teamSessions : ownSessions,
+                                  profiles,
+                                  start,
+                                  end,
+                                  automaticScale,
+                                  getScale,
+                                  setScaleOverride,
+                                  clearOverride,
+                                  hasOverride,
+                                  aggregatedData: sectionId === 'dashboard-team' ? teamAggregatedData : aggregatedData,
+                                })}
+                              </CardContent>
+                              {isEditMode && (
+                                <Badge variant="secondary" className="absolute top-2 right-2 text-xs z-10">
+                                  {cardLayout.w} × {cardLayout.h}
+                                </Badge>
+                              )}
+                            </UICard>
+                          </div>
+                        ))}
+                      </GridCardContainer>
+                    </div>
                   </div>
                 )}
               </div>
@@ -703,7 +683,7 @@ export default function DashboardExample() {
           sectionCards={Object.fromEntries(
             Object.entries(layout).map(([sectionId, section]) => [
               sectionId,
-              section.cardLayouts.map(cl => cl.cardId)
+              section.cardLayouts.map(cl => cl.i)
             ])
           )}
         />
