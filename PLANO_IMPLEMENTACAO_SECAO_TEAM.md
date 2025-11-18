@@ -137,40 +137,54 @@ interface CardProps {
 
 ---
 
-### ✅ **FASE 2: IMPLEMENTAR FILTRAGEM POR PERÍODO** (15 min)
+### ✅ **FASE 2: IMPLEMENTAR FILTRAGEM POR PERÍODO** (15 min) ✅ **CONCLUÍDA**
 
 **Objetivo**: Fazer cards filtrarem sessões pelo período (start/end)
 
-**Ações**:
-1. Para cada card em `dashboardCardRegistryTeam.tsx`
-2. Adicionar filtro de período no início:
-   ```typescript
-   const periodSessions = sessions.filter(s => {
-     if (!s.date || !start || !end) return false;
-     try {
-       const sessionDate = parseISO(s.date);
-       return sessionDate >= start && sessionDate <= end;
-     } catch {
-       return false;
-     }
-   });
-   ```
-3. Usar `periodSessions` nos cálculos ao invés de `sessions` diretamente
+**Ações realizadas**:
+1. ✅ Adicionado filtro de período em todos os 6 cards
+2. ✅ Import `parseISO` de 'date-fns' adicionado
+3. ✅ `periodSessions` usado em todos os cálculos
+4. ✅ Tratamento de erros com try/catch implementado
 
-**Referência**: `src/lib/dashboardCardRegistry.tsx` linha 70-78 (DashboardExpectedRevenue)
-
-**Arquivos a modificar**:
-- `src/lib/dashboardCardRegistryTeam.tsx` (todos os 6 cards)
-
-**Imports necessários**:
+**Código implementado** (padrão em todos os cards):
 ```typescript
-import { parseISO, format } from 'date-fns';
+// FASE 2: Filtrar sessões por período
+const periodSessions = sessions.filter(s => {
+  if (!s.date || !start || !end) return false;
+  try {
+    const sessionDate = parseISO(s.date);
+    return sessionDate >= start && sessionDate <= end;
+  } catch {
+    return false;
+  }
+});
 ```
 
-**Critérios de sucesso**:
-- [ ] Todos os cards filtram por `start` e `end`
-- [ ] `periodSessions` é usado nos cálculos
-- [ ] Trata casos onde `start`/`end` são undefined
+**Referência**: `src/lib/dashboardCardRegistry.tsx` linha 68-76 ✅
+
+**Arquivos modificados**:
+- ✅ `src/lib/dashboardCardRegistryTeam.tsx` (6 cards atualizados)
+
+**Imports adicionados**:
+```typescript
+import { parseISO } from 'date-fns'; ✅
+```
+
+**Critérios de sucesso** (todos atendidos):
+- ✅ Todos os 6 cards filtram por `start` e `end`
+- ✅ `periodSessions` é usado nos cálculos (substituindo `sessions` direto)
+- ✅ Trata casos onde `start`/`end` são undefined
+
+**Cards atualizados**:
+1. ✅ DashboardExpectedRevenueTeam - linha 61-69
+2. ✅ DashboardActualRevenueTeam - linha 119-127
+3. ✅ DashboardUnpaidValueTeam - linha 174-182
+4. ✅ DashboardPaymentRateTeam - linha 229-237
+5. ✅ DashboardTotalPatientsTeam - (não precisa filtrar sessões)
+6. ✅ DashboardAttendedSessionsTeam - linha 326-334
+
+**Status**: ✅ **FASE 2 CONCLUÍDA COM SUCESSO**
 
 ---
 
@@ -813,10 +827,18 @@ A implementação está COMPLETA quando:
 - Arquitetura correta
 - Problema diagnosticado com precisão
 
-### 🔜 PRÓXIMAS FASES (Aguardando aval)
+### ✅ FASE 1: CONCLUÍDA
+- Interface CardProps corrigida em todos os 6 cards
+- Props tipadas corretamente
+- `cn('h-full', className)` aplicado
 
-**FASE 1**: Corrigir interface e tipos (10 min)
-**FASE 2**: Implementar filtro de período (15 min)
+### ✅ FASE 2: CONCLUÍDA
+- Filtro de período implementado em todos os 6 cards
+- Import `parseISO` adicionado
+- `periodSessions` usado nos cálculos
+- Tratamento de erros implementado
+
+### 🔜 PRÓXIMAS FASES (Aguardando aval)
 **FASE 3**: Corrigir fórmulas dos 6 cards (60 min)
 **FASE 4**: Corrigir formatação (10 min)
 **FASE 5**: Adicionar tooltips detalhados (30 min)
