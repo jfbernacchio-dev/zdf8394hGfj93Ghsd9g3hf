@@ -194,18 +194,19 @@ export const DashboardActualRevenue = ({ isEditMode, className, patients = [], s
 };
 
 export const DashboardUnpaidValue = ({ isEditMode, className, patients = [], sessions = [], start, end }: CardProps) => {
-  const periodSessions = sessions.filter(s => {
-    if (!s.date || !start || !end) return false;
+  // IMPORTANTE: Valores Pendentes deve mostrar TODO o histórico, não apenas o período filtrado
+  // Isso está alinhado com o comportamento do /dashboard
+  const allUnpaidSessions = sessions.filter(s => {
+    if (!s.date) return false;
     try {
-      const sessionDate = parseISO(s.date);
-      return sessionDate >= start && sessionDate <= end && !s.paid && s.status === 'attended';
+      return !s.paid && s.status === 'attended';
     } catch {
       return false;
     }
   });
 
   const monthlyPatientsInPeriod = new Map<string, Set<string>>();
-  const unpaidValue = periodSessions.reduce((sum, s) => {
+  const unpaidValue = allUnpaidSessions.reduce((sum, s) => {
     const patient = patients.find(p => p.id === s.patient_id);
     if (!patient) return sum;
     
@@ -249,7 +250,7 @@ export const DashboardUnpaidValue = ({ isEditMode, className, patients = [], ses
       <CardContent>
         <div className="text-2xl font-bold text-red-500">{formatBrazilianCurrency(unpaidValue)}</div>
         <p className="text-xs text-muted-foreground mt-1">
-          {periodSessions.length} sessões não pagas
+          {allUnpaidSessions.length} sessões não pagas
         </p>
       </CardContent>
     </Card>
