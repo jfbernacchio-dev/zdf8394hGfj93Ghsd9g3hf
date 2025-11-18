@@ -71,17 +71,17 @@ export const SortableCard = ({
           {...attributes}
           {...listeners}
           className={cn(
-            'absolute -left-8 top-1/2 -translate-y-1/2 z-10',
-            'w-6 h-12 flex items-center justify-center',
-            'bg-primary/10 hover:bg-primary/20 active:bg-primary/30 rounded-l border border-r-0 border-primary/20',
+            'absolute -left-10 top-1/2 -translate-y-1/2 z-[100]',
+            'w-8 h-16 flex items-center justify-center',
+            'bg-primary/20 hover:bg-primary/30 active:bg-primary/40 rounded-l-lg border-2 border-r-0 border-primary/40',
             'cursor-grab active:cursor-grabbing',
-            'opacity-0 group-hover:opacity-100 hover:opacity-100',
-            'transition-all duration-200 hover:scale-110',
-            'shadow-sm hover:shadow-md'
+            'opacity-100', // SEMPRE VISÍVEL em edit mode
+            'transition-all duration-200 hover:scale-110 hover:shadow-lg',
+            'shadow-md'
           )}
-          title="Arrastar para reordenar"
+          title="🔄 Arrastar para reordenar"
         >
-          <GripVertical className="h-4 w-4 text-primary transition-transform duration-200 group-hover:scale-110" />
+          <GripVertical className="h-5 w-5 text-primary animate-pulse" />
         </div>
       )}
 

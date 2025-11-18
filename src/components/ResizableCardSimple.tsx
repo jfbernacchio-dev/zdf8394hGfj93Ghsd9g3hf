@@ -108,6 +108,7 @@ export const ResizableCardSimple = ({
       className={cn(
         "relative transition-all duration-200 group",
         isResizing && "z-50 scale-[1.02]",
+        isEditMode && "ml-12", // Margem esquerda quando em edit mode para dar espaço ao drag handle
         className
       )}
       style={{ 
