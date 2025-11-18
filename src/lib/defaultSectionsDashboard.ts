@@ -215,7 +215,16 @@ export const DEFAULT_DASHBOARD_SECTIONS = {
     'dashboard-chart-session-types',
   ],
   'dashboard-clinical': [
-    // Vazio até cards clínicos serem implementados
+    'dashboard-active-complaints',
+    'dashboard-no-diagnosis',
+  ],
+  'dashboard-team': [
+    'dashboard-expected-revenue-team',
+    'dashboard-actual-revenue-team',
+    'dashboard-unpaid-value-team',
+    'dashboard-payment-rate-team',
+    'dashboard-total-patients-team',
+    'dashboard-attended-sessions-team',
   ],
   'dashboard-media': [
     // Vazio até cards de mídia serem implementados

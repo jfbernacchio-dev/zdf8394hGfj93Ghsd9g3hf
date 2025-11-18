@@ -13,7 +13,7 @@
  * ============================================================================
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -49,6 +49,8 @@ import { DASHBOARD_SECTIONS } from '@/lib/defaultSectionsDashboard';
 import Layout from '@/components/Layout';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { useOwnData } from '@/hooks/useOwnData';
+import { useTeamData } from '@/hooks/useTeamData';
 
 export default function DashboardExample() {
   const { user } = useAuth();
@@ -56,11 +58,17 @@ export default function DashboardExample() {
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
-  const [patients, setPatients] = useState<any[]>([]);
-  const [sessions, setSessions] = useState<any[]>([]);
+  const [allPatients, setAllPatients] = useState<any[]>([]);
+  const [allSessions, setAllSessions] = useState<any[]>([]);
   const [period, setPeriod] = useState('month');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
+
+  // Buscar dados da equipe
+  const { teamPatients, teamSessions, subordinateIds, loading: teamLoading } = useTeamData();
+
+  // Filtrar dados próprios (excluindo subordinados)
+  const { ownPatients, ownSessions } = useOwnData(allPatients, allSessions, subordinateIds);
 
   const {
     layout,
@@ -89,14 +97,15 @@ export default function DashboardExample() {
       .eq('user_id', user!.id);
     
     const patientIds = (patientsData || []).map(p => p.id);
+    const allPatientIds = [...patientIds, ...teamPatients.map(p => p.id)];
     
     const { data: sessionsData } = await supabase
       .from('sessions')
       .select('*')
-      .in('patient_id', patientIds);
+      .in('patient_id', allPatientIds);
     
-    setPatients(patientsData || []);
-    setSessions(sessionsData || []);
+    setAllPatients(patientsData || []);
+    setAllSessions(sessionsData || []);
   };
 
   const getDateRange = () => {
@@ -170,46 +179,94 @@ export default function DashboardExample() {
    * AGREGAÇÃO DE DADOS PARA GRÁFICOS
    * Gera intervalos de tempo e calcula métricas para cada intervalo
    */
-  const aggregatedData = generateTimeIntervals(start, end, automaticScale).map(intervalDate => {
-    const bounds = getIntervalBounds(intervalDate, automaticScale);
-    
-    const intervalSessions = sessions.filter(session => {
-      const sessionDate = new Date(session.date);
-      return sessionDate >= bounds.start && sessionDate <= bounds.end;
+  const aggregatedData = useMemo(() => {
+    return generateTimeIntervals(start, end, automaticScale).map(intervalDate => {
+      const bounds = getIntervalBounds(intervalDate, automaticScale);
+      
+      const intervalSessions = ownSessions.filter(session => {
+        const sessionDate = new Date(session.date);
+        return sessionDate >= bounds.start && sessionDate <= bounds.end;
+      });
+
+      const attendedCount = intervalSessions.filter(s => s.status === 'attended').length;
+      const missedCount = intervalSessions.filter(s => s.status === 'missed').length;
+      const pendingCount = intervalSessions.filter(s => s.status === 'pending').length;
+      const paidCount = intervalSessions.filter(s => s.paid).length;
+      const unpaidCount = intervalSessions.filter(s => !s.paid && s.status === 'attended').length;
+      
+      const totalRevenue = intervalSessions
+        .filter(s => s.status === 'attended')
+        .reduce((sum, s) => sum + (s.value || 0), 0);
+      
+      const paidRevenue = intervalSessions
+        .filter(s => s.paid)
+        .reduce((sum, s) => sum + (s.value || 0), 0);
+      
+      const unpaidRevenue = intervalSessions
+        .filter(s => !s.paid && s.status === 'attended')
+        .reduce((sum, s) => sum + (s.value || 0), 0);
+
+      return {
+        label: formatTimeLabel(intervalDate, automaticScale),
+        interval: intervalDate,
+        attended: attendedCount,
+        missed: missedCount,
+        pending: pendingCount,
+        paid: paidCount,
+        unpaid: unpaidCount,
+        totalRevenue,
+        paidRevenue,
+        unpaidRevenue,
+        total: intervalSessions.length,
+      };
     });
+  }, [start, end, automaticScale, ownSessions]);
 
-    const attendedCount = intervalSessions.filter(s => s.status === 'attended').length;
-    const missedCount = intervalSessions.filter(s => s.status === 'missed').length;
-    const pendingCount = intervalSessions.filter(s => s.status === 'pending').length;
-    const paidCount = intervalSessions.filter(s => s.paid).length;
-    const unpaidCount = intervalSessions.filter(s => !s.paid && s.status === 'attended').length;
-    
-    const totalRevenue = intervalSessions
-      .filter(s => s.status === 'attended')
-      .reduce((sum, s) => sum + (s.value || 0), 0);
-    
-    const paidRevenue = intervalSessions
-      .filter(s => s.paid)
-      .reduce((sum, s) => sum + (s.value || 0), 0);
-    
-    const unpaidRevenue = intervalSessions
-      .filter(s => !s.paid && s.status === 'attended')
-      .reduce((sum, s) => sum + (s.value || 0), 0);
+  /**
+   * AGREGAÇÃO DE DADOS DA EQUIPE
+   */
+  const teamAggregatedData = useMemo(() => {
+    return generateTimeIntervals(start, end, automaticScale).map(intervalDate => {
+      const bounds = getIntervalBounds(intervalDate, automaticScale);
+      
+      const intervalSessions = teamSessions.filter(session => {
+        const sessionDate = new Date(session.date);
+        return sessionDate >= bounds.start && sessionDate <= bounds.end;
+      });
 
-    return {
-      label: formatTimeLabel(intervalDate, automaticScale),
-      interval: intervalDate,
-      attended: attendedCount,
-      missed: missedCount,
-      pending: pendingCount,
-      paid: paidCount,
-      unpaid: unpaidCount,
-      totalRevenue,
-      paidRevenue,
-      unpaidRevenue,
-      total: intervalSessions.length,
-    };
-  });
+      const attendedCount = intervalSessions.filter(s => s.status === 'attended').length;
+      const missedCount = intervalSessions.filter(s => s.status === 'missed').length;
+      const pendingCount = intervalSessions.filter(s => s.status === 'pending').length;
+      const paidCount = intervalSessions.filter(s => s.paid).length;
+      const unpaidCount = intervalSessions.filter(s => !s.paid && s.status === 'attended').length;
+      
+      const totalRevenue = intervalSessions
+        .filter(s => s.status === 'attended')
+        .reduce((sum, s) => sum + (s.value || 0), 0);
+      
+      const paidRevenue = intervalSessions
+        .filter(s => s.paid)
+        .reduce((sum, s) => sum + (s.value || 0), 0);
+      
+      const unpaidRevenue = intervalSessions
+        .filter(s => !s.paid && s.status === 'attended')
+        .reduce((sum, s) => sum + (s.value || 0), 0);
+
+      return {
+        label: formatTimeLabel(intervalDate, automaticScale),
+        interval: intervalDate,
+        attended: attendedCount,
+        missed: missedCount,
+        pending: pendingCount,
+        paid: paidCount,
+        unpaid: unpaidCount,
+        totalRevenue,
+        paidRevenue,
+        unpaidRevenue,
+        total: intervalSessions.length,
+      };
+    });
+  }, [start, end, automaticScale, teamSessions]);
 
   /**
    * HANDLER: Salvar layout
@@ -563,8 +620,8 @@ export default function DashboardExample() {
                           >
                   {renderDashboardCard(cardLayout.cardId, {
                     isEditMode,
-                    patients,
-                    sessions,
+                    patients: sectionId === 'dashboard-team' ? teamPatients : ownPatients,
+                    sessions: sectionId === 'dashboard-team' ? teamSessions : ownSessions,
                     start,
                     end,
                     automaticScale,
@@ -572,7 +629,7 @@ export default function DashboardExample() {
                     setScaleOverride,
                     clearOverride,
                     hasOverride,
-                    aggregatedData,
+                    aggregatedData: sectionId === 'dashboard-team' ? teamAggregatedData : aggregatedData,
                   })}
                           </ResizableCardSimple>
                         </SortableCard>
