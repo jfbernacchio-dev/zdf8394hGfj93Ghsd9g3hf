@@ -247,21 +247,26 @@ export const AddCardDialog = ({
           </div>
         ) : (
           <Tabs value={selectedSection} onValueChange={setSelectedSection}>
-            {/* Tabs principais: Uma por seção */}
-            <TabsList className="grid grid-cols-2 lg:grid-cols-4 w-full">
-              {visibleSections.map(sectionId => {
-                const section = DASHBOARD_SECTIONS[sectionId];
-                const SectionIcon = SECTION_ICONS[sectionId as keyof typeof SECTION_ICONS];
-                
-                return (
-                  <TabsTrigger key={sectionId} value={sectionId} className="gap-2">
-                    {SectionIcon && <SectionIcon className="w-4 h-4" />}
-                    <span className="hidden sm:inline">{section.name}</span>
-                    <span className="sm:hidden">{section.name.split(' ')[0]}</span>
-                  </TabsTrigger>
-                );
-              })}
-            </TabsList>
+            {/* Tabs principais: Uma por seção com ScrollArea */}
+            <ScrollArea className="w-full">
+              <TabsList className="inline-flex w-full min-w-max h-auto flex-wrap gap-2 bg-transparent p-1">
+                {visibleSections.map(sectionId => {
+                  const section = DASHBOARD_SECTIONS[sectionId];
+                  const SectionIcon = SECTION_ICONS[sectionId as keyof typeof SECTION_ICONS];
+                  
+                  return (
+                    <TabsTrigger 
+                      key={sectionId} 
+                      value={sectionId} 
+                      className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                    >
+                      {SectionIcon && <SectionIcon className="w-4 h-4" />}
+                      <span>{DOMAIN_LABELS[section.permissionConfig.primaryDomain]}</span>
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+            </ScrollArea>
 
             {/* Conteúdo de cada seção */}
             {visibleSections.map(sectionId => {
