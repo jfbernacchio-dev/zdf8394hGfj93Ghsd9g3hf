@@ -63,6 +63,7 @@ export default function DashboardExample() {
   const [period, setPeriod] = useState('month');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
+  const [profiles, setProfiles] = useState<any[]>([]);
 
   // Buscar dados da equipe
   const { teamPatients, teamSessions, subordinateIds, loading: teamLoading } = useTeamData();
@@ -104,8 +105,15 @@ export default function DashboardExample() {
       .select('*')
       .in('patient_id', allPatientIds);
     
+    // Buscar profiles de todos terapeutas
+    const { data: profilesData } = await supabase
+      .from('profiles')
+      .select('id, full_name')
+      .order('full_name');
+    
     setAllPatients(patientsData || []);
     setAllSessions(sessionsData || []);
+    setProfiles(profilesData || []);
   };
 
   const getDateRange = () => {
@@ -622,6 +630,7 @@ export default function DashboardExample() {
                     isEditMode,
                     patients: sectionId === 'dashboard-team' ? teamPatients : ownPatients,
                     sessions: sectionId === 'dashboard-team' ? teamSessions : ownSessions,
+                    profiles,
                     start,
                     end,
                     automaticScale,
