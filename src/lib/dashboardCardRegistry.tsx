@@ -15,13 +15,14 @@
  */
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, TrendingDown, Users, Calendar, AlertCircle, DollarSign, FileText, Activity, CheckCircle2, XCircle, Clock, Settings2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, Calendar, AlertCircle, DollarSign, FileText, Activity, CheckCircle2, XCircle, Clock, Settings2, Info } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import { parseISO, format } from 'date-fns';
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import { TimeScale, getScaleLabel, generateTimeIntervals, formatTimeLabel, getIntervalBounds } from '@/hooks/useChartTimeScale';
 
 interface CardProps {
@@ -90,10 +91,22 @@ export const DashboardExpectedRevenue = ({ isEditMode, className, patients = [],
   return (
     <Card className={cn('h-full', className)}>
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <DollarSign className="h-4 w-4 text-primary" />
-          Receita Esperada
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <DollarSign className="h-4 w-4 text-primary" />
+            Receita Esperada
+          </CardTitle>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p>Valor total esperado com base nas sessões agendadas no período. Para pacientes com mensalidade fixa, considera o valor mensal uma vez por mês.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         <CardDescription className="text-xs">Período selecionado</CardDescription>
       </CardHeader>
       <CardContent>
@@ -141,10 +154,22 @@ export const DashboardActualRevenue = ({ isEditMode, className, patients = [], s
   return (
     <Card className={cn('h-full', className)}>
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <DollarSign className="h-4 w-4 text-green-600" />
-          Receita Realizada
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <DollarSign className="h-4 w-4 text-green-600" />
+            Receita Realizada
+          </CardTitle>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p>Valor total de sessões realizadas e pagas no período. Inclui apenas sessões com status "realizada" ou marcadas como pagas.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         <CardDescription className="text-xs">Período selecionado</CardDescription>
       </CardHeader>
       <CardContent>
@@ -192,10 +217,22 @@ export const DashboardUnpaidValue = ({ isEditMode, className, patients = [], ses
   return (
     <Card className={cn('h-full', className)}>
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <AlertCircle className="h-4 w-4 text-red-500" />
-          Valores Pendentes
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-red-500" />
+            Valores Pendentes
+          </CardTitle>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p>Valor total de sessões realizadas mas ainda não pagas. Representa o montante a receber de pacientes.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         <CardDescription className="text-xs">A receber</CardDescription>
       </CardHeader>
       <CardContent>
@@ -226,7 +263,19 @@ export const DashboardPaymentRate = ({ isEditMode, className, patients = [], ses
   return (
     <Card className={cn('h-full', className)}>
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium">Taxa de Pagamento</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium">Taxa de Pagamento</CardTitle>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p>Percentual de sessões realizadas que já foram pagas. Indica a eficiência na cobrança e recebimento de pagamentos.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         <CardDescription className="text-xs">Período selecionado</CardDescription>
       </CardHeader>
       <CardContent>
@@ -249,10 +298,22 @@ export const DashboardTotalPatients = ({ isEditMode, className, patients = [] }:
   return (
     <Card className={cn('h-full', className)}>
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <Users className="h-4 w-4 text-primary" />
-          Pacientes Ativos
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Users className="h-4 w-4 text-primary" />
+            Pacientes Ativos
+          </CardTitle>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p>Número total de pacientes com status "ativo" em tratamento contínuo.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         <CardDescription className="text-xs">Total</CardDescription>
       </CardHeader>
       <CardContent>
@@ -279,10 +340,22 @@ export const DashboardExpectedSessions = ({ isEditMode, className, sessions = []
   return (
     <Card className={cn('h-full', className)}>
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-primary" />
-          Sessões Esperadas
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-primary" />
+            Sessões Esperadas
+          </CardTitle>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p>Número total de sessões agendadas no período selecionado, independente do status.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         <CardDescription className="text-xs">Período selecionado</CardDescription>
       </CardHeader>
       <CardContent>
@@ -314,10 +387,22 @@ export const DashboardAttendedSessions = ({ isEditMode, className, sessions = []
   return (
     <Card className={cn('h-full', className)}>
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
-          Sessões Realizadas
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+            Sessões Realizadas
+          </CardTitle>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p>Sessões efetivamente realizadas no período. Mostra o percentual em relação ao total esperado.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         <CardDescription className="text-xs">Período selecionado</CardDescription>
       </CardHeader>
       <CardContent>
@@ -349,10 +434,22 @@ export const DashboardMissedSessions = ({ isEditMode, className, sessions = [], 
   return (
     <Card className={cn('h-full', className)}>
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <XCircle className="h-4 w-4 text-red-500" />
-          Faltas
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <XCircle className="h-4 w-4 text-red-500" />
+            Faltas
+          </CardTitle>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p>Sessões agendadas em que o paciente faltou sem aviso. Indica o percentual de faltas sobre o total esperado.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         <CardDescription className="text-xs">Período selecionado</CardDescription>
       </CardHeader>
       <CardContent>
@@ -380,10 +477,22 @@ export const DashboardPendingSessions = ({ isEditMode, className, sessions = [],
   return (
     <Card className={cn('h-full', className)}>
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <Clock className="h-4 w-4 text-yellow-600" />
-          Sessões Pendentes
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Clock className="h-4 w-4 text-yellow-600" />
+            Sessões Pendentes
+          </CardTitle>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p>Sessões futuras já agendadas no período. Útil para planejamento e previsão de agenda.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         <CardDescription className="text-xs">Futuras</CardDescription>
       </CardHeader>
       <CardContent>
@@ -416,7 +525,19 @@ export const DashboardAttendanceRate = ({ isEditMode, className, sessions = [], 
   return (
     <Card className={cn('h-full', className)}>
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium">Taxa de Comparecimento</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium">Taxa de Comparecimento</CardTitle>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p>Percentual de pacientes que compareceram às sessões sobre o total de sessões concluídas (realizadas ou faltadas).</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         <CardDescription className="text-xs">Período selecionado</CardDescription>
       </CardHeader>
       <CardContent>
@@ -659,11 +780,11 @@ export const DashboardChartRevenueTrend = ({
               tick={{ fontSize: 11 }}
               tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
             />
-            <Tooltip 
+            <RechartsTooltip 
               formatter={(value: number) => formatBrazilianCurrency(value)}
               contentStyle={{ fontSize: '12px' }}
             />
-            <Line 
+            <Line
               type="monotone" 
               dataKey="value" 
               stroke="hsl(var(--primary))" 
@@ -717,7 +838,7 @@ export const DashboardChartPaymentStatus = ({
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
               ))}
             </Pie>
-            <Tooltip />
+            <RechartsTooltip />
           </PieChart>
         </ResponsiveContainer>
       </CardContent>
@@ -833,7 +954,7 @@ export const DashboardChartAttendanceWeekly = ({
               className="text-xs"
               tick={{ fontSize: 11 }}
             />
-            <Tooltip contentStyle={{ fontSize: '12px' }} />
+            <RechartsTooltip contentStyle={{ fontSize: '12px' }} />
             <Legend wrapperStyle={{ fontSize: '11px' }} />
             <Bar dataKey="attended" fill="hsl(var(--primary))" name="Compareceram" />
             <Bar dataKey="missed" fill="hsl(var(--destructive))" name="Faltaram" />
