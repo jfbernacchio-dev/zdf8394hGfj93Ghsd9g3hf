@@ -188,15 +188,15 @@ import { parseISO } from 'date-fns'; ✅
 
 ---
 
-### ✅ **FASE 3: CORRIGIR FÓRMULAS DE CÁLCULO** (30 min)
+### ✅ **FASE 3: CORRIGIR FÓRMULAS DE CÁLCULO** (30 min) ✅ **CONCLUÍDA**
 
 **Objetivo**: Replicar EXATAMENTE a lógica dos cards principais
 
-#### **FASE 3A: DashboardExpectedRevenueTeam**
+#### **FASE 3A: DashboardExpectedRevenueTeam** ✅
 
-**Referência**: `src/lib/dashboardCardRegistry.tsx` linha 69-97
+**Referência**: `src/lib/dashboardCardRegistry.tsx` linha 78-97
 
-**Lógica correta**:
+**Lógica implementada**:
 ```typescript
 const monthlyPatientsInPeriod = new Map<string, Set<string>>();
 const expectedRevenue = periodSessions.reduce((sum, s) => {
@@ -220,84 +220,150 @@ const expectedRevenue = periodSessions.reduce((sum, s) => {
 }, 0);
 ```
 
-**Critérios**:
-- [ ] Considera `monthly_price` corretamente
-- [ ] Usa `Map<monthKey, Set<patientId>>` para tracking
-- [ ] Soma `patient.session_value` para mensalistas
-- [ ] Soma `s.value` para não-mensalistas
+**Critérios** (todos atendidos):
+- ✅ Considera `monthly_price` corretamente
+- ✅ Usa `Map<monthKey, Set<patientId>>` para tracking
+- ✅ Soma `patient.session_value` para mensalistas
+- ✅ Soma `s.value` para não-mensalistas
 
-#### **FASE 3B: DashboardActualRevenueTeam**
+#### **FASE 3B: DashboardActualRevenueTeam** ✅
 
-**Referência**: `src/lib/dashboardCardRegistry.tsx` linha 135-171
+**Referência**: `src/lib/dashboardCardRegistry.tsx` linha 141-160
 
-**Lógica correta**:
+**Lógica implementada**:
 ```typescript
-const monthlyPatientsTracked = new Map<string, Set<string>>();
-const actualRevenue = periodSessions
-  .filter(s => s.status === 'attended')
-  .reduce((sum, s) => {
-    const patient = patients.find(p => p.id === s.patient_id);
-    if (!patient) return sum;
-    
-    if (patient.monthly_price) {
-      const monthKey = format(parseISO(s.date), 'yyyy-MM');
-      if (!monthlyPatientsTracked.has(s.patient_id)) {
-        monthlyPatientsTracked.set(s.patient_id, new Set());
-      }
-      const months = monthlyPatientsTracked.get(s.patient_id)!;
-      if (!months.has(monthKey)) {
-        months.add(monthKey);
-        return sum + Number(s.value);
-      }
-      return sum;
-    }
-    return sum + Number(s.value);
-  }, 0);
-```
+// Filtro: attended OU paid
+const periodSessions = sessions.filter(s => {
+  return sessionDate >= start && sessionDate <= end && (s.status === 'attended' || s.paid);
+});
 
-**Critérios**:
-- [ ] Filtra por `status === 'attended'`
-- [ ] Considera `monthly_price`
-- [ ] Usa tracking similar
-
-#### **FASE 3C: DashboardUnpaidValueTeam**
-
-**Referência**: `src/lib/dashboardCardRegistry.tsx` linha 173-208
-
-**Lógica correta**:
-```typescript
-const unpaidSessions = periodSessions.filter(s => 
-  s.status === 'attended' && !s.paid
-);
-
-const unpaidMonthlyTracked = new Map<string, Set<string>>();
-const unpaidValue = unpaidSessions.reduce((sum, s) => {
+const monthlyPatientsInPeriod = new Map<string, Set<string>>();
+const actualRevenue = periodSessions.reduce((sum, s) => {
   const patient = patients.find(p => p.id === s.patient_id);
   if (!patient) return sum;
   
   if (patient.monthly_price) {
     const monthKey = format(parseISO(s.date), 'yyyy-MM');
-    if (!unpaidMonthlyTracked.has(s.patient_id)) {
-      unpaidMonthlyTracked.set(s.patient_id, new Set());
+    if (!monthlyPatientsInPeriod.has(monthKey)) {
+      monthlyPatientsInPeriod.set(monthKey, new Set());
     }
-    const months = unpaidMonthlyTracked.get(s.patient_id)!;
-    if (!months.has(monthKey)) {
-      months.add(monthKey);
-      return sum + Number(s.value);
+    const patientsSet = monthlyPatientsInPeriod.get(monthKey)!;
+    if (!patientsSet.has(patient.id)) {
+      patientsSet.add(patient.id);
+      return sum + patient.session_value;
     }
     return sum;
+  } else {
+    return sum + s.value;
   }
-  return sum + Number(s.value);
 }, 0);
 ```
 
-**Critérios**:
-- [ ] Filtra `attended && !paid`
-- [ ] Considera `monthly_price`
+**Critérios** (todos atendidos):
+- ✅ Filtra por `status === 'attended' || paid`
+- ✅ Considera `monthly_price`
+- ✅ Usa tracking similar
 
-#### **FASE 3D: DashboardPaymentRateTeam**
+#### **FASE 3C: DashboardUnpaidValueTeam** ✅
 
-**Referência**: `src/lib/dashboardCardRegistry.tsx` linha 210-261
+**Referência**: `src/lib/dashboardCardRegistry.tsx` linha 204-223
+
+**Lógica implementada**:
+```typescript
+// Filtro: attended E não paid
+const periodSessions = sessions.filter(s => {
+  return sessionDate >= start && sessionDate <= end && s.status === 'attended' && !s.paid;
+});
+
+const monthlyPatientsInPeriod = new Map<string, Set<string>>();
+const unpaidValue = periodSessions.reduce((sum, s) => {
+  const patient = patients.find(p => p.id === s.patient_id);
+  if (!patient) return sum;
+  
+  if (patient.monthly_price) {
+    const monthKey = format(parseISO(s.date), 'yyyy-MM');
+    if (!monthlyPatientsInPeriod.has(monthKey)) {
+      monthlyPatientsInPeriod.set(monthKey, new Set());
+    }
+    const patientsSet = monthlyPatientsInPeriod.get(monthKey)!;
+    if (!patientsSet.has(patient.id)) {
+      patientsSet.add(patient.id);
+      return sum + patient.session_value;
+    }
+    return sum;
+  } else {
+    return sum + s.value;
+  }
+}, 0);
+```
+
+**Critérios** (todos atendidos):
+- ✅ Filtra `attended && !paid`
+- ✅ Considera `monthly_price`
+
+#### **FASE 3D: DashboardPaymentRateTeam** ✅
+
+**Referência**: `src/lib/dashboardCardRegistry.tsx` linha 257-269
+
+**Lógica implementada**:
+```typescript
+// Filtro: apenas attended
+const periodSessions = sessions.filter(s => {
+  return sessionDate >= start && sessionDate <= end && s.status === 'attended';
+});
+
+const paidSessions = periodSessions.filter(s => s.paid).length;
+const totalSessions = periodSessions.length;
+const paymentRate = totalSessions > 0 ? Math.round((paidSessions / totalSessions) * 100) : 0;
+```
+
+**Critérios** (todos atendidos):
+- ✅ Filtra apenas `attended`
+- ✅ Calcula percentual correto
+- ✅ Usa variáveis paidSessions e totalSessions
+
+#### **FASE 3E: DashboardTotalPatientsTeam** ✅
+
+**Referência**: `src/lib/dashboardCardRegistry.tsx` linha 303-334
+
+**Lógica implementada**:
+```typescript
+const activePatients = patients.filter((p: any) => p.status === 'active').length;
+```
+
+**Critérios** (todos atendidos):
+- ✅ Filtra por `status === 'active'`
+- ✅ Não depende de período (correto)
+
+#### **FASE 3F: DashboardAttendedSessionsTeam** ✅
+
+**Referência**: `src/lib/dashboardCardRegistry.tsx` linha 379-423
+
+**Lógica implementada**:
+```typescript
+const periodSessions = sessions.filter(s => {
+  return sessionDate >= start && sessionDate <= end;
+});
+
+const attendedSessions = periodSessions.filter(s => s.status === 'attended');
+const percentage = periodSessions.length > 0 
+  ? Math.round((attendedSessions.length / periodSessions.length) * 100) 
+  : 0;
+```
+
+**Critérios** (todos atendidos):
+- ✅ Filtra sessões do período
+- ✅ Calcula attended
+- ✅ Calcula percentual em relação ao total
+
+---
+
+**Imports adicionados**:
+```typescript
+import { parseISO, format } from 'date-fns'; ✅
+```
+
+**Status**: ✅ **FASE 3 CONCLUÍDA COM SUCESSO - TODAS AS FÓRMULAS REPLICADAS EXATAMENTE**
 
 **Lógica correta**:
 ```typescript
@@ -837,6 +903,18 @@ A implementação está COMPLETA quando:
 - Import `parseISO` adicionado
 - `periodSessions` usado nos cálculos
 - Tratamento de erros implementado
+
+### ✅ FASE 3: CONCLUÍDA
+- **Todas as 6 fórmulas de cálculo replicadas exatamente**
+- Import `format` de 'date-fns' adicionado
+- Tracking de mensalistas implementado (Map<monthKey, Set<patientId>>)
+- Lógicas corretas:
+  - ✅ ExpectedRevenueTeam: considera monthly_price
+  - ✅ ActualRevenueTeam: filtra attended||paid + monthly_price
+  - ✅ UnpaidValueTeam: filtra attended&&!paid + monthly_price
+  - ✅ PaymentRateTeam: % correto de paid/attended
+  - ✅ TotalPatientsTeam: filtra status==='active'
+  - ✅ AttendedSessionsTeam: calcula % de realização
 
 ### 🔜 PRÓXIMAS FASES (Aguardando aval)
 **FASE 3**: Corrigir fórmulas dos 6 cards (60 min)

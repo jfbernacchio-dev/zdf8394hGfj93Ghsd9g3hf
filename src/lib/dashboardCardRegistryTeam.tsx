@@ -12,7 +12,7 @@ import { Users, TrendingUp, DollarSign, AlertCircle, Calendar, CheckCircle, XCir
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { parseISO } from 'date-fns';
+import { parseISO, format } from 'date-fns';
 
 // ============================================================================
 // INTERFACE CARDPROPS (mesma do dashboardCardRegistry.tsx)
@@ -68,11 +68,26 @@ export const DashboardExpectedRevenueTeam = ({
     }
   });
 
-  const totalExpected = patients.reduce((sum: number, p: any) => {
-    const expectedSessions = periodSessions.filter((s: any) => 
-      s.patient_id === p.id && s.status !== 'missed'
-    ).length;
-    return sum + (expectedSessions * p.session_value);
+  // FASE 3: Fórmula correta com tracking de mensalistas
+  const monthlyPatientsInPeriod = new Map<string, Set<string>>();
+  const expectedRevenue = periodSessions.reduce((sum, s) => {
+    const patient = patients.find(p => p.id === s.patient_id);
+    if (!patient) return sum;
+    
+    if (patient.monthly_price) {
+      const monthKey = format(parseISO(s.date), 'yyyy-MM');
+      if (!monthlyPatientsInPeriod.has(monthKey)) {
+        monthlyPatientsInPeriod.set(monthKey, new Set());
+      }
+      const patientsSet = monthlyPatientsInPeriod.get(monthKey)!;
+      if (!patientsSet.has(patient.id)) {
+        patientsSet.add(patient.id);
+        return sum + patient.session_value;
+      }
+      return sum;
+    } else {
+      return sum + s.value;
+    }
   }, 0);
 
   return (
@@ -96,11 +111,11 @@ export const DashboardExpectedRevenueTeam = ({
         <div className="flex items-center gap-2">
           <TrendingUp className="h-4 w-4 text-primary" />
           <div className="text-2xl font-bold">
-            {totalExpected.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            {expectedRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
           </div>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
-          {periodSessions.filter((s: any) => s.status !== 'missed').length} sessões
+          {periodSessions.length} sessões
         </p>
       </CardContent>
     </Card>
@@ -115,20 +130,38 @@ export const DashboardActualRevenueTeam = ({
   isEditMode,
   className 
 }: CardProps) => {
-  // FASE 2: Filtrar sessões por período
+  // FASE 2: Filtrar sessões por período (attended ou paid)
   const periodSessions = sessions.filter(s => {
     if (!s.date || !start || !end) return false;
     try {
       const sessionDate = parseISO(s.date);
-      return sessionDate >= start && sessionDate <= end;
+      return sessionDate >= start && sessionDate <= end && (s.status === 'attended' || s.paid);
     } catch {
       return false;
     }
   });
 
-  const actualRevenue = periodSessions
-    .filter((s: any) => s.status === 'attended')
-    .reduce((sum: number, s: any) => sum + (s.value || 0), 0);
+  // FASE 3: Fórmula correta com tracking de mensalistas
+  const monthlyPatientsInPeriod = new Map<string, Set<string>>();
+  const actualRevenue = periodSessions.reduce((sum, s) => {
+    const patient = patients.find(p => p.id === s.patient_id);
+    if (!patient) return sum;
+    
+    if (patient.monthly_price) {
+      const monthKey = format(parseISO(s.date), 'yyyy-MM');
+      if (!monthlyPatientsInPeriod.has(monthKey)) {
+        monthlyPatientsInPeriod.set(monthKey, new Set());
+      }
+      const patientsSet = monthlyPatientsInPeriod.get(monthKey)!;
+      if (!patientsSet.has(patient.id)) {
+        patientsSet.add(patient.id);
+        return sum + patient.session_value;
+      }
+      return sum;
+    } else {
+      return sum + s.value;
+    }
+  }, 0);
 
   return (
     <Card className={cn('h-full', className)}>
@@ -155,7 +188,7 @@ export const DashboardActualRevenueTeam = ({
           </div>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
-          {periodSessions.filter((s: any) => s.status === 'attended').length} sessões realizadas
+          {periodSessions.length} sessões realizadas
         </p>
       </CardContent>
     </Card>
@@ -170,20 +203,38 @@ export const DashboardUnpaidValueTeam = ({
   isEditMode,
   className 
 }: CardProps) => {
-  // FASE 2: Filtrar sessões por período
+  // FASE 2: Filtrar sessões não pagas por período
   const periodSessions = sessions.filter(s => {
     if (!s.date || !start || !end) return false;
     try {
       const sessionDate = parseISO(s.date);
-      return sessionDate >= start && sessionDate <= end;
+      return sessionDate >= start && sessionDate <= end && s.status === 'attended' && !s.paid;
     } catch {
       return false;
     }
   });
 
-  const unpaidValue = periodSessions
-    .filter((s: any) => s.status === 'attended' && !s.paid)
-    .reduce((sum: number, s: any) => sum + (s.value || 0), 0);
+  // FASE 3: Fórmula correta com tracking de mensalistas
+  const monthlyPatientsInPeriod = new Map<string, Set<string>>();
+  const unpaidValue = periodSessions.reduce((sum, s) => {
+    const patient = patients.find(p => p.id === s.patient_id);
+    if (!patient) return sum;
+    
+    if (patient.monthly_price) {
+      const monthKey = format(parseISO(s.date), 'yyyy-MM');
+      if (!monthlyPatientsInPeriod.has(monthKey)) {
+        monthlyPatientsInPeriod.set(monthKey, new Set());
+      }
+      const patientsSet = monthlyPatientsInPeriod.get(monthKey)!;
+      if (!patientsSet.has(patient.id)) {
+        patientsSet.add(patient.id);
+        return sum + patient.session_value;
+      }
+      return sum;
+    } else {
+      return sum + s.value;
+    }
+  }, 0);
 
   return (
     <Card className={cn('h-full', className)}>
@@ -210,7 +261,7 @@ export const DashboardUnpaidValueTeam = ({
           </div>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
-          {periodSessions.filter((s: any) => s.status === 'attended' && !s.paid).length} sessões pendentes
+          {periodSessions.length} sessões pendentes
         </p>
       </CardContent>
     </Card>
@@ -225,20 +276,21 @@ export const DashboardPaymentRateTeam = ({
   isEditMode,
   className 
 }: CardProps) => {
-  // FASE 2: Filtrar sessões por período
+  // FASE 2 & 3: Filtrar apenas sessões attended por período
   const periodSessions = sessions.filter(s => {
     if (!s.date || !start || !end) return false;
     try {
       const sessionDate = parseISO(s.date);
-      return sessionDate >= start && sessionDate <= end;
+      return sessionDate >= start && sessionDate <= end && s.status === 'attended';
     } catch {
       return false;
     }
   });
 
-  const attended = periodSessions.filter((s: any) => s.status === 'attended').length;
-  const paid = periodSessions.filter((s: any) => s.paid).length;
-  const rate = attended > 0 ? Math.round((paid / attended) * 100) : 0;
+  // FASE 3: Cálculo correto
+  const paidSessions = periodSessions.filter(s => s.paid).length;
+  const totalSessions = periodSessions.length;
+  const paymentRate = totalSessions > 0 ? Math.round((paidSessions / totalSessions) * 100) : 0;
 
   return (
     <Card className={cn('h-full', className)}>
@@ -260,10 +312,10 @@ export const DashboardPaymentRateTeam = ({
       <CardContent>
         <div className="flex items-center gap-2">
           <Percent className="h-4 w-4 text-primary" />
-          <div className="text-2xl font-bold">{rate}%</div>
+          <div className="text-2xl font-bold">{paymentRate}%</div>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
-          {paid} de {attended} sessões pagas
+          {paidSessions} de {totalSessions} sessões pagas
         </p>
       </CardContent>
     </Card>
@@ -333,7 +385,11 @@ export const DashboardAttendedSessionsTeam = ({
     }
   });
 
-  const attendedCount = periodSessions.filter((s: any) => s.status === 'attended').length;
+  // FASE 3: Cálculo correto com percentual
+  const attendedSessions = periodSessions.filter(s => s.status === 'attended');
+  const percentage = periodSessions.length > 0 
+    ? Math.round((attendedSessions.length / periodSessions.length) * 100) 
+    : 0;
   
   return (
     <Card className={cn('h-full', className)}>
@@ -355,10 +411,10 @@ export const DashboardAttendedSessionsTeam = ({
       <CardContent>
         <div className="flex items-center gap-2">
           <CheckCircle className="h-4 w-4 text-green-500" />
-          <div className="text-2xl font-bold text-green-600">{attendedCount}</div>
+          <div className="text-2xl font-bold text-green-600">{attendedSessions.length}</div>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
-          {periodSessions.length} total
+          {percentage}% das esperadas
         </p>
       </CardContent>
     </Card>
