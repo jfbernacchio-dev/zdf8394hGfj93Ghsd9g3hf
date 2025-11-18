@@ -100,6 +100,9 @@ export function useCardPermissions() {
       case 'media':
         return false; // Subordinados não veem mídia
 
+      case 'team':
+        return false; // Subordinados NUNCA veem dados da equipe
+
       case 'general':
         return true;
 
