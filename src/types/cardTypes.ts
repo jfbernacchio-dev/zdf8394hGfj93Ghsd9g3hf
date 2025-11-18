@@ -1,6 +1,23 @@
 import type { PermissionDomain } from './permissions';
+import type { Layout } from 'react-grid-layout';
 
 export type CardCategory = 'statistics' | 'functional' | 'dashboard-cards' | 'dashboard-charts' | 'clinical';
+
+/**
+ * GRID CARD LAYOUT - FASE 2
+ * Layout para React Grid Layout (sistema de grid de 12 colunas)
+ */
+export interface GridCardLayout extends Layout {
+  i: string;        // cardId único
+  x: number;        // coluna inicial (0-11)
+  y: number;        // linha inicial (0-∞)
+  w: number;        // largura em colunas (1-12)
+  h: number;        // altura em rows (1-∞)
+  minW?: number;    // largura mínima em colunas
+  minH?: number;    // altura mínima em rows
+  maxW?: number;    // largura máxima em colunas
+  maxH?: number;    // altura máxima em rows
+}
 
 /**
  * Configuração de permissões para cada card - FASE 1
