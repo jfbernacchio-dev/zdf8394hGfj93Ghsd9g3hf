@@ -14,6 +14,7 @@
  * ============================================================================
  */
 
+import { useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, Users, Calendar, AlertCircle, DollarSign, FileText, Activity, CheckCircle2, XCircle, Clock, Settings2, Info } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
@@ -22,6 +23,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { cn } from '@/lib/utils';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import { parseISO, format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import { TimeScale, getScaleLabel, generateTimeIntervals, formatTimeLabel, getIntervalBounds } from '@/hooks/useChartTimeScale';
 import {
@@ -38,6 +40,7 @@ interface CardProps {
   className?: string;
   patients?: any[];
   sessions?: any[];
+  profiles?: any[];
   start?: Date;
   end?: Date;
   automaticScale?: TimeScale;
@@ -974,21 +977,422 @@ export const DashboardChartAttendanceWeekly = ({
   );
 };
 
-export const DashboardChartMonthlyComparison = (props: CardProps) => (
-  <ChartPlaceholder title="Comparação Mensal" description="Receita vs Esperado" />
-);
+// ============================================================================
+// GRÁFICO 1: TIPOS DE SESSÃO (Pie Chart)
+// ============================================================================
+export const DashboardChartSessionTypes = ({ 
+  isEditMode, 
+  className, 
+  sessions = [],
+  start,
+  end
+}: CardProps) => {
+  // Filtrar sessões no período
+  const periodSessions = sessions.filter(s => {
+    if (!s.date || !start || !end) return false;
+    try {
+      const sessionDate = parseISO(s.date);
+      return sessionDate >= start && sessionDate <= end;
+    } catch {
+      return false;
+    }
+  });
 
-export const DashboardChartRevenueByTherapist = (props: CardProps) => (
-  <ChartPlaceholder title="Receita por Terapeuta" description="Este mês" />
-);
+  // Contar por status
+  const sessionTypes = periodSessions.reduce((acc, s) => {
+    const status = s.status || 'pending';
+    acc[status] = (acc[status] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
 
-export const DashboardChartSessionTypes = (props: CardProps) => (
-  <ChartPlaceholder title="Tipos de Sessão" description="Distribuição" />
-);
+  const chartData = [
+    { 
+      name: 'Atendidas', 
+      value: sessionTypes.attended || 0, 
+      fill: 'hsl(var(--chart-1))' 
+    },
+    { 
+      name: 'Faltadas', 
+      value: sessionTypes.missed || 0, 
+      fill: 'hsl(var(--chart-2))' 
+    },
+    { 
+      name: 'Pendentes', 
+      value: sessionTypes.pending || 0, 
+      fill: 'hsl(var(--chart-3))' 
+    },
+  ];
 
-export const DashboardChartTherapistDistribution = (props: CardProps) => (
-  <ChartPlaceholder title="Distribuição por Terapeuta" description="Pacientes" />
-);
+  const total = chartData.reduce((sum, item) => sum + item.value, 0);
+
+  return (
+    <Card className={cn('h-full', className)}>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium flex items-center gap-2">
+          <Activity className="h-4 w-4 text-primary" />
+          Tipos de Sessão
+        </CardTitle>
+        <CardDescription className="text-xs">Distribuição por status</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {total > 0 ? (
+          <ResponsiveContainer width="100%" height={200}>
+            <PieChart>
+              <Pie
+                data={chartData}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                outerRadius={70}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                {chartData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.fill} />
+                ))}
+              </Pie>
+              <RechartsTooltip />
+            </PieChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-[200px] flex items-center justify-center text-xs text-muted-foreground">
+            Sem dados no período
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+// ============================================================================
+// GRÁFICO 2: COMPARAÇÃO MENSAL (Line Chart)
+// ============================================================================
+export const DashboardChartMonthlyComparison = ({ 
+  isEditMode, 
+  className, 
+  sessions = [],
+  start,
+  end
+}: CardProps) => {
+  const chartData = useMemo(() => {
+    if (!start || !end) return [];
+    
+    const months = [];
+    const current = new Date(start);
+    while (current <= end) {
+      months.push(new Date(current));
+      current.setMonth(current.getMonth() + 1);
+    }
+
+    return months.map(monthDate => {
+      const monthKey = format(monthDate, 'yyyy-MM');
+      const monthSessions = sessions.filter(s => {
+        if (!s.date) return false;
+        try {
+          const sessionMonth = format(parseISO(s.date), 'yyyy-MM');
+          return sessionMonth === monthKey;
+        } catch {
+          return false;
+        }
+      });
+      
+      const attendedSessions = monthSessions.filter(s => s.status === 'attended');
+      const receita = attendedSessions
+        .filter(s => s.paid)
+        .reduce((sum, s) => sum + (s.value || 0), 0);
+      
+      const totalNonPending = monthSessions.filter(s => s.status !== 'pending').length;
+      const taxaComparecimento = totalNonPending > 0
+        ? (attendedSessions.length / totalNonPending) * 100
+        : 0;
+
+      return {
+        month: format(monthDate, 'MMM yyyy', { locale: ptBR }),
+        receita,
+        sessoes_atendidas: attendedSessions.length,
+        sessoes_faltadas: monthSessions.filter(s => s.status === 'missed').length,
+        taxa_comparecimento: taxaComparecimento,
+      };
+    });
+  }, [sessions, start, end]);
+
+  return (
+    <Card className={cn('h-full', className)}>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium flex items-center gap-2">
+          <TrendingUp className="h-4 w-4 text-primary" />
+          Comparação Mensal
+        </CardTitle>
+        <CardDescription className="text-xs">Evolução de métricas</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {chartData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={220}>
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis 
+                dataKey="month" 
+                tick={{ fontSize: 11 }}
+                stroke="hsl(var(--muted-foreground))"
+              />
+              <YAxis 
+                yAxisId="left"
+                tick={{ fontSize: 11 }}
+                stroke="hsl(var(--muted-foreground))"
+                label={{ value: 'R$', angle: -90, position: 'insideLeft', fontSize: 10 }}
+              />
+              <YAxis 
+                yAxisId="right"
+                orientation="right"
+                tick={{ fontSize: 11 }}
+                stroke="hsl(var(--muted-foreground))"
+                label={{ value: '%', angle: 90, position: 'insideRight', fontSize: 10 }}
+              />
+              <RechartsTooltip 
+                contentStyle={{ 
+                  backgroundColor: 'hsl(var(--background))',
+                  border: '1px solid hsl(var(--border))'
+                }}
+                formatter={(value: any, name: string) => {
+                  if (name === 'receita') return [formatBrazilianCurrency(value), 'Receita'];
+                  if (name === 'taxa_comparecimento') return [`${value.toFixed(1)}%`, 'Taxa'];
+                  return [value, name];
+                }}
+              />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Line 
+                yAxisId="left"
+                type="monotone" 
+                dataKey="receita" 
+                stroke="hsl(var(--chart-1))" 
+                name="Receita"
+                strokeWidth={2}
+                dot={{ r: 3 }}
+              />
+              <Line 
+                yAxisId="right"
+                type="monotone" 
+                dataKey="taxa_comparecimento" 
+                stroke="hsl(var(--chart-2))" 
+                name="Taxa %"
+                strokeWidth={2}
+                dot={{ r: 3 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-[220px] flex items-center justify-center text-xs text-muted-foreground">
+            Sem dados no período
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+// ============================================================================
+// GRÁFICO 3: RECEITA POR TERAPEUTA (Bar Chart)
+// ============================================================================
+export const DashboardChartRevenueByTherapist = ({ 
+  isEditMode, 
+  className, 
+  sessions = [],
+  patients = [],
+  profiles = [],
+  start,
+  end
+}: CardProps) => {
+  const chartData = useMemo(() => {
+    // Filtrar sessões atendidas e pagas no período
+    const validSessions = sessions.filter(s => {
+      if (s.status !== 'attended' || !s.paid) return false;
+      if (!s.date || !start || !end) return false;
+      try {
+        const sessionDate = parseISO(s.date);
+        return sessionDate >= start && sessionDate <= end;
+      } catch {
+        return false;
+      }
+    });
+
+    // Agrupar por terapeuta
+    const revenueByTherapist = validSessions.reduce((acc, session) => {
+      const patient = patients.find(p => p.id === session.patient_id);
+      if (!patient) return acc;
+      
+      const therapistId = patient.user_id;
+      if (!acc[therapistId]) {
+        const profile = profiles.find(p => p.id === therapistId);
+        acc[therapistId] = {
+          therapist_id: therapistId,
+          therapist_name: profile?.full_name || 'Terapeuta',
+          total_revenue: 0,
+          session_count: 0,
+        };
+      }
+      
+      acc[therapistId].total_revenue += session.value || 0;
+      acc[therapistId].session_count += 1;
+      return acc;
+    }, {} as Record<string, any>);
+
+    return Object.values(revenueByTherapist)
+      .sort((a: any, b: any) => b.total_revenue - a.total_revenue);
+  }, [sessions, patients, profiles, start, end]);
+
+  return (
+    <Card className={cn('h-full', className)}>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium flex items-center gap-2">
+          <DollarSign className="h-4 w-4 text-primary" />
+          Receita por Terapeuta
+        </CardTitle>
+        <CardDescription className="text-xs">Sessões pagas no período</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {chartData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={Math.max(200, chartData.length * 40)}>
+            <BarChart data={chartData} layout="vertical" margin={{ left: 100 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis 
+                type="number" 
+                tick={{ fontSize: 11 }}
+                stroke="hsl(var(--muted-foreground))"
+                tickFormatter={(value) => formatBrazilianCurrency(value)}
+              />
+              <YAxis 
+                type="category" 
+                dataKey="therapist_name" 
+                tick={{ fontSize: 11 }}
+                stroke="hsl(var(--muted-foreground))"
+                width={90}
+              />
+              <RechartsTooltip 
+                contentStyle={{ 
+                  backgroundColor: 'hsl(var(--background))',
+                  border: '1px solid hsl(var(--border))'
+                }}
+                formatter={(value: any, name: string, props: any) => {
+                  return [
+                    `${formatBrazilianCurrency(value)} (${props.payload.session_count} sessões)`,
+                    'Receita'
+                  ];
+                }}
+              />
+              <Bar dataKey="total_revenue" fill="hsl(var(--chart-1))" name="Receita" />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-[200px] flex items-center justify-center text-xs text-muted-foreground">
+            Sem dados no período
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+// ============================================================================
+// GRÁFICO 4: DISTRIBUIÇÃO POR TERAPEUTA (Stacked Bar Chart)
+// ============================================================================
+export const DashboardChartTherapistDistribution = ({ 
+  isEditMode, 
+  className, 
+  sessions = [],
+  patients = [],
+  profiles = [],
+  start,
+  end
+}: CardProps) => {
+  const chartData = useMemo(() => {
+    // Filtrar pacientes ativos no período (que tem sessões)
+    const periodSessions = sessions.filter(s => {
+      if (!s.date || !start || !end) return false;
+      try {
+        const sessionDate = parseISO(s.date);
+        return sessionDate >= start && sessionDate <= end;
+      } catch {
+        return false;
+      }
+    });
+
+    const patientIdsInPeriod = new Set(periodSessions.map(s => s.patient_id));
+    const activePatientsInPeriod = patients.filter(p => patientIdsInPeriod.has(p.id));
+
+    // Agrupar por terapeuta
+    const distribution = activePatientsInPeriod.reduce((acc, patient) => {
+      const therapistId = patient.user_id;
+      if (!acc[therapistId]) {
+        const profile = profiles.find(p => p.id === therapistId);
+        acc[therapistId] = {
+          therapist_name: profile?.full_name || 'Terapeuta',
+          patient_count: 0,
+          session_count: 0,
+        };
+      }
+      acc[therapistId].patient_count += 1;
+      return acc;
+    }, {} as Record<string, any>);
+
+    // Adicionar contagem de sessões
+    periodSessions.forEach(s => {
+      const patient = patients.find(p => p.id === s.patient_id);
+      if (patient && distribution[patient.user_id]) {
+        distribution[patient.user_id].session_count += 1;
+      }
+    });
+
+    return Object.values(distribution)
+      .sort((a: any, b: any) => b.patient_count - a.patient_count);
+  }, [sessions, patients, profiles, start, end]);
+
+  return (
+    <Card className={cn('h-full', className)}>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium flex items-center gap-2">
+          <Users className="h-4 w-4 text-primary" />
+          Distribuição por Terapeuta
+        </CardTitle>
+        <CardDescription className="text-xs">Pacientes e sessões</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {chartData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={Math.max(200, chartData.length * 50)}>
+            <BarChart data={chartData} margin={{ bottom: 20 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis 
+                dataKey="therapist_name" 
+                tick={{ fontSize: 11 }}
+                stroke="hsl(var(--muted-foreground))"
+                angle={-45}
+                textAnchor="end"
+                height={80}
+              />
+              <YAxis 
+                tick={{ fontSize: 11 }}
+                stroke="hsl(var(--muted-foreground))"
+              />
+              <RechartsTooltip 
+                contentStyle={{ 
+                  backgroundColor: 'hsl(var(--background))',
+                  border: '1px solid hsl(var(--border))'
+                }}
+              />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Bar dataKey="patient_count" fill="hsl(var(--chart-4))" name="Pacientes" stackId="a" />
+              <Bar dataKey="session_count" fill="hsl(var(--chart-1))" name="Sessões" stackId="a" />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-[200px] flex items-center justify-center text-xs text-muted-foreground">
+            Sem dados no período
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
 
 export const DashboardChartPatientGrowth = (props: CardProps) => (
   <ChartPlaceholder title="Crescimento de Pacientes" description="Últimos 12 meses" />
