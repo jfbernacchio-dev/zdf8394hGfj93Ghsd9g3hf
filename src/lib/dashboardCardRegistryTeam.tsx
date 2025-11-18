@@ -4,18 +4,58 @@
  * ============================================================================
  * 
  * Versões dos cards específicas para dados da equipe (subordinados)
+ * FASE 1: Interface CardProps corrigida
  */
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, TrendingUp, DollarSign, AlertCircle, Calendar, CheckCircle, XCircle, Clock, Percent } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Info } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+// ============================================================================
+// INTERFACE CARDPROPS (mesma do dashboardCardRegistry.tsx)
+// ============================================================================
+
+interface CardProps {
+  isEditMode?: boolean;
+  className?: string;
+  patients?: any[];
+  sessions?: any[];
+  start?: Date;
+  end?: Date;
+  automaticScale?: any;
+  getScale?: (chartId: string) => any;
+  setScaleOverride?: (chartId: string, scale: any | null) => void;
+  clearOverride?: (chartId: string) => void;
+  hasOverride?: (chartId: string) => boolean;
+  aggregatedData?: Array<{
+    label: string;
+    interval: Date;
+    attended: number;
+    missed: number;
+    pending: number;
+    paid: number;
+    unpaid: number;
+    totalRevenue: number;
+    paidRevenue: number;
+    unpaidRevenue: number;
+    total: number;
+  }>;
+}
 
 // ============================================================================
 // CARDS FINANCEIROS - EQUIPE
 // ============================================================================
 
-export const DashboardExpectedRevenueTeam = ({ patients, sessions }: any) => {
+export const DashboardExpectedRevenueTeam = ({ 
+  patients = [], 
+  sessions = [], 
+  start, 
+  end,
+  isEditMode,
+  className 
+}: CardProps) => {
   const totalExpected = patients.reduce((sum: number, p: any) => {
     const expectedSessions = sessions.filter((s: any) => 
       s.patient_id === p.id && s.status !== 'missed'
@@ -24,7 +64,7 @@ export const DashboardExpectedRevenueTeam = ({ patients, sessions }: any) => {
   }, 0);
 
   return (
-    <Card className="h-full">
+    <Card className={cn('h-full', className)}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium">Receita Esperada - Equipe</CardTitle>
@@ -55,13 +95,20 @@ export const DashboardExpectedRevenueTeam = ({ patients, sessions }: any) => {
   );
 };
 
-export const DashboardActualRevenueTeam = ({ sessions }: any) => {
+export const DashboardActualRevenueTeam = ({ 
+  patients = [], 
+  sessions = [], 
+  start, 
+  end,
+  isEditMode,
+  className 
+}: CardProps) => {
   const actualRevenue = sessions
     .filter((s: any) => s.status === 'attended')
     .reduce((sum: number, s: any) => sum + (s.value || 0), 0);
 
   return (
-    <Card className="h-full">
+    <Card className={cn('h-full', className)}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium">Receita Realizada - Equipe</CardTitle>
@@ -92,13 +139,20 @@ export const DashboardActualRevenueTeam = ({ sessions }: any) => {
   );
 };
 
-export const DashboardUnpaidValueTeam = ({ sessions }: any) => {
+export const DashboardUnpaidValueTeam = ({ 
+  patients = [], 
+  sessions = [], 
+  start, 
+  end,
+  isEditMode,
+  className 
+}: CardProps) => {
   const unpaidValue = sessions
     .filter((s: any) => s.status === 'attended' && !s.paid)
     .reduce((sum: number, s: any) => sum + (s.value || 0), 0);
 
   return (
-    <Card className="h-full">
+    <Card className={cn('h-full', className)}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium">Valores a Receber - Equipe</CardTitle>
@@ -129,13 +183,20 @@ export const DashboardUnpaidValueTeam = ({ sessions }: any) => {
   );
 };
 
-export const DashboardPaymentRateTeam = ({ sessions }: any) => {
+export const DashboardPaymentRateTeam = ({ 
+  patients = [], 
+  sessions = [], 
+  start, 
+  end,
+  isEditMode,
+  className 
+}: CardProps) => {
   const attended = sessions.filter((s: any) => s.status === 'attended').length;
   const paid = sessions.filter((s: any) => s.paid).length;
   const rate = attended > 0 ? Math.round((paid / attended) * 100) : 0;
 
   return (
-    <Card className="h-full">
+    <Card className={cn('h-full', className)}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium">Taxa de Pagamento - Equipe</CardTitle>
@@ -168,11 +229,18 @@ export const DashboardPaymentRateTeam = ({ sessions }: any) => {
 // CARDS ADMINISTRATIVOS - EQUIPE
 // ============================================================================
 
-export const DashboardTotalPatientsTeam = ({ patients }: any) => {
+export const DashboardTotalPatientsTeam = ({ 
+  patients = [], 
+  sessions = [], 
+  start, 
+  end,
+  isEditMode,
+  className 
+}: CardProps) => {
   const activePatients = patients.filter((p: any) => p.status === 'active').length;
   
   return (
-    <Card className="h-full">
+    <Card className={cn('h-full', className)}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium">Pacientes Ativos - Equipe</CardTitle>
@@ -201,11 +269,18 @@ export const DashboardTotalPatientsTeam = ({ patients }: any) => {
   );
 };
 
-export const DashboardAttendedSessionsTeam = ({ sessions }: any) => {
+export const DashboardAttendedSessionsTeam = ({ 
+  patients = [], 
+  sessions = [], 
+  start, 
+  end,
+  isEditMode,
+  className 
+}: CardProps) => {
   const attendedCount = sessions.filter((s: any) => s.status === 'attended').length;
   
   return (
-    <Card className="h-full">
+    <Card className={cn('h-full', className)}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium">Sessões Realizadas - Equipe</CardTitle>
