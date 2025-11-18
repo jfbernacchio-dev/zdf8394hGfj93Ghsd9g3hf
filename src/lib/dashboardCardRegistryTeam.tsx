@@ -12,6 +12,7 @@ import { Users, TrendingUp, DollarSign, AlertCircle, Calendar, CheckCircle, XCir
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { parseISO } from 'date-fns';
 
 // ============================================================================
 // INTERFACE CARDPROPS (mesma do dashboardCardRegistry.tsx)
@@ -56,8 +57,19 @@ export const DashboardExpectedRevenueTeam = ({
   isEditMode,
   className 
 }: CardProps) => {
+  // FASE 2: Filtrar sessões por período
+  const periodSessions = sessions.filter(s => {
+    if (!s.date || !start || !end) return false;
+    try {
+      const sessionDate = parseISO(s.date);
+      return sessionDate >= start && sessionDate <= end;
+    } catch {
+      return false;
+    }
+  });
+
   const totalExpected = patients.reduce((sum: number, p: any) => {
-    const expectedSessions = sessions.filter((s: any) => 
+    const expectedSessions = periodSessions.filter((s: any) => 
       s.patient_id === p.id && s.status !== 'missed'
     ).length;
     return sum + (expectedSessions * p.session_value);
@@ -88,7 +100,7 @@ export const DashboardExpectedRevenueTeam = ({
           </div>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
-          {sessions.filter((s: any) => s.status !== 'missed').length} sessões
+          {periodSessions.filter((s: any) => s.status !== 'missed').length} sessões
         </p>
       </CardContent>
     </Card>
@@ -103,7 +115,18 @@ export const DashboardActualRevenueTeam = ({
   isEditMode,
   className 
 }: CardProps) => {
-  const actualRevenue = sessions
+  // FASE 2: Filtrar sessões por período
+  const periodSessions = sessions.filter(s => {
+    if (!s.date || !start || !end) return false;
+    try {
+      const sessionDate = parseISO(s.date);
+      return sessionDate >= start && sessionDate <= end;
+    } catch {
+      return false;
+    }
+  });
+
+  const actualRevenue = periodSessions
     .filter((s: any) => s.status === 'attended')
     .reduce((sum: number, s: any) => sum + (s.value || 0), 0);
 
@@ -132,7 +155,7 @@ export const DashboardActualRevenueTeam = ({
           </div>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
-          {sessions.filter((s: any) => s.status === 'attended').length} sessões realizadas
+          {periodSessions.filter((s: any) => s.status === 'attended').length} sessões realizadas
         </p>
       </CardContent>
     </Card>
@@ -147,7 +170,18 @@ export const DashboardUnpaidValueTeam = ({
   isEditMode,
   className 
 }: CardProps) => {
-  const unpaidValue = sessions
+  // FASE 2: Filtrar sessões por período
+  const periodSessions = sessions.filter(s => {
+    if (!s.date || !start || !end) return false;
+    try {
+      const sessionDate = parseISO(s.date);
+      return sessionDate >= start && sessionDate <= end;
+    } catch {
+      return false;
+    }
+  });
+
+  const unpaidValue = periodSessions
     .filter((s: any) => s.status === 'attended' && !s.paid)
     .reduce((sum: number, s: any) => sum + (s.value || 0), 0);
 
@@ -176,7 +210,7 @@ export const DashboardUnpaidValueTeam = ({
           </div>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
-          {sessions.filter((s: any) => s.status === 'attended' && !s.paid).length} sessões pendentes
+          {periodSessions.filter((s: any) => s.status === 'attended' && !s.paid).length} sessões pendentes
         </p>
       </CardContent>
     </Card>
@@ -191,8 +225,19 @@ export const DashboardPaymentRateTeam = ({
   isEditMode,
   className 
 }: CardProps) => {
-  const attended = sessions.filter((s: any) => s.status === 'attended').length;
-  const paid = sessions.filter((s: any) => s.paid).length;
+  // FASE 2: Filtrar sessões por período
+  const periodSessions = sessions.filter(s => {
+    if (!s.date || !start || !end) return false;
+    try {
+      const sessionDate = parseISO(s.date);
+      return sessionDate >= start && sessionDate <= end;
+    } catch {
+      return false;
+    }
+  });
+
+  const attended = periodSessions.filter((s: any) => s.status === 'attended').length;
+  const paid = periodSessions.filter((s: any) => s.paid).length;
   const rate = attended > 0 ? Math.round((paid / attended) * 100) : 0;
 
   return (
@@ -277,7 +322,18 @@ export const DashboardAttendedSessionsTeam = ({
   isEditMode,
   className 
 }: CardProps) => {
-  const attendedCount = sessions.filter((s: any) => s.status === 'attended').length;
+  // FASE 2: Filtrar sessões por período
+  const periodSessions = sessions.filter(s => {
+    if (!s.date || !start || !end) return false;
+    try {
+      const sessionDate = parseISO(s.date);
+      return sessionDate >= start && sessionDate <= end;
+    } catch {
+      return false;
+    }
+  });
+
+  const attendedCount = periodSessions.filter((s: any) => s.status === 'attended').length;
   
   return (
     <Card className={cn('h-full', className)}>
@@ -302,7 +358,7 @@ export const DashboardAttendedSessionsTeam = ({
           <div className="text-2xl font-bold text-green-600">{attendedCount}</div>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
-          {sessions.length} total
+          {periodSessions.length} total
         </p>
       </CardContent>
     </Card>
