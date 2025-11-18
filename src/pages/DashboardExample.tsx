@@ -28,6 +28,7 @@ import { AddCardDialog } from '@/components/AddCardDialog';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { DEFAULT_DASHBOARD_GRID_LAYOUT } from '@/lib/defaultLayoutDashboardExample';
 import { useChartTimeScale, generateTimeIntervals, formatTimeLabel, getIntervalBounds, getScaleLabel, TimeScale } from '@/hooks/useChartTimeScale';
 import {
   AlertDialog,
@@ -87,10 +88,9 @@ export default function DashboardExample() {
   const isLayoutCustomized = useMemo(() => {
     if (!layout) return false;
     
-    const defaultLayout = require('@/lib/defaultLayoutDashboardExample').DEFAULT_DASHBOARD_GRID_LAYOUT;
     return Object.keys(layout).some(sectionId => {
       const currentCards = layout[sectionId]?.cardLayouts || [];
-      const defaultCards = defaultLayout[sectionId]?.cardLayouts || [];
+      const defaultCards = DEFAULT_DASHBOARD_GRID_LAYOUT[sectionId]?.cardLayouts || [];
       
       if (currentCards.length !== defaultCards.length) return true;
       
