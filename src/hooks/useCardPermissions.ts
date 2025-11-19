@@ -213,6 +213,7 @@ export function useCardPermissions() {
     console.log('   Cards:', visibleCards.map(c => c.id));
 
     // Filtrar por compatibilidade de domínio (primary + secondary)
+    // CORREÇÃO FASE 1: Gráficos (isChart: true) devem aparecer APENAS na seção 'dashboard-charts'
     const allowedDomains = [
       sectionConfig.permissionConfig.primaryDomain,
       ...(sectionConfig.permissionConfig.secondaryDomains || []),
@@ -221,6 +222,14 @@ export function useCardPermissions() {
 
     const finalCards = visibleCards.filter(card => {
       const hasConfig = !!card.permissionConfig;
+      
+      // Se é um card gráfico, APENAS permitir na seção 'dashboard-charts'
+      if (card.isChart) {
+        const isChartsSection = sectionConfig.id === 'dashboard-charts';
+        console.log(`   📊 Chart check: "${card.id}" - isChartsSection=${isChartsSection}`);
+        return isChartsSection;
+      }
+      
       const domainMatch = card.permissionConfig && allowedDomains.includes(card.permissionConfig.domain);
       console.log(`   🏷️ Card "${card.id}": hasConfig=${hasConfig}, domain="${card.permissionConfig?.domain}", match=${domainMatch}`);
       return hasConfig && domainMatch;

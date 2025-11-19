@@ -502,6 +502,30 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
       requiresFinancialAccess: true,
     },
   },
+  {
+    id: 'dashboard-quick-actions',
+    name: 'Ações Rápidas',
+    description: 'Acesso rápido a funções principais',
+    detailedDescription: 'Botões de acesso rápido para criar paciente, agendar sessão, ver pendências financeiras.',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+    permissionConfig: {
+      domain: 'general',
+    },
+  },
+  {
+    id: 'dashboard-recent-sessions',
+    name: 'Últimas Sessões',
+    description: 'Sessões recentes realizadas',
+    detailedDescription: 'Lista das últimas 5 sessões comparecidas com data, paciente e valor.',
+    category: 'dashboard-cards',
+    defaultWidth: 400,
+    defaultHeight: 250,
+    permissionConfig: {
+      domain: 'general',
+    },
+  },
 ];
 
 /**
@@ -733,6 +757,19 @@ export const AVAILABLE_TEAM_CARDS: CardConfig[] = [
       blockedFor: ['subordinate'],
     },
   },
+  {
+    id: 'dashboard-active-therapists-team',
+    name: 'Terapeutas Ativos - Equipe',
+    description: 'Número de subordinados com sessões no período',
+    detailedDescription: 'Contagem de terapeutas subordinados que realizaram pelo menos uma sessão no período selecionado.',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+    permissionConfig: {
+      domain: 'team',
+      blockedFor: ['subordinate'],
+    },
+  },
 ];
 
 /**
@@ -889,10 +926,37 @@ export const AVAILABLE_CLINICAL_CARDS: CardConfig[] = [
 
 /**
  * ============================================================================
- * DASHBOARD CLINICAL CARDS - Reserved for future use
+ * DASHBOARD CLINICAL CARDS - Dashboard Clinical Section
  * ============================================================================
  */
-export const AVAILABLE_DASHBOARD_CLINICAL_CARDS: CardConfig[] = [];
+export const AVAILABLE_DASHBOARD_CLINICAL_CARDS: CardConfig[] = [
+  {
+    id: 'dashboard-active-complaints',
+    name: 'Queixas Ativas',
+    description: 'Número de queixas clínicas ativas',
+    detailedDescription: 'Contagem de queixas clínicas marcadas como ativas (is_active=true) no sistema.',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+    permissionConfig: {
+      domain: 'clinical',
+      requiresFullClinicalAccess: true,
+    },
+  },
+  {
+    id: 'dashboard-no-diagnosis',
+    name: 'Sem Diagnóstico',
+    description: 'Pacientes sem diagnóstico definido',
+    detailedDescription: 'Contagem de pacientes ativos que ainda não possuem queixa clínica cadastrada ou marcada com has_no_diagnosis.',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+    permissionConfig: {
+      domain: 'clinical',
+      requiresFullClinicalAccess: true,
+    },
+  },
+];
 
 /**
  * ============================================================================
@@ -900,6 +964,19 @@ export const AVAILABLE_DASHBOARD_CLINICAL_CARDS: CardConfig[] = [];
  * ============================================================================
  */
 export const AVAILABLE_MEDIA_CARDS: CardConfig[] = [
+  {
+    id: 'dashboard-whatsapp-unread',
+    name: 'WhatsApp Não Lidas',
+    description: 'Mensagens de WhatsApp não lidas',
+    detailedDescription: 'Contagem total de mensagens não lidas nas conversas do WhatsApp integrado ao sistema.',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+    permissionConfig: {
+      domain: 'media',
+      blockedFor: ['subordinate'],
+    },
+  },
   {
     id: 'media-website-visitors',
     name: 'Visitantes do Site',
@@ -909,8 +986,8 @@ export const AVAILABLE_MEDIA_CARDS: CardConfig[] = [
     defaultWidth: 300,
     defaultHeight: 180,
     permissionConfig: {
-      domain: 'administrative',
-      requiresFinancialAccess: false,
+      domain: 'media',
+      blockedFor: ['subordinate'],
     },
   },
   {
@@ -922,8 +999,8 @@ export const AVAILABLE_MEDIA_CARDS: CardConfig[] = [
     defaultWidth: 300,
     defaultHeight: 180,
     permissionConfig: {
-      domain: 'administrative',
-      requiresFinancialAccess: false,
+      domain: 'media',
+      blockedFor: ['subordinate'],
     },
   },
   {
@@ -935,8 +1012,8 @@ export const AVAILABLE_MEDIA_CARDS: CardConfig[] = [
     defaultWidth: 400,
     defaultHeight: 300,
     permissionConfig: {
-      domain: 'administrative',
-      requiresFinancialAccess: false,
+      domain: 'media',
+      blockedFor: ['subordinate'],
     },
   },
   {
