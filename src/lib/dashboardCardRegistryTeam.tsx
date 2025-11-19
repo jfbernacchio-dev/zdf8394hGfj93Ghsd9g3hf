@@ -24,6 +24,7 @@ interface CardProps {
   className?: string;
   patients?: any[];
   sessions?: any[];
+  profiles?: any[];
   start?: Date;
   end?: Date;
   automaticScale?: any;
@@ -45,6 +46,49 @@ interface CardProps {
     total: number;
   }>;
 }
+
+// ============================================================================
+// CARDS ADMINISTRATIVOS - EQUIPE
+// ============================================================================
+
+export const DashboardActiveTherapistsTeam = ({ 
+  profiles = [], 
+  isEditMode,
+  className 
+}: CardProps) => {
+  const activeTherapists = profiles.length;
+
+  return (
+    <Card className={cn('h-full', className)}>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium">Terapeutas Ativos - Equipe</CardTitle>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p>Total de terapeutas ativos na equipe (subordinados)</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center gap-2">
+          <Users className="h-8 w-8 text-primary" />
+          <div>
+            <div className="text-3xl font-bold">{activeTherapists}</div>
+            <p className="text-xs text-muted-foreground">
+              {activeTherapists === 1 ? 'terapeuta ativo' : 'terapeutas ativos'}
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 // ============================================================================
 // CARDS FINANCEIROS - EQUIPE
