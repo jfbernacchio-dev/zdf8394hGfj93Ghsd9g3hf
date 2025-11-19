@@ -1649,6 +1649,7 @@ export const DASHBOARD_CARD_COMPONENTS: Record<string, React.ComponentType<CardP
   'dashboard-payment-rate-team': DashboardPaymentRateTeam,
   'dashboard-total-patients-team': DashboardTotalPatientsTeam,
   'dashboard-attended-sessions-team': DashboardAttendedSessionsTeam,
+  'dashboard-active-therapists-team': DashboardActiveTherapistsTeam,
 };
 
 /**
