@@ -875,21 +875,34 @@ export const DashboardChartAttendanceWeekly = ({
   const chartId = 'dashboard-chart-attendance-weekly';
   const currentScale = getScale ? getScale(chartId) : automaticScale;
   
+  // Calcular taxa de comparecimento por intervalo
   const chartData = start && end 
     ? generateTimeIntervals(start, end, currentScale).map(intervalDate => {
         const bounds = getIntervalBounds(intervalDate, currentScale);
         const intervalSessions = sessions.filter(session => {
-          const sessionDate = new Date(session.date);
-          return sessionDate >= bounds.start && sessionDate <= bounds.end;
+          if (!session.date) return false;
+          try {
+            const sessionDate = parseISO(session.date);
+            return sessionDate >= bounds.start && sessionDate <= bounds.end;
+          } catch {
+            return false;
+          }
         });
 
-        return {
-          label: formatTimeLabel(intervalDate, currentScale),
-          attended: intervalSessions.filter(s => s.status === 'attended').length,
-          missed: intervalSessions.filter(s => s.status === 'missed').length,
-          pending: intervalSessions.filter(s => s.status === 'pending').length,
-        };
-      })
+        const expected = intervalSessions.filter(s => ['attended', 'missed'].includes(s.status)).length;
+        
+        // Só adiciona se houver sessões esperadas neste intervalo
+        if (expected > 0) {
+          const attended = intervalSessions.filter(s => s.status === 'attended').length;
+          const rate = (attended / expected) * 100;
+          
+          return {
+            label: formatTimeLabel(intervalDate, currentScale),
+            taxa: Math.round(rate),
+          };
+        }
+        return null;
+      }).filter(d => d !== null)
     : [];
 
   return (
@@ -899,9 +912,9 @@ export const DashboardChartAttendanceWeekly = ({
           <div>
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-primary" />
-              Comparecimento
+              Taxa de Comparecimento
             </CardTitle>
-            <CardDescription className="text-xs">Por período</CardDescription>
+            <CardDescription className="text-xs">Evolução temporal</CardDescription>
           </div>
           {setScaleOverride && (
             <DropdownMenu>
@@ -955,7 +968,7 @@ export const DashboardChartAttendanceWeekly = ({
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={chartData}>
+          <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
             <XAxis 
               dataKey="label" 
@@ -965,13 +978,22 @@ export const DashboardChartAttendanceWeekly = ({
             <YAxis 
               className="text-xs"
               tick={{ fontSize: 11 }}
+              domain={[0, 100]}
             />
-            <RechartsTooltip contentStyle={{ fontSize: '12px' }} />
+            <RechartsTooltip 
+              formatter={(value: number) => `${value}%`}
+              contentStyle={{ fontSize: '12px' }}
+            />
             <Legend wrapperStyle={{ fontSize: '11px' }} />
-            <Bar dataKey="attended" fill="hsl(var(--primary))" name="Compareceram" />
-            <Bar dataKey="missed" fill="hsl(var(--destructive))" name="Faltaram" />
-            <Bar dataKey="pending" fill="hsl(var(--muted))" name="Pendentes" />
-          </BarChart>
+            <Line 
+              type="monotone" 
+              dataKey="taxa" 
+              stroke="hsl(var(--primary))" 
+              strokeWidth={2}
+              dot={{ r: 3 }}
+              name="Taxa de Comparecimento %" 
+            />
+          </LineChart>
         </ResponsiveContainer>
       </CardContent>
     </Card>
@@ -1010,17 +1032,17 @@ export const DashboardChartSessionTypes = ({
     { 
       name: 'Atendidas', 
       value: sessionTypes.attended || 0, 
-      fill: 'hsl(var(--chart-1))' 
+      fill: 'hsl(var(--success))' 
     },
     { 
       name: 'Faltadas', 
       value: sessionTypes.missed || 0, 
-      fill: 'hsl(var(--chart-2))' 
+      fill: 'hsl(var(--destructive))' 
     },
     { 
       name: 'Pendentes', 
       value: sessionTypes.pending || 0, 
-      fill: 'hsl(var(--chart-3))' 
+      fill: 'hsl(var(--warning))' 
     },
   ];
 
@@ -1074,113 +1096,121 @@ export const DashboardChartMonthlyComparison = ({
   className, 
   sessions = [],
   start,
-  end
+  end,
+  automaticScale = 'monthly',
+  getScale,
+  setScaleOverride,
+  clearOverride,
+  hasOverride
 }: CardProps) => {
-  const chartData = useMemo(() => {
-    if (!start || !end) return [];
-    
-    const months = [];
-    const current = new Date(start);
-    while (current <= end) {
-      months.push(new Date(current));
-      current.setMonth(current.getMonth() + 1);
-    }
+  const chartId = 'dashboard-chart-monthly-comparison';
+  const currentScale = getScale ? getScale(chartId) : automaticScale;
+  
+  // Gerar dados agregados por intervalo com sessões no período
+  const chartData = start && end 
+    ? generateTimeIntervals(start, end, currentScale).map(intervalDate => {
+        const bounds = getIntervalBounds(intervalDate, currentScale);
+        const intervalSessions = sessions.filter(session => {
+          if (!session.date) return false;
+          try {
+            const sessionDate = parseISO(session.date);
+            return sessionDate >= bounds.start && sessionDate <= bounds.end;
+          } catch {
+            return false;
+          }
+        });
 
-    return months.map(monthDate => {
-      const monthKey = format(monthDate, 'yyyy-MM');
-      const monthSessions = sessions.filter(s => {
-        if (!s.date) return false;
-        try {
-          const sessionMonth = format(parseISO(s.date), 'yyyy-MM');
-          return sessionMonth === monthKey;
-        } catch {
-          return false;
-        }
-      });
-      
-      const attendedSessions = monthSessions.filter(s => s.status === 'attended');
-      const receita = attendedSessions
-        .filter(s => s.paid)
-        .reduce((sum, s) => sum + (s.value || 0), 0);
-      
-      const totalNonPending = monthSessions.filter(s => s.status !== 'pending').length;
-      const taxaComparecimento = totalNonPending > 0
-        ? (attendedSessions.length / totalNonPending) * 100
-        : 0;
-
-      return {
-        month: format(monthDate, 'MMM yyyy', { locale: ptBR }),
-        receita,
-        sessoes_atendidas: attendedSessions.length,
-        sessoes_faltadas: monthSessions.filter(s => s.status === 'missed').length,
-        taxa_comparecimento: taxaComparecimento,
-      };
-    });
-  }, [sessions, start, end]);
+        return {
+          label: formatTimeLabel(intervalDate, currentScale),
+          attended: intervalSessions.filter(s => s.status === 'attended').length,
+          missed: intervalSessions.filter(s => s.status === 'missed').length,
+          pending: intervalSessions.filter(s => s.status === 'pending').length,
+          total: intervalSessions.length,
+        };
+      })
+    : [];
 
   return (
     <Card className={cn('h-full', className)}>
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <TrendingUp className="h-4 w-4 text-primary" />
-          Comparação Mensal
-        </CardTitle>
-        <CardDescription className="text-xs">Evolução de métricas</CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-primary" />
+              Comparação Temporal
+            </CardTitle>
+            <CardDescription className="text-xs">Sessões no período</CardDescription>
+          </div>
+          {setScaleOverride && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <Settings2 className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem 
+                  onClick={() => clearOverride?.(chartId)}
+                  className={cn(
+                    "cursor-pointer",
+                    !hasOverride?.(chartId) && "bg-accent"
+                  )}
+                >
+                  Automática ({getScaleLabel(automaticScale)})
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={() => setScaleOverride(chartId, 'daily')}
+                  className={cn(
+                    "cursor-pointer",
+                    currentScale === 'daily' && hasOverride?.(chartId) && "bg-accent"
+                  )}
+                >
+                  Diária
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => setScaleOverride(chartId, 'weekly')}
+                  className={cn(
+                    "cursor-pointer",
+                    currentScale === 'weekly' && hasOverride?.(chartId) && "bg-accent"
+                  )}
+                >
+                  Semanal
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => setScaleOverride(chartId, 'monthly')}
+                  className={cn(
+                    "cursor-pointer",
+                    currentScale === 'monthly' && hasOverride?.(chartId) && "bg-accent"
+                  )}
+                >
+                  Mensal
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         {chartData.length > 0 ? (
           <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+            <BarChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis 
-                dataKey="month" 
+                dataKey="label" 
+                className="text-xs"
                 tick={{ fontSize: 11 }}
-                stroke="hsl(var(--muted-foreground))"
               />
               <YAxis 
-                yAxisId="left"
+                className="text-xs"
                 tick={{ fontSize: 11 }}
-                stroke="hsl(var(--muted-foreground))"
-                label={{ value: 'R$', angle: -90, position: 'insideLeft', fontSize: 10 }}
               />
-              <YAxis 
-                yAxisId="right"
-                orientation="right"
-                tick={{ fontSize: 11 }}
-                stroke="hsl(var(--muted-foreground))"
-                label={{ value: '%', angle: 90, position: 'insideRight', fontSize: 10 }}
-              />
-              <RechartsTooltip 
-                contentStyle={{ 
-                  backgroundColor: 'hsl(var(--background))',
-                  border: '1px solid hsl(var(--border))'
-                }}
-                formatter={(value: any, name: string) => {
-                  if (name === 'receita') return [formatBrazilianCurrency(value), 'Receita'];
-                  if (name === 'taxa_comparecimento') return [`${value.toFixed(1)}%`, 'Taxa'];
-                  return [value, name];
-                }}
-              />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Line 
-                yAxisId="left"
-                type="monotone" 
-                dataKey="receita" 
-                stroke="hsl(var(--chart-1))" 
-                name="Receita"
-                strokeWidth={2}
-                dot={{ r: 3 }}
-              />
-              <Line 
-                yAxisId="right"
-                type="monotone" 
-                dataKey="taxa_comparecimento" 
-                stroke="hsl(var(--chart-2))" 
-                name="Taxa %"
-                strokeWidth={2}
-                dot={{ r: 3 }}
-              />
-            </LineChart>
+              <RechartsTooltip contentStyle={{ fontSize: '12px' }} />
+              <Legend wrapperStyle={{ fontSize: '11px' }} />
+              <Bar dataKey="attended" fill="hsl(var(--success))" name="Compareceram" />
+              <Bar dataKey="missed" fill="hsl(var(--destructive))" name="Faltaram" />
+              <Bar dataKey="pending" fill="hsl(var(--warning))" name="Pendentes" />
+            </BarChart>
           </ResponsiveContainer>
         ) : (
           <div className="h-[220px] flex items-center justify-center text-xs text-muted-foreground">
