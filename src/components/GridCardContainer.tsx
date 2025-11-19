@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useRef, useEffect, useState } from 'react';
 import GridLayout, { Layout } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
@@ -96,8 +96,36 @@ export const GridCardContainer = ({
   isEditMode,
   children,
   className,
-  width = 1200,
+  width: propWidth,
 }: GridCardContainerProps) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState<number>(propWidth || 1200);
+
+  /**
+   * Calcula width real do container e atualiza quando redimensiona
+   */
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const updateWidth = () => {
+      if (containerRef.current) {
+        const width = containerRef.current.offsetWidth;
+        setContainerWidth(width);
+      }
+    };
+
+    // Calcula width inicial
+    updateWidth();
+
+    // Observa mudanças de tamanho
+    const resizeObserver = new ResizeObserver(updateWidth);
+    resizeObserver.observe(containerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
+
   /**
    * Callback quando layout muda (drag ou resize)
    */
@@ -125,13 +153,13 @@ export const GridCardContainer = ({
   };
 
   return (
-    <div className={cn('relative', className)}>
+    <div ref={containerRef} className={cn('relative w-full', className)}>
       <GridLayout
         className="layout"
         layout={layout}
         cols={12}              // Grid de 12 colunas
         rowHeight={30}         // Altura de cada row: 30px
-        width={width}          // Largura total do container
+        width={containerWidth} // Largura calculada dinamicamente
         isDraggable={isEditMode}
         isResizable={isEditMode}
         onLayoutChange={handleLayoutChange}
