@@ -23,9 +23,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
-import { Plus, X, DollarSign, Calendar, Activity, BarChart3, Settings, TrendingUp, Users } from 'lucide-react';
+import { Plus, X, DollarSign, Calendar, Activity, BarChart3, Settings, TrendingUp, Users, Info } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCardPermissions } from '@/hooks/useCardPermissions';
 import { DASHBOARD_SECTIONS } from '@/lib/defaultSectionsDashboard';
 import type { CardConfig } from '@/types/cardTypes';
@@ -178,26 +179,70 @@ export const AddCardDialog = ({
   };
 
   /**
-   * Renderiza um card individual
+   * Renderiza um card individual com tooltip e badges duplos
+   * FASE 2: Tooltips funcionais + Badges duplos para classificação dupla
    */
   const renderCardItem = (
     card: CardConfig, 
     sectionId: string, 
     action: 'add' | 'remove'
   ) => {
+    // Determinar badges: cards com classificação dupla mostram 2 badges
+    const badges: string[] = [];
+    
+    if (card.isChart) {
+      // Gráficos sempre têm badge "Gráfico"
+      badges.push('Gráficos');
+    }
+    
+    // Se pertence à seção team, adiciona badge "Equipe"
+    if (card.permissionConfig?.domain === 'team') {
+      badges.push('Equipe');
+    }
+    
+    // Se não tem badge especial ainda, adiciona o badge do domínio
+    if (badges.length === 0 && card.permissionConfig) {
+      badges.push(DOMAIN_LABELS[card.permissionConfig.domain] || card.permissionConfig.domain);
+    }
+    
+    // Se é gráfico com domínio específico, adiciona badge do domínio secundário
+    if (card.isChart && card.permissionConfig?.domain !== 'charts') {
+      const domainLabel = DOMAIN_LABELS[card.permissionConfig?.domain || ''];
+      if (domainLabel && !badges.includes(domainLabel)) {
+        badges.push(domainLabel);
+      }
+    }
+    
     return (
       <Card key={card.id} className="p-4 hover:border-primary/50 transition-colors">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <h4 className="font-medium text-sm mb-1">{card.name}</h4>
-            <p className="text-xs text-muted-foreground line-clamp-2">
+            <div className="flex items-center gap-2 mb-1">
+              <h4 className="font-medium text-sm">{card.name}</h4>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-4 w-4 p-0">
+                      <Info className="h-3 w-3 text-muted-foreground" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="font-semibold mb-1">{card.name}</p>
+                    <p className="text-xs">{card.detailedDescription || card.description}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
               {card.description}
             </p>
-            {card.permissionConfig && (
-              <Badge variant="outline" className="mt-2 text-xs">
-                {DOMAIN_LABELS[card.permissionConfig.domain] || card.permissionConfig.domain}
-              </Badge>
-            )}
+            <div className="flex flex-wrap gap-1">
+              {badges.map((badge, idx) => (
+                <Badge key={idx} variant="outline" className="text-xs">
+                  {badge}
+                </Badge>
+              ))}
+            </div>
           </div>
           
           {action === 'add' ? (
@@ -330,7 +375,7 @@ export const AddCardDialog = ({
                                       </p>
                                     </div>
                                   ) : (
-                                    <div className="space-y-3">
+                                    <div className="space-y-3 pb-4">
                                       {chartsData.availableCards.map(card => 
                                         renderCardItem(card, sectionId, 'add')
                                       )}
@@ -350,7 +395,7 @@ export const AddCardDialog = ({
                                       </p>
                                     </div>
                                   ) : (
-                                    <div className="space-y-3">
+                                    <div className="space-y-3 pb-4">
                                       {chartsData.addedCards.map(card => 
                                         renderCardItem(card, sectionId, 'remove')
                                       )}
@@ -386,7 +431,7 @@ export const AddCardDialog = ({
                               </p>
                             </div>
                           ) : (
-                            <div className="space-y-3">
+                            <div className="space-y-3 pb-4">
                               {availableCards.map(card => 
                                 renderCardItem(card, sectionId, 'add')
                               )}
@@ -406,7 +451,7 @@ export const AddCardDialog = ({
                               </p>
                             </div>
                           ) : (
-                            <div className="space-y-3">
+                            <div className="space-y-3 pb-4">
                               {addedCards.map(card => 
                                 renderCardItem(card, sectionId, 'remove')
                               )}
