@@ -189,21 +189,21 @@ export const DEFAULT_DASHBOARD_GRID_LAYOUT: DashboardGridLayout = {
   // SEÇÃO GENERAL: 2 cards (ações médio + lista maior)
   'dashboard-general': {
     cardLayouts: [
-      { i: 'dashboard-quick-actions', x: 0, y: 0, w: 4, h: 3, minW: 3, minH: 2, maxW: 12 },
-      { i: 'dashboard-recent-sessions', x: 4, y: 0, w: 8, h: 4, minW: 4, minH: 3, maxW: 12 },
+      { i: 'dashboard-quick-actions', x: 0, y: 0, w: 4, h: 2, minW: 3, minH: 2, maxW: 12 },
+      { i: 'dashboard-recent-sessions', x: 4, y: 0, w: 8, h: 2, minW: 4, minH: 2, maxW: 12 },
     ],
   },
   
   // SEÇÃO CHARTS: 7 gráficos (2 por linha, altura maior)
   'dashboard-charts': {
     cardLayouts: [
-      { i: 'dashboard-chart-revenue-trend', x: 0, y: 0, w: 6, h: 4, minW: 4, minH: 3, maxW: 12 },
-      { i: 'dashboard-chart-payment-status', x: 6, y: 0, w: 6, h: 4, minW: 4, minH: 3, maxW: 12 },
-      { i: 'dashboard-chart-monthly-comparison', x: 0, y: 4, w: 6, h: 4, minW: 4, minH: 3, maxW: 12 },
-      { i: 'dashboard-chart-revenue-by-therapist', x: 6, y: 4, w: 6, h: 4, minW: 4, minH: 3, maxW: 12 },
-      { i: 'dashboard-chart-session-types', x: 0, y: 8, w: 6, h: 4, minW: 4, minH: 3, maxW: 12 },
-      { i: 'dashboard-chart-therapist-distribution', x: 6, y: 8, w: 6, h: 4, minW: 4, minH: 3, maxW: 12 },
-      { i: 'dashboard-chart-attendance-weekly', x: 0, y: 12, w: 12, h: 5, minW: 6, minH: 4, maxW: 12 },
+      { i: 'dashboard-chart-revenue-trend', x: 0, y: 0, w: 6, h: 2, minW: 4, minH: 2, maxW: 12 },
+      { i: 'dashboard-chart-payment-status', x: 6, y: 0, w: 6, h: 2, minW: 4, minH: 2, maxW: 12 },
+      { i: 'dashboard-chart-monthly-comparison', x: 0, y: 2, w: 6, h: 2, minW: 4, minH: 2, maxW: 12 },
+      { i: 'dashboard-chart-revenue-by-therapist', x: 6, y: 2, w: 6, h: 2, minW: 4, minH: 2, maxW: 12 },
+      { i: 'dashboard-chart-session-types', x: 0, y: 4, w: 6, h: 2, minW: 4, minH: 2, maxW: 12 },
+      { i: 'dashboard-chart-therapist-distribution', x: 6, y: 4, w: 6, h: 2, minW: 4, minH: 2, maxW: 12 },
+      { i: 'dashboard-chart-attendance-weekly', x: 0, y: 6, w: 12, h: 2, minW: 6, minH: 2, maxW: 12 },
     ],
   },
   
