@@ -153,69 +153,69 @@ export const DEFAULT_DASHBOARD_GRID_LAYOUT: DashboardGridLayout = {
   // SEÇÃO FINANCIAL: 3 cards de métricas em linha
   'dashboard-financial': {
     cardLayouts: [
-      { i: 'dashboard-expected-revenue', x: 0, y: 0, w: 3, h: 2, minW: 2, minH: 2, maxW: 12 },
-      { i: 'dashboard-actual-revenue', x: 3, y: 0, w: 3, h: 2, minW: 2, minH: 2, maxW: 12 },
-      { i: 'dashboard-unpaid-value', x: 6, y: 0, w: 3, h: 2, minW: 2, minH: 2, maxW: 12 },
+      { i: 'dashboard-expected-revenue', x: 0, y: 0, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
+      { i: 'dashboard-actual-revenue', x: 3, y: 0, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
+      { i: 'dashboard-unpaid-value', x: 6, y: 0, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
     ],
   },
   
   // SEÇÃO ADMINISTRATIVE: 6 cards de métricas (2 linhas de 3)
   'dashboard-administrative': {
     cardLayouts: [
-      { i: 'dashboard-total-patients', x: 0, y: 0, w: 3, h: 2, minW: 2, minH: 2, maxW: 12 },
-      { i: 'dashboard-expected-sessions', x: 3, y: 0, w: 3, h: 2, minW: 2, minH: 2, maxW: 12 },
-      { i: 'dashboard-attended-sessions', x: 6, y: 0, w: 3, h: 2, minW: 2, minH: 2, maxW: 12 },
-      { i: 'dashboard-missed-sessions', x: 9, y: 0, w: 3, h: 2, minW: 2, minH: 2, maxW: 12 },
-      { i: 'dashboard-pending-sessions', x: 0, y: 2, w: 3, h: 2, minW: 2, minH: 2, maxW: 12 },
-      { i: 'dashboard-attendance-rate', x: 3, y: 2, w: 3, h: 2, minW: 2, minH: 2, maxW: 12 },
+      { i: 'dashboard-total-patients', x: 0, y: 0, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
+      { i: 'dashboard-expected-sessions', x: 3, y: 0, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
+      { i: 'dashboard-attended-sessions', x: 6, y: 0, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
+      { i: 'dashboard-missed-sessions', x: 9, y: 0, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
+      { i: 'dashboard-pending-sessions', x: 0, y: 2, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
+      { i: 'dashboard-attendance-rate', x: 3, y: 2, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
     ],
   },
   
   // SEÇÃO CLINICAL: 2 cards de métricas em linha
   'dashboard-clinical': {
     cardLayouts: [
-      { i: 'dashboard-active-complaints', x: 0, y: 0, w: 3, h: 2, minW: 2, minH: 2, maxW: 12 },
-      { i: 'dashboard-no-diagnosis', x: 3, y: 0, w: 3, h: 2, minW: 2, minH: 2, maxW: 12 },
+      { i: 'dashboard-active-complaints', x: 0, y: 0, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
+      { i: 'dashboard-no-diagnosis', x: 3, y: 0, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
     ],
   },
   
   // SEÇÃO MEDIA: 1 card de métrica
   'dashboard-media': {
     cardLayouts: [
-      { i: 'dashboard-whatsapp-unread', x: 0, y: 0, w: 3, h: 2, minW: 2, minH: 2, maxW: 12 },
+      { i: 'dashboard-whatsapp-unread', x: 0, y: 0, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
     ],
   },
   
   // SEÇÃO GENERAL: 2 cards (ações médio + lista maior)
   'dashboard-general': {
     cardLayouts: [
-      { i: 'dashboard-quick-actions', x: 0, y: 0, w: 4, h: 2, minW: 3, minH: 2, maxW: 12 },
-      { i: 'dashboard-recent-sessions', x: 4, y: 0, w: 8, h: 2, minW: 4, minH: 2, maxW: 12 },
+      { i: 'dashboard-quick-actions', x: 0, y: 0, w: 4, h: 3, minW: 3, minH: 2, maxW: 12 },
+      { i: 'dashboard-recent-sessions', x: 4, y: 0, w: 8, h: 4, minW: 4, minH: 3, maxW: 12 },
     ],
   },
   
   // SEÇÃO CHARTS: 7 gráficos (2 por linha, altura maior)
   'dashboard-charts': {
     cardLayouts: [
-      { i: 'dashboard-chart-revenue-trend', x: 0, y: 0, w: 6, h: 2, minW: 4, minH: 2, maxW: 12 },
-      { i: 'dashboard-chart-payment-status', x: 6, y: 0, w: 6, h: 2, minW: 4, minH: 2, maxW: 12 },
-      { i: 'dashboard-chart-monthly-comparison', x: 0, y: 2, w: 6, h: 2, minW: 4, minH: 2, maxW: 12 },
-      { i: 'dashboard-chart-revenue-by-therapist', x: 6, y: 2, w: 6, h: 2, minW: 4, minH: 2, maxW: 12 },
-      { i: 'dashboard-chart-session-types', x: 0, y: 4, w: 6, h: 2, minW: 4, minH: 2, maxW: 12 },
-      { i: 'dashboard-chart-therapist-distribution', x: 6, y: 4, w: 6, h: 2, minW: 4, minH: 2, maxW: 12 },
-      { i: 'dashboard-chart-attendance-weekly', x: 0, y: 6, w: 12, h: 2, minW: 6, minH: 2, maxW: 12 },
+      { i: 'dashboard-chart-revenue-trend', x: 0, y: 0, w: 6, h: 4, minW: 4, minH: 3, maxW: 12 },
+      { i: 'dashboard-chart-payment-status', x: 6, y: 0, w: 6, h: 4, minW: 4, minH: 3, maxW: 12 },
+      { i: 'dashboard-chart-monthly-comparison', x: 0, y: 4, w: 6, h: 4, minW: 4, minH: 3, maxW: 12 },
+      { i: 'dashboard-chart-revenue-by-therapist', x: 6, y: 4, w: 6, h: 4, minW: 4, minH: 3, maxW: 12 },
+      { i: 'dashboard-chart-session-types', x: 0, y: 8, w: 6, h: 4, minW: 4, minH: 3, maxW: 12 },
+      { i: 'dashboard-chart-therapist-distribution', x: 6, y: 8, w: 6, h: 4, minW: 4, minH: 3, maxW: 12 },
+      { i: 'dashboard-chart-attendance-weekly', x: 0, y: 12, w: 12, h: 5, minW: 6, minH: 4, maxW: 12 },
     ],
   },
   
   // SEÇÃO TEAM: 6 cards de métricas (2 linhas de 3)
   'dashboard-team': {
     cardLayouts: [
-      { i: 'dashboard-expected-revenue-team', x: 0, y: 0, w: 3, h: 2, minW: 2, minH: 2, maxW: 12 },
-      { i: 'dashboard-actual-revenue-team', x: 3, y: 0, w: 3, h: 2, minW: 2, minH: 2, maxW: 12 },
-      { i: 'dashboard-unpaid-value-team', x: 6, y: 0, w: 3, h: 2, minW: 2, minH: 2, maxW: 12 },
-      { i: 'dashboard-payment-rate-team', x: 9, y: 0, w: 3, h: 2, minW: 2, minH: 2, maxW: 12 },
-      { i: 'dashboard-total-patients-team', x: 0, y: 2, w: 3, h: 2, minW: 2, minH: 2, maxW: 12 },
-      { i: 'dashboard-attended-sessions-team', x: 3, y: 2, w: 3, h: 2, minW: 2, minH: 2, maxW: 12 },
+      { i: 'dashboard-expected-revenue-team', x: 0, y: 0, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
+      { i: 'dashboard-actual-revenue-team', x: 3, y: 0, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
+      { i: 'dashboard-unpaid-value-team', x: 6, y: 0, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
+      { i: 'dashboard-payment-rate-team', x: 9, y: 0, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
+      { i: 'dashboard-total-patients-team', x: 0, y: 2, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
+      { i: 'dashboard-attended-sessions-team', x: 3, y: 2, w: 3, h: 2, minW: 2, minH: 1, maxW: 12 },
     ],
   },
 };
