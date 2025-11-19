@@ -3,34 +3,57 @@ import type { ExtendedAutonomyPermissions } from '@/hooks/useSubordinatePermissi
 // Default layout configuration for DashboardTest page
 export const DEFAULT_DASHBOARD_LAYOUT = {
   sectionHeights: {
-    'dashboard-metrics-section': 406,
-    'dashboard-charts-section': 353,
+    'dashboard-financial': 350,
+    'dashboard-administrative': 350,
+    'dashboard-clinical': 300,
+    'dashboard-media': 300,
+    'dashboard-general': 350,
+    'dashboard-charts': 400,
+    'dashboard-team': 350,
   },
   visibleCards: [
-    'dashboard-total-patients',
+    // Financeira
     'dashboard-expected-revenue',
     'dashboard-actual-revenue',
-    'dashboard-attended-sessions',
-    'dashboard-expected-sessions',
-    'dashboard-missed-sessions',
-    'dashboard-pending-sessions',
     'dashboard-unpaid-value',
-    'dashboard-chart-monthly-comparison',
+    // Administrativa
+    'dashboard-total-patients',
+    'dashboard-expected-sessions',
+    'dashboard-attended-sessions',
+    'dashboard-missed-sessions',
+    // Geral
+    'dashboard-quick-actions',
+    // Gráficos
     'dashboard-chart-revenue-trend',
     'dashboard-chart-attendance-weekly',
+    'dashboard-chart-monthly-comparison',
+    // Equipe
+    'dashboard-expected-revenue-team',
+    'dashboard-actual-revenue-team',
+    'dashboard-total-patients-team',
+    'dashboard-active-therapists-team',
   ],
   cardSizes: {
-    'dashboard-total-patients': { width: 280, height: 160, x: 12, y: 11 },
-    'dashboard-expected-revenue': { width: 280, height: 160, x: 309, y: -149 },
-    'dashboard-actual-revenue': { width: 280, height: 160, x: 606, y: -309 },
-    'dashboard-attended-sessions': { width: 280, height: 160, x: 903, y: -469 },
-    'dashboard-expected-sessions': { width: 280, height: 160, x: 12, y: -452 },
-    'dashboard-missed-sessions': { width: 280, height: 160, x: 309, y: -612 },
-    'dashboard-pending-sessions': { width: 280, height: 160, x: 606, y: -772 },
-    'dashboard-unpaid-value': { width: 280, height: 160, x: 903, y: -932 },
-    'dashboard-chart-monthly-comparison': { width: 426, height: 329, x: 29, y: 10 },
-    'dashboard-chart-revenue-trend': { width: 426, height: 329, x: 472, y: -319 },
-    'dashboard-chart-attendance-weekly': { width: 426, height: 329, x: 915, y: -648 },
+    // Financeira
+    'dashboard-expected-revenue': { width: 280, height: 160, x: 0, y: 0 },
+    'dashboard-actual-revenue': { width: 280, height: 160, x: 300, y: 0 },
+    'dashboard-unpaid-value': { width: 280, height: 160, x: 600, y: 0 },
+    // Administrativa
+    'dashboard-total-patients': { width: 280, height: 160, x: 0, y: 0 },
+    'dashboard-expected-sessions': { width: 280, height: 160, x: 300, y: 0 },
+    'dashboard-attended-sessions': { width: 280, height: 160, x: 600, y: 0 },
+    'dashboard-missed-sessions': { width: 280, height: 160, x: 900, y: 0 },
+    // Geral
+    'dashboard-quick-actions': { width: 400, height: 300, x: 0, y: 0 },
+    // Gráficos
+    'dashboard-chart-revenue-trend': { width: 500, height: 350, x: 0, y: 0 },
+    'dashboard-chart-attendance-weekly': { width: 500, height: 350, x: 520, y: 0 },
+    'dashboard-chart-monthly-comparison': { width: 500, height: 350, x: 1040, y: 0 },
+    // Equipe
+    'dashboard-expected-revenue-team': { width: 280, height: 160, x: 0, y: 0 },
+    'dashboard-actual-revenue-team': { width: 280, height: 160, x: 300, y: 0 },
+    'dashboard-total-patients-team': { width: 280, height: 160, x: 600, y: 0 },
+    'dashboard-active-therapists-team': { width: 280, height: 160, x: 900, y: 0 },
   } as Record<string, { width: number; height: number; x: number; y: number }>,
 };
 

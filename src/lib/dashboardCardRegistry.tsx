@@ -14,11 +14,14 @@
  * ============================================================================
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, TrendingDown, Users, Calendar, AlertCircle, DollarSign, FileText, Activity, CheckCircle2, XCircle, Clock, Settings2, Info } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, Calendar, AlertCircle, DollarSign, FileText, Activity, CheckCircle2, XCircle, Clock, Settings2, Info, Plus, ExternalLink, CreditCard, UserPlus, User, BarChart3, Settings as SettingsIcon } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
@@ -33,6 +36,7 @@ import {
   DashboardPaymentRateTeam,
   DashboardTotalPatientsTeam,
   DashboardAttendedSessionsTeam,
+  DashboardActiveTherapistsTeam,
 } from './dashboardCardRegistryTeam';
 
 interface CardProps {
@@ -622,40 +626,199 @@ export const DashboardWhatsappUnread = ({ isEditMode, className }: CardProps) =>
 );
 
 /**
- * GENERAL CARDS (placeholders)
+ * GENERAL CARDS
  */
 
-export const DashboardQuickActions = ({ isEditMode, className }: CardProps) => (
-  <Card className={cn('h-full', className)}>
-    <CardHeader>
-      <CardTitle className="text-sm font-medium">Ações Rápidas</CardTitle>
-      <CardDescription className="text-xs">Atalhos principais</CardDescription>
-    </CardHeader>
-    <CardContent className="space-y-2">
-      <div className="text-xs text-muted-foreground">
-        • Nova Sessão<br />
-        • Registrar Pagamento<br />
-        • Adicionar Paciente
-      </div>
-    </CardContent>
-  </Card>
-);
+interface QuickAction {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  path: string;
+}
 
-export const DashboardRecentSessions = ({ isEditMode, className }: CardProps) => (
-  <Card className={cn('h-full', className)}>
-    <CardHeader>
-      <CardTitle className="text-sm font-medium">Sessões Recentes</CardTitle>
-      <CardDescription className="text-xs">Últimas atividades</CardDescription>
-    </CardHeader>
-    <CardContent>
-      <div className="text-xs text-muted-foreground space-y-1">
-        • João Silva - 10/11<br />
-        • Maria Santos - 10/11<br />
-        • Ana Oliveira - 09/11
-      </div>
-    </CardContent>
-  </Card>
-);
+const AVAILABLE_QUICK_ACTIONS: QuickAction[] = [
+  { id: 'new-session', label: 'Nova Sessão', icon: <Calendar className="h-4 w-4" />, path: '/schedule' },
+  { id: 'register-payment', label: 'Registrar Pagamento', icon: <CreditCard className="h-4 w-4" />, path: '/payment-control' },
+  { id: 'add-patient', label: 'Adicionar Paciente', icon: <UserPlus className="h-4 w-4" />, path: '/patients/new' },
+  { id: 'view-patients', label: 'Ver Pacientes', icon: <Users className="h-4 w-4" />, path: '/patients' },
+  { id: 'edit-profile', label: 'Editar Perfil', icon: <User className="h-4 w-4" />, path: '/profile/edit' },
+  { id: 'issue-nfse', label: 'Emitir NFSe', icon: <FileText className="h-4 w-4" />, path: '/nfse-config' },
+  { id: 'view-schedule', label: 'Ver Agenda', icon: <Calendar className="h-4 w-4" />, path: '/schedule' },
+  { id: 'financial-reports', label: 'Relatórios Financeiros', icon: <BarChart3 className="h-4 w-4" />, path: '/financial' },
+  { id: 'team-management', label: 'Gestão de Equipe', icon: <Users className="h-4 w-4" />, path: '/therapist-management' },
+  { id: 'admin-settings', label: 'Configurações', icon: <SettingsIcon className="h-4 w-4" />, path: '/admin-settings' },
+];
+
+const DEFAULT_ACTIONS = ['new-session', 'register-payment', 'add-patient'];
+
+export const DashboardQuickActions = ({ isEditMode, className }: CardProps) => {
+  const navigate = useNavigate();
+  const [selectedActions, setSelectedActions] = useState<string[]>([]);
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('dashboard-quick-actions-config');
+    if (saved) {
+      try {
+        setSelectedActions(JSON.parse(saved));
+      } catch {
+        setSelectedActions(DEFAULT_ACTIONS);
+      }
+    } else {
+      setSelectedActions(DEFAULT_ACTIONS);
+    }
+  }, []);
+
+  const handleToggleAction = (actionId: string) => {
+    setSelectedActions(prev => {
+      const newSelection = prev.includes(actionId)
+        ? prev.filter(id => id !== actionId)
+        : [...prev, actionId];
+      
+      // Garante pelo menos 1 ação selecionada
+      if (newSelection.length === 0) return prev;
+      
+      return newSelection;
+    });
+  };
+
+  const handleSaveConfig = () => {
+    localStorage.setItem('dashboard-quick-actions-config', JSON.stringify(selectedActions));
+    setIsConfigOpen(false);
+  };
+
+  const activeActions = AVAILABLE_QUICK_ACTIONS.filter(action => 
+    selectedActions.includes(action.id)
+  );
+
+  return (
+    <Card className={cn('h-full', className)}>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-sm font-medium">Ações Rápidas</CardTitle>
+            <CardDescription className="text-xs">Atalhos principais</CardDescription>
+          </div>
+          <Dialog open={isConfigOpen} onOpenChange={setIsConfigOpen}>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-6 w-6">
+                <Settings2 className="h-4 w-4 text-muted-foreground" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Configurar Atalhos</DialogTitle>
+                <DialogDescription>
+                  Selecione os atalhos que deseja exibir no card
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                {AVAILABLE_QUICK_ACTIONS.map(action => (
+                  <div key={action.id} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={action.id}
+                      checked={selectedActions.includes(action.id)}
+                      onCheckedChange={() => handleToggleAction(action.id)}
+                    />
+                    <label
+                      htmlFor={action.id}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2 cursor-pointer"
+                    >
+                      {action.icon}
+                      {action.label}
+                    </label>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-end gap-2 pt-4">
+                <Button variant="outline" onClick={() => setIsConfigOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleSaveConfig}>
+                  Salvar
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 gap-2">
+          {activeActions.map(action => (
+            <Button
+              key={action.id}
+              variant="outline"
+              className="h-auto py-3 px-2 flex flex-col items-center gap-1 hover:bg-accent"
+              onClick={() => navigate(action.path)}
+            >
+              {action.icon}
+              <span className="text-xs">{action.label}</span>
+            </Button>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+export const DashboardRecentSessions = ({ isEditMode, className, sessions = [], patients = [] }: CardProps) => {
+  const navigate = useNavigate();
+
+  const recentSessions = useMemo(() => {
+    return sessions
+      .filter(s => s.status === 'attended')
+      .sort((a, b) => {
+        const dateA = parseISO(a.date);
+        const dateB = parseISO(b.date);
+        return dateB.getTime() - dateA.getTime();
+      })
+      .slice(0, 5)
+      .map(session => {
+        const patient = patients.find(p => p.id === session.patient_id);
+        return {
+          ...session,
+          patientName: patient?.name || 'Paciente não encontrado',
+          patientId: patient?.id,
+        };
+      });
+  }, [sessions, patients]);
+
+  return (
+    <Card className={cn('h-full', className)}>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium">Sessões Recentes</CardTitle>
+        <CardDescription className="text-xs">Últimas sessões realizadas</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {recentSessions.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-4">
+            Nenhuma sessão recente
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {recentSessions.map((session) => (
+              <button
+                key={session.id}
+                onClick={() => session.patientId && navigate(`/patients/${session.patientId}`)}
+                className="w-full text-left hover:bg-accent rounded-md p-2 transition-colors flex items-start gap-2"
+              >
+                <CheckCircle2 className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{session.patientName}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {format(parseISO(session.date), "dd/MM", { locale: ptBR })}
+                    {session.time && ` às ${session.time}`}
+                  </p>
+                </div>
+                <ExternalLink className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+              </button>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
 
 /**
  * CHART CARDS (placeholders for now)
