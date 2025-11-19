@@ -106,10 +106,10 @@ export default function DashboardExample() {
   }, [layout]);
 
   useEffect(() => {
-    if (user) {
+    if (user && !teamLoading) {
       loadData();
     }
-  }, [user]);
+  }, [user, teamLoading, subordinateIds]);
 
   const loadData = async () => {
     const { data: patientsData } = await supabase
@@ -125,15 +125,20 @@ export default function DashboardExample() {
       .select('*')
       .in('patient_id', allPatientIds);
     
-    // Buscar profiles de todos terapeutas
-    const { data: profilesData } = await supabase
-      .from('profiles')
-      .select('id, full_name')
-      .order('full_name');
+    // Buscar profiles apenas dos subordinados
+    let profilesData: any[] = [];
+    if (subordinateIds && subordinateIds.length > 0) {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', subordinateIds)
+        .order('full_name');
+      profilesData = data || [];
+    }
     
     setAllPatients(patientsData || []);
     setAllSessions(sessionsData || []);
-    setProfiles(profilesData || []);
+    setProfiles(profilesData);
   };
 
   const getDateRange = () => {
