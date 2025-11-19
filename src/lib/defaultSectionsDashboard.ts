@@ -204,33 +204,29 @@ export const DEFAULT_DASHBOARD_SECTIONS = {
     'dashboard-chart-revenue-trend',
   ],
   'dashboard-administrative': [
-    'dashboard-attended-sessions',
     'dashboard-total-patients',
-    'dashboard-attendance-rate',
-    'dashboard-chart-session-types',
+    'dashboard-expected-sessions',
+    'dashboard-attended-sessions',
+    'dashboard-missed-sessions',
   ],
   'dashboard-clinical': [
-    'dashboard-active-complaints',
-    'dashboard-no-diagnosis',
+    // Vazio no default
   ],
   'dashboard-team': [
     'dashboard-expected-revenue-team',
     'dashboard-actual-revenue-team',
-    'dashboard-unpaid-value-team',
-    'dashboard-payment-rate-team',
     'dashboard-total-patients-team',
-    'dashboard-attended-sessions-team',
+    'dashboard-active-therapists-team',
   ],
   'dashboard-media': [
-    // Vazio até cards de mídia serem implementados
+    // Vazio no default
   ],
   'dashboard-general': [
-    // Vazio até cards gerais serem implementados
+    'dashboard-quick-actions',
   ],
   'dashboard-charts': [
     'dashboard-chart-revenue-trend',
-    'dashboard-chart-session-types',
-    'dashboard-chart-payment-status',
-    'dashboard-chart-therapist-distribution',
+    'dashboard-chart-attendance-weekly',
+    'dashboard-chart-monthly-comparison',
   ],
 };

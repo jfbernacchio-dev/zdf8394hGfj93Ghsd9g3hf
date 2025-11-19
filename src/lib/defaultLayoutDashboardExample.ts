@@ -84,46 +84,32 @@ export const DEFAULT_DASHBOARD_EXAMPLE_LAYOUT: DashboardExampleLayout = {
       { cardId: 'dashboard-expected-sessions', width: 300, order: 1 },
       { cardId: 'dashboard-attended-sessions', width: 300, order: 2 },
       { cardId: 'dashboard-missed-sessions', width: 300, order: 3 },
-      { cardId: 'dashboard-pending-sessions', width: 300, order: 4 },
-      { cardId: 'dashboard-attendance-rate', width: 300, order: 5 },
     ],
   },
   'dashboard-clinical': {
-    cardLayouts: [
-      { cardId: 'dashboard-active-complaints', width: 300, order: 0 },
-      { cardId: 'dashboard-no-diagnosis', width: 300, order: 1 },
-    ],
+    cardLayouts: [],
   },
   'dashboard-media': {
-    cardLayouts: [
-      { cardId: 'dashboard-whatsapp-unread', width: 300, order: 0 },
-    ],
+    cardLayouts: [],
   },
   'dashboard-general': {
     cardLayouts: [
       { cardId: 'dashboard-quick-actions', width: 400, order: 0 },
-      { cardId: 'dashboard-recent-sessions', width: 500, order: 1 },
     ],
   },
   'dashboard-charts': {
     cardLayouts: [
       { cardId: 'dashboard-chart-revenue-trend', width: 450, order: 0 },
-      { cardId: 'dashboard-chart-payment-status', width: 450, order: 1 },
+      { cardId: 'dashboard-chart-attendance-weekly', width: 450, order: 1 },
       { cardId: 'dashboard-chart-monthly-comparison', width: 450, order: 2 },
-      { cardId: 'dashboard-chart-revenue-by-therapist', width: 450, order: 3 },
-      { cardId: 'dashboard-chart-session-types', width: 450, order: 4 },
-      { cardId: 'dashboard-chart-therapist-distribution', width: 450, order: 5 },
-      { cardId: 'dashboard-chart-attendance-weekly', width: 450, order: 6 },
     ],
   },
   'dashboard-team': {
     cardLayouts: [
       { cardId: 'dashboard-expected-revenue-team', width: 300, order: 0 },
       { cardId: 'dashboard-actual-revenue-team', width: 300, order: 1 },
-      { cardId: 'dashboard-unpaid-value-team', width: 300, order: 2 },
-      { cardId: 'dashboard-payment-rate-team', width: 300, order: 3 },
-      { cardId: 'dashboard-total-patients-team', width: 300, order: 4 },
-      { cardId: 'dashboard-attended-sessions-team', width: 300, order: 5 },
+      { cardId: 'dashboard-total-patients-team', width: 300, order: 2 },
+      { cardId: 'dashboard-active-therapists-team', width: 300, order: 3 },
     ],
   },
 };
@@ -166,56 +152,42 @@ export const DEFAULT_DASHBOARD_GRID_LAYOUT: DashboardGridLayout = {
       { i: 'dashboard-expected-sessions', x: 3, y: 0, w: 3, h: 4, minW: 2, minH: 2, maxW: 12 },
       { i: 'dashboard-attended-sessions', x: 6, y: 0, w: 3, h: 4, minW: 2, minH: 2, maxW: 12 },
       { i: 'dashboard-missed-sessions', x: 9, y: 0, w: 3, h: 4, minW: 2, minH: 2, maxW: 12 },
-      { i: 'dashboard-pending-sessions', x: 0, y: 4, w: 3, h: 4, minW: 2, minH: 2, maxW: 12 },
-      { i: 'dashboard-attendance-rate', x: 3, y: 4, w: 3, h: 4, minW: 2, minH: 2, maxW: 12 },
     ],
   },
   
-  // SEÇÃO CLINICAL: 2 cards de métricas em linha
+  // SEÇÃO CLINICAL: Vazia no default
   'dashboard-clinical': {
-    cardLayouts: [
-      { i: 'dashboard-active-complaints', x: 0, y: 0, w: 3, h: 4, minW: 2, minH: 2, maxW: 12 },
-      { i: 'dashboard-no-diagnosis', x: 3, y: 0, w: 3, h: 4, minW: 2, minH: 2, maxW: 12 },
-    ],
+    cardLayouts: [],
   },
   
-  // SEÇÃO MEDIA: 1 card de métrica
+  // SEÇÃO MEDIA: Vazia no default
   'dashboard-media': {
-    cardLayouts: [
-      { i: 'dashboard-whatsapp-unread', x: 0, y: 0, w: 3, h: 4, minW: 2, minH: 2, maxW: 12 },
-    ],
+    cardLayouts: [],
   },
   
-  // SEÇÃO GENERAL: 2 cards (ações médio + lista maior)
+  // SEÇÃO GENERAL: Apenas Ações Rápidas
   'dashboard-general': {
     cardLayouts: [
       { i: 'dashboard-quick-actions', x: 0, y: 0, w: 4, h: 6, minW: 3, minH: 4, maxW: 12 },
-      { i: 'dashboard-recent-sessions', x: 4, y: 0, w: 8, h: 8, minW: 4, minH: 6, maxW: 12 },
     ],
   },
   
-  // SEÇÃO CHARTS: 7 gráficos (2 por linha, altura maior)
+  // SEÇÃO CHARTS: 3 gráficos principais
   'dashboard-charts': {
     cardLayouts: [
       { i: 'dashboard-chart-revenue-trend', x: 0, y: 0, w: 6, h: 8, minW: 4, minH: 6, maxW: 12 },
-      { i: 'dashboard-chart-payment-status', x: 6, y: 0, w: 6, h: 8, minW: 4, minH: 6, maxW: 12 },
-      { i: 'dashboard-chart-monthly-comparison', x: 0, y: 8, w: 6, h: 8, minW: 4, minH: 6, maxW: 12 },
-      { i: 'dashboard-chart-revenue-by-therapist', x: 6, y: 8, w: 6, h: 8, minW: 4, minH: 6, maxW: 12 },
-      { i: 'dashboard-chart-session-types', x: 0, y: 16, w: 6, h: 8, minW: 4, minH: 6, maxW: 12 },
-      { i: 'dashboard-chart-therapist-distribution', x: 6, y: 16, w: 6, h: 8, minW: 4, minH: 6, maxW: 12 },
-      { i: 'dashboard-chart-attendance-weekly', x: 0, y: 24, w: 12, h: 10, minW: 6, minH: 8, maxW: 12 },
+      { i: 'dashboard-chart-attendance-weekly', x: 6, y: 0, w: 6, h: 8, minW: 4, minH: 6, maxW: 12 },
+      { i: 'dashboard-chart-monthly-comparison', x: 0, y: 8, w: 12, h: 8, minW: 6, minH: 6, maxW: 12 },
     ],
   },
   
-  // SEÇÃO TEAM: 6 cards de métricas (2 linhas de 3)
+  // SEÇÃO TEAM: 4 cards de métricas principais
   'dashboard-team': {
     cardLayouts: [
       { i: 'dashboard-expected-revenue-team', x: 0, y: 0, w: 3, h: 4, minW: 2, minH: 2, maxW: 12 },
       { i: 'dashboard-actual-revenue-team', x: 3, y: 0, w: 3, h: 4, minW: 2, minH: 2, maxW: 12 },
-      { i: 'dashboard-unpaid-value-team', x: 6, y: 0, w: 3, h: 4, minW: 2, minH: 2, maxW: 12 },
-      { i: 'dashboard-payment-rate-team', x: 9, y: 0, w: 3, h: 4, minW: 2, minH: 2, maxW: 12 },
-      { i: 'dashboard-total-patients-team', x: 0, y: 4, w: 3, h: 4, minW: 2, minH: 2, maxW: 12 },
-      { i: 'dashboard-attended-sessions-team', x: 3, y: 4, w: 3, h: 4, minW: 2, minH: 2, maxW: 12 },
+      { i: 'dashboard-total-patients-team', x: 6, y: 0, w: 3, h: 4, minW: 2, minH: 2, maxW: 12 },
+      { i: 'dashboard-active-therapists-team', x: 9, y: 0, w: 3, h: 4, minW: 2, minH: 2, maxW: 12 },
     ],
   },
 };
