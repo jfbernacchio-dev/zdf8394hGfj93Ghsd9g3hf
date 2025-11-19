@@ -123,6 +123,7 @@ export const AddCardDialog = ({
 
   /**
    * Processa dados de uma seção específica (NOVA API)
+   * CORREÇÃO FASE 1: Garantir que cards apareçam em "Adicionados" quando presentes no sectionCards
    */
   const getSectionData = (sectionId: string) => {
     const sectionConfig = DASHBOARD_SECTIONS[sectionId];
@@ -137,9 +138,17 @@ export const AddCardDialog = ({
     // IDs dos cards já adicionados nesta seção
     const addedCardIds = sectionCards?.[sectionId] || [];
     
+    console.log(`📦 [getSectionData] Seção "${sectionId}":`, {
+      totalAvailable: availableCards.length,
+      addedCardIds: addedCardIds,
+      availableCardIds: availableCards.map(c => c.id),
+    });
+    
     // Separar em "disponível" vs "adicionado"
     const notAddedCards = availableCards.filter(card => !addedCardIds.includes(card.id));
     const addedCards = availableCards.filter(card => addedCardIds.includes(card.id));
+
+    console.log(`   ✅ Disponíveis: ${notAddedCards.length}, Adicionados: ${addedCards.length}`);
 
     return {
       config: sectionConfig,
