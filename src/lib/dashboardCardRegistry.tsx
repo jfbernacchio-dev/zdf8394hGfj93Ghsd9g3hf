@@ -573,10 +573,23 @@ export const DashboardAttendanceRate = ({ isEditMode, className, sessions = [], 
 export const DashboardActiveComplaints = ({ isEditMode, className }: CardProps) => (
   <Card className={cn('h-full', className)}>
     <CardHeader className="pb-3">
-      <CardTitle className="text-sm font-medium flex items-center gap-2">
-        <FileText className="h-4 w-4 text-primary" />
-        Queixas Ativas
-      </CardTitle>
+      <div className="flex items-center justify-between">
+        <CardTitle className="text-sm font-medium flex items-center gap-2">
+          <FileText className="h-4 w-4 text-primary" />
+          Queixas Ativas
+        </CardTitle>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <p className="font-semibold mb-1">Queixas Ativas</p>
+              <p className="text-xs">Número de queixas clínicas marcadas como ativas no sistema. Fórmula: COUNT(queixas WHERE is_active = true). Indica pacientes com diagnóstico ativo em acompanhamento.</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
       <CardDescription className="text-xs">Em acompanhamento</CardDescription>
     </CardHeader>
     <CardContent>
@@ -591,10 +604,23 @@ export const DashboardActiveComplaints = ({ isEditMode, className }: CardProps) 
 export const DashboardNoDiagnosis = ({ isEditMode, className }: CardProps) => (
   <Card className={cn('h-full', className)}>
     <CardHeader className="pb-3">
-      <CardTitle className="text-sm font-medium flex items-center gap-2">
-        <AlertCircle className="h-4 w-4 text-yellow-600" />
-        Sem Diagnóstico
-      </CardTitle>
+      <div className="flex items-center justify-between">
+        <CardTitle className="text-sm font-medium flex items-center gap-2">
+          <AlertCircle className="h-4 w-4 text-yellow-600" />
+          Sem Diagnóstico
+        </CardTitle>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <p className="font-semibold mb-1">Pacientes Sem Diagnóstico</p>
+              <p className="text-xs">Pacientes ativos que ainda não possuem queixa clínica cadastrada ou marcada com has_no_diagnosis=true. Fórmula: COUNT(pacientes ativos WHERE NOT EXISTS(queixa ativa) OR has_no_diagnosis = true). Requer avaliação diagnóstica.</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
       <CardDescription className="text-xs">Requer avaliação</CardDescription>
     </CardHeader>
     <CardContent>
@@ -613,7 +639,20 @@ export const DashboardNoDiagnosis = ({ isEditMode, className }: CardProps) => (
 export const DashboardWhatsappUnread = ({ isEditMode, className }: CardProps) => (
   <Card className={cn('h-full', className)}>
     <CardHeader className="pb-3">
-      <CardTitle className="text-sm font-medium">WhatsApp Não Lidas</CardTitle>
+      <div className="flex items-center justify-between">
+        <CardTitle className="text-sm font-medium">WhatsApp Não Lidas</CardTitle>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <p className="font-semibold mb-1">Mensagens WhatsApp Não Lidas</p>
+              <p className="text-xs">Contagem total de mensagens não lidas nas conversas do WhatsApp integrado. Fórmula: SUM(conversas.unread_count WHERE status = 'active'). Indica mensagens pendentes de resposta.</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
       <CardDescription className="text-xs">Requer resposta</CardDescription>
     </CardHeader>
     <CardContent>
@@ -699,12 +738,24 @@ export const DashboardQuickActions = ({ isEditMode, className }: CardProps) => {
             <CardTitle className="text-sm font-medium">Ações Rápidas</CardTitle>
             <CardDescription className="text-xs">Atalhos principais</CardDescription>
           </div>
-          <Dialog open={isConfigOpen} onOpenChange={setIsConfigOpen}>
-            <DialogTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-6 w-6">
-                <Settings2 className="h-4 w-4 text-muted-foreground" />
-              </Button>
-            </DialogTrigger>
+          <div className="flex items-center gap-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="font-semibold mb-1">Ações Rápidas</p>
+                  <p className="text-xs">Botões de acesso rápido para funções principais do sistema como criar paciente, agendar sessão, registrar pagamento, etc. Use o ícone de configurações para personalizar os atalhos exibidos.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <Dialog open={isConfigOpen} onOpenChange={setIsConfigOpen}>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-6 w-6">
+                  <Settings2 className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>Configurar Atalhos</DialogTitle>
@@ -740,6 +791,7 @@ export const DashboardQuickActions = ({ isEditMode, className }: CardProps) => {
               </div>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -786,7 +838,20 @@ export const DashboardRecentSessions = ({ isEditMode, className, sessions = [], 
   return (
     <Card className={cn('h-full', className)}>
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium">Sessões Recentes</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium">Sessões Recentes</CardTitle>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="font-semibold mb-1">Últimas Sessões</p>
+                <p className="text-xs">Lista das 5 sessões mais recentes realizadas (status = 'attended'), ordenadas por data decrescente. Mostra data, hora e paciente. Clique em uma sessão para ir ao cadastro do paciente.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         <CardDescription className="text-xs">Últimas sessões realizadas</CardDescription>
       </CardHeader>
       <CardContent>
@@ -884,12 +949,27 @@ export const DashboardChartRevenueTrend = ({
     <Card className={cn('h-full', className)}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-primary" />
-              Tendência de Receita
-            </CardTitle>
-            <CardDescription className="text-xs">Evolução temporal</CardDescription>
+          <div className="flex items-center gap-2">
+            <div>
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-primary" />
+                Tendência de Receita
+              </CardTitle>
+              <CardDescription className="text-xs">Evolução temporal</CardDescription>
+            </div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="font-semibold mb-1">Tendência de Receita</p>
+                  <p className="text-xs mb-2">Gráfico de linha mostrando a evolução da receita ao longo do período selecionado.</p>
+                  <p className="text-xs font-mono bg-muted p-1 rounded">Fórmula: SUM(sessões.value WHERE status='attended') agrupado por intervalo de tempo</p>
+                  <p className="text-xs mt-2">Use o botão de configurações para alternar entre visualização diária, semanal ou mensal.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
           {setScaleOverride && (
             <DropdownMenu>
@@ -990,11 +1070,29 @@ export const DashboardChartPaymentStatus = ({
   return (
     <Card className={cn('h-full', className)}>
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <DollarSign className="h-4 w-4 text-primary" />
-          Status de Pagamentos
-        </CardTitle>
-        <CardDescription className="text-xs">Distribuição</CardDescription>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div>
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-primary" />
+                Status de Pagamentos
+              </CardTitle>
+              <CardDescription className="text-xs">Distribuição</CardDescription>
+            </div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="font-semibold mb-1">Status de Pagamentos</p>
+                  <p className="text-xs mb-2">Gráfico de pizza mostrando a distribuição entre sessões pagas e não pagas.</p>
+                  <p className="text-xs font-mono bg-muted p-1 rounded">Pagos: COUNT(sessões WHERE paid=true) | Não Pagos: COUNT(sessões WHERE paid=false OR null)</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={200}>
@@ -1072,12 +1170,26 @@ export const DashboardChartAttendanceWeekly = ({
     <Card className={cn('h-full', className)}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-primary" />
-              Taxa de Comparecimento
-            </CardTitle>
-            <CardDescription className="text-xs">Evolução temporal</CardDescription>
+          <div className="flex items-center gap-2">
+            <div>
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-primary" />
+                Taxa de Comparecimento
+              </CardTitle>
+              <CardDescription className="text-xs">Evolução temporal</CardDescription>
+            </div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="font-semibold mb-1">Taxa de Comparecimento</p>
+                  <p className="text-xs mb-2">Gráfico mostrando o percentual de comparecimento ao longo do tempo.</p>
+                  <p className="text-xs font-mono bg-muted p-1 rounded">Taxa = (Comparecidas / Total Esperado) × 100</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
           {setScaleOverride && (
             <DropdownMenu>
@@ -1297,12 +1409,26 @@ export const DashboardChartMonthlyComparison = ({
     <Card className={cn('h-full', className)}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-primary" />
-              Comparação Temporal
-            </CardTitle>
-            <CardDescription className="text-xs">Sessões no período</CardDescription>
+          <div className="flex items-center gap-2">
+            <div>
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-primary" />
+                Comparação Temporal
+              </CardTitle>
+              <CardDescription className="text-xs">Sessões no período</CardDescription>
+            </div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="font-semibold mb-1">Comparação Temporal</p>
+                  <p className="text-xs mb-2">Gráfico de barras comparando sessões realizadas, faltas e pendentes ao longo do tempo.</p>
+                  <p className="text-xs font-mono bg-muted p-1 rounded">Comparecidas + Faltas + Pendentes por intervalo</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
           {setScaleOverride && (
             <DropdownMenu>
