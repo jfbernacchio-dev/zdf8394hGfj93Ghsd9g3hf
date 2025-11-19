@@ -16,6 +16,8 @@
 
 import { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, Users, Calendar, AlertCircle, DollarSign, FileText, Activity, CheckCircle2, XCircle, Clock, Settings2, Info, Plus, ExternalLink, CreditCard, UserPlus, User, BarChart3, Settings as SettingsIcon } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
@@ -567,102 +569,241 @@ export const DashboardAttendanceRate = ({ isEditMode, className, sessions = [], 
 };
 
 /**
- * CLINICAL CARDS (placeholders)
+ * CLINICAL CARDS
  */
 
-export const DashboardActiveComplaints = ({ isEditMode, className }: CardProps) => (
-  <Card className={cn('h-full', className)}>
-    <CardHeader className="pb-3">
-      <div className="flex items-center justify-between">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <FileText className="h-4 w-4 text-primary" />
-          Queixas Ativas
-        </CardTitle>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-            </TooltipTrigger>
-            <TooltipContent className="max-w-xs">
-              <p className="font-semibold mb-1">Queixas Ativas</p>
-              <p className="text-xs">Número de queixas clínicas marcadas como ativas no sistema. Fórmula: COUNT(queixas WHERE is_active = true). Indica pacientes com diagnóstico ativo em acompanhamento.</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
-      <CardDescription className="text-xs">Em acompanhamento</CardDescription>
-    </CardHeader>
-    <CardContent>
-      <div className="text-2xl font-bold">45</div>
-      <p className="text-xs text-muted-foreground mt-1">
-        De 28 pacientes
-      </p>
-    </CardContent>
-  </Card>
-);
+export const DashboardActiveComplaints = ({ isEditMode, className, patients = [] }: CardProps) => {
+  const [complaintsCount, setComplaintsCount] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-export const DashboardNoDiagnosis = ({ isEditMode, className }: CardProps) => (
-  <Card className={cn('h-full', className)}>
-    <CardHeader className="pb-3">
-      <div className="flex items-center justify-between">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <AlertCircle className="h-4 w-4 text-yellow-600" />
-          Sem Diagnóstico
-        </CardTitle>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-            </TooltipTrigger>
-            <TooltipContent className="max-w-xs">
-              <p className="font-semibold mb-1">Pacientes Sem Diagnóstico</p>
-              <p className="text-xs">Pacientes ativos que ainda não possuem queixa clínica cadastrada ou marcada com has_no_diagnosis=true. Fórmula: COUNT(pacientes ativos WHERE NOT EXISTS(queixa ativa) OR has_no_diagnosis = true). Requer avaliação diagnóstica.</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
-      <CardDescription className="text-xs">Requer avaliação</CardDescription>
-    </CardHeader>
-    <CardContent>
-      <div className="text-2xl font-bold text-yellow-600">7</div>
-      <p className="text-xs text-muted-foreground mt-1">
-        25% dos pacientes
-      </p>
-    </CardContent>
-  </Card>
-);
+  useEffect(() => {
+    async function loadComplaints() {
+      try {
+        const patientIds = patients.filter(p => p.status === 'active').map(p => p.id);
+        if (patientIds.length === 0) {
+          setComplaintsCount(0);
+          setLoading(false);
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from('clinical_complaints')
+          .select('id', { count: 'exact', head: true })
+          .in('patient_id', patientIds)
+          .eq('is_active', true);
+
+        if (error) throw error;
+        setComplaintsCount(data?.length || 0);
+      } catch (error) {
+        console.error('[DashboardActiveComplaints] Error:', error);
+        setComplaintsCount(0);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadComplaints();
+  }, [patients]);
+
+  const totalActivePatients = patients.filter(p => p.status === 'active').length;
+
+  return (
+    <Card className={cn('h-full', className)}>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <FileText className="h-4 w-4 text-primary" />
+            Queixas Ativas
+          </CardTitle>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="font-semibold mb-1">Queixas Ativas</p>
+                <p className="text-xs">Número de queixas clínicas marcadas como ativas no sistema. Fórmula: COUNT(queixas WHERE is_active = true). Indica pacientes com diagnóstico ativo em acompanhamento.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+        <CardDescription className="text-xs">Em acompanhamento</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="text-2xl font-bold text-muted-foreground">...</div>
+        ) : (
+          <>
+            <div className="text-2xl font-bold">{complaintsCount}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              De {totalActivePatients} pacientes
+            </p>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+export const DashboardNoDiagnosis = ({ isEditMode, className, patients = [] }: CardProps) => {
+  const [noDiagnosisCount, setNoDiagnosisCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadNoDiagnosis() {
+      try {
+        const activePatients = patients.filter(p => p.status === 'active');
+        if (activePatients.length === 0) {
+          setNoDiagnosisCount(0);
+          setLoading(false);
+          return;
+        }
+
+        const patientIds = activePatients.map(p => p.id);
+
+        // Buscar quais pacientes têm queixas ativas
+        const { data: complaintsData } = await supabase
+          .from('clinical_complaints')
+          .select('patient_id')
+          .in('patient_id', patientIds)
+          .eq('is_active', true);
+
+        const patientsWithComplaints = new Set(complaintsData?.map(c => c.patient_id) || []);
+
+        // Contar pacientes sem queixas ativas
+        const count = activePatients.filter(p => !patientsWithComplaints.has(p.id)).length;
+        setNoDiagnosisCount(count);
+      } catch (error) {
+        console.error('[DashboardNoDiagnosis] Error:', error);
+        setNoDiagnosisCount(0);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadNoDiagnosis();
+  }, [patients]);
+
+  const totalActivePatients = patients.filter(p => p.status === 'active').length;
+  const percentage = totalActivePatients > 0 
+    ? Math.round((noDiagnosisCount / totalActivePatients) * 100) 
+    : 0;
+
+  return (
+    <Card className={cn('h-full', className)}>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-yellow-600" />
+            Sem Diagnóstico
+          </CardTitle>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="font-semibold mb-1">Pacientes Sem Diagnóstico</p>
+                <p className="text-xs">Pacientes ativos que ainda não possuem queixa clínica cadastrada ou marcada com has_no_diagnosis=true. Fórmula: COUNT(pacientes ativos WHERE NOT EXISTS(queixa ativa) OR has_no_diagnosis = true). Requer avaliação diagnóstica.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+        <CardDescription className="text-xs">Requer avaliação</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="text-2xl font-bold text-muted-foreground">...</div>
+        ) : (
+          <>
+            <div className="text-2xl font-bold text-yellow-600">{noDiagnosisCount}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {percentage}% dos pacientes
+            </p>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
 
 /**
- * MEDIA CARDS (placeholders)
+ * MEDIA CARDS
  */
 
-export const DashboardWhatsappUnread = ({ isEditMode, className }: CardProps) => (
-  <Card className={cn('h-full', className)}>
-    <CardHeader className="pb-3">
-      <div className="flex items-center justify-between">
-        <CardTitle className="text-sm font-medium">WhatsApp Não Lidas</CardTitle>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-            </TooltipTrigger>
-            <TooltipContent className="max-w-xs">
-              <p className="font-semibold mb-1">Mensagens WhatsApp Não Lidas</p>
-              <p className="text-xs">Contagem total de mensagens não lidas nas conversas do WhatsApp integrado. Fórmula: SUM(conversas.unread_count WHERE status = 'active'). Indica mensagens pendentes de resposta.</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
-      <CardDescription className="text-xs">Requer resposta</CardDescription>
-    </CardHeader>
-    <CardContent>
-      <div className="text-2xl font-bold">8</div>
-      <p className="text-xs text-muted-foreground mt-1">
-        De 5 conversas
-      </p>
-    </CardContent>
-  </Card>
-);
+export const DashboardWhatsappUnread = ({ isEditMode, className }: CardProps) => {
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [conversationCount, setConversationCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    async function loadWhatsappData() {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('whatsapp_conversations')
+          .select('unread_count')
+          .eq('user_id', user.id)
+          .eq('status', 'active');
+
+        if (error) throw error;
+
+        const total = data?.reduce((sum, conv) => sum + (conv.unread_count || 0), 0) || 0;
+        const convs = data?.filter(c => c.unread_count > 0).length || 0;
+
+        setUnreadCount(total);
+        setConversationCount(convs);
+      } catch (error) {
+        console.error('[DashboardWhatsappUnread] Error:', error);
+        setUnreadCount(0);
+        setConversationCount(0);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadWhatsappData();
+  }, [user]);
+
+  return (
+    <Card className={cn('h-full', className)}>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-medium">WhatsApp Não Lidas</CardTitle>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="font-semibold mb-1">Mensagens WhatsApp Não Lidas</p>
+                <p className="text-xs">Contagem total de mensagens não lidas nas conversas do WhatsApp integrado. Fórmula: SUM(conversas.unread_count WHERE status = 'active'). Indica mensagens pendentes de resposta.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+        <CardDescription className="text-xs">Requer resposta</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="text-2xl font-bold text-muted-foreground">...</div>
+        ) : (
+          <>
+            <div className="text-2xl font-bold">{unreadCount}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Em {conversationCount} conversas
+            </p>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
 
 /**
  * GENERAL CARDS
@@ -1718,9 +1859,90 @@ export const DashboardChartPatientGrowth = (props: CardProps) => (
   <ChartPlaceholder title="Crescimento de Pacientes" description="Últimos 12 meses" />
 );
 
-export const DashboardChartHourlyDistribution = (props: CardProps) => (
-  <ChartPlaceholder title="Distribuição por Horário" description="Sessões" />
-);
+export const DashboardChartHourlyDistribution = ({ 
+  isEditMode, 
+  className, 
+  sessions = [],
+  start,
+  end
+}: CardProps) => {
+  const chartData = useMemo(() => {
+    // Filtrar sessões atendidas no período
+    const validSessions = sessions.filter(s => {
+      if (s.status !== 'attended' || !s.time) return false;
+      if (!s.date || !start || !end) return false;
+      try {
+        const sessionDate = parseISO(s.date);
+        return sessionDate >= start && sessionDate <= end;
+      } catch {
+        return false;
+      }
+    });
+
+    // Agrupar por hora (08:00 -> 08, 14:30 -> 14)
+    const hourCounts = validSessions.reduce((acc, session) => {
+      const hour = session.time.split(':')[0];
+      acc[hour] = (acc[hour] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Criar array ordenado de 8h às 20h
+    const hours = [];
+    for (let h = 8; h <= 20; h++) {
+      const hourKey = h.toString().padStart(2, '0');
+      hours.push({
+        hour: `${hourKey}:00`,
+        count: hourCounts[hourKey] || 0,
+      });
+    }
+
+    return hours;
+  }, [sessions, start, end]);
+
+  const totalSessions = chartData.reduce((sum, d) => sum + d.count, 0);
+
+  return (
+    <Card className={cn('h-full', className)}>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium flex items-center gap-2">
+          <Clock className="h-4 w-4 text-primary" />
+          Distribuição por Horário
+        </CardTitle>
+        <CardDescription className="text-xs">Sessões atendidas no período</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {totalSessions > 0 ? (
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis 
+                dataKey="hour" 
+                tick={{ fontSize: 10 }}
+                stroke="hsl(var(--muted-foreground))"
+              />
+              <YAxis 
+                tick={{ fontSize: 10 }}
+                stroke="hsl(var(--muted-foreground))"
+              />
+              <RechartsTooltip 
+                contentStyle={{ 
+                  backgroundColor: 'hsl(var(--background))',
+                  border: '1px solid hsl(var(--border))'
+                }}
+                formatter={(value: any) => [`${value} sessões`, 'Total']}
+              />
+              <Bar dataKey="count" fill="hsl(var(--primary))" name="Sessões" />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-[220px] flex items-center justify-center text-xs text-muted-foreground">
+            Sem sessões no período
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
 
 export const DashboardChartCancellationReasons = (props: CardProps) => (
   <ChartPlaceholder title="Motivos de Cancelamento" description="Este mês" />
