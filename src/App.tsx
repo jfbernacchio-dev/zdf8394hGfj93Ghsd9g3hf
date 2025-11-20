@@ -45,6 +45,7 @@ import LogReview from "./pages/LogReview";
 import PermissionReview from "./pages/PermissionReview";
 import PermissionManagement from "./pages/PermissionManagement";
 import LevelPermissionsManagement from "./pages/LevelPermissionsManagement";
+import MigrationWizard from "./pages/MigrationWizard";
 import BackupTests from "./pages/BackupTests";
 import ConsentForm from "./pages/ConsentForm";
 import WhatsAppChat from "./pages/WhatsAppChat";
@@ -157,6 +158,7 @@ const App = () => (
             <Route path="/create-therapist" element={<ProtectedRoute><PermissionRoute path="/create-therapist"><Layout><CreateTherapist /></Layout></PermissionRoute></ProtectedRoute>} />
             <Route path="/permissions" element={<ProtectedRoute><PermissionRoute path="/permissions"><Layout><PermissionManagement /></Layout></PermissionRoute></ProtectedRoute>} />
             <Route path="/level-permissions" element={<ProtectedRoute><Layout><LevelPermissionsManagement /></Layout></ProtectedRoute>} />
+            <Route path="/migration-wizard" element={<ProtectedRoute><PermissionRoute path="/admin-settings"><Layout><MigrationWizard /></Layout></PermissionRoute></ProtectedRoute>} />
             <Route path="/nfse/config" element={<ProtectedRoute><PermissionRoute path="/nfse/config"><Layout><NFSeConfig /></Layout></PermissionRoute></ProtectedRoute>} />
             <Route path="/nfse/history" element={<ProtectedRoute><PermissionRoute path="/nfse/history"><Layout><NFSeHistory /></Layout></PermissionRoute></ProtectedRoute>} />
             <Route path="/invoice-logs" element={<ProtectedRoute><PermissionRoute path="/invoice-logs"><Layout><InvoiceLogs /></Layout></PermissionRoute></ProtectedRoute>} />
