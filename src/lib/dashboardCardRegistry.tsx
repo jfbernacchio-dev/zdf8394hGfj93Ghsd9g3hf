@@ -25,7 +25,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import { parseISO, format } from 'date-fns';
@@ -114,16 +114,16 @@ export const DashboardExpectedRevenue = ({ isEditMode, className, patients = [],
             <DollarSign className="h-4 w-4 text-primary" />
             Receita Esperada
           </CardTitle>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p>Valor total esperado com base nas sessões agendadas no período. Para pacientes com mensalidade fixa, considera o valor mensal uma vez por mês.</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <p className="font-semibold mb-1">Fórmula:</p>
+              <p className="text-xs mb-2">Soma de (valor_mensal por mês) + Soma de (valor_sessão agendada)</p>
+              <p className="text-xs">Valor total esperado com base nas sessões agendadas no período. Para pacientes com mensalidade fixa, considera o valor mensal uma vez por mês.</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
         <CardDescription className="text-xs">Período selecionado</CardDescription>
       </CardHeader>
@@ -177,16 +177,16 @@ export const DashboardActualRevenue = ({ isEditMode, className, patients = [], s
             <DollarSign className="h-4 w-4 text-green-600" />
             Receita Realizada
           </CardTitle>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p>Valor total de sessões realizadas e pagas no período. Inclui apenas sessões com status "realizada" ou marcadas como pagas.</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <p className="font-semibold mb-1">Fórmula:</p>
+              <p className="text-xs mb-2">Soma de (valor_sessão) onde status = "attended" OU paid = true</p>
+              <p className="text-xs">Valor total de sessões realizadas e pagas no período. Inclui apenas sessões com status "realizada" ou marcadas como pagas.</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
         <CardDescription className="text-xs">Período selecionado</CardDescription>
       </CardHeader>
@@ -241,16 +241,16 @@ export const DashboardUnpaidValue = ({ isEditMode, className, patients = [], ses
             <AlertCircle className="h-4 w-4 text-red-500" />
             Valores Pendentes
           </CardTitle>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p>Valor total de sessões realizadas mas ainda não pagas. Representa o montante a receber de pacientes.</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <p className="font-semibold mb-1">Fórmula:</p>
+              <p className="text-xs mb-2">Soma de (valor_sessão) onde status = "attended" E paid = false (histórico completo)</p>
+              <p className="text-xs">Valor total de sessões realizadas mas ainda não pagas em TODO o histórico. Representa o montante a receber de pacientes.</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
         <CardDescription className="text-xs">A receber</CardDescription>
       </CardHeader>
@@ -284,16 +284,16 @@ export const DashboardPaymentRate = ({ isEditMode, className, patients = [], ses
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium">Taxa de Pagamento</CardTitle>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p>Percentual de sessões realizadas que já foram pagas. Indica a eficiência na cobrança e recebimento de pagamentos.</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <p className="font-semibold mb-1">Fórmula:</p>
+              <p className="text-xs mb-2">(Sessões pagas / Total de sessões realizadas) × 100</p>
+              <p className="text-xs">Percentual de sessões realizadas que já foram pagas. Indica a eficiência na cobrança e recebimento de pagamentos.</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
         <CardDescription className="text-xs">Período selecionado</CardDescription>
       </CardHeader>
@@ -322,16 +322,15 @@ export const DashboardTotalPatients = ({ isEditMode, className, patients = [] }:
             <Users className="h-4 w-4 text-primary" />
             Pacientes Ativos
           </CardTitle>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p>Número total de pacientes com status "ativo" em tratamento contínuo.</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <p className="font-semibold mb-1">Contagem de pacientes ativos</p>
+              <p className="text-xs">Número total de pacientes com status "ativo" em tratamento contínuo no sistema.</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
         <CardDescription className="text-xs">Total</CardDescription>
       </CardHeader>
@@ -364,16 +363,15 @@ export const DashboardExpectedSessions = ({ isEditMode, className, sessions = []
             <Calendar className="h-4 w-4 text-primary" />
             Sessões Esperadas
           </CardTitle>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p>Número total de sessões agendadas no período selecionado, independente do status.</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <p className="font-semibold mb-1">Total de sessões agendadas</p>
+              <p className="text-xs">Número total de sessões programadas no período selecionado, independente do status.</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
         <CardDescription className="text-xs">Período selecionado</CardDescription>
       </CardHeader>
@@ -411,16 +409,16 @@ export const DashboardAttendedSessions = ({ isEditMode, className, sessions = []
             <CheckCircle2 className="h-4 w-4 text-green-600" />
             Sessões Realizadas
           </CardTitle>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p>Sessões efetivamente realizadas no período. Mostra o percentual em relação ao total esperado.</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <p className="font-semibold mb-1">Fórmula:</p>
+              <p className="text-xs mb-2">Count(sessões) onde status = "attended"</p>
+              <p className="text-xs">Sessões efetivamente realizadas no período. Mostra o percentual em relação ao total esperado.</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
         <CardDescription className="text-xs">Período selecionado</CardDescription>
       </CardHeader>
@@ -458,16 +456,16 @@ export const DashboardMissedSessions = ({ isEditMode, className, sessions = [], 
             <XCircle className="h-4 w-4 text-red-500" />
             Faltas
           </CardTitle>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p>Sessões agendadas em que o paciente faltou sem aviso. Indica o percentual de faltas sobre o total esperado.</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <p className="font-semibold mb-1">Fórmula:</p>
+              <p className="text-xs mb-2">Count(sessões) onde status = "missed"</p>
+              <p className="text-xs">Sessões agendadas em que o paciente faltou sem aviso. Indica o percentual de faltas sobre o total esperado.</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
         <CardDescription className="text-xs">Período selecionado</CardDescription>
       </CardHeader>
@@ -501,16 +499,15 @@ export const DashboardPendingSessions = ({ isEditMode, className, sessions = [],
             <Clock className="h-4 w-4 text-yellow-600" />
             Sessões Pendentes
           </CardTitle>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p>Sessões futuras já agendadas no período. Útil para planejamento e previsão de agenda.</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <p className="font-semibold mb-1">Sessões futuras agendadas</p>
+              <p className="text-xs">Sessões futuras já agendadas no período. Útil para planejamento e previsão de agenda.</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
         <CardDescription className="text-xs">Futuras</CardDescription>
       </CardHeader>
@@ -546,16 +543,16 @@ export const DashboardAttendanceRate = ({ isEditMode, className, sessions = [], 
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium">Taxa de Comparecimento</CardTitle>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p>Percentual de pacientes que compareceram às sessões sobre o total de sessões concluídas (realizadas ou faltadas).</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <p className="font-semibold mb-1">Fórmula:</p>
+              <p className="text-xs mb-2">(Sessões comparecidas / Total de sessões passadas) × 100</p>
+              <p className="text-xs">Percentual de pacientes que compareceram às sessões sobre o total de sessões concluídas (realizadas ou faltadas).</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
         <CardDescription className="text-xs">Período selecionado</CardDescription>
       </CardHeader>
@@ -616,17 +613,15 @@ export const DashboardActiveComplaints = ({ isEditMode, className, patients = []
             <FileText className="h-4 w-4 text-primary" />
             Queixas Ativas
           </CardTitle>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p className="font-semibold mb-1">Queixas Ativas</p>
-                <p className="text-xs">Número de queixas clínicas marcadas como ativas no sistema. Fórmula: COUNT(queixas WHERE is_active = true). Indica pacientes com diagnóstico ativo em acompanhamento.</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <p className="font-semibold mb-1">Queixas Ativas</p>
+              <p className="text-xs">Número de queixas clínicas marcadas como ativas no sistema. Fórmula: COUNT(queixas WHERE is_active = true). Indica pacientes com diagnóstico ativo em acompanhamento.</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
         <CardDescription className="text-xs">Em acompanhamento</CardDescription>
       </CardHeader>
@@ -698,17 +693,15 @@ export const DashboardNoDiagnosis = ({ isEditMode, className, patients = [] }: C
             <AlertCircle className="h-4 w-4 text-yellow-600" />
             Sem Diagnóstico
           </CardTitle>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p className="font-semibold mb-1">Pacientes Sem Diagnóstico</p>
-                <p className="text-xs">Pacientes ativos que ainda não possuem queixa clínica cadastrada ou marcada com has_no_diagnosis=true. Fórmula: COUNT(pacientes ativos WHERE NOT EXISTS(queixa ativa) OR has_no_diagnosis = true). Requer avaliação diagnóstica.</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <p className="font-semibold mb-1">Pacientes Sem Diagnóstico</p>
+              <p className="text-xs">Pacientes ativos que ainda não possuem queixa clínica cadastrada ou marcada com has_no_diagnosis=true. Fórmula: COUNT(pacientes ativos WHERE NOT EXISTS(queixa ativa) OR has_no_diagnosis = true). Requer avaliação diagnóstica.</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
         <CardDescription className="text-xs">Requer avaliação</CardDescription>
       </CardHeader>
@@ -776,17 +769,15 @@ export const DashboardWhatsappUnread = ({ isEditMode, className }: CardProps) =>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium">WhatsApp Não Lidas</CardTitle>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p className="font-semibold mb-1">Mensagens WhatsApp Não Lidas</p>
-                <p className="text-xs">Contagem total de mensagens não lidas nas conversas do WhatsApp integrado. Fórmula: SUM(conversas.unread_count WHERE status = 'active'). Indica mensagens pendentes de resposta.</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <p className="font-semibold mb-1">Mensagens WhatsApp Não Lidas</p>
+              <p className="text-xs">Contagem total de mensagens não lidas nas conversas do WhatsApp integrado. Fórmula: SUM(conversas.unread_count WHERE status = 'active'). Indica mensagens pendentes de resposta.</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
         <CardDescription className="text-xs">Requer resposta</CardDescription>
       </CardHeader>
@@ -881,17 +872,15 @@ export const DashboardQuickActions = ({ isEditMode, className }: CardProps) => {
             <CardDescription className="text-xs">Atalhos principais</CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs">
-                  <p className="font-semibold mb-1">Ações Rápidas</p>
-                  <p className="text-xs">Botões de acesso rápido para funções principais do sistema como criar paciente, agendar sessão, registrar pagamento, etc. Use o ícone de configurações para personalizar os atalhos exibidos.</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="font-semibold mb-1">Ações Rápidas</p>
+                <p className="text-xs">Botões de acesso rápido para funções principais do sistema como criar paciente, agendar sessão, registrar pagamento, etc. Use o ícone de configurações para personalizar os atalhos exibidos.</p>
+              </TooltipContent>
+            </Tooltip>
             <Dialog open={isConfigOpen} onOpenChange={setIsConfigOpen}>
               <DialogTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-6 w-6">
@@ -982,17 +971,15 @@ export const DashboardRecentSessions = ({ isEditMode, className, sessions = [], 
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium">Sessões Recentes</CardTitle>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p className="font-semibold mb-1">Últimas Sessões</p>
-                <p className="text-xs">Lista das 5 sessões mais recentes realizadas (status = 'attended'), ordenadas por data decrescente. Mostra data, hora e paciente. Clique em uma sessão para ir ao cadastro do paciente.</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <p className="font-semibold mb-1">Últimas Sessões</p>
+              <p className="text-xs">Lista das 5 sessões mais recentes realizadas (status = 'attended'), ordenadas por data decrescente. Mostra data, hora e paciente. Clique em uma sessão para ir ao cadastro do paciente.</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
         <CardDescription className="text-xs">Últimas sessões realizadas</CardDescription>
       </CardHeader>
@@ -1099,19 +1086,17 @@ export const DashboardChartRevenueTrend = ({
               </CardTitle>
               <CardDescription className="text-xs">Evolução temporal</CardDescription>
             </div>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs">
-                  <p className="font-semibold mb-1">Tendência de Receita</p>
-                  <p className="text-xs mb-2">Gráfico de linha mostrando a evolução da receita ao longo do período selecionado.</p>
-                  <p className="text-xs font-mono bg-muted p-1 rounded">Fórmula: SUM(sessões.value WHERE status='attended') agrupado por intervalo de tempo</p>
-                  <p className="text-xs mt-2">Use o botão de configurações para alternar entre visualização diária, semanal ou mensal.</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="font-semibold mb-1">Tendência de Receita</p>
+                <p className="text-xs mb-2">Gráfico de linha mostrando a evolução da receita ao longo do período selecionado.</p>
+                <p className="text-xs font-mono bg-muted p-1 rounded">Fórmula: SUM(sessões.value WHERE status='attended') agrupado por intervalo de tempo</p>
+                <p className="text-xs mt-2">Use o botão de configurações para alternar entre visualização diária, semanal ou mensal.</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
           {setScaleOverride && (
             <DropdownMenu>
@@ -1221,18 +1206,16 @@ export const DashboardChartPaymentStatus = ({
               </CardTitle>
               <CardDescription className="text-xs">Distribuição</CardDescription>
             </div>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs">
-                  <p className="font-semibold mb-1">Status de Pagamentos</p>
-                  <p className="text-xs mb-2">Gráfico de pizza mostrando a distribuição entre sessões pagas e não pagas.</p>
-                  <p className="text-xs font-mono bg-muted p-1 rounded">Pagos: COUNT(sessões WHERE paid=true) | Não Pagos: COUNT(sessões WHERE paid=false OR null)</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="font-semibold mb-1">Status de Pagamentos</p>
+                <p className="text-xs mb-2">Gráfico de pizza mostrando a distribuição entre sessões pagas e não pagas.</p>
+                <p className="text-xs font-mono bg-muted p-1 rounded">Pagos: COUNT(sessões WHERE paid=true) | Não Pagos: COUNT(sessões WHERE paid=false OR null)</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </CardHeader>
