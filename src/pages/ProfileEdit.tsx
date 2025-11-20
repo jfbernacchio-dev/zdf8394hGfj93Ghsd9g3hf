@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Users } from 'lucide-react';
 import { AccessManagement } from '@/components/AccessManagement';
 import { LayoutTemplateManager } from '@/components/LayoutTemplateManager';
+import { PermissionManagementCompact } from '@/components/PermissionManagementCompact';
 
 const WEEKDAYS = [
   { value: 0, label: 'Domingo' },
@@ -905,7 +906,20 @@ const ProfileEdit = () => {
 
             {isAdmin && (
               <TabsContent value="access">
-                <AccessManagement />
+                <Tabs defaultValue="access-management" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="access-management">Gerenciamento de Acessos</TabsTrigger>
+                    <TabsTrigger value="permissions">Gerenciamento de Permissões</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="access-management" className="mt-4">
+                    <AccessManagement />
+                  </TabsContent>
+
+                  <TabsContent value="permissions" className="mt-4">
+                    <PermissionManagementCompact />
+                  </TabsContent>
+                </Tabs>
               </TabsContent>
             )}
           </Tabs>
