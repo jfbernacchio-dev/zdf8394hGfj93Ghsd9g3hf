@@ -241,6 +241,10 @@ const Patients = () => {
     return 0;
   });
 
+  // Separar pacientes em próprios e da equipe
+  const ownPatients = filteredPatients.filter(p => p.user_id === user?.id);
+  const teamPatients = filteredPatients.filter(p => p.user_id !== user?.id);
+
   const generateGeneralInvoice = async () => {
     const allUnpaidSessions = sessions.filter(s => s.status === 'attended' && !s.nfse_issued_id);
     
@@ -606,79 +610,165 @@ const Patients = () => {
           </div>
         </Card>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-          {filteredPatients.map(patient => {
-            const stats = getPatientStats(patient.id);
-            return (
-              <Card key={patient.id} className="p-6 shadow-[var(--shadow-card)] border-border hover:shadow-[var(--shadow-soft)] transition-shadow">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="flex-1 flex items-center gap-4 cursor-pointer" onClick={() => navigate(`/patients/${patient.id}`)}>
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold text-lg relative">
-                      {patient.name.charAt(0).toUpperCase()}
-                      {(!patient.cpf || patient.cpf.trim() === '') && (
-                        <div className="absolute -top-1 -right-1 w-5 h-5 bg-warning rounded-full flex items-center justify-center" title="CPF não informado">
-                          <AlertCircle className="w-3 h-3 text-warning-foreground" />
+        {/* Seção: Pacientes Próprios */}
+        {ownPatients.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold text-foreground mb-4">Pacientes Próprios</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+              {ownPatients.map(patient => {
+                const stats = getPatientStats(patient.id);
+                return (
+                  <Card key={patient.id} className="p-6 shadow-[var(--shadow-card)] border-border hover:shadow-[var(--shadow-soft)] transition-shadow">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="flex-1 flex items-center gap-4 cursor-pointer" onClick={() => navigate(`/patients/${patient.id}`)}>
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold text-lg relative">
+                          {patient.name.charAt(0).toUpperCase()}
+                          {(!patient.cpf || patient.cpf.trim() === '') && (
+                            <div className="absolute -top-1 -right-1 w-5 h-5 bg-warning rounded-full flex items-center justify-center" title="CPF não informado">
+                              <AlertCircle className="w-3 h-3 text-warning-foreground" />
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-foreground">{patient.name}</h3>
-                        {patient.status === 'inactive' && (
-                          <span className="px-2 py-0.5 bg-destructive/10 text-destructive/70 text-xs font-medium rounded">
-                            Encerrado
-                          </span>
-                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-foreground">{patient.name}</h3>
+                            {patient.status === 'inactive' && (
+                              <span className="px-2 py-0.5 bg-destructive/10 text-destructive/70 text-xs font-medium rounded">
+                                Encerrado
+                              </span>
+                            )}
+                          </div>
+                          {patient.email && (
+                            <p className="text-sm text-muted-foreground truncate">{patient.email}</p>
+                          )}
+                          {patient.observations && (
+                            <p className="text-xs text-muted-foreground/80 truncate mt-1" title={patient.observations}>
+                              {patient.observations}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      {patient.email && (
-                        <p className="text-sm text-muted-foreground truncate">{patient.email}</p>
-                      )}
-                      {patient.observations && (
-                        <p className="text-xs text-muted-foreground/80 truncate mt-1" title={patient.observations}>
-                          {patient.observations}
-                        </p>
-                      )}
+                      <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); navigate(`/patients/${patient.id}/edit`); }}>
+                        <Edit className="w-4 h-4" />
+                      </Button>
                     </div>
-                  </div>
-                  <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); navigate(`/patients/${patient.id}/edit`); }}>
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                </div>
-                
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Total Sessões:</span>
-                    <span className="font-medium text-foreground">{stats.totalSessions}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Em Aberto:</span>
-                    <span className="font-medium text-warning">
-                      {patient.monthly_price ? (() => {
-                        // For monthly pricing, show number of months - with date validation
-                        const sessionsByMonth = sessions.filter(s => s.patient_id === patient.id && s.status === 'attended' && !s.paid).reduce((acc, session) => {
-                          try {
-                            if (session.date) {
-                              const monthYear = format(parseISO(session.date), 'MM/yyyy');
-                              if (!acc[monthYear]) {
-                                acc[monthYear] = [];
+                    
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Total Sessões:</span>
+                        <span className="font-medium text-foreground">{stats.totalSessions}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Em Aberto:</span>
+                        <span className="font-medium text-warning">
+                          {patient.monthly_price ? (() => {
+                            // For monthly pricing, show number of months - with date validation
+                            const sessionsByMonth = sessions.filter(s => s.patient_id === patient.id && s.status === 'attended' && !s.paid).reduce((acc, session) => {
+                              try {
+                                if (session.date) {
+                                  const monthYear = format(parseISO(session.date), 'MM/yyyy');
+                                  if (!acc[monthYear]) {
+                                    acc[monthYear] = [];
+                                  }
+                                  acc[monthYear].push(session);
+                                }
+                              } catch (error) {
+                                console.error('Error parsing session date:', session.date, error);
                               }
-                              acc[monthYear].push(session);
-                            }
-                          } catch (error) {
-                            console.error('Error parsing session date:', session.date, error);
-                          }
-                          return acc;
-                        }, {} as Record<string, any[]>);
-                        const monthsCount = Object.keys(sessionsByMonth).length;
-                        return `${monthsCount} ${monthsCount === 1 ? 'mês' : 'meses'} (${formatBrazilianCurrency(stats.unpaidValue)})`;
-                      })() : `${stats.unpaidCount} (${formatBrazilianCurrency(stats.unpaidValue)})`}
-                    </span>
-                  </div>
-                </div>
-              </Card>
-            );
-          })}
-        </div>
+                              return acc;
+                            }, {} as Record<string, any[]>);
+                            const monthsCount = Object.keys(sessionsByMonth).length;
+                            return `${monthsCount} ${monthsCount === 1 ? 'mês' : 'meses'} (${formatBrazilianCurrency(stats.unpaidValue)})`;
+                          })() : `${stats.unpaidCount} (${formatBrazilianCurrency(stats.unpaidValue)})`}
+                        </span>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Seção: Pacientes da Equipe */}
+        {teamPatients.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold text-foreground mb-4">Pacientes da Equipe</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+              {teamPatients.map(patient => {
+                const stats = getPatientStats(patient.id);
+                return (
+                  <Card key={patient.id} className="p-6 shadow-[var(--shadow-card)] border-border hover:shadow-[var(--shadow-soft)] transition-shadow">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="flex-1 flex items-center gap-4 cursor-pointer" onClick={() => navigate(`/patients/${patient.id}`)}>
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold text-lg relative">
+                          {patient.name.charAt(0).toUpperCase()}
+                          {(!patient.cpf || patient.cpf.trim() === '') && (
+                            <div className="absolute -top-1 -right-1 w-5 h-5 bg-warning rounded-full flex items-center justify-center" title="CPF não informado">
+                              <AlertCircle className="w-3 h-3 text-warning-foreground" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-foreground">{patient.name}</h3>
+                            {patient.status === 'inactive' && (
+                              <span className="px-2 py-0.5 bg-destructive/10 text-destructive/70 text-xs font-medium rounded">
+                                Encerrado
+                              </span>
+                            )}
+                          </div>
+                          {patient.email && (
+                            <p className="text-sm text-muted-foreground truncate">{patient.email}</p>
+                          )}
+                          {patient.observations && (
+                            <p className="text-xs text-muted-foreground/80 truncate mt-1" title={patient.observations}>
+                              {patient.observations}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); navigate(`/patients/${patient.id}/edit`); }}>
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Total Sessões:</span>
+                        <span className="font-medium text-foreground">{stats.totalSessions}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Em Aberto:</span>
+                        <span className="font-medium text-warning">
+                          {patient.monthly_price ? (() => {
+                            // For monthly pricing, show number of months - with date validation
+                            const sessionsByMonth = sessions.filter(s => s.patient_id === patient.id && s.status === 'attended' && !s.paid).reduce((acc, session) => {
+                              try {
+                                if (session.date) {
+                                  const monthYear = format(parseISO(session.date), 'MM/yyyy');
+                                  if (!acc[monthYear]) {
+                                    acc[monthYear] = [];
+                                  }
+                                  acc[monthYear].push(session);
+                                }
+                              } catch (error) {
+                                console.error('Error parsing session date:', session.date, error);
+                              }
+                              return acc;
+                            }, {} as Record<string, any[]>);
+                            const monthsCount = Object.keys(sessionsByMonth).length;
+                            return `${monthsCount} ${monthsCount === 1 ? 'mês' : 'meses'} (${formatBrazilianCurrency(stats.unpaidValue)})`;
+                          })() : `${stats.unpaidCount} (${formatBrazilianCurrency(stats.unpaidValue)})`}
+                        </span>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {filteredPatients.length === 0 && (
           <div className="text-center py-12">
