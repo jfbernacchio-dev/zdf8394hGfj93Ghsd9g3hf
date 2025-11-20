@@ -30,7 +30,10 @@ export const useOrganogramData = () => {
   const { data: organizationTree, isLoading } = useQuery({
     queryKey: ['organization-tree'],
     queryFn: async () => {
+      console.log('🚀 [DIAGNÓSTICO 0] HOOK useOrganogramData - queryFn INICIADA');
+      
       // Get all positions with their users
+      console.log('🔍 [DIAGNÓSTICO 1.1] INICIANDO QUERY DE ORGANIZATION_POSITIONS');
       const { data: positions, error: posError } = await supabase
         .from('organization_positions')
         .select(`
@@ -41,10 +44,21 @@ export const useOrganogramData = () => {
           organization_levels(level_name, level_number)
         `);
 
-      console.log('🔍 [DIAGNÓSTICO 1] POSITIONS QUERY RESULT:', JSON.stringify(positions, null, 2));
-      if (posError) throw posError;
+      console.log('🔍 [DIAGNÓSTICO 1.2] POSITIONS RESULT:', positions);
+      console.log('🔍 [DIAGNÓSTICO 1.3] POSITIONS ERROR:', posError);
+      console.log('🔍 [DIAGNÓSTICO 1.4] POSITIONS ERROR COMPLETO:', JSON.stringify(posError, null, 2));
+      
+      if (posError) {
+        console.error('❌ [DIAGNÓSTICO 1.5] ERRO NA QUERY DE POSITIONS, ABORTANDO');
+        console.error('   ↳ Error message:', posError.message);
+        console.error('   ↳ Error code:', posError.code);
+        console.error('   ↳ Error details:', posError.details);
+        console.error('   ↳ Error hint:', posError.hint);
+        throw posError;
+      }
 
       // Get all user positions
+      console.log('🔍 [DIAGNÓSTICO 2.1] INICIANDO QUERY DE USER_POSITIONS');
       const { data: userPositions, error: userPosError } = await supabase
         .from('user_positions')
         .select(`
@@ -53,8 +67,18 @@ export const useOrganogramData = () => {
           profiles(full_name)
         `);
 
-      console.log('🔍 [DIAGNÓSTICO 2] USER_POSITIONS QUERY RESULT:', JSON.stringify(userPositions, null, 2));
-      if (userPosError) throw userPosError;
+      console.log('🔍 [DIAGNÓSTICO 2.2] USER_POSITIONS RESULT:', userPositions);
+      console.log('🔍 [DIAGNÓSTICO 2.3] USER_POSITIONS ERROR:', userPosError);
+      console.log('🔍 [DIAGNÓSTICO 2.4] USER_POSITIONS ERROR COMPLETO:', JSON.stringify(userPosError, null, 2));
+      
+      if (userPosError) {
+        console.error('❌ [DIAGNÓSTICO 2.5] ERRO NA QUERY DE USER_POSITIONS, ABORTANDO');
+        console.error('   ↳ Error message:', userPosError.message);
+        console.error('   ↳ Error code:', userPosError.code);
+        console.error('   ↳ Error details:', userPosError.details);
+        console.error('   ↳ Error hint:', userPosError.hint);
+        throw userPosError;
+      }
 
       // Build tree structure
       const positionsMap = new Map<string, OrganizationNode>();
@@ -121,6 +145,8 @@ export const useOrganogramData = () => {
       console.log('  Roots array final:', JSON.stringify(roots, null, 2));
 
       console.log('🔍 [DIAGNÓSTICO 6] ORGANIZATION_TREE FINAL (retorno):', JSON.stringify(roots, null, 2));
+      console.log('✅ [DIAGNÓSTICO 7] HOOK useOrganogramData - queryFn FINALIZADA COM SUCESSO');
+      console.log('   ↳ Total de raízes retornadas:', roots.length);
 
       return roots;
     }

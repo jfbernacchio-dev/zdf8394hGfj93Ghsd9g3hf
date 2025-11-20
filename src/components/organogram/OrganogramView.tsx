@@ -16,6 +16,14 @@ export const OrganogramView = () => {
     deletePosition
   } = useOrganogramData();
 
+  console.log('📊 [UI - OrganogramView] ESTADO RECEBIDO DO HOOK:');
+  console.log('   ↳ organizationTree:', organizationTree);
+  console.log('   ↳ organizationTree type:', typeof organizationTree);
+  console.log('   ↳ organizationTree is array:', Array.isArray(organizationTree));
+  console.log('   ↳ organizationTree length:', organizationTree?.length);
+  console.log('   ↳ isLoading:', isLoading);
+  console.log('   ↳ levelPermissions:', levelPermissions);
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
@@ -68,6 +76,11 @@ export const OrganogramView = () => {
   }
 
   if (!organizationTree || organizationTree.length === 0) {
+    console.log('⚠️ [UI - OrganogramView] MOSTRANDO MENSAGEM DE VAZIO');
+    console.log('   ↳ Condição: !organizationTree || organizationTree.length === 0');
+    console.log('   ↳ !organizationTree:', !organizationTree);
+    console.log('   ↳ organizationTree.length === 0:', organizationTree?.length === 0);
+    
     return (
       <Card className="p-8 text-center">
         <p className="text-muted-foreground">
