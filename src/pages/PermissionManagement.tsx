@@ -22,6 +22,7 @@ const PermissionManagement = () => {
   const { isAdmin, user } = useAuth();
   const navigate = useNavigate();
   const [subordinates, setSubordinates] = useState<SubordinatePermission[]>([]);
+  const [selectedSubordinateId, setSelectedSubordinateId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -94,6 +95,11 @@ const PermissionManagement = () => {
       });
 
       setSubordinates(subordinatesData);
+      
+      // Auto-select first subordinate if none selected
+      if (subordinatesData.length > 0 && !selectedSubordinateId) {
+        setSelectedSubordinateId(subordinatesData[0].id);
+      }
     } catch (error) {
       console.error('Error fetching subordinates:', error);
     } finally {
@@ -105,10 +111,12 @@ const PermissionManagement = () => {
     fetchSubordinates();
   };
 
+  const selectedSubordinate = subordinates.find(s => s.id === selectedSubordinateId);
+
   // Permissão controlada por PermissionRoute no App.tsx
 
   return (
-    <div className="container mx-auto p-6 max-w-6xl">
+    <div className="container mx-auto p-6 max-w-7xl">
       {/* Header */}
       <div className="mb-8">
         <Button
@@ -184,22 +192,58 @@ const PermissionManagement = () => {
         </Alert>
       )}
 
-      {/* Subordinates List */}
+      {/* Subordinates Grid with Sidebar */}
       {!loading && subordinates.length > 0 && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">
-              Terapeutas ({subordinates.length})
-            </h2>
+        <div className="flex gap-6">
+          {/* Sidebar - Lista de Subordinados */}
+          <div className="w-72 flex-shrink-0">
+            <div className="bg-card border rounded-lg p-4">
+              <h2 className="text-sm font-semibold text-muted-foreground mb-3 px-2">
+                Terapeutas ({subordinates.length})
+              </h2>
+              <div className="space-y-1">
+                {subordinates.map((subordinate) => (
+                  <button
+                    key={subordinate.id}
+                    onClick={() => setSelectedSubordinateId(subordinate.id)}
+                    className={`w-full text-left p-3 rounded-lg transition-colors ${
+                      selectedSubordinateId === subordinate.id
+                        ? 'bg-primary text-primary-foreground'
+                        : 'hover:bg-muted'
+                    }`}
+                  >
+                    <div className="font-medium text-sm">{subordinate.full_name}</div>
+                    <div className={`text-xs mt-1 ${
+                      selectedSubordinateId === subordinate.id
+                        ? 'text-primary-foreground/80'
+                        : 'text-muted-foreground'
+                    }`}>
+                      CRP: {subordinate.crp} • {subordinate.patient_count} pacientes
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
-          
-          {subordinates.map((subordinate) => (
-            <SubordinatePermissionCard
-              key={subordinate.id}
-              subordinate={subordinate}
-              onUpdate={fetchSubordinates}
-            />
-          ))}
+
+          {/* Main Content - Card do Subordinado Selecionado */}
+          <div className="flex-1">
+            {selectedSubordinate ? (
+              <SubordinatePermissionCard
+                key={selectedSubordinate.id}
+                subordinate={selectedSubordinate}
+                onUpdate={fetchSubordinates}
+              />
+            ) : (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Selecione um terapeuta</AlertTitle>
+                <AlertDescription>
+                  Escolha um terapeuta da lista ao lado para gerenciar suas permissões.
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
         </div>
       )}
     </div>
