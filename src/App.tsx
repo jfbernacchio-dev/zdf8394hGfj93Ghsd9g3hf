@@ -47,6 +47,7 @@ import PermissionManagement from "./pages/PermissionManagement";
 import LevelPermissionsManagement from "./pages/LevelPermissionsManagement";
 import PeerSharingManagement from "./pages/PeerSharingManagement";
 import MigrationWizard from "./pages/MigrationWizard";
+import Organogram from "./pages/Organogram";
 import BackupTests from "./pages/BackupTests";
 import ConsentForm from "./pages/ConsentForm";
 import WhatsAppChat from "./pages/WhatsAppChat";
@@ -175,6 +176,8 @@ const App = () => (
             <Route path="/metrics/website" element={<ProtectedRoute><PermissionRoute path="/website-metrics"><Layout><WebsiteMetrics /></Layout></PermissionRoute></ProtectedRoute>} />
             <Route path="/level-permissions" element={<ProtectedRoute><Layout><LevelPermissionsManagement /></Layout></ProtectedRoute>} />
             <Route path="/peer-sharing" element={<ProtectedRoute><Layout><PeerSharingManagement /></Layout></ProtectedRoute>} />
+            <Route path="/migration-wizard" element={<ProtectedRoute><Layout><MigrationWizard /></Layout></ProtectedRoute>} />
+            <Route path="/organogram" element={<ProtectedRoute><Layout><Organogram /></Layout></ProtectedRoute>} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
