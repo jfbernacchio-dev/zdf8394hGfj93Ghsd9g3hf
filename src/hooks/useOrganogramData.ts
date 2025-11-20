@@ -41,6 +41,7 @@ export const useOrganogramData = () => {
           organization_levels(level_name, level_number)
         `);
 
+      console.log('🔍 [DIAGNÓSTICO 1] POSITIONS QUERY RESULT:', JSON.stringify(positions, null, 2));
       if (posError) throw posError;
 
       // Get all user positions
@@ -52,6 +53,7 @@ export const useOrganogramData = () => {
           profiles(full_name)
         `);
 
+      console.log('🔍 [DIAGNÓSTICO 2] USER_POSITIONS QUERY RESULT:', JSON.stringify(userPositions, null, 2));
       if (userPosError) throw userPosError;
 
       // Build tree structure
@@ -72,19 +74,53 @@ export const useOrganogramData = () => {
         });
       });
 
+      console.log('🔍 [DIAGNÓSTICO 3] POSITIONS_MAP COMPLETO ANTES DO BUILD_TREE:');
+      console.log('Total de nós:', positionsMap.size);
+      positionsMap.forEach((node, key) => {
+        console.log(`Node ${key}:`, {
+          position_id: node.position_id,
+          position_name: node.position_name,
+          parent_position_id: node.parent_position_id,
+          user_id: node.user_id,
+          user_name: node.user_name,
+          level_name: node.level_name,
+          children_count: node.children?.length || 0
+        });
+      });
+
       // Build hierarchy
       const roots: OrganizationNode[] = [];
+      
+      console.log('🔍 [DIAGNÓSTICO 4] TRACE DO BUILD_TREE:');
+      let nodesWithParent = 0;
+      let nodesWithoutParent = 0;
+      
       positionsMap.forEach(node => {
         if (node.parent_position_id) {
+          nodesWithParent++;
+          console.log(`  ↳ Node ${node.position_name} tem parent: ${node.parent_position_id}`);
           const parent = positionsMap.get(node.parent_position_id);
           if (parent) {
             parent.children = parent.children || [];
             parent.children.push(node);
+            console.log(`    ✅ Parent encontrado: ${parent.position_name}`);
+          } else {
+            console.log(`    ❌ Parent NÃO encontrado no map!`);
           }
         } else {
+          nodesWithoutParent++;
+          console.log(`  ↳ Node ${node.position_name} é RAIZ (parent_position_id: ${node.parent_position_id})`);
           roots.push(node);
         }
       });
+      
+      console.log('🔍 [DIAGNÓSTICO 5] RESUMO BUILD_TREE:');
+      console.log('  Total de nós:', positionsMap.size);
+      console.log('  Nós COM parent:', nodesWithParent);
+      console.log('  Nós SEM parent (raízes):', nodesWithoutParent);
+      console.log('  Roots array final:', JSON.stringify(roots, null, 2));
+
+      console.log('🔍 [DIAGNÓSTICO 6] ORGANIZATION_TREE FINAL (retorno):', JSON.stringify(roots, null, 2));
 
       return roots;
     }
