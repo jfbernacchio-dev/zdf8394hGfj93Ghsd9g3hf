@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubordinatePermissions } from './useSubordinatePermissions';
+import { useLevelPermissions } from './useLevelPermissions';
 import type { PermissionDomain, AccessLevel, UserRole } from '@/types/permissions';
 import type { SectionConfig } from '@/types/sectionTypes';
 import type { CardConfig } from '@/types/cardTypes';
@@ -8,39 +9,31 @@ import { ALL_AVAILABLE_CARDS } from '@/types/cardTypes';
 
 /**
  * ============================================================================
- * HOOK: useCardPermissions - FASE 2
+ * HOOK: useCardPermissions (FASE 4 — INTEGRAÇÃO COM NOVO SISTEMA)
  * ============================================================================
  * 
  * Hook central para todas as verificações de permissões de cards e seções.
  * 
- * FUNCIONALIDADES:
- * - Verifica se usuário pode ver um card específico (FASE 1)
- * - Verifica nível de acesso a domínios (FASE 1)
- * - Valida acesso a seções inteiras (FASE 2) 🆕
- * - Filtra cards disponíveis por seção (FASE 2) 🆕
- * - Decide renderização de seções (FASE 2) 🆕
+ * INTEGRAÇÃO HÍBRIDA:
+ * - useAuth: papéis do usuário (admin, accountant, subordinate)
+ * - useSubordinatePermissions: configurações (novo + antigo integrados)
+ * - useLevelPermissions: acesso direto ao novo sistema de níveis
  * 
- * USO TÍPICO:
- * ```tsx
- * const { canViewCard, canViewSection, getAvailableCardsForSection } = useCardPermissions();
- * 
- * // Card individual
- * if (!canViewCard('patient-stat-revenue-month')) return null;
- * 
- * // Seção inteira
- * if (!shouldShowSection(sectionConfig)) return null;
- * 
- * // Cards de uma seção
- * const visibleCards = getAvailableCardsForSection(sectionConfig);
- * ```
- * 
+ * LÓGICA: useSubordinatePermissions já prioriza novo sistema internamente
  * ============================================================================
  */
 
 export function useCardPermissions() {
   const authContext = useAuth();
   const { isAdmin, isFullTherapist, isAccountant, isSubordinate, user, rolesLoaded } = authContext;
-  const { permissions, loading: permissionsLoading } = useSubordinatePermissions();
+  const { 
+    permissions, 
+    loading: permissionsLoading,
+    usingNewSystem 
+  } = useSubordinatePermissions();
+  
+  // FASE 4: Acesso direto ao novo sistema para casos específicos
+  const { levelPermissions, levelInfo } = useLevelPermissions();
 
   console.log('🔐 [useCardPermissions] HOOK EXECUTOU:', {
     user: user?.id,
@@ -50,6 +43,8 @@ export function useCardPermissions() {
     isAccountant,
     isSubordinate,
     permissionsLoading,
+    usingNewSystem,
+    hasLevelInfo: !!levelInfo,
     hasAllFalse: !isAdmin && !isFullTherapist && !isAccountant && !isSubordinate
   });
 
@@ -68,7 +63,8 @@ export function useCardPermissions() {
     null;
 
   /**
-   * Verifica se usuário tem acesso a um domínio específico
+   * FASE 4: Verifica se usuário tem acesso a um domínio específico
+   * Usa level permissions se disponível, senão fallback para lógica antiga
    */
   const hasAccess = (domain: PermissionDomain, minimumLevel: AccessLevel = 'read'): boolean => {
     // Admin e FullTherapist sempre têm acesso total
@@ -83,6 +79,17 @@ export function useCardPermissions() {
     // Se não é subordinado (é Full), tem acesso a tudo
     if (!isSubordinate) return true;
 
+    // ====================================================================
+    // NOVO SISTEMA: Usar level permissions se disponível
+    // ====================================================================
+    if (usingNewSystem && levelPermissions) {
+      const domainAccess = levelPermissions[domain];
+      return hasAccessLevel(domainAccess, minimumLevel);
+    }
+
+    // ====================================================================
+    // SISTEMA ANTIGO: Fallback para lógica baseada em subordinatePermissions
+    // ====================================================================
     // Subordinado: verificar permissões específicas
     if (!permissions) return false;
 
@@ -312,5 +319,19 @@ export function useCardPermissions() {
     // FASE 2: Helper functions
     getCardsByDomain,
     getVisibleCards,
+    
+    // FASE 4: Expor informações do sistema
+    usingNewSystem,
+    levelInfo,
   };
+}
+
+/**
+ * Helper: Verifica se accessLevel atende minimumLevel
+ */
+function hasAccessLevel(current: AccessLevel, minimum: AccessLevel): boolean {
+  const levels: AccessLevel[] = ['none', 'read', 'write', 'full'];
+  const currentIndex = levels.indexOf(current);
+  const minimumIndex = levels.indexOf(minimum);
+  return currentIndex >= minimumIndex;
 }
