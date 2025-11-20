@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubordinatePermissions } from './useSubordinatePermissions';
 import { useLevelPermissions } from './useLevelPermissions';
+import { supabase } from '@/integrations/supabase/client';
 import type { PermissionDomain, AccessLevel, UserRole } from '@/types/permissions';
 import type { SectionConfig } from '@/types/sectionTypes';
 import type { CardConfig } from '@/types/cardTypes';
@@ -300,6 +301,52 @@ export function useCardPermissions() {
     return (sectionConfig: SectionConfig) => getAvailableCardsForSection(sectionConfig);
   }, [isAdmin, isFullTherapist, isAccountant, isSubordinate, permissions, currentRole]);
 
+  /**
+   * FASE 6: Verifica se posso acessar dados de um peer específico em um domínio
+   */
+  const canViewPeerDomain = async (
+    peerUserId: string,
+    domain: PermissionDomain
+  ): Promise<boolean> => {
+    if (!user?.id) return false;
+
+    try {
+      const { data, error } = await supabase.rpc('can_view_peer_data', {
+        _requesting_user_id: user.id,
+        _target_user_id: peerUserId,
+        _domain: domain,
+      });
+
+      if (error) throw error;
+      return data || false;
+    } catch (error) {
+      console.error('Error checking peer domain access:', error);
+      return false;
+    }
+  };
+
+  /**
+   * FASE 6: Obtém domínios compartilhados com um peer
+   */
+  const getPeerSharedDomains = async (
+    peerUserId: string
+  ): Promise<PermissionDomain[]> => {
+    if (!user?.id) return [];
+
+    try {
+      const { data, error } = await supabase.rpc('get_peer_shared_domains', {
+        _requesting_user_id: user.id,
+        _target_user_id: peerUserId,
+      });
+
+      if (error) throw error;
+      return (data || []) as PermissionDomain[];
+    } catch (error) {
+      console.error('Error getting peer shared domains:', error);
+      return [];
+    }
+  };
+
   return {
     // Estado
     loading,
@@ -323,6 +370,10 @@ export function useCardPermissions() {
     // FASE 4: Expor informações do sistema
     usingNewSystem,
     levelInfo,
+    
+    // FASE 6: Peer sharing functions
+    canViewPeerDomain,
+    getPeerSharedDomains,
   };
 }
 

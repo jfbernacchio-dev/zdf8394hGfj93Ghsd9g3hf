@@ -687,6 +687,38 @@ export type Database = {
           },
         ]
       }
+      level_sharing_config: {
+        Row: {
+          created_at: string
+          id: string
+          level_id: string
+          shared_domains: string[]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          level_id: string
+          shared_domains?: string[]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          level_id?: string
+          shared_domains?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "level_sharing_config_level_id_fkey"
+            columns: ["level_id"]
+            isOneToOne: true
+            referencedRelation: "organization_levels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       log_reviews: {
         Row: {
           actions_taken: string | null
@@ -1322,6 +1354,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      peer_sharing: {
+        Row: {
+          created_at: string
+          id: string
+          is_bidirectional: boolean
+          receiver_user_id: string
+          shared_domains: string[]
+          sharer_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_bidirectional?: boolean
+          receiver_user_id: string
+          shared_domains?: string[]
+          sharer_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_bidirectional?: boolean
+          receiver_user_id?: string
+          shared_domains?: string[]
+          sharer_user_id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       permission_reviews: {
         Row: {
@@ -2086,6 +2148,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_view_peer_data: {
+        Args: {
+          _domain: string
+          _requesting_user_id: string
+          _target_user_id: string
+        }
+        Returns: boolean
+      }
       check_expired_temporary_access: { Args: never; Returns: undefined }
       get_all_subordinates: {
         Args: { _user_id: string }
@@ -2122,6 +2192,10 @@ export type Database = {
       get_organization_id_for_user: {
         Args: { _user_id: string }
         Returns: string
+      }
+      get_peer_shared_domains: {
+        Args: { _requesting_user_id: string; _target_user_id: string }
+        Returns: string[]
       }
       get_subordinate_ids: { Args: { _manager_id: string }; Returns: string[] }
       get_subordinate_therapists: {

@@ -45,6 +45,7 @@ import LogReview from "./pages/LogReview";
 import PermissionReview from "./pages/PermissionReview";
 import PermissionManagement from "./pages/PermissionManagement";
 import LevelPermissionsManagement from "./pages/LevelPermissionsManagement";
+import PeerSharingManagement from "./pages/PeerSharingManagement";
 import MigrationWizard from "./pages/MigrationWizard";
 import BackupTests from "./pages/BackupTests";
 import ConsentForm from "./pages/ConsentForm";
@@ -172,6 +173,8 @@ const App = () => (
             <Route path="/profile/edit" element={<ProtectedRoute><PermissionRoute path="/profile-edit"><Layout><ProfileEdit /></Layout></PermissionRoute></ProtectedRoute>} />
             <Route path="/whatsapp" element={<ProtectedRoute><PermissionRoute path="/whatsapp"><Layout><WhatsAppChat /></Layout></PermissionRoute></ProtectedRoute>} />
             <Route path="/metrics/website" element={<ProtectedRoute><PermissionRoute path="/website-metrics"><Layout><WebsiteMetrics /></Layout></PermissionRoute></ProtectedRoute>} />
+            <Route path="/level-permissions" element={<ProtectedRoute><Layout><LevelPermissionsManagement /></Layout></ProtectedRoute>} />
+            <Route path="/peer-sharing" element={<ProtectedRoute><Layout><PeerSharingManagement /></Layout></ProtectedRoute>} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
