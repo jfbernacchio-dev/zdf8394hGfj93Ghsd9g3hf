@@ -63,8 +63,7 @@ export const useOrganogramData = () => {
         .from('user_positions')
         .select(`
           position_id,
-          user_id,
-          profiles(full_name)
+          user_id
         `);
 
       console.log('🔍 [DIAGNÓSTICO 2.2] USER_POSITIONS RESULT:', userPositions);
@@ -72,12 +71,12 @@ export const useOrganogramData = () => {
       console.log('🔍 [DIAGNÓSTICO 2.4] USER_POSITIONS ERROR COMPLETO:', JSON.stringify(userPosError, null, 2));
       
       if (userPosError) {
-        console.error('❌ [DIAGNÓSTICO 2.5] ERRO NA QUERY DE USER_POSITIONS, ABORTANDO');
+        console.error('❌ [DIAGNÓSTICO 2.5] ERRO NA QUERY DE USER_POSITIONS (não abortando)');
         console.error('   ↳ Error message:', userPosError.message);
         console.error('   ↳ Error code:', userPosError.code);
         console.error('   ↳ Error details:', userPosError.details);
         console.error('   ↳ Error hint:', userPosError.hint);
-        throw userPosError;
+        // Não abortar o hook - continuar com userPositions vazio
       }
 
       // Build tree structure
@@ -93,7 +92,7 @@ export const useOrganogramData = () => {
           level_number: (pos.organization_levels as any)?.level_number || 0,
           parent_position_id: pos.parent_position_id,
           user_id: userPos?.user_id || null,
-          user_name: (userPos?.profiles as any)?.full_name || null,
+          user_name: null, // Por enquanto sem buscar profiles
           children: []
         });
       });
