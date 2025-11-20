@@ -32,8 +32,34 @@ export const useOrganogramData = () => {
     queryFn: async () => {
       console.log('🚀 [DIAGNÓSTICO 0] HOOK useOrganogramData - queryFn INICIADA');
       
-      // Get all positions with their users
-      console.log('🔍 [DIAGNÓSTICO 1.1] INICIANDO QUERY DE ORGANIZATION_POSITIONS');
+      // First, get current user's organization_id
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error('❌ Usuário não autenticado');
+        return [];
+      }
+
+      console.log('🔍 [DIAGNÓSTICO 0.1] Buscando organization_id do usuário:', user.id);
+      const { data: userOrgData } = await supabase
+        .from('user_positions')
+        .select(`
+          organization_positions(
+            organization_levels(organization_id)
+          )
+        `)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      const userOrgId = (userOrgData?.organization_positions as any)?.organization_levels?.organization_id;
+      console.log('🔍 [DIAGNÓSTICO 0.2] organization_id do usuário:', userOrgId);
+
+      if (!userOrgId) {
+        console.error('❌ Usuário não pertence a nenhuma organização');
+        return [];
+      }
+
+      // Get all positions from user's organization
+      console.log('🔍 [DIAGNÓSTICO 1.1] INICIANDO QUERY DE ORGANIZATION_POSITIONS (filtrado por org)');
       const { data: positions, error: posError } = await supabase
         .from('organization_positions')
         .select(`
@@ -41,8 +67,9 @@ export const useOrganogramData = () => {
           position_name,
           level_id,
           parent_position_id,
-          organization_levels(level_name, level_number)
-        `);
+          organization_levels!inner(level_name, level_number, organization_id)
+        `)
+        .eq('organization_levels.organization_id', userOrgId);
 
       console.log('🔍 [DIAGNÓSTICO 1.2] POSITIONS RESULT:', positions);
       console.log('🔍 [DIAGNÓSTICO 1.3] POSITIONS ERROR:', posError);
