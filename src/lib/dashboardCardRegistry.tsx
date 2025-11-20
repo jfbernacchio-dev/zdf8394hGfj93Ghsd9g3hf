@@ -1303,18 +1303,16 @@ export const DashboardChartAttendanceWeekly = ({
               </CardTitle>
               <CardDescription className="text-xs">Evolução temporal</CardDescription>
             </div>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs">
-                  <p className="font-semibold mb-1">Taxa de Comparecimento</p>
-                  <p className="text-xs mb-2">Gráfico mostrando o percentual de comparecimento ao longo do tempo.</p>
-                  <p className="text-xs font-mono bg-muted p-1 rounded">Taxa = (Comparecidas / Total Esperado) × 100</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="font-semibold mb-1">Taxa de Comparecimento</p>
+                <p className="text-xs mb-2">Gráfico mostrando o percentual de comparecimento ao longo do tempo.</p>
+                <p className="text-xs font-mono bg-muted p-1 rounded">Taxa = (Comparecidas / Total Esperado) × 100</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
           {setScaleOverride && (
             <DropdownMenu>
@@ -1542,18 +1540,16 @@ export const DashboardChartMonthlyComparison = ({
               </CardTitle>
               <CardDescription className="text-xs">Sessões no período</CardDescription>
             </div>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs">
-                  <p className="font-semibold mb-1">Comparação Temporal</p>
-                  <p className="text-xs mb-2">Gráfico de barras comparando sessões realizadas, faltas e pendentes ao longo do tempo.</p>
-                  <p className="text-xs font-mono bg-muted p-1 rounded">Comparecidas + Faltas + Pendentes por intervalo</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="font-semibold mb-1">Comparação Temporal</p>
+                <p className="text-xs mb-2">Gráfico de barras comparando sessões realizadas, faltas e pendentes ao longo do tempo.</p>
+                <p className="text-xs font-mono bg-muted p-1 rounded">Comparecidas + Faltas + Pendentes por intervalo</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
           {setScaleOverride && (
             <DropdownMenu>
