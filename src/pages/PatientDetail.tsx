@@ -2127,7 +2127,7 @@ Assinatura do Profissional`;
               <div className="flex justify-center items-center py-8">
                 <p className="text-muted-foreground">Carregando permissões...</p>
               </div>
-            ) : autonomyPermissions?.canFullSeeClinic ? (
+            ) : (patient?.user_id === user?.id || autonomyPermissions?.canFullSeeClinic) ? (
               <ClinicalComplaintSummary patientId={id!} />
             ) : (
               <Alert>
@@ -2145,7 +2145,7 @@ Assinatura do Profissional`;
               <div className="flex justify-center items-center py-8">
                 <p className="text-muted-foreground">Carregando permissões...</p>
               </div>
-            ) : autonomyPermissions?.canFullSeeClinic ? (
+            ) : (patient?.user_id === user?.id || autonomyPermissions?.canFullSeeClinic) ? (
               <ClinicalEvolution patientId={id!} />
             ) : (
               <Alert>
