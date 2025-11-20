@@ -189,19 +189,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('🔍 [LOG 16] DEPOIS de setIsAdmin');
 
       console.log('🔍 [LOG 17] ANTES da query fulltherapist');
-      // Check if user is fulltherapist
-      const { data: fullTherapistRoleData } = await supabase
-        .from('user_roles')
-        .select('role')
+      // Check if user is fulltherapist (level_number === 1)
+      const { data: levelData, error: levelErr } = await supabase
+        .from('user_positions')
+        .select(`
+          position_id,
+          organization_positions (
+            id,
+            level_id,
+            parent_position_id,
+            organization_levels (
+              level_number
+            )
+          )
+        `)
         .eq('user_id', userId)
-        .eq('role', 'fulltherapist')
         .maybeSingle();
 
       console.log('🔍 [LOG 18] DEPOIS da query fulltherapist');
-      console.log('🧑‍⚕️ [AuthContext] FullTherapist check:', !!fullTherapistRoleData);
+      const isFullTherapist = levelData?.organization_positions?.organization_levels?.level_number === 1;
+      console.log('🧑‍⚕️ [AuthContext] FullTherapist check:', isFullTherapist);
       console.log('🔍 [LOG 18.5] ANTES de setIsFullTherapist');
       try {
-        setIsFullTherapist(!!fullTherapistRoleData);
+        setIsFullTherapist(isFullTherapist);
         console.log('🔍 [LOG 18.7] DENTRO do try após setIsFullTherapist');
       } catch (e) {
         console.error('🚨 [LOG 18.8] ERRO em setIsFullTherapist:', e);
@@ -223,16 +233,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('🔍 [LOG 22] DEPOIS de setIsAccountant');
 
       console.log('🔍 [LOG 23] ANTES da query subordinate');
-      // Check if user is subordinate (has a manager)
-      const { data: subordinateData } = await supabase
-        .from('therapist_assignments')
-        .select('manager_id')
-        .eq('subordinate_id', userId)
-        .maybeSingle();
+      // Check if user is subordinate (has parent_position_id)
+      const parentId = levelData?.organization_positions?.parent_position_id;
+      const isSubordinateUser = !!parentId;
 
       console.log('🔍 [LOG 24] DEPOIS da query subordinate');
-      console.log('👥 [AuthContext] Subordinate check:', !!subordinateData);
-      setIsSubordinate(!!subordinateData);
+      console.log('👥 [AuthContext] Subordinate check:', isSubordinateUser);
+      setIsSubordinate(isSubordinateUser);
       console.log('🔍 [LOG 25] DEPOIS de setIsSubordinate');
       
       console.log('🔍 [LOG 26] ANTES de setRolesLoaded(true)');
@@ -245,9 +252,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('🔍 [AuthContext] ROLES CARREGADOS');
       console.log('====================================');
       console.log('isAdmin:', !!adminRoleData);
-      console.log('isFullTherapist:', !!fullTherapistRoleData);
+      console.log('isFullTherapist:', isFullTherapist);
       console.log('isAccountant:', !!accountantRoleData);
-      console.log('isSubordinate:', !!subordinateData);
+      console.log('isSubordinate:', isSubordinateUser);
       console.log('rolesLoaded:', true);
       console.log('====================================');
       console.log('🔍 [LOG 28] FIM do bloco try (sucesso)');
