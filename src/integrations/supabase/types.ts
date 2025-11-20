@@ -2087,7 +2087,42 @@ export type Database = {
     }
     Functions: {
       check_expired_temporary_access: { Args: never; Returns: undefined }
+      get_all_subordinates: {
+        Args: { _user_id: string }
+        Returns: {
+          depth: number
+          subordinate_user_id: string
+        }[]
+      }
+      get_all_superiors: {
+        Args: { _user_id: string }
+        Returns: {
+          depth: number
+          superior_user_id: string
+        }[]
+      }
+      get_direct_superior: { Args: { _user_id: string }; Returns: string }
       get_manager_id: { Args: { _subordinate_id: string }; Returns: string }
+      get_organization_hierarchy_info: {
+        Args: { _user_id: string }
+        Returns: {
+          depth_from_top: number
+          direct_superior_user_id: string
+          is_owner: boolean
+          level_id: string
+          level_name: string
+          level_number: number
+          organization_id: string
+          parent_position_id: string
+          position_id: string
+          position_name: string
+          user_id: string
+        }[]
+      }
+      get_organization_id_for_user: {
+        Args: { _user_id: string }
+        Returns: string
+      }
       get_subordinate_ids: { Args: { _manager_id: string }; Returns: string[] }
       get_subordinate_therapists: {
         Args: { _manager_id: string }
@@ -2095,6 +2130,13 @@ export type Database = {
           subordinate_id: string
         }[]
       }
+      get_subordinates_at_depth: {
+        Args: { _target_depth?: number; _user_id: string }
+        Returns: {
+          subordinate_user_id: string
+        }[]
+      }
+      get_user_level_number: { Args: { _user_id: string }; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -2102,10 +2144,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_in_hierarchy_below: {
+        Args: { _superior_user_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_manager_of: {
         Args: { _manager_id: string; _subordinate_id: string }
         Returns: boolean
       }
+      is_organization_owner: { Args: { _user_id: string }; Returns: boolean }
       is_subordinate: { Args: { _user_id: string }; Returns: boolean }
       validate_cpf: { Args: { cpf_input: string }; Returns: boolean }
     }
