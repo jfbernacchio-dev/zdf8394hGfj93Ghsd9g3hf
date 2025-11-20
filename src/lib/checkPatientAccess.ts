@@ -51,18 +51,9 @@ export async function canAccessPatient(
     return { allowed: true };
   }
 
-  // 3. Se é admin/Full, verificar autonomia do subordinado
+  // 3. Se é admin/Full, sempre permitir acesso à página
+  // (Controle de dados clínicos é feito em canViewPatientClinicalData)
   if (isAdmin) {
-    const autonomy = await getSubordinateAutonomy(patient.user_id);
-    
-    // Se subordinado gerencia próprios pacientes, Full NÃO pode ver
-    if (autonomy.managesOwnPatients) {
-      return { 
-        allowed: false, 
-        reason: 'Este terapeuta gerencia seus próprios pacientes de forma autônoma' 
-      };
-    }
-    
     return { allowed: true };
   }
 
