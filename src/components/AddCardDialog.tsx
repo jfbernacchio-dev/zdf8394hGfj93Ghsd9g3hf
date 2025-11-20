@@ -26,7 +26,7 @@ import { Card } from '@/components/ui/card';
 import { Plus, X, DollarSign, Calendar, Activity, BarChart3, Settings, TrendingUp, Users, Info } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCardPermissions } from '@/hooks/useCardPermissions';
 import { DASHBOARD_SECTIONS } from '@/lib/defaultSectionsDashboard';
 import type { CardConfig } from '@/types/cardTypes';
@@ -219,19 +219,17 @@ export const AddCardDialog = ({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <h4 className="font-medium text-sm">{card.name}</h4>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-4 w-4 p-0">
-                      <Info className="h-3 w-3 text-muted-foreground" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p className="font-semibold mb-1">{card.name}</p>
-                    <p className="text-xs">{card.detailedDescription || card.description}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-4 w-4 p-0">
+                    <Info className="h-3 w-3 text-muted-foreground" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="font-semibold mb-1">{card.name}</p>
+                  <p className="text-xs">{card.detailedDescription || card.description}</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
             <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
               {card.description}
