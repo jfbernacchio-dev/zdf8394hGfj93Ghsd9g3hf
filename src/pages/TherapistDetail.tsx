@@ -49,6 +49,7 @@ import { getSubordinateAutonomy, type AutonomyPermissions } from '@/lib/checkSub
 import Layout from '@/components/Layout';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { SubordinatePermissionCard } from '@/components/SubordinatePermissionCard';
 
 interface Notification {
   id: string;
@@ -846,123 +847,24 @@ const TherapistDetail = () => {
           </TabsContent>
 
           <TabsContent value="autonomy">
-            <Card className="p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <Settings className="h-6 w-6 text-primary" />
-                <h3 className="text-lg font-semibold">Configurações de Autonomia</h3>
-              </div>
-
-              {!autonomySettings ? (
+            {!autonomySettings || !therapist ? (
+              <Card className="p-6">
                 <p className="text-muted-foreground">Carregando configurações...</p>
-              ) : (
-                <div className="space-y-6">
-                  {/* Indicador do Cenário Atual */}
-                  <Alert>
-                    <AlertDescription>
-                      <strong>Cenário Atual:</strong> {
-                        !autonomySettings.managesOwnPatients 
-                          ? '1 - Autonomia Zero (Você vê tudo, incluindo dados clínicos)'
-                          : autonomySettings.hasFinancialAccess
-                            ? autonomySettings.nfseEmissionMode === 'manager_company'
-                              ? '3A - Autonomia Total com CNPJ do Full (Sessões entram no seu fechamento)'
-                              : '3 - Autonomia Total (Subordinado gerencia tudo sozinho)'
-                            : '2 - Autonomia Parcial (Subordinado gerencia clínico, você gerencia financeiro)'
-                      }
-                    </AlertDescription>
-                  </Alert>
-
-                  {/* Switch 1: Gerencia Pacientes */}
-                  <div className="space-y-3 p-4 border rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <Label className="text-base font-medium">Subordinado gerencia seus próprios pacientes?</Label>
-                        <p className="text-sm text-muted-foreground">
-                          {autonomySettings.managesOwnPatients 
-                            ? 'Você vê apenas a lista básica (sem dados clínicos)'
-                            : 'Você tem acesso total aos dados clínicos'}
-                        </p>
-                      </div>
-                      <Switch
-                        checked={autonomySettings.managesOwnPatients}
-                        disabled={isUpdating}
-                        onCheckedChange={(checked) => updateAutonomySetting('manages_own_patients', checked)}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Switch 2: Acesso Financeiro (Cascata) */}
-                  {autonomySettings.managesOwnPatients && (
-                    <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <Label className="text-base font-medium">Subordinado faz o controle financeiro?</Label>
-                          <p className="text-sm text-muted-foreground">
-                            {autonomySettings.hasFinancialAccess
-                              ? 'Subordinado tem acesso à aba Financial'
-                              : 'Sessões entram no seu fechamento financeiro'}
-                          </p>
-                        </div>
-                        <Switch
-                          checked={autonomySettings.hasFinancialAccess}
-                          disabled={isUpdating}
-                          onCheckedChange={(checked) => updateAutonomySetting('has_financial_access', checked)}
-                        />
-                      </div>
-
-                      {/* RadioGroup: Modo de Emissão (Cascata) */}
-                      {autonomySettings.hasFinancialAccess && (
-                        <div className="mt-4 space-y-3 pl-6 border-l-2">
-                          <Label className="text-sm font-medium">Modo de Emissão de NFSe:</Label>
-                          <RadioGroup
-                            value={autonomySettings.nfseEmissionMode}
-                            disabled={isUpdating}
-                            onValueChange={(value) => updateAutonomySetting('nfse_emission_mode', value)}
-                          >
-                            <div className="flex items-start space-x-2">
-                              <RadioGroupItem value="own_company" id="own_radio" />
-                              <div className="space-y-1">
-                                <Label htmlFor="own_radio" className="cursor-pointer font-normal">
-                                  Empresa Própria
-                                </Label>
-                                <p className="text-xs text-muted-foreground">
-                                  Subordinado usa seu próprio CNPJ para emitir NFSe
-                                </p>
-                              </div>
-                            </div>
-
-                            {managerHasCNPJ ? (
-                              <div className="flex items-start space-x-2">
-                                <RadioGroupItem value="manager_company" id="manager_radio" />
-                                <div className="space-y-1">
-                                  <Label htmlFor="manager_radio" className="cursor-pointer font-normal">
-                                    Empresa do Full
-                                  </Label>
-                                  <p className="text-xs text-muted-foreground">
-                                    Subordinado emite NFSe usando o CNPJ do Full (sessões entram no fechamento do Full)
-                                  </p>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="flex items-start space-x-2 opacity-50">
-                                <RadioGroupItem value="manager_company" id="manager_radio" disabled />
-                                <div className="space-y-1">
-                                  <Label htmlFor="manager_radio" className="cursor-pointer font-normal">
-                                    Empresa do Full (Indisponível)
-                                  </Label>
-                                  <p className="text-xs text-muted-foreground">
-                                    Você precisa cadastrar seu CNPJ na configuração de NFSe
-                                  </p>
-                                </div>
-                              </div>
-                            )}
-                          </RadioGroup>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </Card>
+              </Card>
+            ) : (
+              <SubordinatePermissionCard
+                subordinate={{
+                  id: therapist.id,
+                  full_name: therapist.full_name,
+                  crp: therapist.crp || 'N/A',
+                  patient_count: patients.length,
+                  manages_own_patients: autonomySettings.managesOwnPatients,
+                  has_financial_access: autonomySettings.hasFinancialAccess,
+                  nfse_emission_mode: autonomySettings.nfseEmissionMode
+                }}
+                onUpdate={loadAutonomySettings}
+              />
+            )}
           </TabsContent>
 
           <TabsContent value="patients">
