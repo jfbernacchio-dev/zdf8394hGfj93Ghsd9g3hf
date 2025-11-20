@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
 import { SubordinatePermissionCard } from '@/components/SubordinatePermissionCard';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Shield, AlertCircle, RefreshCw } from 'lucide-react';
+import { Shield, AlertCircle, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -19,11 +18,10 @@ interface SubordinatePermission {
   nfse_emission_mode: 'own_company' | 'manager_company';
 }
 
-const PermissionManagement = () => {
-  const { isAdmin, user } = useAuth();
-  const navigate = useNavigate();
+export const PermissionManagementCompact = () => {
+  const { user } = useAuth();
   const [subordinates, setSubordinates] = useState<SubordinatePermission[]>([]);
-  const [selectedSubordinateId, setSelectedSubordinateId] = useState<string | null>(null);
+  const [selectedSubordinateId, setSelectedSubordinateId] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -102,7 +100,7 @@ const PermissionManagement = () => {
         setSelectedSubordinateId(subordinatesData[0].id);
       }
     } catch (error) {
-      console.error('Error fetching subordinates:', error);
+      console.error('[PermissionManagementCompact] Error:', error);
     } finally {
       setLoading(false);
     }
@@ -114,58 +112,44 @@ const PermissionManagement = () => {
 
   const selectedSubordinate = subordinates.find(s => s.id === selectedSubordinateId);
 
-  // Permissão controlada por PermissionRoute no App.tsx
-
   return (
-    <div className="container mx-auto p-6 max-w-5xl">
-      {/* Header */}
-      <div className="mb-8">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate('/therapist-management')}
-          className="mb-4"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Voltar para Equipe
-        </Button>
-
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-primary/10 rounded-lg">
-              <Shield className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">
-                Gerenciamento de Permissões
-              </h1>
-              <p className="text-muted-foreground mt-1">
-                Configure as permissões e autonomia dos terapeutas subordinados
-              </p>
-            </div>
+    <div className="space-y-6">
+      {/* Header Section */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <Shield className="h-5 w-5 text-primary" />
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={loading}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Atualizar
-          </Button>
+          <div>
+            <h2 className="text-xl font-semibold">
+              Gerenciamento de Permissões
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Configure as permissões e autonomia dos terapeutas subordinados
+            </p>
+          </div>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleRefresh}
+          disabled={loading}
+        >
+          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          Atualizar
+        </Button>
       </div>
 
       {/* Info Alert */}
-      <Alert className="mb-6">
+      <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertTitle>Como funciona o sistema de permissões</AlertTitle>
-        <AlertDescription className="mt-2 space-y-2 text-sm">
+        <AlertDescription className="mt-2 space-y-1 text-sm">
           <div>
-            <strong>Gerencia Próprios Pacientes:</strong> Define se o terapeuta vê apenas seus pacientes (autônomo) ou todos da clínica (clínico)
+            <strong>Gerencia Próprios Pacientes:</strong> Define se o terapeuta vê apenas seus pacientes ou todos da clínica
           </div>
           <div>
-            <strong>Acesso Financeiro:</strong> Permite que o terapeuta tenha próprio fechamento financeiro (requer autonomia de pacientes)
+            <strong>Acesso Financeiro:</strong> Permite que o terapeuta tenha próprio fechamento financeiro
           </div>
           <div>
             <strong>Emissão NFSe:</strong> Define se emite notas em nome próprio ou pelo CNPJ do Full
@@ -176,9 +160,8 @@ const PermissionManagement = () => {
       {/* Loading State */}
       {loading && (
         <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-64 w-full" />
-          ))}
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-64 w-full" />
         </div>
       )}
 
@@ -201,16 +184,16 @@ const PermissionManagement = () => {
             <label className="text-sm font-medium">
               Selecione o Terapeuta ({subordinates.length})
             </label>
-            <Select value={selectedSubordinateId || ''} onValueChange={setSelectedSubordinateId}>
-              <SelectTrigger className="w-full max-w-2xl bg-background border-border">
+            <Select value={selectedSubordinateId} onValueChange={setSelectedSubordinateId}>
+              <SelectTrigger className="w-full bg-background border-border">
                 <SelectValue placeholder="Escolha um terapeuta" />
               </SelectTrigger>
               <SelectContent className="bg-popover border border-border shadow-lg z-50">
                 {subordinates.map((subordinate) => (
                   <SelectItem key={subordinate.id} value={subordinate.id} className="cursor-pointer">
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center justify-between w-full gap-4">
                       <span className="font-medium">{subordinate.full_name}</span>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-muted-foreground ml-4">
                         CRP: {subordinate.crp} • {subordinate.patient_count} pacientes
                       </span>
                     </div>
@@ -241,5 +224,3 @@ const PermissionManagement = () => {
     </div>
   );
 };
-
-export default PermissionManagement;
