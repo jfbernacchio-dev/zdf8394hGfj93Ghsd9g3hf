@@ -643,6 +643,50 @@ export type Database = {
         }
         Relationships: []
       }
+      level_permission_sets: {
+        Row: {
+          access_level: string
+          created_at: string
+          domain: string
+          has_financial_access: boolean | null
+          id: string
+          level_id: string
+          manages_own_patients: boolean | null
+          nfse_emission_mode: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_level: string
+          created_at?: string
+          domain: string
+          has_financial_access?: boolean | null
+          id?: string
+          level_id: string
+          manages_own_patients?: boolean | null
+          nfse_emission_mode?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_level?: string
+          created_at?: string
+          domain?: string
+          has_financial_access?: boolean | null
+          id?: string
+          level_id?: string
+          manages_own_patients?: boolean | null
+          nfse_emission_mode?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "level_permission_sets_level_id_fkey"
+            columns: ["level_id"]
+            isOneToOne: false
+            referencedRelation: "organization_levels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       log_reviews: {
         Row: {
           actions_taken: string | null
@@ -953,6 +997,81 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      organization_levels: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          level_name: string
+          level_number: number
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          level_name: string
+          level_number: number
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          level_name?: string
+          level_number?: number
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      organization_positions: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          level_id: string
+          parent_position_id: string | null
+          position_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          level_id: string
+          parent_position_id?: string | null
+          position_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          level_id?: string
+          parent_position_id?: string | null
+          position_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_positions_level_id_fkey"
+            columns: ["level_id"]
+            isOneToOne: false
+            referencedRelation: "organization_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_positions_parent_position_id_fkey"
+            columns: ["parent_position_id"]
+            isOneToOne: false
+            referencedRelation: "organization_positions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       patient_complaints: {
         Row: {
@@ -1806,6 +1925,41 @@ export type Database = {
         }
         Relationships: []
       }
+      user_positions: {
+        Row: {
+          access_expires_at: string | null
+          created_at: string
+          id: string
+          position_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_expires_at?: string | null
+          created_at?: string
+          id?: string
+          position_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_expires_at?: string | null
+          created_at?: string
+          id?: string
+          position_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_positions_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "organization_positions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1932,6 +2086,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_expired_temporary_access: { Args: never; Returns: undefined }
       get_manager_id: { Args: { _subordinate_id: string }; Returns: string }
       get_subordinate_ids: { Args: { _manager_id: string }; Returns: string[] }
       get_subordinate_therapists: {
