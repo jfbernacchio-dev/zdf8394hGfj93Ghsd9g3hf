@@ -60,9 +60,12 @@ const ROLE_COLORS: Record<string, string> = {
 
 export default function OrgManagement() {
   const navigate = useNavigate();
-  const { user, isAdmin, roleGlobal } = useAuth();
+  const { user, isAdmin, roleGlobal, organizationId } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  console.log('[ORG] organizationId:', organizationId);
+  console.log('[ORG] user.id:', user?.id);
 
   // Estado do modal de permissões
   const [permissionModalOpen, setPermissionModalOpen] = useState(false);
@@ -84,14 +87,19 @@ export default function OrgManagement() {
 
   // FASE 7.4: Query para buscar níveis reais do banco com retry automático
   const { data: levels, isLoading: isLoadingLevels, error: errorLevels } = useQuery({
-    queryKey: ['organization-levels', user?.id],
+    queryKey: ['organization-levels', organizationId],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!organizationId) {
+        console.log('[ORG] Sem organizationId, retornando vazio');
+        return [];
+      }
+      
+      console.log('[ORG] Carregando níveis para organizationId:', organizationId);
       
       const { data, error } = await supabase
         .from('organization_levels')
         .select('*')
-        .eq('organization_id', user.id)
+        .eq('organization_id', organizationId)
         .order('level_number', { ascending: true });
 
       if (error) {
@@ -114,25 +122,31 @@ export default function OrgManagement() {
       });
       
       console.debug('[OrgManagement] Níveis carregados:', safeLevels.length);
+      console.log('[ORG] levels loaded:', safeLevels);
       return safeLevels;
     },
-    enabled: !!user?.id,
+    enabled: !!organizationId,
     retry: 3,
     retryDelay: 500,
   });
 
   // FASE 7.4: Query para buscar usuários com suas posições com retry automático
   const { data: userPositions, isLoading: isLoadingUsers, error: errorUsers } = useQuery({
-    queryKey: ['user-positions', user?.id],
+    queryKey: ['user-positions', organizationId],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!organizationId) {
+        console.log('[ORG] Sem organizationId para carregar posições');
+        return [];
+      }
 
       try {
+        console.log('[ORG] Carregando posições para organizationId:', organizationId);
+        
         // Primeiro buscar todos os níveis da organização
         const { data: orgLevels } = await supabase
           .from('organization_levels')
           .select('id')
-          .eq('organization_id', user.id);
+          .eq('organization_id', organizationId);
 
         if (!orgLevels || orgLevels.length === 0) {
           console.debug('[OrgManagement] Nenhum nível encontrado para carregar usuários');
@@ -238,13 +252,14 @@ export default function OrgManagement() {
           .filter((item): item is NonNullable<typeof item> => item !== null); // Remover nulls
 
         console.debug('[OrgManagement] Usuários carregados:', enrichedData?.length || 0);
+        console.log('[ORG] positions loaded:', enrichedData);
         return enrichedData || [];
       } catch (error) {
         console.debug('[OrgManagement] Erro geral ao carregar usuários:', error);
         throw error;
       }
     },
-    enabled: !!user?.id,
+    enabled: !!organizationId,
     retry: 3,
     retryDelay: 500,
   });
@@ -677,9 +692,9 @@ export default function OrgManagement() {
   // FASE 7.1 & 7.8: Mutation para adicionar novo nível com proteção e logs
   const addLevelMutation = useMutation({
     mutationFn: async () => {
-      if (!user?.id) throw new Error('Usuário não autenticado');
+      if (!organizationId) throw new Error('Organização não configurada');
 
-      console.debug('[OrgManagement] Iniciando criação de nível');
+      console.debug('[OrgManagement] Iniciando criação de nível para org:', organizationId);
 
       const maxLevelNumber = levels?.reduce((max, level) => 
         Math.max(max, level.level_number), 0) || 0;
@@ -689,7 +704,7 @@ export default function OrgManagement() {
       const { data, error } = await supabase
         .from('organization_levels')
         .insert({
-          organization_id: user.id,
+          organization_id: organizationId,
           level_number: newLevelNumber,
           level_name: `Nível ${newLevelNumber}`,
           description: null,
@@ -832,22 +847,45 @@ export default function OrgManagement() {
                 </div>
               </div>
 
-              <Button 
-                size="lg" 
-                className="gap-2 shadow-md hover:shadow-lg transition-all"
-                onClick={handleAddLevel}
-                disabled={addLevelMutation.isPending}
-                aria-label="Adicionar novo nível organizacional"
-              >
-                <Plus className="h-5 w-5" />
-                {addLevelMutation.isPending ? 'Adicionando...' : 'Adicionar Nível'}
-              </Button>
+              {organizationId && (
+                <Button 
+                  size="lg" 
+                  className="gap-2 shadow-md hover:shadow-lg transition-all"
+                  onClick={handleAddLevel}
+                  disabled={addLevelMutation.isPending}
+                  aria-label="Adicionar novo nível organizacional"
+                >
+                  <Plus className="h-5 w-5" />
+                  {addLevelMutation.isPending ? 'Adicionando...' : 'Adicionar Nível'}
+                </Button>
+              )}
             </div>
           </div>
         </div>
 
         {/* Organogram View */}
         <div className="container mx-auto px-4 py-8">
+          {/* Validação: usuário sem organização */}
+          {!organizationId ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center max-w-xl mx-auto">
+              <div className="p-6 rounded-full bg-amber-50 mb-4">
+                <TriangleAlert className="h-16 w-16 text-amber-500" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Configuração de empresa pendente</h3>
+              <p className="text-sm text-muted-foreground mb-6">
+                Para usar o organograma, você precisa configurar sua empresa/CNPJ no perfil.
+              </p>
+              <Button 
+                size="lg"
+                onClick={() => navigate('/profile-edit')}
+                className="gap-2"
+              >
+                <User className="h-5 w-5" />
+                Ir para o perfil
+              </Button>
+            </div>
+          ) : (
+            <>
           {/* FASE 6E-6: Estado de erro ao carregar níveis */}
           {errorLevels ? (
             <div className="flex flex-col items-center justify-center py-12 text-center max-w-xl mx-auto">
@@ -1272,6 +1310,8 @@ export default function OrgManagement() {
               </ul>
             </CardContent>
           </Card>
+          </>
+          )}
         </div>
 
         {/* Modal de Permissões */}
