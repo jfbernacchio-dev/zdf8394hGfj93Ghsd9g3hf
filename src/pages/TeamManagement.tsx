@@ -216,11 +216,12 @@ const TeamManagement = () => {
     setIsSubmitting(true);
 
     try {
-      // Buscar usuário
+      // Buscar usuário por CPF ou nome
+      const search = linkFormData.email.trim();
       const { data: profiles, error: profileError } = await supabase
         .from('profiles')
         .select('id, full_name, cpf')
-        .or(`cpf.eq.${linkFormData.email},full_name.ilike.%${linkFormData.email}%`);
+        .or(`cpf.eq.${search},full_name.ilike.%${search}%`);
 
       if (profileError) throw profileError;
 
@@ -392,23 +393,45 @@ const TeamManagement = () => {
         }
       );
 
-      if (createError || !userId) {
-        console.error('❌ [CREATE_USER] Erro no passo 1 (auth/profile):', {
-          error: createError,
-          message: createError?.message,
-          code: (createError as any)?.code
-        });
-        throw createError || new Error('Falha ao criar usuário');
-      }
+      let finalUserId = userId;
 
-      console.debug('✅ [CREATE_USER] Passo 1 concluído. userId:', userId);
+      if (createError || !userId) {
+        const msg = createError?.message?.toLowerCase?.() || '';
+        const code = (createError as any)?.code || '';
+
+        const isAlreadyExists =
+          code === 'user_already_exists' ||
+          msg.includes('already registered') ||
+          msg.includes('user already exists');
+
+        if (isAlreadyExists) {
+          console.debug('🔵 [CREATE_USER] Usuário já existe no sistema');
+          toast({
+            title: "Usuário já cadastrado",
+            description: "Este e-mail já está cadastrado. Use a aba 'Vincular Existente' para adicionar o usuário à equipe.",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
+        } else {
+          // Erro real (não é "já existe")
+          console.error('❌ [CREATE_USER] Erro no passo 1 (auth/profile):', {
+            error: createError,
+            message: createError?.message,
+            code: (createError as any)?.code
+          });
+          throw createError || new Error('Falha ao criar usuário');
+        }
+      }
+      
+      console.debug('✅ [CREATE_USER] Passo 1 concluído. userId:', finalUserId);
 
       // 2. Criar role psychologist
       console.debug('🔵 [CREATE_USER] Passo 2: Criando role psychologist...');
       const { error: roleError } = await supabase
         .from('user_roles')
         .insert({
-          user_id: userId,
+          user_id: finalUserId,
           role: 'psychologist',
         });
 
@@ -466,7 +489,7 @@ const TeamManagement = () => {
       const { error: userPositionError } = await supabase
         .from('user_positions')
         .insert({
-          user_id: userId,
+          user_id: finalUserId,
           position_id: positionId,
         });
 
@@ -480,7 +503,7 @@ const TeamManagement = () => {
       }
 
       console.debug('✅ [CREATE_USER] Passo 3 concluído.');
-      console.debug('🟢 [CREATE_USER] Usuário criado com sucesso!', { userId });
+      console.debug('🟢 [CREATE_USER] Usuário criado com sucesso!', { userId: finalUserId });
 
       await queryClient.invalidateQueries({ queryKey: ['team-members'] });
       
