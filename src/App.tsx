@@ -56,6 +56,7 @@ import WhatsAppChat from "./pages/WhatsAppChat";
 import WebsiteMetrics from "./pages/WebsiteMetrics";
 import ClinicalComplaintForm from "./pages/ClinicalComplaintForm";
 import SessionEvaluationForm from "./pages/SessionEvaluationForm";
+import SetupOrganization from "./pages/SetupOrganization";
 
 const queryClient = new QueryClient();
 
@@ -145,6 +146,7 @@ const App = () => (
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
             <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+            <Route path="/setup-organization" element={<ProtectedRoute><SetupOrganization /></ProtectedRoute>} />
             
             <Route path="/financial" element={<ProtectedRoute><PermissionRoute path="/financial"><Layout><Financial /></Layout></PermissionRoute></ProtectedRoute>} />
             <Route path="/schedule" element={<ProtectedRoute><PermissionRoute path="/schedule"><Layout><Schedule /></Layout></PermissionRoute></ProtectedRoute>} />

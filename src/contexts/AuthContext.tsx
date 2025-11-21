@@ -24,6 +24,13 @@ interface Profile {
   organization_id?: string | null; // FASE 10.3
 }
 
+interface Organization {
+  id: string;
+  legal_name: string;
+  cnpj: string;
+  is_primary: boolean;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -34,6 +41,9 @@ interface AuthContextType {
   isAccountant: boolean;
   roleGlobal: 'admin' | 'psychologist' | 'assistant' | 'accountant' | null;
   organizationId: string | null; // FASE 10.3
+  organizations: Organization[]; // FASE 10.6
+  activeOrganizationId: string | null; // FASE 10.6
+  setActiveOrganizationId: (id: string) => void; // FASE 10.6
   signUp: (email: string, password: string, userData: Omit<Profile, 'id'>) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -64,8 +74,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isAccountant, setIsAccountant] = useState(false);
   const [roleGlobal, setRoleGlobal] = useState<'admin' | 'psychologist' | 'assistant' | 'accountant' | null>(null);
   const [organizationId, setOrganizationId] = useState<string | null>(null); // FASE 10.3
+  const [organizations, setOrganizations] = useState<Organization[]>([]); // FASE 10.6
+  const [activeOrganizationId, setActiveOrganizationIdState] = useState<string | null>(null); // FASE 10.6
   const isFetchingProfileRef = useRef(false); // ✅ Mutex síncrono
   const { toast } = useToast();
+
+  // FASE 10.6: Wrapper para setActiveOrganizationId que salva no localStorage
+  const setActiveOrganizationId = (id: string) => {
+    console.log('[AUTH] Mudando activeOrganizationId para:', id);
+    setActiveOrganizationIdState(id);
+    setOrganizationId(id); // Manter sincronizado
+    localStorage.setItem('activeOrganizationId', id);
+  };
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -211,14 +231,75 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setRolesLoaded(true);
       console.log('🔍 [LOG 18] DEPOIS de setRolesLoaded(true)');
       
-      // FASE 10.3: Resolver organização do usuário
+      // FASE 10.3 & 10.6: Resolver organização do usuário e carregar todas suas organizações
       try {
-        console.log('🏢 [FASE 10.3] Resolvendo organização do usuário...');
-        const orgId = await resolveUserOrganization(userId);
-        setOrganizationId(orgId);
-        console.log('🏢 [FASE 10.3] Organização resolvida:', orgId || 'nenhuma');
+        console.log('🏢 [FASE 10.6] Carregando organizações do usuário...');
+        
+        // Carregar todas as organizações do usuário
+        const { data: userOrgs } = await supabase
+          .from('organization_owners')
+          .select(`
+            organization_id,
+            is_primary,
+            organizations (
+              id,
+              legal_name,
+              cnpj
+            )
+          `)
+          .eq('user_id', userId);
+
+        console.log('🏢 [FASE 10.6] Organizações carregadas:', userOrgs);
+
+        if (userOrgs && userOrgs.length > 0) {
+          const orgsArray: Organization[] = userOrgs
+            .filter(o => o.organizations)
+            .map(o => ({
+              id: (o.organizations as any).id,
+              legal_name: (o.organizations as any).legal_name,
+              cnpj: (o.organizations as any).cnpj,
+              is_primary: o.is_primary,
+            }))
+            .sort((a, b) => {
+              // Primária sempre primeiro
+              if (a.is_primary && !b.is_primary) return -1;
+              if (!a.is_primary && b.is_primary) return 1;
+              return a.legal_name.localeCompare(b.legal_name);
+            });
+
+          setOrganizations(orgsArray);
+          console.log('🏢 [FASE 10.6] Organizations array definido:', orgsArray);
+
+          // Determinar activeOrganizationId
+          const savedOrgId = localStorage.getItem('activeOrganizationId');
+          let activeOrgId: string | null = null;
+
+          if (savedOrgId && orgsArray.some(o => o.id === savedOrgId)) {
+            // Usar organização salva se válida
+            activeOrgId = savedOrgId;
+            console.log('🏢 [FASE 10.6] Usando organização salva:', savedOrgId);
+          } else {
+            // Fallback: usar primeira primária ou primeira da lista
+            const primaryOrg = orgsArray.find(o => o.is_primary);
+            activeOrgId = primaryOrg ? primaryOrg.id : orgsArray[0].id;
+            console.log('🏢 [FASE 10.6] Usando fallback:', activeOrgId);
+            localStorage.setItem('activeOrganizationId', activeOrgId);
+          }
+
+          setActiveOrganizationIdState(activeOrgId);
+          setOrganizationId(activeOrgId);
+          console.log('🏢 [FASE 10.6] Organização ativa definida:', activeOrgId);
+        } else {
+          // Nenhuma organização encontrada
+          console.log('🏢 [FASE 10.6] Nenhuma organização encontrada');
+          setOrganizations([]);
+          setActiveOrganizationIdState(null);
+          setOrganizationId(null);
+        }
       } catch (orgError) {
-        console.error('🏢 [FASE 10.3] Erro ao resolver organização:', orgError);
+        console.error('🏢 [FASE 10.6] Erro ao resolver organização:', orgError);
+        setOrganizations([]);
+        setActiveOrganizationIdState(null);
         setOrganizationId(null);
       }
       
@@ -406,6 +487,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       isAccountant,
       roleGlobal,
       organizationId, // FASE 10.3
+      organizations, // FASE 10.6
+      activeOrganizationId, // FASE 10.6
+      setActiveOrganizationId, // FASE 10.6
       signUp, 
       signIn, 
       signOut, 
