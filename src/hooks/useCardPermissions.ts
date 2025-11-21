@@ -10,17 +10,14 @@ import { ALL_AVAILABLE_CARDS } from '@/types/cardTypes';
 
 /**
  * ============================================================================
- * HOOK: useCardPermissions (FASE 4 — INTEGRAÇÃO COM NOVO SISTEMA)
+ * HOOK: useCardPermissions (FASE 5 — SISTEMA CONSOLIDADO)
  * ============================================================================
  * 
  * Hook central para todas as verificações de permissões de cards e seções.
  * 
- * INTEGRAÇÃO HÍBRIDA:
- * - useAuth: papéis do usuário (admin, accountant, subordinate)
- * - useSubordinatePermissions: configurações (novo + antigo integrados)
- * - useLevelPermissions: acesso direto ao novo sistema de níveis
- * 
- * LÓGICA: useSubordinatePermissions já prioriza novo sistema internamente
+ * SISTEMA UNIFICADO:
+ * - useAuth: papéis do usuário (admin, accountant, psychologist, assistant)
+ * - useEffectivePermissions: fonte única de verdade para permissões
  * ============================================================================
  */
 
