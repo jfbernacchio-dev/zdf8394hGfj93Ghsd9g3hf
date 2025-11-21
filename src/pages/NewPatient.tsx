@@ -27,11 +27,12 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatCPF, sanitizeCPF } from '@/lib/brazilianFormat';
+import { getUserIdsInOrganization } from '@/lib/organizationFilters';
 
 const NewPatient = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, organizationId } = useAuth();
   const [showBreakWarning, setShowBreakWarning] = useState(false);
   const [breakWarningDetails, setBreakWarningDetails] = useState('');
   const [pendingSessionData, setPendingSessionData] = useState<any[]>([]);
@@ -75,7 +76,17 @@ const NewPatient = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!user) return;
+    if (!user || !organizationId) {
+      toast({ title: 'Erro: Organização não definida', variant: 'destructive' });
+      return;
+    }
+    
+    // Validar que o usuário pertence à organização ativa
+    const orgUserIds = await getUserIdsInOrganization(organizationId);
+    if (!orgUserIds.includes(user.id)) {
+      toast({ title: 'Erro: Você não pertence a esta organização', variant: 'destructive' });
+      return;
+    }
 
     try {
       // Check for duplicate CPF if CPF is provided and noNfse is false

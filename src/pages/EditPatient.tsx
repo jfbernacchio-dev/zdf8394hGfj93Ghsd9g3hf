@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { logAdminAccess } from '@/lib/auditLog';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,11 +16,13 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { addWeeks, parseISO, getDay, format } from 'date-fns';
 import { formatBrazilianDate, parseFromBrazilianDate, formatCPF, sanitizeCPF } from '@/lib/brazilianFormat';
+import { getUserIdsInOrganization } from '@/lib/organizationFilters';
 
 const EditPatient = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, organizationId } = useAuth();
   const [formData, setFormData] = useState<any>(null);
   const [originalData, setOriginalData] = useState<any>(null);
   const [isChangeDialogOpen, setIsChangeDialogOpen] = useState(false);
@@ -43,7 +46,18 @@ const EditPatient = () => {
   }, [id]);
 
   const loadPatient = async () => {
+    if (!organizationId) return;
+    
+    // Validar que o paciente pertence à organização ativa
+    const orgUserIds = await getUserIdsInOrganization(organizationId);
+    
     const { data } = await supabase.from('patients').select('*').eq('id', id).single();
+    if (data && !orgUserIds.includes(data.user_id)) {
+      toast({ title: 'Paciente não encontrado nesta organização', variant: 'destructive' });
+      navigate('/patients');
+      return;
+    }
+    
     if (data) {
       // Log admin access
       await logAdminAccess('edit_patient', undefined, id, 'Admin accessed patient edit page');

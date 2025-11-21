@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ArrowLeft, Plus, Calendar, DollarSign, Edit, FileText, Download, Trash2, Shield } from 'lucide-react';
+import { getUserIdsInOrganization } from '@/lib/organizationFilters';
 
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO, startOfMonth, endOfMonth, isFuture } from 'date-fns';
@@ -27,11 +28,11 @@ import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import IssueNFSeDialog from '@/components/IssueNFSeDialog';
 import { ConsentReminder } from '@/components/ConsentReminder';
 
-const PatientDetail = () => {
+const PatientDetailOLD = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, organizationId } = useAuth();
   const [patient, setPatient] = useState<any>(null);
   const [sessions, setSessions] = useState<any[]>([]);
   const [allSessions, setAllSessions] = useState<any[]>([]);
@@ -96,7 +97,19 @@ const PatientDetail = () => {
   }, [period, customStartDate, customEndDate, allSessions, showScheduled, showUnpaid]);
 
   const loadData = async () => {
+    if (!organizationId) return;
+    
+    // Validar que o paciente pertence à organização ativa
+    const orgUserIds = await getUserIdsInOrganization(organizationId);
+    
     const { data: patientData } = await supabase.from('patients').select('*').eq('id', id).single();
+    
+    if (patientData && !orgUserIds.includes(patientData.user_id)) {
+      toast({ title: 'Paciente não encontrado nesta organização', variant: 'destructive' });
+      navigate('/patients');
+      return;
+    }
+    
     const { data: sessionsData } = await supabase.from('sessions').select('*').eq('patient_id', id).order('date', { ascending: false });
     
     if (user) {
@@ -1109,4 +1122,4 @@ Assinatura do Profissional`;
     );
 };
 
-export default PatientDetail;
+export default PatientDetailOLD;

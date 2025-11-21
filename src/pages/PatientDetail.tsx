@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { logAdminAccess } from '@/lib/auditLog';
 import { formatBrazilianDate, formatBrazilianCurrency } from '@/lib/brazilianFormat';
+import { getUserIdsInOrganization } from '@/lib/organizationFilters';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -63,7 +64,7 @@ const PatientDetailNew = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  const { user, isAdmin, roleGlobal } = useAuth();
+  const { user, isAdmin, roleGlobal, organizationId } = useAuth();
   const [patient, setPatient] = useState<any>(null);
   const [sessions, setSessions] = useState<any[]>([]);
   const [allSessions, setAllSessions] = useState<any[]>([]);
@@ -261,7 +262,18 @@ const PatientDetailNew = () => {
   const loadData = async () => {
     console.log('🔄 [LOADDATA INICIO] Carregando dados do paciente...');
     
+    if (!organizationId) return;
+    
+    // Validar que o paciente pertence à organização ativa
+    const orgUserIds = await getUserIdsInOrganization(organizationId);
+    
     const { data: patientData } = await supabase.from('patients').select('*').eq('id', id).single();
+    
+    if (patientData && !orgUserIds.includes(patientData.user_id)) {
+      toast.error('Paciente não encontrado nesta organização');
+      navigate('/patients');
+      return;
+    }
     const { data: sessionsData } = await supabase.from('sessions').select('*').eq('patient_id', id).order('date', { ascending: false });
     const { data: complaintData } = await supabase.from('patient_complaints').select('*').eq('patient_id', id).order('created_at', { ascending: false }).limit(1).maybeSingle();
     const { data: historyData } = await supabase.from('session_history').select('*').eq('patient_id', id).order('changed_at', { ascending: false });
