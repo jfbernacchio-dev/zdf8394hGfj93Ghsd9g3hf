@@ -32,16 +32,16 @@ interface UserInLevel {
   role?: string;
 }
 
-// Cores automáticas por índice
+// Cores automáticas por índice - tons pastel suaves
 const LEVEL_COLORS = [
-  'bg-purple-100 border-purple-300',
-  'bg-blue-100 border-blue-300',
-  'bg-green-100 border-green-300',
-  'bg-yellow-100 border-yellow-300',
-  'bg-orange-100 border-orange-300',
-  'bg-pink-100 border-pink-300',
-  'bg-indigo-100 border-indigo-300',
-  'bg-red-100 border-red-300',
+  'bg-purple-50/80 border-purple-200/60 hover:border-purple-300/80',
+  'bg-blue-50/80 border-blue-200/60 hover:border-blue-300/80',
+  'bg-green-50/80 border-green-200/60 hover:border-green-300/80',
+  'bg-amber-50/80 border-amber-200/60 hover:border-amber-300/80',
+  'bg-orange-50/80 border-orange-200/60 hover:border-orange-300/80',
+  'bg-pink-50/80 border-pink-200/60 hover:border-pink-300/80',
+  'bg-indigo-50/80 border-indigo-200/60 hover:border-indigo-300/80',
+  'bg-rose-50/80 border-rose-200/60 hover:border-rose-300/80',
 ];
 
 const ROLE_LABELS: Record<string, string> = {
@@ -52,10 +52,10 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 const ROLE_COLORS: Record<string, string> = {
-  psychologist: 'bg-blue-100 text-blue-700 border-blue-200',
-  assistant: 'bg-purple-100 text-purple-700 border-purple-200',
-  accountant: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-  admin: 'bg-red-100 text-red-700 border-red-200',
+  psychologist: 'bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 border-blue-200/60',
+  assistant: 'bg-gradient-to-r from-purple-50 to-purple-100 text-purple-700 border-purple-200/60',
+  accountant: 'bg-gradient-to-r from-amber-50 to-amber-100 text-amber-700 border-amber-200/60',
+  admin: 'bg-gradient-to-r from-rose-50 to-rose-100 text-rose-700 border-rose-200/60',
 };
 
 export default function OrgManagement() {
@@ -519,34 +519,35 @@ export default function OrgManagement() {
     <Layout>
       <div className="min-h-screen bg-background">
         {/* Header */}
-        <div className="border-b bg-card">
-          <div className="container mx-auto px-4 py-6">
+        <div className="border-b bg-gradient-to-b from-card to-background/50 shadow-sm">
+          <div className="container mx-auto px-4 py-8">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-6">
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => navigate('/dashboard')}
+                  className="h-10 w-10"
                 >
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
                 <div>
-                  <h1 className="text-2xl font-bold tracking-tight">
+                  <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
                     Gestão Organizacional
                   </h1>
-                  <p className="text-sm text-muted-foreground">
-                    Organize sua equipe em níveis hierárquicos e gerencie permissões
+                  <p className="text-base text-muted-foreground mt-2">
+                    Organize sua equipe em níveis hierárquicos, defina cargos e gerencie permissões de forma visual
                   </p>
                 </div>
               </div>
 
               <Button 
                 size="lg" 
-                className="gap-2"
+                className="gap-2 shadow-md hover:shadow-lg transition-all"
                 onClick={handleAddLevel}
                 disabled={addLevelMutation.isPending}
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-5 w-5" />
                 {addLevelMutation.isPending ? 'Adicionando...' : 'Adicionar Nível'}
               </Button>
             </div>
@@ -556,8 +557,20 @@ export default function OrgManagement() {
         {/* Organogram View */}
         <div className="container mx-auto px-4 py-8">
           {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <p className="text-muted-foreground">Carregando níveis...</p>
+            <div className="flex gap-6 pb-4 overflow-x-auto">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex-shrink-0 w-[320px] animate-pulse">
+                  <div className="rounded-xl border-2 bg-muted/50 h-[400px] p-6">
+                    <div className="h-6 bg-muted-foreground/20 rounded w-3/4 mb-4" />
+                    <div className="h-4 bg-muted-foreground/10 rounded w-1/2 mb-6" />
+                    <div className="space-y-3">
+                      {[1, 2, 3].map((j) => (
+                        <div key={j} className="h-16 bg-muted-foreground/10 rounded-lg" />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : !levels || levels.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -571,20 +584,20 @@ export default function OrgManagement() {
             <ScrollArea className="w-full">
               <div className="flex gap-6 pb-4" style={{ minWidth: 'fit-content' }}>
                 {levels.map((level, index) => (
-                  <div key={level.id} className="flex-shrink-0">
+                  <div key={level.id} className="flex-shrink-0 relative">
                     {/* Level Card */}
-                    <Card className={`w-[320px] ${LEVEL_COLORS[index % LEVEL_COLORS.length]} border-2`}>
+                    <Card className={`w-[320px] ${LEVEL_COLORS[index % LEVEL_COLORS.length]} border-2 transition-all duration-300 shadow-md hover:shadow-xl`}>
                       <CardHeader className="pb-4">
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
-                            <CardTitle className="text-lg font-semibold">
+                            <CardTitle className="text-xl font-bold tracking-tight">
                               {level.level_name}
                             </CardTitle>
-                            <p className="text-sm text-muted-foreground mt-1">
+                            <p className="text-sm text-muted-foreground/80 mt-1.5 font-medium">
                               {localUsersByLevel.get(level.id)?.length || 0} membro(s)
                             </p>
                           </div>
-                          <Badge variant="outline" className="ml-2">
+                          <Badge variant="outline" className="ml-2 font-semibold px-3">
                             N{level.level_number}
                           </Badge>
                         </div>
@@ -593,7 +606,7 @@ export default function OrgManagement() {
                       <CardContent className="space-y-3">
                         {/* Users List - FASE 6D-1: Drag & drop zone */}
                         <div 
-                          className="space-y-2 min-h-[200px] max-h-[400px] overflow-y-auto rounded-md border-2 border-dashed border-transparent hover:border-primary/30 transition-colors p-2"
+                          className="space-y-2 min-h-[200px] max-h-[400px] overflow-y-auto rounded-lg border-2 border-dashed border-muted-foreground/20 hover:border-primary/40 hover:bg-primary/5 transition-all duration-200 p-3"
                           onDragOver={(e) => handleDragOver(e, level.id)}
                           onDrop={(e) => handleDrop(e, level.id)}
                         >
@@ -605,28 +618,37 @@ export default function OrgManagement() {
                               .join('')
                               .toUpperCase();
 
+                            const isDraggable = isAdmin || roleGlobal === 'psychologist';
+                            const isBeingDragged = draggingUser?.user.id === userInfo.id;
+
                             return (
                               <Card
                                 key={userInfo.id}
-                                className={`p-3 bg-background hover:shadow-sm transition-shadow ${(isAdmin || roleGlobal === 'psychologist') ? 'cursor-grab active:cursor-grabbing' : ''}`}
-                                draggable={isAdmin || roleGlobal === 'psychologist'}
+                                className={`
+                                  p-3.5 bg-card border border-border/50 
+                                  hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5
+                                  transition-all duration-200
+                                  ${isDraggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}
+                                  ${isBeingDragged ? 'opacity-40 scale-95' : 'opacity-100 scale-100'}
+                                `}
+                                draggable={isDraggable}
                                 onDragStart={(e) => handleDragStart(e, level.id, userInfo)}
                                 onDragEnd={handleDragEnd}
                               >
                                 <div className="flex items-center gap-3">
-                                  <Avatar className="h-10 w-10">
-                                    <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                                  <Avatar className="h-11 w-11 ring-2 ring-primary/10">
+                                    <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold text-sm">
                                       {initials}
                                     </AvatarFallback>
                                   </Avatar>
                                   <div className="flex-1 min-w-0">
-                                    <p className="font-medium text-sm truncate">
+                                    <p className="font-semibold text-sm truncate">
                                       {userInfo.full_name}
                                     </p>
                                     {userInfo.role && (
                                       <Badge 
                                         variant="outline" 
-                                        className={`text-xs mt-1 ${ROLE_COLORS[userInfo.role] || 'bg-gray-100 text-gray-700 border-gray-200'}`}
+                                        className={`text-xs mt-1.5 font-medium ${ROLE_COLORS[userInfo.role] || 'bg-gray-100 text-gray-700 border-gray-200'}`}
                                       >
                                         {ROLE_LABELS[userInfo.role] || userInfo.role}
                                       </Badge>
@@ -647,13 +669,13 @@ export default function OrgManagement() {
                           )}
                         </div>
 
-                      <Separator />
+                      <Separator className="my-4" />
 
                       {/* Actions */}
                       <Button
                         variant="outline"
                         size="sm"
-                        className="w-full gap-2"
+                        className="w-full gap-2 hover:bg-primary/10 transition-colors"
                         onClick={() => handleManagePermissions(
                           level.id,
                           level.level_name,
@@ -668,21 +690,21 @@ export default function OrgManagement() {
 
                     {/* Connector Line (visual only) */}
                     {index < levels.length - 1 && (
-                      <div className="absolute top-1/2 -translate-y-1/2 w-6 h-0.5 bg-border ml-[320px]" />
+                      <div className="absolute top-1/2 -translate-y-1/2 w-8 h-0.5 bg-gradient-to-r from-border to-transparent ml-[320px]" />
                     )}
                   </div>
                 ))}
 
                 {/* Add Level Placeholder */}
                 <div className="flex-shrink-0">
-                  <Card className="w-[320px] border-2 border-dashed border-muted-foreground/30 bg-muted/20">
+                  <Card className="w-[320px] border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 transition-all cursor-pointer group" onClick={handleAddLevel}>
                     <CardContent className="flex flex-col items-center justify-center h-[200px] text-center">
-                      <Plus className="h-12 w-12 text-muted-foreground/50 mb-3" />
-                      <p className="text-sm font-medium text-muted-foreground">
+                      <Plus className="h-16 w-16 text-primary/60 group-hover:text-primary mb-4 transition-colors" />
+                      <p className="text-sm font-semibold text-primary/80 group-hover:text-primary transition-colors">
                         Adicionar novo nível
                       </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Expanda sua hierarquia
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Expanda sua hierarquia organizacional
                       </p>
                     </CardContent>
                   </Card>
@@ -693,42 +715,51 @@ export default function OrgManagement() {
 
           {/* Info Section */}
           {levels && levels.length > 0 && (
-            <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card>
+            <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card className="shadow-md hover:shadow-lg transition-shadow border-primary/10">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-medium flex items-center gap-2">
-                    <Users className="h-4 w-4 text-primary" />
+                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <Users className="h-5 w-5 text-primary" />
+                    </div>
                     Total de Membros
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl font-bold">
+                  <p className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
                     {totalMembers}
                   </p>
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="shadow-md hover:shadow-lg transition-shadow border-primary/10">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-medium flex items-center gap-2">
-                    <Settings className="h-4 w-4 text-primary" />
+                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <Settings className="h-5 w-5 text-primary" />
+                    </div>
                     Níveis Ativos
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl font-bold">{levels.length}</p>
+                  <p className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                    {levels.length}
+                  </p>
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="shadow-md hover:shadow-lg transition-shadow border-primary/10">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-medium">
+                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                    <div className="p-2 rounded-lg bg-green-500/10">
+                      <div className="h-5 w-5 rounded-full bg-green-500 animate-pulse" />
+                    </div>
                     Status
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                    {levels.length > 0 ? 'Configurado' : 'Aguardando configuração'}
+                  <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0 px-4 py-1.5 text-sm font-semibold">
+                    {levels.length > 0 ? '✓ Configurado' : 'Aguardando'}
                   </Badge>
                 </CardContent>
               </Card>
@@ -736,20 +767,42 @@ export default function OrgManagement() {
           )}
 
           {/* Instructions */}
-          <Card className="mt-8 bg-muted/50">
-            <CardContent className="py-6">
-              <h3 className="font-semibold mb-2">Como usar:</h3>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>• <strong>Arrastar e soltar:</strong> {
-                  isAdmin 
-                    ? 'Arraste membros entre níveis para reorganizar (prévia visual, não salva automaticamente)' 
-                    : roleGlobal === 'psychologist'
-                    ? 'Você pode mover subordinados diretos para níveis abaixo do seu'
-                    : 'Apenas administradores e psicólogos podem reorganizar membros'
-                }</li>
-                <li>• <strong>Gerenciar Permissões:</strong> Configure as permissões específicas de cada nível</li>
-                <li>• <strong>Adicionar Nível:</strong> Crie novos níveis hierárquicos conforme necessário</li>
-                <li>• <strong>Visualização:</strong> A estrutura mostra claramente quem está em cada nível</li>
+          <Card className="mt-10 bg-gradient-to-br from-muted/30 to-muted/50 border-muted-foreground/20 shadow-sm">
+            <CardContent className="py-6 px-8">
+              <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                Como usar o organograma
+              </h3>
+              <ul className="space-y-3 text-sm text-muted-foreground">
+                <li className="flex items-start gap-3">
+                  <span className="text-primary font-bold mt-0.5">↕</span>
+                  <div>
+                    <strong className="text-foreground">Arrastar e soltar:</strong>{' '}
+                    {isAdmin 
+                      ? 'Arraste membros entre níveis para reorganizar a hierarquia. As mudanças são salvas automaticamente.' 
+                      : roleGlobal === 'psychologist'
+                      ? 'Você pode mover subordinados diretos para níveis abaixo do seu.'
+                      : 'Apenas administradores e psicólogos podem reorganizar membros.'}
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-primary font-bold mt-0.5">⚙</span>
+                  <div>
+                    <strong className="text-foreground">Gerenciar Permissões:</strong> Configure as permissões e acessos específicos de cada nível hierárquico.
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-primary font-bold mt-0.5">+</span>
+                  <div>
+                    <strong className="text-foreground">Adicionar Nível:</strong> Crie novos níveis hierárquicos conforme sua organização cresce.
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-primary font-bold mt-0.5">👁</span>
+                  <div>
+                    <strong className="text-foreground">Visualização clara:</strong> A estrutura mostra de forma intuitiva a posição de cada membro na hierarquia.
+                  </div>
+                </li>
               </ul>
             </CardContent>
           </Card>
