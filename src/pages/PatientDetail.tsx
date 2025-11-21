@@ -62,7 +62,7 @@ const PatientDetailNew = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, roleGlobal } = useAuth();
   const [patient, setPatient] = useState<any>(null);
   const [sessions, setSessions] = useState<any[]>([]);
   const [allSessions, setAllSessions] = useState<any[]>([]);
@@ -90,6 +90,15 @@ const PatientDetailNew = () => {
     financialAccess 
   } = useEffectivePermissions();
   const { canViewCard } = useCardPermissions();
+
+  // Derived permission flags
+  const isAccountant = roleGlobal === 'accountant';
+  const isAssistant = roleGlobal === 'assistant';
+  const isPsychologist = roleGlobal === 'psychologist';
+  const isSubordinate =
+    isAssistant ||
+    isAccountant ||
+    (isPsychologist && permissions?.levelNumber && permissions.levelNumber > 1);
   const [isComplaintDialogOpen, setIsComplaintDialogOpen] = useState(false);
   const [showFullHistory, setShowFullHistory] = useState(false);
   const [sessionHistory, setSessionHistory] = useState<any[]>([]);
