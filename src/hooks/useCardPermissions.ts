@@ -37,22 +37,7 @@ export function useCardPermissions() {
     canAccessWhatsapp
   } = useEffectivePermissions();
   
-  console.log('🔐 [useCardPermissions] HOOK EXECUTOU:', {
-    user: user?.id,
-    rolesLoaded,
-    isAdmin,
-    isFullTherapist,
-    isAccountant,
-    isSubordinate,
-    permissionsLoading,
-    hasAllFalse: !isAdmin && !isFullTherapist && !isAccountant && !isSubordinate
-  });
-
-  // ✅ CORREÇÃO CRÍTICA: Aguardar roles carregarem antes de calcular permissões
-  // Se roles não carregaram, DEVE aguardar (evita permissões vazias)
   const loading = !rolesLoaded || permissionsLoading;
-
-  console.log('🔐 [useCardPermissions] Calculado loading:', loading);
 
   // Derivar role atual baseado nos flags booleanos
   const currentRole: UserRole | null =
@@ -193,52 +178,24 @@ export function useCardPermissions() {
    * Filtra por: availableCardIds, permissões individuais, compatibilidade de domínio
    */
   const getAvailableCardsForSection = (sectionConfig: SectionConfig): CardConfig[] => {
-    console.log('🔍 [getAvailableCardsForSection] INICIADO para:', sectionConfig.id);
-    console.log('📋 [getAvailableCardsForSection] availableCardIds:', sectionConfig.availableCardIds);
-    console.log('📦 [getAvailableCardsForSection] Total cards no sistema:', ALL_AVAILABLE_CARDS.length);
-    
-    // Buscar cards pelos IDs disponíveis na seção
     const sectionCards = ALL_AVAILABLE_CARDS.filter(card =>
       sectionConfig.availableCardIds.includes(card.id)
     );
-    console.log('✅ [getAvailableCardsForSection] FILTRO 1 (IDs) - Cards encontrados:', sectionCards.length);
-    console.log('   Cards:', sectionCards.map(c => c.id));
 
-    // Filtrar por permissão individual de cada card
-    const visibleCards = sectionCards.filter(card => {
-      const canView = canViewCard(card.id);
-      console.log(`   🔐 canViewCard("${card.id}") =`, canView);
-      return canView;
-    });
-    console.log('✅ [getAvailableCardsForSection] FILTRO 2 (Permissões) - Cards visíveis:', visibleCards.length);
-    console.log('   Cards:', visibleCards.map(c => c.id));
+    const visibleCards = sectionCards.filter(card => canViewCard(card.id));
 
-    // Filtrar por compatibilidade de domínio (primary + secondary)
-    // CORREÇÃO FASE 1: Gráficos (isChart: true) devem aparecer APENAS na seção 'dashboard-charts'
     const allowedDomains = [
       sectionConfig.permissionConfig.primaryDomain,
       ...(sectionConfig.permissionConfig.secondaryDomains || []),
     ];
-    console.log('🏷️ [getAvailableCardsForSection] Domínios permitidos:', allowedDomains);
 
     const finalCards = visibleCards.filter(card => {
-      const hasConfig = !!card.permissionConfig;
-      
-      // Se é um card gráfico, APENAS permitir na seção 'dashboard-charts'
       if (card.isChart) {
-        const isChartsSection = sectionConfig.id === 'dashboard-charts';
-        console.log(`   📊 Chart check: "${card.id}" - isChartsSection=${isChartsSection}`);
-        return isChartsSection;
+        return sectionConfig.id === 'dashboard-charts';
       }
       
-      const domainMatch = card.permissionConfig && allowedDomains.includes(card.permissionConfig.domain);
-      console.log(`   🏷️ Card "${card.id}": hasConfig=${hasConfig}, domain="${card.permissionConfig?.domain}", match=${domainMatch}`);
-      return hasConfig && domainMatch;
+      return card.permissionConfig && allowedDomains.includes(card.permissionConfig.domain);
     });
-    
-    console.log('✅ [getAvailableCardsForSection] FILTRO 3 (Domínio) - Cards finais:', finalCards.length);
-    console.log('   Cards:', finalCards.map(c => c.id));
-    console.log('🏁 [getAvailableCardsForSection] RETORNANDO:', finalCards.length, 'cards');
     
     return finalCards;
   };

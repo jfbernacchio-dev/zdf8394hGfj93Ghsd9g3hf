@@ -1,4 +1,4 @@
-import type { ExtendedAutonomyPermissions } from '@/hooks/useSubordinatePermissions';
+import type { EffectivePermissions } from '@/lib/resolveEffectivePermissions';
 
 // Default layout configuration for DashboardTest page
 export const DEFAULT_DASHBOARD_LAYOUT = {
@@ -74,7 +74,7 @@ export const DEFAULT_DASHBOARD_LAYOUT = {
  * ============================================================================
  */
 export function getFilteredDashboardLayout(
-  permissions: ExtendedAutonomyPermissions | null,
+  permissions: EffectivePermissions | null,
   isAdmin: boolean,
   canViewCard: (cardId: string) => boolean
 ): typeof DEFAULT_DASHBOARD_LAYOUT {

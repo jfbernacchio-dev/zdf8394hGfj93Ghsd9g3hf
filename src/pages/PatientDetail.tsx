@@ -9,30 +9,45 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Calendar, Clock, FileText, Trash2, ChevronDown, ChevronUp, PlusCircle, Settings, Check, X } from 'lucide-react';
+import { 
+  ArrowLeft, Calendar, Clock, FileText, Trash2, ChevronDown, ChevronUp, 
+  PlusCircle, Settings, Check, X, Edit, RotateCcw, Plus, StickyNote, 
+  Phone, Mail, MapPin, User, AlertCircle, Tag, DollarSign, Download, 
+  CreditCard, Activity, TrendingUp, TrendingDown 
+} from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { IssueNFSeDialog } from '@/components/IssueNFSeDialog';
+import IssueNFSeDialog from '@/components/IssueNFSeDialog';
 import { PatientFiles } from '@/components/PatientFiles';
-import { canAccessFinancial } from '@/lib/checkSubordinateAutonomy';
-import { SessionEvaluationDialog } from '@/components/SessionEvaluationDialog';
 import { AppointmentDialog } from '@/components/AppointmentDialog';
 import { useDashboardLayout } from '@/hooks/useDashboardLayout';
 import { useCardPermissions } from '@/hooks/useCardPermissions';
 import { GridCardContainer } from '@/components/GridCardContainer';
-import type { CardPermissions } from '@/hooks/useCardPermissions';
-import { cardRegistry } from '@/lib/dashboardCardRegistry';
 import { ConsentReminder } from '@/components/ConsentReminder';
 import { ComplianceReminder } from '@/components/ComplianceReminder';
-import { ClinicalComplaintSummary } from '@/components/ClinicalComplaintSummary';
+import ClinicalComplaintSummary from '@/components/ClinicalComplaintSummary';
 import { ClinicalEvolution } from '@/components/ClinicalEvolution';
 import { useEffectivePermissions } from '@/hooks/useEffectivePermissions';
+import { toast } from 'sonner';
+import { format, parseISO, startOfMonth, endOfMonth, isFuture } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
+import { ResizableCard } from '@/components/ResizableCard';
+import { ResizableSection } from '@/components/ResizableSection';
+import { DEFAULT_LAYOUT, resetToDefaultLayout } from '@/lib/defaultLayoutEvolution';
+import type { CardConfig } from '@/types/cardTypes';
+import { checkPatientAccess } from '@/lib/checkPatientAccess';
+import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const PatientDetailNew = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { toast } = useToast();
+  
   const { user, isAdmin } = useAuth();
   const { isSubordinate } = usePermissionFlags();
   const [patient, setPatient] = useState<any>(null);
@@ -75,8 +90,6 @@ const PatientDetailNew = () => {
   const [tempSectionHeights, setTempSectionHeights] = useState<Record<string, number>>({});
   const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
   const [visibleCards, setVisibleCards] = useState<string[]>([]);
-  const [autonomyPermissions, setAutonomyPermissions] = useState<AutonomyPermissions | null>(null);
-  const [loadingPermissions, setLoadingPermissions] = useState(true);
   
   const getBrazilDate = () => {
     return new Date().toLocaleString('en-CA', { 

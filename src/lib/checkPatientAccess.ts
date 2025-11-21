@@ -27,6 +27,14 @@ interface AccessResult {
  * Valida se um usuário pode acessar os detalhes de um paciente
  * Considera autonomia de subordinados quando aplicável
  */
+export async function checkPatientAccess(
+  userId: string,
+  patientId: string
+): Promise<boolean> {
+  const result = await canAccessPatient(userId, patientId, false);
+  return result.allowed;
+}
+
 export async function canAccessPatient(
   userId: string,
   patientId: string,
