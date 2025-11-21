@@ -94,19 +94,6 @@ const Navbar = () => {
                       <span className="font-medium">WhatsApp</span>
                     </Link>
                   )}
-                  {(isAdmin || isFullTherapist) && !isSubordinate && (
-                    <Link
-                      to="/therapists"
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                        isActive('/therapists')
-                          ? 'bg-primary text-primary-foreground'
-                          : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-                      }`}
-                    >
-                      <Users className="w-4 h-4" />
-                      <span className="font-medium">Terapeutas</span>
-                    </Link>
-                  )}
                   {!isAccountant && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -243,6 +230,14 @@ const Navbar = () => {
                     <DropdownMenuItem onClick={() => navigate('/org-management')}>
                       <Users className="w-4 h-4 mr-2" />
                       Gestão Organizacional
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/admin/permission-review')}>
+                      <Shield className="w-4 h-4 mr-2" />
+                      Revisão de Permissões
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/team-management')}>
+                      <Users className="w-4 h-4 mr-2" />
+                      Equipe
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => navigate('/admin/backup-tests')}>
