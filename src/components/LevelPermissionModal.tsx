@@ -11,6 +11,9 @@ import {
   ensureLevelRoleSettings, 
   LevelRoleSettingsRow 
 } from '@/lib/levelRoleSettingsClient';
+import { supabase } from '@/integrations/supabase/client';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -62,6 +65,8 @@ export function LevelPermissionModal({
   levelName,
   levelNumber,
 }: LevelPermissionModalProps) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   
   // Estado local (agora carregado do banco)
@@ -76,6 +81,49 @@ export function LevelPermissionModal({
     uses_org_company_for_nfse: false,
     can_edit_schedules: false,
     can_view_team_financial_summary: false,
+  });
+
+  // FASE 6C-pt3: Mutation para salvar as permissões
+  const updateMutation = useMutation({
+    mutationFn: async (newSettings: typeof settings) => {
+      if (!levelId) throw new Error('Missing levelId');
+
+      const { error } = await supabase
+        .from('level_role_settings')
+        .update({
+          can_access_clinical: newSettings.can_access_clinical,
+          financial_access: newSettings.financial_access,
+          can_access_marketing: newSettings.can_access_marketing,
+          can_access_whatsapp: newSettings.can_access_whatsapp,
+          clinical_visible_to_superiors: newSettings.clinical_visible_to_superiors,
+          peer_agenda_sharing: newSettings.peer_agenda_sharing,
+          peer_clinical_sharing: newSettings.peer_clinical_sharing,
+          uses_org_company_for_nfse: newSettings.uses_org_company_for_nfse,
+          can_edit_schedules: newSettings.can_edit_schedules,
+          can_view_team_financial_summary: newSettings.can_view_team_financial_summary,
+        })
+        .eq('level_id', levelId)
+        .eq('role_type', 'psychologist');
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['organization-levels'] });
+      queryClient.invalidateQueries({ queryKey: ['level-role-settings', levelId] });
+      toast({
+        title: "Permissões atualizadas!",
+        description: "As configurações foram salvas com sucesso.",
+      });
+      onOpenChange(false);
+    },
+    onError: (err: any) => {
+      console.error('[LevelPermissionModal] Save error:', err);
+      toast({
+        title: "Erro ao salvar permissões",
+        description: err?.message || "Ocorreu um erro ao tentar salvar as configurações.",
+        variant: "destructive",
+      });
+    }
   });
 
   // FASE 6C-pt2: Carregar permissões reais quando o modal abrir
@@ -116,12 +164,6 @@ export function LevelPermissionModal({
     load();
     return () => { active = false };
   }, [open, levelId]);
-
-  const handleSave = () => {
-    console.log('Salvando permissões:', settings);
-    // TODO: Implementar salvamento no banco (FASE 6C-6)
-    onOpenChange(false);
-  };
 
   const handleCancel = () => {
     onOpenChange(false);
@@ -391,7 +433,12 @@ export function LevelPermissionModal({
           <Button variant="outline" onClick={handleCancel}>
             Cancelar
           </Button>
-          <Button onClick={handleSave}>Salvar Alterações</Button>
+          <Button 
+            onClick={() => updateMutation.mutate(settings)} 
+            disabled={loading || updateMutation.isPending}
+          >
+            {updateMutation.isPending ? 'Salvando...' : 'Salvar Alterações'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
