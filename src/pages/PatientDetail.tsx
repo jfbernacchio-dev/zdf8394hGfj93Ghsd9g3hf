@@ -4,47 +4,29 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissionFlags } from '@/hooks/usePermissionFlags';
 import { logAdminAccess } from '@/lib/auditLog';
-import { Card } from '@/components/ui/card';
+import { formatBrazilianDate, formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Checkbox } from '@/components/ui/checkbox';
-import { ArrowLeft, Plus, Calendar, DollarSign, Edit, FileText, Download, Trash2, Phone, MapPin, Mail, User, Clock, Tag, AlertCircle, ChevronDown, ChevronUp, StickyNote, X, TrendingUp, TrendingDown, Activity, CreditCard } from 'lucide-react';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-
-import { useToast } from '@/hooks/use-toast';
-import { format, parseISO, startOfMonth, endOfMonth, isFuture } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
-import { CalendarIcon } from 'lucide-react';
-import { PatientFiles } from '@/components/PatientFiles';
-import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
-import IssueNFSeDialog from '@/components/IssueNFSeDialog';
-import { ConsentReminder } from '@/components/ConsentReminder';
-import { ResizableCard } from '@/components/ResizableCard';
-import ClinicalComplaintSummary from '@/components/ClinicalComplaintSummary';
-import { ResizableSection } from '@/components/ResizableSection';
-import { Settings, RotateCcw } from 'lucide-react';
-import { AddCardDialog } from '@/components/AddCardDialog';
-import { CardConfig, ALL_AVAILABLE_CARDS } from '@/types/cardTypes';
-import { DEFAULT_LAYOUT, resetToDefaultLayout } from '@/lib/defaultLayout';
-import { ClinicalEvolution } from '@/components/ClinicalEvolution';
-import { getSubordinateAutonomy, AutonomyPermissions } from '@/lib/checkSubordinateAutonomy';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ArrowLeft, Calendar, Clock, FileText, Trash2, ChevronDown, ChevronUp, PlusCircle, Settings, Check, X } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { canAccessPatient } from '@/lib/checkPatientAccess';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { IssueNFSeDialog } from '@/components/IssueNFSeDialog';
+import { PatientFiles } from '@/components/PatientFiles';
+import { canAccessFinancial } from '@/lib/checkSubordinateAutonomy';
+import { SessionEvaluationDialog } from '@/components/SessionEvaluationDialog';
+import { AppointmentDialog } from '@/components/AppointmentDialog';
+import { useDashboardLayout } from '@/hooks/useDashboardLayout';
 import { useCardPermissions } from '@/hooks/useCardPermissions';
-import { useSubordinatePermissions } from '@/hooks/useSubordinatePermissions';
+import { GridCardContainer } from '@/components/GridCardContainer';
+import type { CardPermissions } from '@/hooks/useCardPermissions';
+import { cardRegistry } from '@/lib/dashboardCardRegistry';
+import { ConsentReminder } from '@/components/ConsentReminder';
+import { ComplianceReminder } from '@/components/ComplianceReminder';
+import { ClinicalComplaintSummary } from '@/components/ClinicalComplaintSummary';
+import { ClinicalEvolution } from '@/components/ClinicalEvolution';
+import { useEffectivePermissions } from '@/hooks/useEffectivePermissions';
 
 const PatientDetailNew = () => {
   const { id } = useParams();
@@ -73,7 +55,12 @@ const PatientDetailNew = () => {
   const [complaintText, setComplaintText] = useState('');
 
   // 🔐 PERMISSIONS
-  const { permissions, loading: permissionsLoading } = useSubordinatePermissions();
+  const { 
+    permissions, 
+    loading: permissionsLoading,
+    canAccessClinical,
+    financialAccess 
+  } = useEffectivePermissions();
   const { canViewCard } = useCardPermissions();
   const [isComplaintDialogOpen, setIsComplaintDialogOpen] = useState(false);
   const [showFullHistory, setShowFullHistory] = useState(false);

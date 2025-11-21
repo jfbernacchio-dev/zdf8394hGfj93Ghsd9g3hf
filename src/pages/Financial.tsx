@@ -10,14 +10,16 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePermissionFlags } from '@/hooks/usePermissionFlags';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { TrendingUp, DollarSign, Users, AlertCircle, Calendar, PieChartIcon, Target, Activity, Percent, CalendarIcon } from 'lucide-react';
-import { parseISO, format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from 'date-fns';
+import { TrendingUp, DollarSign, Users, AlertCircle, Calendar, PieChartIcon, Target, Activity, Percent, CalendarIcon, ChevronLeft, ChevronRight, PlusCircle, Receipt } from 'lucide-react';
+import { parseISO, format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths, differenceInMonths, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { RegisterPaymentDialog } from '@/components/RegisterPaymentDialog';
+import { useQuery } from '@tanstack/react-query';
+import { useEffectivePermissions } from '@/hooks/useEffectivePermissions';
 import { useCardPermissions } from '@/hooks/useCardPermissions';
-import { useSubordinatePermissions } from '@/hooks/useSubordinatePermissions';
 
 const COLORS = ['hsl(100, 20%, 55%)', 'hsl(100, 25%, 65%)', 'hsl(100, 30%, 75%)', 'hsl(100, 15%, 45%)', 'hsl(100, 35%, 85%)', 'hsl(40, 35%, 75%)'];
 
@@ -33,7 +35,11 @@ const Financial = () => {
   const [customEndDate, setCustomEndDate] = useState('');
 
   // 🔐 PERMISSIONS
-  const { permissions, loading: permissionsLoading } = useSubordinatePermissions();
+  const { 
+    permissions, 
+    loading: permissionsLoading,
+    financialAccess 
+  } = useEffectivePermissions();
   const { canViewFullFinancial } = useCardPermissions();
 
   // Validação local de permissão financeira (camada extra de segurança)
