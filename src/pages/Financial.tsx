@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePermissionFlags } from '@/hooks/usePermissionFlags';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { TrendingUp, DollarSign, Users, AlertCircle, Calendar, PieChartIcon, Target, Activity, Percent, CalendarIcon } from 'lucide-react';
@@ -21,7 +22,8 @@ import { useSubordinatePermissions } from '@/hooks/useSubordinatePermissions';
 const COLORS = ['hsl(100, 20%, 55%)', 'hsl(100, 25%, 65%)', 'hsl(100, 30%, 75%)', 'hsl(100, 15%, 45%)', 'hsl(100, 35%, 85%)', 'hsl(40, 35%, 75%)'];
 
 const Financial = () => {
-  const { user, isSubordinate, isAdmin } = useAuth();
+  const { user, isAdmin } = useAuth();
+  const { isSubordinate } = usePermissionFlags();
   const [patients, setPatients] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);

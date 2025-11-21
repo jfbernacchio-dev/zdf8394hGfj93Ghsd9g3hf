@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePermissionFlags } from './usePermissionFlags';
 import { getSubordinateAutonomy, type AutonomyPermissions } from '@/lib/checkSubordinateAutonomy';
 import { useLevelPermissions } from './useLevelPermissions';
 import type { AccessLevel } from '@/types/permissions';
@@ -36,7 +37,8 @@ export interface ExtendedAutonomyPermissions extends AutonomyPermissions {
 }
 
 export function useSubordinatePermissions() {
-  const { user, isSubordinate } = useAuth();
+  const { user } = useAuth();
+  const { isSubordinate } = usePermissionFlags();
   const [permissions, setPermissions] = useState<ExtendedAutonomyPermissions | null>(null);
   const [loading, setLoading] = useState(true);
   const [usingNewSystem, setUsingNewSystem] = useState(false);

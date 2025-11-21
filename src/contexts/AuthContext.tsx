@@ -29,9 +29,8 @@ interface AuthContextType {
   loading: boolean;
   rolesLoaded: boolean;
   isAdmin: boolean;
-  isFullTherapist: boolean;
   isAccountant: boolean;
-  isSubordinate: boolean;
+  roleGlobal: 'admin' | 'psychologist' | 'assistant' | 'accountant' | null;
   signUp: (email: string, password: string, userData: Omit<Profile, 'id'>) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -59,9 +58,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [rolesLoaded, setRolesLoaded] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isFullTherapist, setIsFullTherapist] = useState(false);
   const [isAccountant, setIsAccountant] = useState(false);
-  const [isSubordinate, setIsSubordinate] = useState(false);
+  const [roleGlobal, setRoleGlobal] = useState<'admin' | 'psychologist' | 'assistant' | 'accountant' | null>(null);
   const isFetchingProfileRef = useRef(false); // ✅ Mutex síncrono
   const { toast } = useToast();
 
@@ -81,9 +79,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setProfile(null);
           setRolesLoaded(false);
           setIsAdmin(false);
-          setIsFullTherapist(false);
           setIsAccountant(false);
-          setIsSubordinate(false);
+          setRoleGlobal(null);
         }
       }
     );
@@ -174,105 +171,67 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       console.log('🔍 [LOG 13] Iniciando verificação de roles...');
 
-      console.log('🔍 [LOG 14] ANTES da query admin');
-      // Check if user is admin
-      const { data: adminRoleData } = await supabase
+      console.log('🔍 [LOG 14] ANTES da query user_roles');
+      // Buscar role global do usuário
+      const { data: userRoleData } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
-        .eq('role', 'admin')
         .maybeSingle();
 
-      console.log('🔍 [LOG 15] DEPOIS da query admin');
-      console.log('👑 [AuthContext] Admin check:', !!adminRoleData);
-      setIsAdmin(!!adminRoleData);
-      console.log('🔍 [LOG 16] DEPOIS de setIsAdmin');
-
-      console.log('🔍 [LOG 17] ANTES da query fulltherapist');
-      // Check if user is fulltherapist (level_number === 1)
-      const { data: levelData, error: levelErr } = await supabase
-        .from('user_positions')
-        .select(`
-          position_id,
-          organization_positions (
-            id,
-            level_id,
-            parent_position_id,
-            organization_levels (
-              level_number
-            )
-          )
-        `)
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      console.log('🔍 [LOG 18] DEPOIS da query fulltherapist');
-      const isFullTherapist = levelData?.organization_positions?.organization_levels?.level_number === 1;
-      console.log('🧑‍⚕️ [AuthContext] FullTherapist check:', isFullTherapist);
-      console.log('🔍 [LOG 18.5] ANTES de setIsFullTherapist');
-      try {
-        setIsFullTherapist(isFullTherapist);
-        console.log('🔍 [LOG 18.7] DENTRO do try após setIsFullTherapist');
-      } catch (e) {
-        console.error('🚨 [LOG 18.8] ERRO em setIsFullTherapist:', e);
-      }
-      console.log('🔍 [LOG 19] DEPOIS de setIsFullTherapist');
-
-      console.log('🔍 [LOG 20] ANTES da query accountant');
-      // Check if user is accountant
-      const { data: accountantRoleData } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .eq('role', 'accountant')
-        .maybeSingle();
-
-      console.log('🔍 [LOG 21] DEPOIS da query accountant');
-      console.log('💼 [AuthContext] Accountant check:', !!accountantRoleData);
-      setIsAccountant(!!accountantRoleData);
-      console.log('🔍 [LOG 22] DEPOIS de setIsAccountant');
-
-      console.log('🔍 [LOG 23] ANTES da query subordinate');
-      // Check if user is subordinate (has parent_position_id)
-      const parentId = levelData?.organization_positions?.parent_position_id;
-      const isSubordinateUser = !!parentId;
-
-      console.log('🔍 [LOG 24] DEPOIS da query subordinate');
-      console.log('👥 [AuthContext] Subordinate check:', isSubordinateUser);
-      setIsSubordinate(isSubordinateUser);
-      console.log('🔍 [LOG 25] DEPOIS de setIsSubordinate');
+      console.log('🔍 [LOG 15] DEPOIS da query user_roles');
       
-      console.log('🔍 [LOG 26] ANTES de setRolesLoaded(true)');
+      const role = userRoleData?.role;
+      
+      // Mapear roles antigos para novos (transição)
+      let globalRole: 'admin' | 'psychologist' | 'assistant' | 'accountant' | null = null;
+      
+      if (role === 'admin') {
+        globalRole = 'admin';
+        setIsAdmin(true);
+      } else if (role === 'accountant') {
+        globalRole = 'accountant';
+        setIsAccountant(true);
+      } else if (role === 'therapist' || role === 'fulltherapist') {
+        globalRole = 'psychologist';
+      } else if (role === 'assistant') {
+        globalRole = 'assistant';
+      }
+      
+      setRoleGlobal(globalRole);
+      
+      console.log('🔍 [LOG 16] Role global determinado:', globalRole);
+      
+      console.log('🔍 [LOG 17] ANTES de setRolesLoaded(true)');
       // ✅ Marcar roles como carregados após todas as verificações
       setRolesLoaded(true);
-      console.log('🔍 [LOG 27] DEPOIS de setRolesLoaded(true)');
+      console.log('🔍 [LOG 18] DEPOIS de setRolesLoaded(true)');
       
       // ✅ LOG FINAL COMPLETO
       console.log('====================================');
       console.log('🔍 [AuthContext] ROLES CARREGADOS');
       console.log('====================================');
-      console.log('isAdmin:', !!adminRoleData);
-      console.log('isFullTherapist:', isFullTherapist);
-      console.log('isAccountant:', !!accountantRoleData);
-      console.log('isSubordinate:', isSubordinateUser);
+      console.log('isAdmin:', !!globalRole && globalRole === 'admin');
+      console.log('isAccountant:', !!globalRole && globalRole === 'accountant');
+      console.log('roleGlobal:', globalRole);
       console.log('rolesLoaded:', true);
       console.log('====================================');
-      console.log('🔍 [LOG 28] FIM do bloco try (sucesso)');
+      console.log('🔍 [LOG 19] FIM do bloco try (sucesso)');
       
     } catch (error) {
       // ✅ PROTEÇÃO 3: Tratamento de erro
-      console.log('🔍 [LOG 29] DENTRO do bloco catch');
+      console.log('🔍 [LOG 20] DENTRO do bloco catch');
       console.error('❌ [AuthContext] Erro em fetchProfile:', error);
       setRolesLoaded(true); // Marcar como carregado mesmo com erro
-      console.log('🔍 [LOG 30] FIM do bloco catch');
+      console.log('🔍 [LOG 21] FIM do bloco catch');
     } finally {
       // ✅ PROTEÇÃO 4: SEMPRE liberar a flag (crítico!)
-      console.log('🔍 [LOG 31] DENTRO do bloco finally');
+      console.log('🔍 [LOG 22] DENTRO do bloco finally');
       isFetchingProfileRef.current = false;
       console.log('🔓 [AuthContext] fetchProfile concluído, flag liberada');
-      console.log('🔍 [LOG 32] FIM do bloco finally');
+      console.log('🔍 [LOG 23] FIM do bloco finally');
     }
-    console.log('🔍 [LOG 33] FIM ABSOLUTO da função fetchProfile');
+    console.log('🔍 [LOG 24] FIM ABSOLUTO da função fetchProfile');
   };
 
   const signUp = async (email: string, password: string, userData: Omit<Profile, 'id'>) => {
@@ -332,7 +291,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setProfile(null);
     setIsAdmin(false);
     setIsAccountant(false);
-    setIsSubordinate(false);
+    setRoleGlobal(null);
   };
 
   const resetPassword = async (email: string) => {
@@ -410,20 +369,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return { error };
     }
 
-    // NOVO: Inserir explicitamente em therapist_assignments para redundância
-    if (data?.user?.id && user?.id) {
-      const { error: assignmentError } = await supabase
-        .from('therapist_assignments')
-        .insert({
-          manager_id: user.id,
-          subordinate_id: data.user.id,
-        });
-
-      if (assignmentError) {
-        console.error('Error creating therapist assignment:', assignmentError);
-        // Não falha a operação se o trigger já criou o registro
-      }
-    }
+    // DEPRECATED: therapist_assignments não é mais usado no novo sistema
+    // Mantido temporariamente apenas para compatibilidade com dados legados
 
     toast({
       title: "Terapeuta criado!",
@@ -441,9 +388,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       loading,
       rolesLoaded,
       isAdmin,
-      isFullTherapist,
       isAccountant,
-      isSubordinate,
+      roleGlobal,
       signUp, 
       signIn, 
       signOut, 

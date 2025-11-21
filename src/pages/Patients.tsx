@@ -10,6 +10,7 @@ import { Plus, Search, Edit, FileText, AlertCircle, CheckCheck } from 'lucide-re
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePermissionFlags } from '@/hooks/usePermissionFlags';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
@@ -33,7 +34,8 @@ const Patients = () => {
   const [autonomyPermissions, setAutonomyPermissions] = useState<AutonomyPermissions | null>(null);
   const [loadingPermissions, setLoadingPermissions] = useState(true);
   const navigate = useNavigate();
-  const { user, isSubordinate, isAdmin } = useAuth();
+  const { user, isAdmin } = useAuth();
+  const { isSubordinate } = usePermissionFlags();
   const { toast } = useToast();
   const { shouldFilterToOwnData } = useCardPermissions();
 

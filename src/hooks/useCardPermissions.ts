@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePermissionFlags } from './usePermissionFlags';
 import { useSubordinatePermissions } from './useSubordinatePermissions';
 import { useLevelPermissions } from './useLevelPermissions';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,7 +27,8 @@ import { ALL_AVAILABLE_CARDS } from '@/types/cardTypes';
 
 export function useCardPermissions() {
   const authContext = useAuth();
-  const { isAdmin, isFullTherapist, isAccountant, isSubordinate, user, rolesLoaded } = authContext;
+  const { isAdmin, isAccountant, user, rolesLoaded } = authContext;
+  const { isFullTherapist, isSubordinate } = usePermissionFlags();
   const { 
     permissions, 
     loading: permissionsLoading,
