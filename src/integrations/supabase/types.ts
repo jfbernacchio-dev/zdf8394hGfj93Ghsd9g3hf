@@ -169,6 +169,7 @@ export type Database = {
           description: string
           end_time: string
           id: string
+          organization_id: string | null
           start_time: string
           updated_at: string
           user_id: string
@@ -179,6 +180,7 @@ export type Database = {
           description: string
           end_time: string
           id?: string
+          organization_id?: string | null
           start_time: string
           updated_at?: string
           user_id: string
@@ -189,6 +191,7 @@ export type Database = {
           description?: string
           end_time?: string
           id?: string
+          organization_id?: string | null
           start_time?: string
           updated_at?: string
           user_id?: string
@@ -320,6 +323,7 @@ export type Database = {
           is_active: boolean | null
           onset_duration_weeks: number | null
           onset_type: string | null
+          organization_id: string | null
           patient_id: string
           reported_by: string | null
           severity: string | null
@@ -343,6 +347,7 @@ export type Database = {
           is_active?: boolean | null
           onset_duration_weeks?: number | null
           onset_type?: string | null
+          organization_id?: string | null
           patient_id: string
           reported_by?: string | null
           severity?: string | null
@@ -366,6 +371,7 @@ export type Database = {
           is_active?: boolean | null
           onset_duration_weeks?: number | null
           onset_type?: string | null
+          organization_id?: string | null
           patient_id?: string
           reported_by?: string | null
           severity?: string | null
@@ -395,6 +401,7 @@ export type Database = {
           id: string
           is_current: boolean | null
           notes: string | null
+          organization_id: string | null
           start_date: string | null
           substance: string | null
         }
@@ -409,6 +416,7 @@ export type Database = {
           id?: string
           is_current?: boolean | null
           notes?: string | null
+          organization_id?: string | null
           start_date?: string | null
           substance?: string | null
         }
@@ -423,6 +431,7 @@ export type Database = {
           id?: string
           is_current?: boolean | null
           notes?: string | null
+          organization_id?: string | null
           start_date?: string | null
           substance?: string | null
         }
@@ -478,6 +487,7 @@ export type Database = {
           intensity: number | null
           is_present: boolean | null
           notes: string | null
+          organization_id: string | null
           symptom_label: string
         }
         Insert: {
@@ -489,6 +499,7 @@ export type Database = {
           intensity?: number | null
           is_present?: boolean | null
           notes?: string | null
+          organization_id?: string | null
           symptom_label: string
         }
         Update: {
@@ -500,6 +511,7 @@ export type Database = {
           intensity?: number | null
           is_present?: boolean | null
           notes?: string | null
+          organization_id?: string | null
           symptom_label?: string
         }
         Relationships: [
@@ -519,6 +531,7 @@ export type Database = {
           guardian_document_path: string | null
           id: string
           ip_address: string | null
+          organization_id: string | null
           patient_id: string
           submission_type: string
           token: string | null
@@ -530,6 +543,7 @@ export type Database = {
           guardian_document_path?: string | null
           id?: string
           ip_address?: string | null
+          organization_id?: string | null
           patient_id: string
           submission_type: string
           token?: string | null
@@ -541,6 +555,7 @@ export type Database = {
           guardian_document_path?: string | null
           id?: string
           ip_address?: string | null
+          organization_id?: string | null
           patient_id?: string
           submission_type?: string
           token?: string | null
@@ -561,6 +576,7 @@ export type Database = {
           created_at: string
           id: string
           invoice_text: string
+          organization_id: string | null
           patient_count: number
           session_ids: string[]
           total_sessions: number
@@ -571,6 +587,7 @@ export type Database = {
           created_at?: string
           id?: string
           invoice_text: string
+          organization_id?: string | null
           patient_count: number
           session_ids: string[]
           total_sessions: number
@@ -581,6 +598,7 @@ export type Database = {
           created_at?: string
           id?: string
           invoice_text?: string
+          organization_id?: string | null
           patient_count?: number
           session_ids?: string[]
           total_sessions?: number
@@ -851,6 +869,7 @@ export type Database = {
           certificate_type: string | null
           created_at: string
           id: string
+          organization_id: string | null
           updated_at: string
           user_id: string
           valid_until: string | null
@@ -861,6 +880,7 @@ export type Database = {
           certificate_type?: string | null
           created_at?: string
           id?: string
+          organization_id?: string | null
           updated_at?: string
           user_id: string
           valid_until?: string | null
@@ -871,6 +891,7 @@ export type Database = {
           certificate_type?: string | null
           created_at?: string
           id?: string
+          organization_id?: string | null
           updated_at?: string
           user_id?: string
           valid_until?: string | null
@@ -889,6 +910,7 @@ export type Database = {
           id: string
           inscricao_municipal: string | null
           iss_rate: number | null
+          organization_id: string | null
           razao_social: string | null
           regime_tributario: string | null
           service_code: string | null
@@ -907,6 +929,7 @@ export type Database = {
           id?: string
           inscricao_municipal?: string | null
           iss_rate?: number | null
+          organization_id?: string | null
           razao_social?: string | null
           regime_tributario?: string | null
           service_code?: string | null
@@ -925,6 +948,7 @@ export type Database = {
           id?: string
           inscricao_municipal?: string | null
           iss_rate?: number | null
+          organization_id?: string | null
           razao_social?: string | null
           regime_tributario?: string | null
           service_code?: string | null
@@ -947,6 +971,7 @@ export type Database = {
           issue_date: string
           net_value: number
           nfse_number: string | null
+          organization_id: string | null
           patient_cpf: string | null
           patient_id: string
           patient_name: string | null
@@ -971,6 +996,7 @@ export type Database = {
           issue_date?: string
           net_value: number
           nfse_number?: string | null
+          organization_id?: string | null
           patient_cpf?: string | null
           patient_id: string
           patient_name?: string | null
@@ -995,6 +1021,7 @@ export type Database = {
           issue_date?: string
           net_value?: number
           nfse_number?: string | null
+          organization_id?: string | null
           patient_cpf?: string | null
           patient_id?: string
           patient_name?: string | null
@@ -1024,6 +1051,7 @@ export type Database = {
           has_proof: boolean
           id: string
           notes: string | null
+          organization_id: string | null
           payment_date: string
           payment_method: string
           proof_file_path: string | null
@@ -1036,6 +1064,7 @@ export type Database = {
           has_proof?: boolean
           id?: string
           notes?: string | null
+          organization_id?: string | null
           payment_date: string
           payment_method: string
           proof_file_path?: string | null
@@ -1048,6 +1077,7 @@ export type Database = {
           has_proof?: boolean
           id?: string
           notes?: string | null
+          organization_id?: string | null
           payment_date?: string
           payment_method?: string
           proof_file_path?: string | null
@@ -1275,6 +1305,7 @@ export type Database = {
           file_type: string
           id: string
           is_clinical: boolean | null
+          organization_id: string | null
           patient_id: string
           uploaded_at: string
           uploaded_by: string
@@ -1286,6 +1317,7 @@ export type Database = {
           file_type: string
           id?: string
           is_clinical?: boolean | null
+          organization_id?: string | null
           patient_id: string
           uploaded_at?: string
           uploaded_by: string
@@ -1297,6 +1329,7 @@ export type Database = {
           file_type?: string
           id?: string
           is_clinical?: boolean | null
+          organization_id?: string | null
           patient_id?: string
           uploaded_at?: string
           uploaded_by?: string
@@ -1340,6 +1373,7 @@ export type Database = {
           nfse_number_of_invoices: number | null
           no_nfse: boolean | null
           observations: string | null
+          organization_id: string | null
           phone: string | null
           privacy_policy_accepted: boolean | null
           privacy_policy_accepted_at: string | null
@@ -1382,6 +1416,7 @@ export type Database = {
           nfse_number_of_invoices?: number | null
           no_nfse?: boolean | null
           observations?: string | null
+          organization_id?: string | null
           phone?: string | null
           privacy_policy_accepted?: boolean | null
           privacy_policy_accepted_at?: string | null
@@ -1424,6 +1459,7 @@ export type Database = {
           nfse_number_of_invoices?: number | null
           no_nfse?: boolean | null
           observations?: string | null
+          organization_id?: string | null
           phone?: string | null
           privacy_policy_accepted?: boolean | null
           privacy_policy_accepted_at?: string | null
@@ -1446,6 +1482,7 @@ export type Database = {
           created_at: string
           id: string
           nfse_id: string
+          organization_id: string | null
           payment_id: string
         }
         Insert: {
@@ -1453,6 +1490,7 @@ export type Database = {
           created_at?: string
           id?: string
           nfse_id: string
+          organization_id?: string | null
           payment_id: string
         }
         Update: {
@@ -1460,6 +1498,7 @@ export type Database = {
           created_at?: string
           id?: string
           nfse_id?: string
+          organization_id?: string | null
           payment_id?: string
         }
         Relationships: [
@@ -1612,6 +1651,7 @@ export type Database = {
           end_date: string | null
           end_time: string
           id: string
+          organization_id: string | null
           reason: string | null
           start_date: string | null
           start_time: string
@@ -1623,6 +1663,7 @@ export type Database = {
           end_date?: string | null
           end_time: string
           id?: string
+          organization_id?: string | null
           reason?: string | null
           start_date?: string | null
           start_time: string
@@ -1634,6 +1675,7 @@ export type Database = {
           end_date?: string | null
           end_time?: string
           id?: string
+          organization_id?: string | null
           reason?: string | null
           start_date?: string | null
           start_time?: string
@@ -1730,6 +1772,7 @@ export type Database = {
           language_data: Json | null
           memory_data: Json | null
           mood_data: Json | null
+          organization_id: string | null
           orientation_data: Json | null
           patient_id: string
           personality_data: Json | null
@@ -1750,6 +1793,7 @@ export type Database = {
           language_data?: Json | null
           memory_data?: Json | null
           mood_data?: Json | null
+          organization_id?: string | null
           orientation_data?: Json | null
           patient_id: string
           personality_data?: Json | null
@@ -1770,6 +1814,7 @@ export type Database = {
           language_data?: Json | null
           memory_data?: Json | null
           mood_data?: Json | null
+          organization_id?: string | null
           orientation_data?: Json | null
           patient_id?: string
           personality_data?: Json | null
@@ -1843,6 +1888,7 @@ export type Database = {
           manually_marked_nfse: boolean | null
           nfse_issued_id: string | null
           notes: string | null
+          organization_id: string | null
           paid: boolean | null
           patient_id: string
           show_in_schedule: boolean | null
@@ -1858,6 +1904,7 @@ export type Database = {
           manually_marked_nfse?: boolean | null
           nfse_issued_id?: string | null
           notes?: string | null
+          organization_id?: string | null
           paid?: boolean | null
           patient_id: string
           show_in_schedule?: boolean | null
@@ -1873,6 +1920,7 @@ export type Database = {
           manually_marked_nfse?: boolean | null
           nfse_issued_id?: string | null
           notes?: string | null
+          organization_id?: string | null
           paid?: boolean | null
           patient_id?: string
           show_in_schedule?: boolean | null
@@ -1954,6 +2002,7 @@ export type Database = {
           id: string
           message: string
           metadata: Json | null
+          organization_id: string | null
           read: boolean
           severity: string
           title: string
@@ -1966,6 +2015,7 @@ export type Database = {
           id?: string
           message: string
           metadata?: Json | null
+          organization_id?: string | null
           read?: boolean
           severity?: string
           title: string
@@ -1978,6 +2028,7 @@ export type Database = {
           id?: string
           message?: string
           metadata?: Json | null
+          organization_id?: string | null
           read?: boolean
           severity?: string
           title?: string
@@ -2027,6 +2078,7 @@ export type Database = {
           created_at: string
           id: string
           message: string
+          organization_id: string | null
           read: boolean
           therapist_id: string
           title: string
@@ -2037,6 +2089,7 @@ export type Database = {
           created_at?: string
           id?: string
           message: string
+          organization_id?: string | null
           read?: boolean
           therapist_id: string
           title: string
@@ -2047,6 +2100,7 @@ export type Database = {
           created_at?: string
           id?: string
           message?: string
+          organization_id?: string | null
           read?: boolean
           therapist_id?: string
           title?: string
@@ -2359,6 +2413,10 @@ export type Database = {
         Returns: boolean
       }
       is_subordinate: { Args: { _user_id: string }; Returns: boolean }
+      resolve_organization_for_user: {
+        Args: { _user_id: string }
+        Returns: string
+      }
       validate_cpf: { Args: { cpf_input: string }; Returns: boolean }
     }
     Enums: {
