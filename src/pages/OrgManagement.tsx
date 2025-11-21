@@ -134,8 +134,8 @@ export default function OrgManagement() {
 
       if (error) {
         toast({
-          title: 'Erro ao carregar usuários',
-          description: error.message,
+          title: 'Erro ao carregar membros',
+          description: 'Erro ao carregar membros da organização. Tente recarregar a página.',
           variant: 'destructive',
         });
         throw error;
@@ -154,7 +154,7 @@ export default function OrgManagement() {
       if (profilesError) {
         toast({
           title: 'Erro ao carregar perfis',
-          description: profilesError.message,
+          description: 'Erro ao carregar membros da organização. Tente recarregar a página.',
           variant: 'destructive',
         });
         throw profilesError;
@@ -575,7 +575,7 @@ export default function OrgManagement() {
     onError: (error) => {
       toast({
         title: 'Erro ao adicionar nível',
-        description: error.message,
+        description: 'Erro ao carregar níveis organizacionais.',
         variant: 'destructive',
       });
     },
@@ -592,7 +592,7 @@ export default function OrgManagement() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background" aria-label="Gestão organizacional">
         {/* Header */}
         <div className="border-b bg-gradient-to-b from-card to-background/50 shadow-sm">
           <div className="container mx-auto px-4 py-8">
@@ -621,6 +621,7 @@ export default function OrgManagement() {
                 className="gap-2 shadow-md hover:shadow-lg transition-all"
                 onClick={handleAddLevel}
                 disabled={addLevelMutation.isPending}
+                aria-label="Adicionar novo nível organizacional"
               >
                 <Plus className="h-5 w-5" />
                 {addLevelMutation.isPending ? 'Adicionando...' : 'Adicionar Nível'}
@@ -632,27 +633,33 @@ export default function OrgManagement() {
         {/* Organogram View */}
         <div className="container mx-auto px-4 py-8">
           {isLoading ? (
-            <div className="flex gap-6 pb-4 overflow-x-auto">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex-shrink-0 w-[320px] animate-pulse">
-                  <div className="rounded-xl border-2 bg-muted/50 h-[400px] p-6">
-                    <div className="h-6 bg-muted-foreground/20 rounded w-3/4 mb-4" />
-                    <div className="h-4 bg-muted-foreground/10 rounded w-1/2 mb-6" />
-                    <div className="space-y-3">
-                      {[1, 2, 3].map((j) => (
-                        <div key={j} className="h-16 bg-muted-foreground/10 rounded-lg" />
-                      ))}
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="flex gap-6 pb-4 overflow-x-auto">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex-shrink-0 w-[320px] animate-pulse">
+                    <div className="rounded-xl border-2 bg-muted/50 h-[400px] p-6">
+                      <div className="h-6 bg-muted-foreground/20 rounded w-3/4 mb-4" />
+                      <div className="h-4 bg-muted-foreground/10 rounded w-1/2 mb-6" />
+                      <div className="space-y-3">
+                        {[1, 2, 3].map((j) => (
+                          <div key={j} className="h-16 bg-muted-foreground/10 rounded-lg" />
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+              <p className="text-sm text-muted-foreground mt-4">Carregando estrutura organizacional...</p>
             </div>
           ) : !levels || levels.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Users className="h-16 w-16 text-muted-foreground/50 mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Nenhum nível configurado ainda</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Clique em "+ Adicionar Nível" para começar a estruturar sua organização.
+              <h3 className="text-lg font-semibold mb-2">Nenhuma estrutura criada ainda</h3>
+              <p className="text-sm text-muted-foreground mb-1">
+                Clique em "Adicionar Nível" para começar a montar o organograma da sua equipe.
+              </p>
+              <p className="text-xs text-muted-foreground/80">
+                Organize sua equipe em níveis hierárquicos e defina permissões personalizadas.
               </p>
             </div>
           ) : (
@@ -668,12 +675,16 @@ export default function OrgManagement() {
                   return (
                     <div key={level.id} className="flex-shrink-0 relative">
                       {/* Level Card */}
-                      <Card className={`
-                        min-w-[280px] md:min-w-[340px] w-[340px] ${LEVEL_COLORS[index % LEVEL_COLORS.length]} border-2 
-                        transition-all duration-200 ease-out
-                        ${showDropFeedback ? 'shadow-md ring-2 ring-primary/40' : 'shadow-sm hover:shadow-md'}
-                        ${showInvalidFeedback ? 'opacity-40' : ''}
-                      `}>
+                      <Card 
+                        className={`
+                          min-w-[280px] md:min-w-[340px] w-[340px] ${LEVEL_COLORS[index % LEVEL_COLORS.length]} border-2 
+                          transition-all duration-200 ease-out
+                          ${showDropFeedback ? 'shadow-md ring-2 ring-primary/40' : 'shadow-sm hover:shadow-md'}
+                          ${showInvalidFeedback ? 'opacity-40' : ''}
+                        `}
+                        role="group"
+                        aria-label={`Nível ${level.level_number} - ${level.level_name}`}
+                      >
                         <CardHeader className="pb-3">
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
@@ -706,6 +717,7 @@ export default function OrgManagement() {
                             onDragOver={(e) => handleDragOver(e, level.id)}
                             onDrop={(e) => handleDrop(e, level.id)}
                             onDragLeave={() => setDragOverLevelId(null)}
+                            aria-dropeffect="move"
                           >
                             {localUsersByLevel.get(level.id)?.map((userInfo) => {
                               const initials = userInfo.full_name
@@ -737,6 +749,7 @@ export default function OrgManagement() {
                                   draggable={isDraggable}
                                   onDragStart={(e) => handleDragStart(e, level.id, userInfo)}
                                   onDragEnd={handleDragEnd}
+                                  aria-label={`Membro ${userInfo.full_name}`}
                                 >
                                   <div className="flex items-center gap-3">
                                     <Avatar className="h-10 w-10 ring-2 ring-white dark:ring-neutral-900">
@@ -776,8 +789,11 @@ export default function OrgManagement() {
                               ) : (
                                 <div className="flex flex-col items-center justify-center py-12 text-center">
                                   <Users className="h-10 w-10 text-muted-foreground/40 mb-2" />
-                                  <p className="text-sm text-muted-foreground">
-                                    Nenhum membro neste nível
+                                  <p className="text-sm text-muted-foreground mb-1">
+                                    Nenhum membro neste nível ainda
+                                  </p>
+                                  <p className="text-xs text-muted-foreground/70">
+                                    Arraste membros de outros níveis para cá, se tiver permissão.
                                   </p>
                                 </div>
                               )
@@ -796,6 +812,7 @@ export default function OrgManagement() {
                               level.level_name,
                               level.level_number
                             )}
+                            aria-label={`Gerenciar permissões do nível ${level.level_name}`}
                           >
                             <Settings className="h-4 w-4" />
                             Gerenciar Permissões
@@ -840,7 +857,7 @@ export default function OrgManagement() {
                     <div className="p-2 rounded-lg bg-primary/10">
                       <Users className="h-5 w-5 text-primary" />
                     </div>
-                    Total de Membros
+                    Membros na Organização
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
