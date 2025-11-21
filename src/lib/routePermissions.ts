@@ -65,6 +65,12 @@ export const routePermissions: RoutePermissionsConfig = {
     allowedFor: ['admin', 'fulltherapist'],
   },
 
+  // ==================== GESTÃO DE EQUIPE ====================
+  // Admin pode visualizar equipe (psychologists também via lógica de componente)
+  '/team-management': {
+    allowedFor: ['admin'],
+  },
+
   // ==================== DASHBOARD ====================
   // Dashboard específico do contador
   '/accountant-dashboard': {
