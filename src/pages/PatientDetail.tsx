@@ -532,7 +532,28 @@ const PatientDetailNew = () => {
       console.log('🟢 [SUBMIT SUCESSO] Update executado com sucesso');
 
       if (dateChanged || timeChanged) {
-...
+        const dayNames = [
+          'Domingo',
+          'Segunda',
+          'Terça',
+          'Quarta',
+          'Quinta',
+          'Sexta',
+          'Sábado',
+        ];
+
+        const oldDate = new Date(editingSession.date);
+        const newDate = new Date(formData.date);
+
+        const oldDay = dayNames[oldDate.getDay()];
+        const newDay = dayNames[newDate.getDay()];
+
+        await supabase.from('session_history').insert({
+          patient_id: id,
+          old_day: oldDay,
+          old_time: editingSession.time || '-',
+          new_day: newDay,
+          new_time: formData.time || '-',
         });
       }
 
