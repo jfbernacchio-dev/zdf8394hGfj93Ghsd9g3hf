@@ -41,7 +41,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Calendar, Users, MessageSquare, Bell, Lock, FileText, Clock, User, Settings, ChevronRight, DollarSign } from 'lucide-react';
+import { ArrowLeft, Calendar, Users, MessageSquare, Bell, Lock, FileText, Clock, User, Settings, ChevronRight, DollarSign, Shield, Network } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -109,6 +109,16 @@ const TherapistDetail = () => {
     newValue: false
   });
 
+  // FASE 8.5.4: Estados para contexto organizacional
+  const [orgInfo, setOrgInfo] = useState<{
+    role: string | null;
+    levelName: string | null;
+    levelNumber: number | null;
+    positionName: string | null;
+  } | null>(null);
+  const [orgLoading, setOrgLoading] = useState(true);
+  const [orgError, setOrgError] = useState<string | null>(null);
+
   useEffect(() => {
     loadTherapistData();
     loadNotifications();
@@ -117,6 +127,7 @@ const TherapistDetail = () => {
     checkManagerCNPJ();
     loadFinancialData();
     loadManagerProfile(); // FASE 2C: Carregar perfil do manager
+    loadOrgContext(); // FASE 8.5.4: Carregar contexto organizacional
   }, [id, isAdmin, navigate]);
 
   const loadManagerProfile = async () => {
@@ -127,6 +138,85 @@ const TherapistDetail = () => {
       .eq('id', user.id)
       .single();
     setUserProfile(profileData);
+  };
+
+  // FASE 8.5.4: Carregar contexto organizacional do membro
+  const loadOrgContext = async () => {
+    if (!id) return;
+    
+    setOrgLoading(true);
+    setOrgError(null);
+    
+    try {
+      // 1. Buscar role do usuário
+      const { data: roleRow, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', id)
+        .maybeSingle();
+
+      if (roleError) {
+        throw new Error('Erro ao buscar role');
+      }
+
+      // 2. Buscar posição do usuário
+      const { data: positionRow, error: userPosError } = await supabase
+        .from('user_positions')
+        .select('position_id')
+        .eq('user_id', id)
+        .maybeSingle();
+
+      if (userPosError) {
+        throw new Error('Erro ao buscar posição do usuário');
+      }
+
+      let orgPos = null;
+      let level = null;
+
+      // 3. Se tiver position_id, buscar em organization_positions
+      if (positionRow?.position_id) {
+        const { data: orgPosData, error: orgPosError } = await supabase
+          .from('organization_positions')
+          .select('id, position_name, level_id')
+          .eq('id', positionRow.position_id)
+          .maybeSingle();
+
+        if (orgPosError) {
+          throw new Error('Erro ao buscar cargo organizacional');
+        }
+
+        orgPos = orgPosData;
+
+        // 4. Se tiver level_id, buscar em organization_levels
+        if (orgPos?.level_id) {
+          const { data: levelData, error: levelError } = await supabase
+            .from('organization_levels')
+            .select('id, level_name, level_number')
+            .eq('id', orgPos.level_id)
+            .maybeSingle();
+
+          if (levelError) {
+            throw new Error('Erro ao buscar nível organizacional');
+          }
+
+          level = levelData;
+        }
+      }
+
+      // 5. Preencher estado
+      setOrgInfo({
+        role: roleRow?.role || null,
+        levelName: level?.level_name || null,
+        levelNumber: level?.level_number ?? null,
+        positionName: orgPos?.position_name || null,
+      });
+
+    } catch (error: any) {
+      console.error('Error loading org context:', error);
+      setOrgError(error.message || 'Erro ao carregar contexto organizacional');
+    } finally {
+      setOrgLoading(false);
+    }
   };
 
   const loadTherapistData = async () => {
@@ -695,7 +785,7 @@ const TherapistDetail = () => {
 
       <div className="container mx-auto p-6 space-y-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate('/therapists')}>
+          <Button variant="ghost" onClick={() => navigate('/team-management')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Voltar
           </Button>
@@ -721,6 +811,46 @@ const TherapistDetail = () => {
           </TabsList>
 
           <TabsContent value="overview">
+            {/* FASE 8.5.4: Card de Contexto Organizacional */}
+            <div className="grid gap-4 md:grid-cols-4 mb-4">
+              <Card className="md:col-span-4 p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <Shield className="h-6 w-6 text-primary" />
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                      Contexto Organizacional
+                    </p>
+                    {orgLoading ? (
+                      <p className="text-sm text-muted-foreground">Carregando...</p>
+                    ) : orgError ? (
+                      <p className="text-sm text-destructive">{orgError}</p>
+                    ) : (
+                      <div className="space-y-1">
+                        <p className="text-sm">
+                          <span className="font-medium">Role:</span>{' '}
+                          {orgInfo?.role ? orgInfo.role : 'Não definido'}
+                        </p>
+                        <p className="text-sm">
+                          <span className="font-medium">Nível:</span>{' '}
+                          {orgInfo?.levelNumber != null
+                            ? `Nível ${orgInfo.levelNumber} — ${orgInfo.levelName ?? 'Sem nome'}`
+                            : 'Não vinculado a nenhum nível'}
+                        </p>
+                        <p className="text-sm">
+                          <span className="font-medium">Cargo:</span>{' '}
+                          {orgInfo?.positionName ?? 'Sem cargo definido'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Network className="h-4 w-4" />
+                  <span>Dados sincronizados com o organograma</span>
+                </div>
+              </Card>
+            </div>
+
             <div className="grid gap-4 md:grid-cols-4">
               <Card className="p-6">
                 <Users className="h-8 w-8 mb-2 text-primary" />
@@ -848,6 +978,15 @@ const TherapistDetail = () => {
           </TabsContent>
 
           <TabsContent value="autonomy">
+            {/* FASE 8.5.4: Texto explicativo sobre integração */}
+            <Card className="mb-4 p-4 bg-muted/40">
+              <p className="text-sm text-muted-foreground">
+                As configurações abaixo combinam o sistema antigo de autonomia com o novo 
+                modelo de níveis e permissões. Em versões futuras, tudo isso ficará 
+                centralizado no organograma.
+              </p>
+            </Card>
+
             {!autonomySettings || !therapist ? (
               <Card className="p-6">
                 <p className="text-muted-foreground">Carregando configurações...</p>
