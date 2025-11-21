@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Users, Calendar, LogOut, FileText, ChevronDown, Shield, Menu, TrendingUp, User, AlertTriangle, Database, ClipboardCheck, MessageCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePermissionFlags } from '@/hooks/usePermissionFlags';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from './ui/dropdown-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
 import { useState } from 'react';
@@ -12,7 +13,8 @@ import { ThemeToggle } from './ThemeToggle';
 const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut, profile, isAdmin, isAccountant, isSubordinate, isFullTherapist } = useAuth();
+  const { signOut, profile, isAdmin, isAccountant } = useAuth();
+  const { isSubordinate, isFullTherapist } = usePermissionFlags();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // 🔍 LOG DIAGNÓSTICO 5: Estados de autenticação

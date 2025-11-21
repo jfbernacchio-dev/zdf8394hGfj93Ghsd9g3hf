@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePermissionFlags } from '@/hooks/usePermissionFlags';
 import { logAdminAccess } from '@/lib/auditLog';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -50,7 +51,8 @@ const PatientDetailNew = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const { user, isAdmin, isSubordinate } = useAuth();
+  const { user, isAdmin } = useAuth();
+  const { isSubordinate } = usePermissionFlags();
   const [patient, setPatient] = useState<any>(null);
   const [sessions, setSessions] = useState<any[]>([]);
   const [allSessions, setAllSessions] = useState<any[]>([]);

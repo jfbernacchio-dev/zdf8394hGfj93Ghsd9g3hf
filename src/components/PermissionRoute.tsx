@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePermissionFlags } from '@/hooks/usePermissionFlags';
 import { useToast } from '@/hooks/use-toast';
 import { routePermissions } from '@/lib/routePermissions';
 import { checkRoutePermission, getUserRoles } from '@/lib/checkPermissions';
@@ -37,7 +38,8 @@ interface PermissionRouteProps {
 }
 
 export function PermissionRoute({ children, path }: PermissionRouteProps) {
-  const { user, isAdmin, isFullTherapist, isSubordinate, isAccountant, rolesLoaded } = useAuth();
+  const { user, isAdmin, isAccountant, rolesLoaded } = useAuth();
+  const { isFullTherapist, isSubordinate } = usePermissionFlags();
   const { permissions, loading: permissionsLoading } = useSubordinatePermissions();
   const navigate = useNavigate();
   const { toast } = useToast();

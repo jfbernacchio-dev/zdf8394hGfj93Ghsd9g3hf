@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Home, Calendar, Users, Menu, TrendingUp, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePermissionFlags } from '@/hooks/usePermissionFlags';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
 import { Button } from './ui/button';
 import { useState } from 'react';
@@ -9,7 +10,8 @@ import { useNavigate } from 'react-router-dom';
 
 const BottomNav = () => {
   const location = useLocation();
-  const { isAdmin, isSubordinate, signOut } = useAuth();
+  const { isAdmin, signOut } = useAuth();
+  const { isSubordinate } = usePermissionFlags();
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
 

@@ -7,6 +7,7 @@ import { FileText, Loader2 } from 'lucide-react';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import { format, parseISO } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePermissionFlags } from '@/hooks/usePermissionFlags';
 import { canAccessFinancial } from '@/lib/checkSubordinateAutonomy';
 
 interface IssueNFSeDialogProps {
@@ -23,7 +24,8 @@ export default function IssueNFSeDialog({
   onSuccess,
 }: IssueNFSeDialogProps) {
   const { toast } = useToast();
-  const { user, isSubordinate } = useAuth();
+  const { user, roleGlobal } = useAuth();
+  const { isSubordinate } = usePermissionFlags();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingSessions, setLoadingSessions] = useState(false);
