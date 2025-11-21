@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Settings, Users } from 'lucide-react';
+import { ArrowLeft, Plus, Settings, Users, Trash2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -585,6 +585,54 @@ export default function OrgManagement() {
     addLevelMutation.mutate();
   };
 
+  // FASE 6E-5: Mutation para excluir nível
+  const deleteLevelMutation = useMutation({
+    mutationFn: async (levelId: string) => {
+      const { error } = await supabase
+        .from('organization_levels')
+        .delete()
+        .eq('id', levelId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['organization-levels', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['user-positions', user?.id] }).catch(() => {});
+      toast({
+        title: 'Nível excluído com sucesso',
+        description: 'A estrutura organizacional foi atualizada.',
+      });
+    },
+    onError: () => {
+      toast({
+        title: 'Erro ao excluir nível',
+        description: 'Não foi possível excluir este nível. Tente novamente.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // FASE 6E-5: Handler para excluir nível
+  const handleDeleteLevel = (levelId: string) => {
+    if (!isAdmin) return;
+
+    const memberCount = localUsersByLevel.get(levelId)?.length ?? 0;
+
+    if (memberCount > 0) {
+      toast({
+        title: 'Não é possível excluir este nível',
+        description: 'Você precisa mover todos os membros deste nível antes de excluí-lo.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const confirmed = window.confirm('Tem certeza que deseja excluir este nível? Esta ação não pode ser desfeita.');
+    if (!confirmed) return;
+
+    deleteLevelMutation.mutate(levelId);
+  };
+
   const handleManagePermissions = (levelId: string, levelName: string, levelNumber: number) => {
     setSelectedLevel({ id: levelId, name: levelName, number: levelNumber });
     setPermissionModalOpen(true);
@@ -695,9 +743,45 @@ export default function OrgManagement() {
                                 {localUsersByLevel.get(level.id)?.length || 0} membro(s)
                               </Badge>
                             </div>
-                            <Badge variant="outline" className="ml-2 font-semibold px-3">
-                              N{level.level_number}
-                            </Badge>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="font-semibold px-3">
+                                N{level.level_number}
+                              </Badge>
+                              {/* FASE 6E-5: Botão de excluir nível (apenas admin e nível vazio) */}
+                              {isAdmin && (() => {
+                                const memberCount = localUsersByLevel.get(level.id)?.length ?? 0;
+                                const hasMembers = memberCount > 0;
+                                
+                                return (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className={`h-8 w-8 rounded-full border border-red-200/60 text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors ${
+                                      hasMembers ? 'opacity-40 cursor-not-allowed hover:bg-transparent hover:text-red-500' : ''
+                                    }`}
+                                    onClick={() => {
+                                      if (hasMembers) {
+                                        toast({
+                                          title: 'Nível não pode ser excluído',
+                                          description: 'Mova todos os membros para outros níveis antes de excluir este.',
+                                          variant: 'destructive',
+                                        });
+                                        return;
+                                      }
+                                      handleDeleteLevel(level.id);
+                                    }}
+                                    aria-label={
+                                      hasMembers
+                                        ? `Não é possível excluir o nível ${level.level_number} - possui membros`
+                                        : `Excluir nível ${level.level_number}`
+                                    }
+                                    disabled={deleteLevelMutation.isPending}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                );
+                              })()}
+                            </div>
                           </div>
                         </CardHeader>
 
