@@ -1,4 +1,4 @@
-import type { ExtendedAutonomyPermissions } from '@/hooks/useSubordinatePermissions';
+import type { EffectivePermissions } from '@/lib/resolveEffectivePermissions';
 
 // Default layout configuration for PatientEvolutionMetrics component
 export const DEFAULT_EVOLUTION_LAYOUT = {
@@ -35,6 +35,9 @@ export const DEFAULT_EVOLUTION_LAYOUT = {
   } as Record<string, { width: number; height: number; x: number; y: number }>,
 };
 
+// Export as DEFAULT_LAYOUT for compatibility
+export const DEFAULT_LAYOUT = DEFAULT_EVOLUTION_LAYOUT;
+
 /**
  * ============================================================================
  * FILTER LAYOUT BY PERMISSIONS
@@ -53,7 +56,7 @@ export const DEFAULT_EVOLUTION_LAYOUT = {
  * ============================================================================
  */
 export function getFilteredEvolutionLayout(
-  permissions: ExtendedAutonomyPermissions | null,
+  permissions: EffectivePermissions | null,
   isAdmin: boolean,
   canViewCard: (cardId: string) => boolean
 ): typeof DEFAULT_EVOLUTION_LAYOUT {
@@ -83,6 +86,8 @@ export function getFilteredEvolutionLayout(
 }
 
 // Function to reset layout to default
+export const resetToDefaultLayout = resetToDefaultEvolutionLayout;
+
 export const resetToDefaultEvolutionLayout = () => {
   // Clear only evolution-specific customizations
   const keys = Object.keys(localStorage);

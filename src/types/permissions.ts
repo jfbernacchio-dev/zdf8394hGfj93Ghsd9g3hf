@@ -18,7 +18,8 @@ export type PermissionDomain =
   | 'financial'       // Valores, NFSe, pagamentos, métricas financeiras
   | 'administrative'  // Sessões, agenda, notificações, métricas administrativas
   | 'clinical'        // Queixas, evoluções, diagnósticos, métricas clínicas
-  | 'media'           // Google Ads, website, analytics, métricas de marketing
+  | 'media'           // Google Ads, website, analytics
+  | 'marketing'       // Marketing e mídia (mesmo domínio que 'media')
   | 'general'         // Sem restrição (contato, perfil, informações básicas)
   | 'charts'          // FASE 2B: Seção especial que agrega gráficos de todos os domínios
   | 'team';           // Dados dos subordinados (equipe)

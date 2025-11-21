@@ -27,24 +27,16 @@ export function useEffectivePermissions() {
   useEffect(() => {
     async function loadPermissions() {
       if (!user) {
-        console.log('[PERM] No user, setting loading to false');
         setPermissions(null);
         setLoading(false);
         return;
       }
 
       try {
-        console.log('[PERM] 🔍 Resolving effective permissions for user:', user.id);
-        console.log('[PERM] User roleGlobal:', roleGlobal);
-        
         const effectivePerms = await resolveEffectivePermissions(user.id);
-        
-        console.log('[PERM] ✅ Effective permissions resolved:', effectivePerms);
-        
         setPermissions(effectivePerms);
         setError(null);
       } catch (err) {
-        console.error('[PERM] ❌ Error loading permissions:', err);
         setError(err instanceof Error ? err : new Error('Unknown error'));
         setPermissions(null);
       } finally {
