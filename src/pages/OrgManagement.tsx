@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Settings, Users } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -60,7 +60,7 @@ const ROLE_COLORS: Record<string, string> = {
 
 export default function OrgManagement() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -70,6 +70,13 @@ export default function OrgManagement() {
     id: string;
     name: string;
     number: number;
+  } | null>(null);
+
+  // FASE 6D-1: Estado local para drag & drop (apenas em memória)
+  const [localUsersByLevel, setLocalUsersByLevel] = useState<Map<string, UserInLevel[]>>(new Map());
+  const [draggingUser, setDraggingUser] = useState<{
+    fromLevelId: string;
+    user: UserInLevel;
   } | null>(null);
 
   // Query para buscar níveis reais do banco
@@ -194,14 +201,100 @@ export default function OrgManagement() {
     return map;
   }, [userPositions]);
 
-  // Total de membros
-  const totalMembers = useMemo(() => {
-    let count = 0;
-    usersByLevel.forEach(users => count += users.length);
-    return count;
+  // FASE 6D-1: Inicializar estado local quando usersByLevel mudar
+  useEffect(() => {
+    if (!usersByLevel) return;
+    
+    // Criar cópia independente do mapa
+    const clone = new Map<string, UserInLevel[]>();
+    usersByLevel.forEach((users, levelId) => {
+      clone.set(levelId, [...users]);
+    });
+    setLocalUsersByLevel(clone);
   }, [usersByLevel]);
 
+  // Total de membros (agora usa localUsersByLevel)
+  const totalMembers = useMemo(() => {
+    let count = 0;
+    localUsersByLevel.forEach(users => count += users.length);
+    return count;
+  }, [localUsersByLevel]);
+
   const isLoading = isLoadingLevels || isLoadingUsers;
+
+  // FASE 6D-1: Handlers para drag & drop
+  const handleDragStart = (
+    e: React.DragEvent<HTMLDivElement>,
+    fromLevelId: string,
+    user: UserInLevel
+  ) => {
+    if (!isAdmin) {
+      e.preventDefault();
+      toast({
+        title: 'Permissão negada',
+        description: 'Apenas administradores podem reorganizar o organograma.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setDraggingUser({ fromLevelId, user });
+  };
+
+  const handleDragEnd = () => {
+    setDraggingUser(null);
+  };
+
+  const handleDragOver = (
+    e: React.DragEvent<HTMLDivElement>,
+    targetLevelId: string
+  ) => {
+    if (!isAdmin) return;
+    e.preventDefault(); // Necessário para permitir drop
+  };
+
+  const handleDrop = (
+    e: React.DragEvent<HTMLDivElement>,
+    targetLevelId: string
+  ) => {
+    e.preventDefault();
+    if (!isAdmin || !draggingUser || !localUsersByLevel) return;
+
+    const { fromLevelId, user } = draggingUser;
+
+    // Se soltar no mesmo nível, não fazer nada
+    if (fromLevelId === targetLevelId) {
+      setDraggingUser(null);
+      return;
+    }
+
+    // Criar cópia do mapa
+    const clone = new Map(localUsersByLevel);
+
+    const fromList = [...(clone.get(fromLevelId) ?? [])];
+    const toList = [...(clone.get(targetLevelId) ?? [])];
+
+    // Remover usuário do nível de origem
+    const index = fromList.findIndex((u) => u.id === user.id);
+    if (index === -1) {
+      setDraggingUser(null);
+      return;
+    }
+
+    fromList.splice(index, 1);
+    toList.push(user);
+
+    clone.set(fromLevelId, fromList);
+    clone.set(targetLevelId, toList);
+
+    setLocalUsersByLevel(clone);
+    setDraggingUser(null);
+
+    // Toast informativo
+    toast({
+      title: 'Organograma atualizado (prévia)',
+      description: 'As mudanças ainda não foram salvas no banco. Esta é apenas uma visualização local.',
+    });
+  };
 
   // Mutation para adicionar novo nível
   const addLevelMutation = useMutation({
@@ -318,7 +411,7 @@ export default function OrgManagement() {
                               {level.level_name}
                             </CardTitle>
                             <p className="text-sm text-muted-foreground mt-1">
-                              {usersByLevel.get(level.id)?.length || 0} membro(s)
+                              {localUsersByLevel.get(level.id)?.length || 0} membro(s)
                             </p>
                           </div>
                           <Badge variant="outline" className="ml-2">
@@ -328,9 +421,13 @@ export default function OrgManagement() {
                       </CardHeader>
 
                       <CardContent className="space-y-3">
-                        {/* Users List */}
-                        <div className="space-y-2 min-h-[200px] max-h-[400px] overflow-y-auto">
-                          {usersByLevel.get(level.id)?.map((userInfo) => {
+                        {/* Users List - FASE 6D-1: Drag & drop zone */}
+                        <div 
+                          className="space-y-2 min-h-[200px] max-h-[400px] overflow-y-auto rounded-md border-2 border-dashed border-transparent hover:border-primary/30 transition-colors p-2"
+                          onDragOver={(e) => handleDragOver(e, level.id)}
+                          onDrop={(e) => handleDrop(e, level.id)}
+                        >
+                          {localUsersByLevel.get(level.id)?.map((userInfo) => {
                             const initials = userInfo.full_name
                               .split(' ')
                               .map(n => n[0])
@@ -341,7 +438,10 @@ export default function OrgManagement() {
                             return (
                               <Card
                                 key={userInfo.id}
-                                className="p-3 bg-background hover:shadow-sm transition-shadow"
+                                className={`p-3 bg-background hover:shadow-sm transition-shadow ${isAdmin ? 'cursor-grab active:cursor-grabbing' : ''}`}
+                                draggable={isAdmin}
+                                onDragStart={(e) => handleDragStart(e, level.id, userInfo)}
+                                onDragEnd={handleDragEnd}
                               >
                                 <div className="flex items-center gap-3">
                                   <Avatar className="h-10 w-10">
@@ -367,7 +467,7 @@ export default function OrgManagement() {
                             );
                           })}
 
-                          {(!usersByLevel.get(level.id) || usersByLevel.get(level.id)?.length === 0) && (
+                          {(!localUsersByLevel.get(level.id) || localUsersByLevel.get(level.id)?.length === 0) && (
                             <div className="flex flex-col items-center justify-center py-12 text-center">
                               <Users className="h-12 w-12 text-muted-foreground/50 mb-3" />
                               <p className="text-sm text-muted-foreground">
@@ -470,7 +570,7 @@ export default function OrgManagement() {
             <CardContent className="py-6">
               <h3 className="font-semibold mb-2">Como usar:</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>• <strong>Arrastar e soltar:</strong> Mova membros entre níveis para reorganizar a hierarquia</li>
+                <li>• <strong>Arrastar e soltar:</strong> {isAdmin ? 'Arraste membros entre níveis para reorganizar (prévia visual, não salva automaticamente)' : 'Apenas administradores podem reorganizar membros'}</li>
                 <li>• <strong>Gerenciar Permissões:</strong> Configure as permissões específicas de cada nível</li>
                 <li>• <strong>Adicionar Nível:</strong> Crie novos níveis hierárquicos conforme necessário</li>
                 <li>• <strong>Visualização:</strong> A estrutura mostra claramente quem está em cada nível</li>
