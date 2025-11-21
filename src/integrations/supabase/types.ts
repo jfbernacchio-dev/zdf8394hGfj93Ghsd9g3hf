@@ -1122,6 +1122,38 @@ export type Database = {
         }
         Relationships: []
       }
+      organization_owners: {
+        Row: {
+          created_at: string
+          id: string
+          is_primary: boolean
+          organization_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          organization_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          organization_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_owners_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_positions: {
         Row: {
           created_at: string
@@ -1166,6 +1198,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      organizations: {
+        Row: {
+          cnpj: string
+          created_at: string
+          created_by: string | null
+          id: string
+          legal_name: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          cnpj: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          legal_name: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cnpj?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          legal_name?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       patient_complaints: {
         Row: {
