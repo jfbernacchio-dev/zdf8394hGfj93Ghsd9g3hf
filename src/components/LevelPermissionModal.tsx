@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -7,6 +7,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { 
+  ensureLevelRoleSettings, 
+  LevelRoleSettingsRow 
+} from '@/lib/levelRoleSettingsClient';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -33,6 +37,7 @@ import {
 interface LevelPermissionModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  levelId: string;
   levelName: string;
   levelNumber: number;
 }
@@ -53,10 +58,13 @@ interface LevelRoleSettings {
 export function LevelPermissionModal({
   open,
   onOpenChange,
+  levelId,
   levelName,
   levelNumber,
 }: LevelPermissionModalProps) {
-  // Estado local (não conectado ao banco ainda)
+  const [loading, setLoading] = useState(false);
+  
+  // Estado local (agora carregado do banco)
   const [settings, setSettings] = useState<LevelRoleSettings>({
     can_access_clinical: false,
     financial_access: 'none',
@@ -69,6 +77,45 @@ export function LevelPermissionModal({
     can_edit_schedules: false,
     can_view_team_financial_summary: false,
   });
+
+  // FASE 6C-pt2: Carregar permissões reais quando o modal abrir
+  useEffect(() => {
+    if (!open || !levelId) return;
+
+    let active = true;
+
+    const load = async () => {
+      try {
+        setLoading(true);
+
+        // Carregar ou criar se não existir
+        const row = await ensureLevelRoleSettings(levelId, 'psychologist');
+
+        if (!active) return;
+
+        // Preencher estado local do modal com os dados reais
+        setSettings({
+          can_access_clinical: row.can_access_clinical,
+          financial_access: row.financial_access,
+          can_access_marketing: row.can_access_marketing,
+          can_access_whatsapp: row.can_access_whatsapp,
+          clinical_visible_to_superiors: row.clinical_visible_to_superiors,
+          peer_agenda_sharing: row.peer_agenda_sharing,
+          peer_clinical_sharing: row.peer_clinical_sharing,
+          uses_org_company_for_nfse: row.uses_org_company_for_nfse,
+          can_edit_schedules: row.can_edit_schedules,
+          can_view_team_financial_summary: row.can_view_team_financial_summary,
+        });
+      } catch (err) {
+        console.error('[LevelPermissionModal] Failed to load settings:', err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    load();
+    return () => { active = false };
+  }, [open, levelId]);
 
   const handleSave = () => {
     console.log('Salvando permissões:', settings);

@@ -484,6 +484,7 @@ export default function OrgManagement() {
           <LevelPermissionModal
             open={permissionModalOpen}
             onOpenChange={setPermissionModalOpen}
+            levelId={selectedLevel.id}
             levelName={selectedLevel.name}
             levelNumber={selectedLevel.number}
           />
