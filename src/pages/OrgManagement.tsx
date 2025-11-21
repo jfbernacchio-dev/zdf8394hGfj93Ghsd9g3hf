@@ -222,6 +222,75 @@ export default function OrgManagement() {
 
   const isLoading = isLoadingLevels || isLoadingUsers;
 
+  // FASE 6D-3: Mutation para persistir movimento de usuários entre níveis
+  const updateUserPositionMutation = useMutation({
+    mutationFn: async ({ 
+      userPositionId, 
+      destinationLevelId 
+    }: { 
+      userPositionId: string; 
+      destinationLevelId: string;
+    }) => {
+      if (!user?.id) throw new Error('Usuário não autenticado');
+
+      // 1. Buscar ou criar position para o nível de destino
+      let { data: existingPosition, error: fetchError } = await supabase
+        .from('organization_positions')
+        .select('id')
+        .eq('level_id', destinationLevelId)
+        .limit(1)
+        .maybeSingle();
+
+      if (fetchError) throw fetchError;
+
+      let targetPositionId: string;
+
+      if (!existingPosition) {
+        // Criar nova posição automaticamente
+        const { data: newPosition, error: insertError } = await supabase
+          .from('organization_positions')
+          .insert({
+            level_id: destinationLevelId,
+            position_name: 'Posição automática',
+            parent_position_id: null,
+          })
+          .select('id')
+          .single();
+
+        if (insertError) throw insertError;
+        targetPositionId = newPosition.id;
+      } else {
+        targetPositionId = existingPosition.id;
+      }
+
+      // 2. Atualizar user_positions
+      const { error: updateError } = await supabase
+        .from('user_positions')
+        .update({ position_id: targetPositionId })
+        .eq('id', userPositionId);
+
+      if (updateError) throw updateError;
+
+      return { success: true };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['organization-levels'] });
+      queryClient.invalidateQueries({ queryKey: ['user-positions'] });
+      toast({
+        title: 'Movido com sucesso!',
+        description: 'O membro foi movido para o novo nível.',
+      });
+    },
+    onError: (error: any) => {
+      console.error('[OrgManagement] Erro ao mover usuário:', error);
+      toast({
+        title: 'Erro ao mover usuário',
+        description: error?.message || 'Não foi possível mover o membro para o novo nível.',
+        variant: 'destructive',
+      });
+    },
+  });
+
   // FASE 6D-2: Handlers para drag & drop com validações
   const handleDragStart = (
     e: React.DragEvent<HTMLDivElement>,
@@ -386,10 +455,10 @@ export default function OrgManagement() {
     setLocalUsersByLevel(clone);
     setDraggingUser(null);
 
-    // Toast informativo
-    toast({
-      title: 'Organograma atualizado (prévia)',
-      description: 'As mudanças ainda não foram salvas no banco. Esta é apenas uma visualização local.',
+    // FASE 6D-3: Persistir movimento no banco
+    updateUserPositionMutation.mutate({
+      userPositionId: user.id,
+      destinationLevelId: targetLevelId,
     });
   };
 
