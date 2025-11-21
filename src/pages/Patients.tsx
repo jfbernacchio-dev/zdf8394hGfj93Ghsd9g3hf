@@ -100,16 +100,18 @@ const Patients = () => {
 
     // Filtrar pacientes aos quais o usuário tem acesso
     const accessiblePatients = [];
-    for (const patient of allPatients) {
-      const { data: ownerRoles } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', patient.user_id)
-        .maybeSingle();
+    // Verificar se viewer é admin (uma vez só)
+    const { data: viewerRoles } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .maybeSingle();
 
-      const isOwnerAdmin = ownerRoles?.role === 'admin';
+    const isViewerAdmin = viewerRoles?.role === 'admin';
+
+    for (const patient of allPatients) {
       const accessResult = await import('@/lib/checkPatientAccess').then(m => 
-        m.canAccessPatient(user.id, patient.id, isOwnerAdmin)
+        m.canAccessPatient(user.id, patient.id, isViewerAdmin)
       );
 
       if (accessResult.allowed) {

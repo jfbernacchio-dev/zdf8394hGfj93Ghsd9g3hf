@@ -186,14 +186,15 @@ export async function canAccessPatient(
     }
 
     case 'peer': {
-      // Verificar peer_clinical_sharing do viewer
-      const peerSharing = viewerPerms.peerClinicalSharing;
+      // Buscar permissões do dono do paciente (peer)
+      const ownerPerms = await resolveEffectivePermissions(ownerId);
+      const peerSharing = ownerPerms.peerClinicalSharing;
       
       if (peerSharing === 'none') {
         return {
           allowed: false,
           accessLevel: 'none',
-          reason: 'Compartilhamento entre pares não permitido'
+          reason: 'Este terapeuta não compartilha dados com pares'
         };
       } else if (peerSharing === 'view') {
         return {
