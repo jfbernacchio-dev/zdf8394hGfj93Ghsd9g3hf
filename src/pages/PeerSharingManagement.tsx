@@ -28,6 +28,7 @@ const DOMAIN_LABELS: Record<PermissionDomain, string> = {
   administrative: 'Administrativo',
   clinical: 'Clínico',
   media: 'Marketing',
+  marketing: 'Marketing',
   general: 'Geral',
   charts: 'Gráficos',
   team: 'Equipe',
@@ -389,7 +390,7 @@ export default function PeerSharingManagement() {
               <Alert>
                 <AlertDescription>
                   <strong>Importante:</strong> Esta configuração aplica-se a TODOS os usuários
-                  do nível {levelInfo?.levelName}. Compartilhamentos individuais têm
+                  do nível {levelInfo?.levelNumber}. Compartilhamentos individuais têm
                   prioridade e complementam esta configuração.
                 </AlertDescription>
               </Alert>
