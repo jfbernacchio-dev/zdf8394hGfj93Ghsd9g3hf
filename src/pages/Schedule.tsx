@@ -35,7 +35,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const Schedule = () => {
-  const { user } = useAuth();
+  const { user, organizationId } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const therapistId = searchParams.get('therapist'); // ID do terapeuta sendo visualizado pelo admin
@@ -179,8 +179,23 @@ const Schedule = () => {
   };
 
   const loadData = async () => {
+    console.log('[ORG] Schedule - organizationId:', organizationId);
+    
     const start = startOfMonth(currentMonth);
     const end = endOfMonth(currentMonth);
+
+    // 🏢 FILTRO POR ORGANIZAÇÃO - verificar se effectiveUserId está na org
+    if (organizationId) {
+      const { isUserInOrganization } = await import('@/lib/organizationFilters');
+      const userInOrg = await isUserInOrganization(effectiveUserId!, organizationId);
+      
+      if (!userInOrg) {
+        console.warn('[ORG] Usuário não pertence à organização ativa');
+        setSessions([]);
+        setPatients([]);
+        return;
+      }
+    }
 
     const { data: sessionsData } = await supabase
       .from('sessions')

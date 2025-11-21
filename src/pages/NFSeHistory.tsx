@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import BulkDownloadNFSeDialog from '@/components/BulkDownloadNFSeDialog';
 
 import { ArrowLeft, FileText, Download, X, Search, Calendar, DollarSign, RefreshCw, Trash2, RefreshCcw, Mail, Upload, MoreVertical } from 'lucide-react';
@@ -43,6 +44,7 @@ interface NFSeIssued {
 export default function NFSeHistory() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { organizationId } = useAuth();
   const [loading, setLoading] = useState(true);
   const [nfseList, setNfseList] = useState<NFSeIssued[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -61,6 +63,26 @@ export default function NFSeHistory() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      console.log('[ORG] NFSeHistory - organizationId:', organizationId);
+
+      // 🏢 FILTRO POR ORGANIZAÇÃO
+      if (!organizationId) {
+        console.warn('[ORG] Sem organizationId - não carregando NFSes');
+        setNfseList([]);
+        setLoading(false);
+        return;
+      }
+
+      const { getUserIdsInOrganization } = await import('@/lib/organizationFilters');
+      const orgUserIds = await getUserIdsInOrganization(organizationId);
+
+      if (orgUserIds.length === 0) {
+        console.warn('[ORG] Nenhum usuário na organização');
+        setNfseList([]);
+        setLoading(false);
+        return;
+      }
+
       // FASE 1: Buscar role do usuário
       const { data: userRole } = await supabase
         .from('user_roles')
@@ -75,10 +97,11 @@ export default function NFSeHistory() {
       const isFullOrAdmin = role === 'fulltherapist' || role === 'admin';
       const isAccountant = role === 'accountant';
 
-      // Buscar todas as NFSes
+      // Buscar NFSes apenas de usuários DA MESMA ORG
       const { data, error } = await supabase
         .from('nfse_issued')
         .select('*')
+        .in('user_id', orgUserIds)
         .order('issue_date', { ascending: false });
 
       if (error) throw error;
@@ -101,7 +124,10 @@ export default function NFSeHistory() {
           .eq('nfse_emission_mode', 'manager_company');
 
         if (managerCompanySubordinates) {
-          allowedUserIds.push(...managerCompanySubordinates.map(s => s.subordinate_id));
+          const subIds = managerCompanySubordinates.map(s => s.subordinate_id);
+          // Filtrar apenas subordinados da mesma org
+          const subIdsInOrg = subIds.filter(id => orgUserIds.includes(id));
+          allowedUserIds.push(...subIdsInOrg);
         }
       } else if (isAccountant) {
         // ACCOUNTANT: Vê terapeutas atribuídos + subordinados manager_company deles
@@ -112,17 +138,21 @@ export default function NFSeHistory() {
 
         if (assignedTherapists) {
           const therapistIds = assignedTherapists.map(a => a.therapist_id);
-          allowedUserIds.push(...therapistIds);
+          // Filtrar apenas terapeutas da mesma org
+          const therapistIdsInOrg = therapistIds.filter(id => orgUserIds.includes(id));
+          allowedUserIds.push(...therapistIdsInOrg);
 
           // Buscar subordinados manager_company dos terapeutas atribuídos
           const { data: subordinatesOfTherapists } = await supabase
             .from('subordinate_autonomy_settings')
             .select('subordinate_id')
-            .in('manager_id', therapistIds)
+            .in('manager_id', therapistIdsInOrg)
             .eq('nfse_emission_mode', 'manager_company');
 
           if (subordinatesOfTherapists) {
-            allowedUserIds.push(...subordinatesOfTherapists.map(s => s.subordinate_id));
+            const subIds = subordinatesOfTherapists.map(s => s.subordinate_id);
+            const subIdsInOrg = subIds.filter(id => orgUserIds.includes(id));
+            allowedUserIds.push(...subIdsInOrg);
           }
         }
       }
