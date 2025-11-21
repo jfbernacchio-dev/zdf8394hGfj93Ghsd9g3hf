@@ -29,7 +29,7 @@ import { useChartTimeScale, generateTimeIntervals, formatTimeLabel, getIntervalB
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import Layout from '@/components/Layout';
 import { useCardPermissions } from '@/hooks/useCardPermissions';
-import { useSubordinatePermissions } from '@/hooks/useSubordinatePermissions';
+import { useEffectivePermissions } from '@/hooks/useEffectivePermissions';
 
 const DashboardTest = () => {
   const { user, isAdmin } = useAuth();
@@ -51,7 +51,12 @@ const DashboardTest = () => {
   const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
 
-  const { permissions, loading: permissionsLoading } = useSubordinatePermissions();
+  const { 
+    permissions, 
+    loading: permissionsLoading,
+    canAccessClinical,
+    financialAccess 
+  } = useEffectivePermissions();
   const { canViewCard, shouldFilterToOwnData } = useCardPermissions();
 
   useEffect(() => {

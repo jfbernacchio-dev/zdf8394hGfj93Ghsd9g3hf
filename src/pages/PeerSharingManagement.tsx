@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { usePeerSharing } from '@/hooks/usePeerSharing';
-import { useLevelPermissions } from '@/hooks/useLevelPermissions';
+import { useEffectivePermissions } from '@/hooks/useEffectivePermissions';
 import { toast } from 'sonner';
 import type { PermissionDomain } from '@/types/permissions';
 
@@ -47,7 +47,11 @@ export default function PeerSharingManagement() {
     refresh,
   } = usePeerSharing();
 
-  const { levelInfo, isOrganizationOwner } = useLevelPermissions();
+  const { permissions, isOrganizationOwner } = useEffectivePermissions();
+  const levelInfo = permissions ? {
+    levelId: permissions.levelId,
+    levelNumber: permissions.levelNumber
+  } : null;
 
   const [selectedPeer, setSelectedPeer] = useState<string | null>(null);
   const [selectedDomains, setSelectedDomains] = useState<PermissionDomain[]>([]);

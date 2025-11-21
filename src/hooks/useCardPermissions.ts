@@ -1,8 +1,7 @@
 import { useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissionFlags } from './usePermissionFlags';
-import { useSubordinatePermissions } from './useSubordinatePermissions';
-import { useLevelPermissions } from './useLevelPermissions';
+import { useEffectivePermissions } from './useEffectivePermissions';
 import { supabase } from '@/integrations/supabase/client';
 import type { PermissionDomain, AccessLevel, UserRole } from '@/types/permissions';
 import type { SectionConfig } from '@/types/sectionTypes';
@@ -32,12 +31,12 @@ export function useCardPermissions() {
   const { 
     permissions, 
     loading: permissionsLoading,
-    usingNewSystem 
-  } = useSubordinatePermissions();
+    canAccessClinical,
+    financialAccess,
+    canAccessMarketing,
+    canAccessWhatsapp
+  } = useEffectivePermissions();
   
-  // FASE 4: Acesso direto ao novo sistema para casos específicos
-  const { levelPermissions, levelInfo } = useLevelPermissions();
-
   console.log('🔐 [useCardPermissions] HOOK EXECUTOU:', {
     user: user?.id,
     rolesLoaded,
@@ -46,19 +45,17 @@ export function useCardPermissions() {
     isAccountant,
     isSubordinate,
     permissionsLoading,
-    usingNewSystem,
-    hasLevelInfo: !!levelInfo,
     hasAllFalse: !isAdmin && !isFullTherapist && !isAccountant && !isSubordinate
   });
 
   // ✅ CORREÇÃO CRÍTICA: Aguardar roles carregarem antes de calcular permissões
   // Se roles não carregaram, DEVE aguardar (evita permissões vazias)
-  const loading = !rolesLoaded || (isSubordinate && permissionsLoading);
+  const loading = !rolesLoaded || permissionsLoading;
 
   console.log('🔐 [useCardPermissions] Calculado loading:', loading);
 
   // Derivar role atual baseado nos flags booleanos
-  const currentRole: UserRole | null = 
+  const currentRole: UserRole | null =
     isAdmin ? 'admin' :
     isFullTherapist ? 'fulltherapist' :
     isAccountant ? 'accountant' :
@@ -66,8 +63,8 @@ export function useCardPermissions() {
     null;
 
   /**
-   * FASE 4: Verifica se usuário tem acesso a um domínio específico
-   * Usa level permissions se disponível, senão fallback para lógica antiga
+   * FASE 3: Verifica se usuário tem acesso a um domínio específico
+   * Usa permissões efetivas do novo sistema
    */
   const hasAccess = (domain: PermissionDomain, minimumLevel: AccessLevel = 'read'): boolean => {
     // Admin e FullTherapist sempre têm acesso total
@@ -83,32 +80,27 @@ export function useCardPermissions() {
     if (!isSubordinate) return true;
 
     // ====================================================================
-    // NOVO SISTEMA: Usar level permissions se disponível
+    // NOVO SISTEMA: Usar permissões efetivas
     // ====================================================================
-    if (usingNewSystem && levelPermissions) {
-      const domainAccess = levelPermissions[domain];
-      return hasAccessLevel(domainAccess, minimumLevel);
-    }
-
-    // ====================================================================
-    // SISTEMA ANTIGO: Fallback para lógica baseada em subordinatePermissions
-    // ====================================================================
-    // Subordinado: verificar permissões específicas
     if (!permissions) return false;
 
     switch (domain) {
       case 'clinical':
-        return permissions.canManageOwnPatients || permissions.canFullSeeClinic;
+        return permissions.canAccessClinical;
 
       case 'financial':
         if (minimumLevel === 'none') return false;
-        return permissions.canViewOwnFinancial;
+        const access = permissions.financialAccess;
+        return hasAccessLevel(access as AccessLevel, minimumLevel);
+
+      case 'marketing':
+        return permissions.canAccessMarketing;
+
+      case 'media':
+        return permissions.canAccessWhatsapp;
 
       case 'administrative':
         return true;
-
-      case 'media':
-        return false; // Subordinados não veem mídia
 
       case 'team':
         return false; // Subordinados NUNCA veem dados da equipe
@@ -117,7 +109,6 @@ export function useCardPermissions() {
         return true;
 
       case 'charts':
-        // Acesso a gráficos: verifica os domínios secundários
         return true;
 
       default:
@@ -150,8 +141,8 @@ export function useCardPermissions() {
     if (!isSubordinate) return false;
     if (!permissions) return true;
 
-    // Filtra se gerencia apenas próprios pacientes
-    return permissions.canManageOwnPatients;
+    // Baseado em clinicalVisibleToSuperiors - se é visível para superiores, usuário gerencia apenas próprios
+    return !permissions.canAccessClinical;
   };
 
   /**
@@ -162,7 +153,7 @@ export function useCardPermissions() {
     if (!isSubordinate) return true;
     if (!permissions) return false;
 
-    return permissions.canViewFullFinancial;
+    return permissions.financialAccess === 'full';
   };
 
   // ============================================================================
@@ -191,7 +182,7 @@ export function useCardPermissions() {
     // Se requer dados próprios apenas, validar autonomia de subordinado
     if (permissionConfig.requiresOwnDataOnly && isSubordinate) {
       if (!permissions) return false;
-      return permissions.canManageOwnPatients;
+      return shouldFilterToOwnData();
     }
 
     return true;
@@ -369,9 +360,7 @@ export function useCardPermissions() {
     getCardsByDomain,
     getVisibleCards,
     
-    // FASE 4: Expor informações do sistema
-    usingNewSystem,
-    levelInfo,
+    // FASE 4: Expor informações do sistema (removido usingNewSystem e levelInfo)
     
     // FASE 6: Peer sharing functions
     canViewPeerDomain,

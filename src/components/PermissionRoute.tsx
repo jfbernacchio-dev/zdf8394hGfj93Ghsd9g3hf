@@ -5,8 +5,9 @@ import { usePermissionFlags } from '@/hooks/usePermissionFlags';
 import { useToast } from '@/hooks/use-toast';
 import { routePermissions } from '@/lib/routePermissions';
 import { checkRoutePermission, getUserRoles } from '@/lib/checkPermissions';
-import { useSubordinatePermissions } from '@/hooks/useSubordinatePermissions';
+import { useEffectivePermissions } from '@/hooks/useEffectivePermissions';
 import type { PermissionDomain, AccessLevel } from '@/types/permissions';
+import type { EffectivePermissions } from '@/lib/resolveEffectivePermissions';
 
 /**
  * ============================================================================
@@ -40,7 +41,11 @@ interface PermissionRouteProps {
 export function PermissionRoute({ children, path }: PermissionRouteProps) {
   const { user, isAdmin, isAccountant, rolesLoaded } = useAuth();
   const { isFullTherapist, isSubordinate } = usePermissionFlags();
-  const { permissions, loading: permissionsLoading } = useSubordinatePermissions();
+  const { 
+    permissions, 
+    loading: permissionsLoading,
+    financialAccess 
+  } = useEffectivePermissions();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
@@ -182,21 +187,20 @@ export function PermissionRoute({ children, path }: PermissionRouteProps) {
 }
 
 /**
- * Mapeia domínio para nível de acesso com base nas permissões do subordinado
+ * Mapeia domínio para nível de acesso com base nas permissões efetivas
  */
 function getDomainAccess(
   domain: PermissionDomain,
-  permissions: ReturnType<typeof useSubordinatePermissions>['permissions']
+  permissions: EffectivePermissions | null
 ): AccessLevel {
   if (!permissions) return 'none';
 
   switch (domain) {
     case 'financial':
-      return permissions.hasFinancialAccess ? 'full' : 'none';
+      return permissions.financialAccess as AccessLevel;
     
     case 'clinical':
-      return permissions.canFullSeeClinic ? 'full' : 
-             permissions.canManageOwnPatients ? 'read' : 'none';
+      return permissions.canAccessClinical ? 'full' : 'none';
     
     case 'administrative':
       return 'read';
