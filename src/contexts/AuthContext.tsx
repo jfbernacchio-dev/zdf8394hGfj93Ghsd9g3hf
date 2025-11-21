@@ -196,7 +196,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       // FASE 10.10: Carregar organizações do usuário
       try {
-        const { data: userOrgs } = await supabase
+        console.log('[AUTH] Carregando organizações para userId:', userId);
+        
+        const { data: userOrgs, error: orgsError } = await supabase
           .from('organization_owners')
           .select(`
             organization_id,
@@ -208,6 +210,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             )
           `)
           .eq('user_id', userId);
+
+        if (orgsError) {
+          console.error('[AUTH] Erro ao buscar organization_owners:', orgsError);
+        }
+
+        console.log('[AUTH] userOrgs retornados:', userOrgs);
 
         if (userOrgs && userOrgs.length > 0) {
           const orgsArray: Organization[] = userOrgs
@@ -224,25 +232,63 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               return a.legal_name.localeCompare(b.legal_name);
             });
 
+          console.log('[AUTH] Organizações processadas:', orgsArray);
           setOrganizations(orgsArray);
 
           const savedOrgId = localStorage.getItem('activeOrganizationId');
           let activeOrgId: string | null = null;
 
           if (savedOrgId && orgsArray.some(o => o.id === savedOrgId)) {
+            console.log('[AUTH] Usando org salva:', savedOrgId);
             activeOrgId = savedOrgId;
           } else {
             const primaryOrg = orgsArray.find(o => o.is_primary);
             activeOrgId = primaryOrg ? primaryOrg.id : orgsArray[0].id;
+            console.log('[AUTH] Usando org primária/primeira:', activeOrgId);
             localStorage.setItem('activeOrganizationId', activeOrgId);
           }
 
           setActiveOrganizationIdState(activeOrgId);
           setOrganizationId(activeOrgId);
         } else {
-          setOrganizations([]);
-          setActiveOrganizationIdState(null);
-          setOrganizationId(null);
+          // FALLBACK: Se não encontrou em organization_owners, tentar usar profiles.organization_id
+          console.warn('[AUTH] Nenhuma org encontrada em organization_owners, tentando fallback...');
+          
+          if (data?.organization_id) {
+            console.log('[AUTH] Usando organization_id do profile:', data.organization_id);
+            
+            // Buscar info da organização diretamente
+            const { data: orgData } = await supabase
+              .from('organizations')
+              .select('id, legal_name, cnpj')
+              .eq('id', data.organization_id)
+              .maybeSingle();
+
+            if (orgData) {
+              const fallbackOrg: Organization = {
+                id: orgData.id,
+                legal_name: orgData.legal_name,
+                cnpj: orgData.cnpj,
+                is_primary: true,
+              };
+
+              console.log('[AUTH] Organização do profile encontrada:', fallbackOrg);
+              setOrganizations([fallbackOrg]);
+              setActiveOrganizationIdState(orgData.id);
+              setOrganizationId(orgData.id);
+              localStorage.setItem('activeOrganizationId', orgData.id);
+            } else {
+              console.warn('[AUTH] Organização do profile não encontrada no banco');
+              setOrganizations([]);
+              setActiveOrganizationIdState(null);
+              setOrganizationId(null);
+            }
+          } else {
+            console.warn('[AUTH] Usuário sem organization_id no profile e sem organization_owners');
+            setOrganizations([]);
+            setActiveOrganizationIdState(null);
+            setOrganizationId(null);
+          }
         }
       } catch (orgError) {
         console.error('[AUTH] Erro ao resolver organização:', orgError);

@@ -33,9 +33,17 @@ export function OrganizationGuard({ children }: OrganizationGuardProps) {
       return;
     }
 
-    // Se não tem organização, redirecionar
-    if (!organizationId || !organizations || organizations.length === 0) {
-      console.warn('[ORG_GUARD] Usuário sem organização ativa, redirecionando...');
+    // IMPORTANTE: Só redirecionar se REALMENTE não tiver organização
+    // organizations === [] significa que tentamos carregar mas não encontramos nada
+    // organizations === null/undefined significa que ainda não tentamos
+    if (organizations && organizations.length === 0 && !organizationId) {
+      console.warn('[ORG_GUARD] Usuário sem organização ativa, redirecionando...', {
+        organizationId,
+        organizations,
+        loading,
+        rolesLoaded,
+        user: user?.id
+      });
       navigate('/setup-organization', { replace: true });
     }
   }, [organizationId, organizations, loading, rolesLoaded, user, navigate]);
@@ -52,8 +60,8 @@ export function OrganizationGuard({ children }: OrganizationGuardProps) {
     );
   }
 
-  // Sem organização
-  if (!organizationId || !organizations || organizations.length === 0) {
+  // Sem organização (APÓS loading completo)
+  if (organizations && organizations.length === 0 && !organizationId) {
     return (
       <div className="flex items-center justify-center min-h-screen p-4">
         <Card className="p-8 max-w-lg">
