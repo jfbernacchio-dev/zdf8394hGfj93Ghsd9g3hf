@@ -32,16 +32,16 @@ interface UserInLevel {
   role?: string;
 }
 
-// Cores automáticas por índice - tons pastel suaves
+// Cores automáticas por índice - tons pastel suaves com border-top para hierarquia
 const LEVEL_COLORS = [
-  'bg-purple-50/80 border-purple-200/60 hover:border-purple-300/80',
-  'bg-blue-50/80 border-blue-200/60 hover:border-blue-300/80',
-  'bg-green-50/80 border-green-200/60 hover:border-green-300/80',
-  'bg-amber-50/80 border-amber-200/60 hover:border-amber-300/80',
-  'bg-orange-50/80 border-orange-200/60 hover:border-orange-300/80',
-  'bg-pink-50/80 border-pink-200/60 hover:border-pink-300/80',
-  'bg-indigo-50/80 border-indigo-200/60 hover:border-indigo-300/80',
-  'bg-rose-50/80 border-rose-200/60 hover:border-rose-300/80',
+  'bg-purple-50/80 border-purple-200/60 hover:border-purple-300/80 border-t-4 border-t-purple-300/40',
+  'bg-blue-50/80 border-blue-200/60 hover:border-blue-300/80 border-t-4 border-t-blue-300/40',
+  'bg-green-50/80 border-green-200/60 hover:border-green-300/80 border-t-4 border-t-green-300/40',
+  'bg-amber-50/80 border-amber-200/60 hover:border-amber-300/80 border-t-4 border-t-amber-300/40',
+  'bg-orange-50/80 border-orange-200/60 hover:border-orange-300/80 border-t-4 border-t-orange-300/40',
+  'bg-pink-50/80 border-pink-200/60 hover:border-pink-300/80 border-t-4 border-t-pink-300/40',
+  'bg-indigo-50/80 border-indigo-200/60 hover:border-indigo-300/80 border-t-4 border-t-indigo-300/40',
+  'bg-rose-50/80 border-rose-200/60 hover:border-rose-300/80 border-t-4 border-t-rose-300/40',
 ];
 
 const ROLE_LABELS: Record<string, string> = {
@@ -52,10 +52,10 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 const ROLE_COLORS: Record<string, string> = {
-  psychologist: 'bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 border-blue-200/60',
-  assistant: 'bg-gradient-to-r from-purple-50 to-purple-100 text-purple-700 border-purple-200/60',
-  accountant: 'bg-gradient-to-r from-amber-50 to-amber-100 text-amber-700 border-amber-200/60',
-  admin: 'bg-gradient-to-r from-rose-50 to-rose-100 text-rose-700 border-rose-200/60',
+  psychologist: 'bg-blue-50/80 text-blue-700 border-blue-200/60',
+  assistant: 'bg-purple-50/80 text-purple-700 border-purple-200/60',
+  accountant: 'bg-amber-50/80 text-amber-700 border-amber-200/60',
+  admin: 'bg-rose-50/80 text-rose-700 border-rose-200/60',
 };
 
 export default function OrgManagement() {
@@ -669,20 +669,20 @@ export default function OrgManagement() {
                     <div key={level.id} className="flex-shrink-0 relative">
                       {/* Level Card */}
                       <Card className={`
-                        w-[320px] ${LEVEL_COLORS[index % LEVEL_COLORS.length]} border-2 
-                        transition-all duration-200
-                        ${showDropFeedback ? 'shadow-xl ring-2 ring-primary/40 scale-[1.02]' : 'shadow-md hover:shadow-xl'}
-                        ${showInvalidFeedback ? 'opacity-60' : ''}
+                        min-w-[280px] md:min-w-[340px] w-[340px] ${LEVEL_COLORS[index % LEVEL_COLORS.length]} border-2 
+                        transition-all duration-200 ease-out
+                        ${showDropFeedback ? 'shadow-md ring-2 ring-primary/40' : 'shadow-sm hover:shadow-md'}
+                        ${showInvalidFeedback ? 'opacity-40' : ''}
                       `}>
-                        <CardHeader className="pb-4">
+                        <CardHeader className="pb-3">
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
-                              <CardTitle className="text-xl font-bold tracking-tight">
+                              <CardTitle className="text-lg font-semibold tracking-tight">
                                 {level.level_name}
                               </CardTitle>
-                              <p className="text-sm text-muted-foreground/80 mt-1.5 font-medium">
+                              <Badge className="mt-2 bg-primary/10 text-primary font-medium px-2 py-0.5 border-0">
                                 {localUsersByLevel.get(level.id)?.length || 0} membro(s)
-                              </p>
+                              </Badge>
                             </div>
                             <Badge variant="outline" className="ml-2 font-semibold px-3">
                               N{level.level_number}
@@ -695,12 +695,12 @@ export default function OrgManagement() {
                           <div 
                             className={`
                               space-y-2 min-h-[200px] max-h-[400px] overflow-y-auto rounded-lg 
-                              border-2 border-dashed transition-all duration-200
+                              border-2 border-dashed transition-all duration-200 ease-out
                               ${showDropFeedback 
-                                ? 'border-primary/60 bg-primary/10 p-4' 
+                                ? 'border-primary/60 bg-primary/10 p-3' 
                                 : showInvalidFeedback
-                                ? 'border-destructive/40 bg-destructive/5 p-3'
-                                : 'border-muted-foreground/20 hover:border-primary/40 hover:bg-primary/5 p-3'
+                                ? 'border-destructive/40 opacity-40 cursor-not-allowed p-3'
+                                : 'border-muted-foreground/20 p-3'
                               }
                             `}
                             onDragOver={(e) => handleDragOver(e, level.id)}
@@ -725,13 +725,13 @@ export default function OrgManagement() {
                                 <Card
                                   key={userInfo.id}
                                   className={`
-                                    p-3.5 bg-card border border-border/50 
-                                    transition-all duration-200
+                                    p-3 bg-white/80 dark:bg-neutral-800/50 border border-black/5
+                                    transition-all duration-200 ease-out
                                     ${isDraggable ? 'cursor-grab active:cursor-grabbing' : ''}
                                     ${isNotDraggable ? 'cursor-not-allowed opacity-75' : ''}
                                     ${isBeingDragged 
-                                      ? 'opacity-40 scale-95 shadow-lg ring-2 ring-primary/30' 
-                                      : 'opacity-100 scale-100 hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5'
+                                      ? 'opacity-40 scale-95' 
+                                      : 'opacity-100 scale-100 hover:shadow hover:translate-y-[1px]'
                                     }
                                   `}
                                   draggable={isDraggable}
@@ -739,8 +739,8 @@ export default function OrgManagement() {
                                   onDragEnd={handleDragEnd}
                                 >
                                   <div className="flex items-center gap-3">
-                                    <Avatar className="h-11 w-11 ring-2 ring-primary/10">
-                                      <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold text-sm">
+                                    <Avatar className="h-10 w-10 ring-2 ring-white dark:ring-neutral-900">
+                                      <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">
                                         {initials}
                                       </AvatarFallback>
                                     </Avatar>
@@ -751,7 +751,7 @@ export default function OrgManagement() {
                                       {userInfo.role && (
                                         <Badge 
                                           variant="outline" 
-                                          className={`text-xs mt-1.5 font-medium ${ROLE_COLORS[userInfo.role] || 'bg-gray-100 text-gray-700 border-gray-200'}`}
+                                          className={`text-xs mt-1 font-medium ${ROLE_COLORS[userInfo.role] || 'bg-gray-100 text-gray-700 border-gray-200'}`}
                                         >
                                           {ROLE_LABELS[userInfo.role] || userInfo.role}
                                         </Badge>
@@ -762,23 +762,20 @@ export default function OrgManagement() {
                               );
                             })}
 
-                            {/* FASE 6E-2: Placeholder de drop para níveis vazios */}
+                            {/* Placeholder de drop para níveis vazios */}
                             {(!localUsersByLevel.get(level.id) || localUsersByLevel.get(level.id)?.length === 0) && (
                               showDropFeedback ? (
-                                <div className="flex flex-col items-center justify-center py-12 text-center animate-fade-in">
-                                  <div className="h-16 w-16 rounded-full border-4 border-dashed border-primary/40 flex items-center justify-center mb-4">
-                                    <Users className="h-8 w-8 text-primary/60" />
+                                <div className="flex flex-col items-center justify-center py-12 text-center">
+                                  <div className="h-14 w-14 rounded-full border-2 border-dashed border-primary/50 flex items-center justify-center mb-3">
+                                    <Users className="h-7 w-7 text-primary/60" />
                                   </div>
-                                  <p className="text-sm font-semibold text-primary">
+                                  <p className="text-sm font-medium text-primary">
                                     Solte o membro aqui
-                                  </p>
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    para adicioná-lo a este nível
                                   </p>
                                 </div>
                               ) : (
                                 <div className="flex flex-col items-center justify-center py-12 text-center">
-                                  <Users className="h-12 w-12 text-muted-foreground/50 mb-3" />
+                                  <Users className="h-10 w-10 text-muted-foreground/40 mb-2" />
                                   <p className="text-sm text-muted-foreground">
                                     Nenhum membro neste nível
                                   </p>
@@ -787,13 +784,13 @@ export default function OrgManagement() {
                             )}
                           </div>
 
-                          <Separator className="my-4" />
+                          <Separator className="my-3" />
 
                           {/* Actions */}
                           <Button
                             variant="outline"
                             size="sm"
-                            className="w-full gap-2 hover:bg-primary/10 transition-colors"
+                            className="w-full gap-2 transition-all duration-200 ease-out"
                             onClick={() => handleManagePermissions(
                               level.id,
                               level.level_name,
@@ -816,15 +813,17 @@ export default function OrgManagement() {
 
                 {/* Add Level Placeholder */}
                 <div className="flex-shrink-0">
-                  <Card className="w-[320px] border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 transition-all cursor-pointer group" onClick={handleAddLevel}>
-                    <CardContent className="flex flex-col items-center justify-center h-[200px] text-center">
-                      <Plus className="h-16 w-16 text-primary/60 group-hover:text-primary mb-4 transition-colors" />
-                      <p className="text-sm font-semibold text-primary/80 group-hover:text-primary transition-colors">
-                        Adicionar novo nível
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Expanda sua hierarquia organizacional
-                      </p>
+                  <Card className="min-w-[280px] md:min-w-[340px] w-[340px] border-2 border-dashed border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary/50 transition-all duration-200 ease-out cursor-pointer group" onClick={handleAddLevel}>
+                    <CardContent className="flex flex-col items-center justify-center h-[200px] text-center space-y-3">
+                      <Plus className="h-14 w-14 text-primary/60 group-hover:text-primary transition-all duration-200" />
+                      <div>
+                        <p className="text-sm font-semibold text-primary/80 group-hover:text-primary transition-colors">
+                          Adicionar novo nível
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Expanda sua hierarquia organizacional
+                        </p>
+                      </div>
                     </CardContent>
                   </Card>
                 </div>
@@ -835,7 +834,7 @@ export default function OrgManagement() {
           {/* Info Section */}
           {levels && levels.length > 0 && (
             <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="shadow-md hover:shadow-lg transition-shadow border-primary/10">
+              <Card className="shadow-sm hover:shadow-md transition-all duration-200 ease-out border-primary/10">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base font-semibold flex items-center gap-2">
                     <div className="p-2 rounded-lg bg-primary/10">
@@ -845,13 +844,13 @@ export default function OrgManagement() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                  <p className="text-4xl font-bold text-primary">
                     {totalMembers}
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="shadow-md hover:shadow-lg transition-shadow border-primary/10">
+              <Card className="shadow-sm hover:shadow-md transition-all duration-200 ease-out border-primary/10">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base font-semibold flex items-center gap-2">
                     <div className="p-2 rounded-lg bg-primary/10">
@@ -861,23 +860,23 @@ export default function OrgManagement() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                  <p className="text-4xl font-bold text-primary">
                     {levels.length}
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="shadow-md hover:shadow-lg transition-shadow border-primary/10">
+              <Card className="shadow-sm hover:shadow-md transition-all duration-200 ease-out border-primary/10">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base font-semibold flex items-center gap-2">
                     <div className="p-2 rounded-lg bg-green-500/10">
-                      <div className="h-5 w-5 rounded-full bg-green-500 animate-pulse" />
+                      <div className="h-5 w-5 rounded-full bg-green-500" />
                     </div>
                     Status
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0 px-4 py-1.5 text-sm font-semibold">
+                  <Badge className="bg-green-500 text-white border-0 px-3 py-1 text-sm font-medium">
                     {levels.length > 0 ? '✓ Configurado' : 'Aguardando'}
                   </Badge>
                 </CardContent>
@@ -886,40 +885,45 @@ export default function OrgManagement() {
           )}
 
           {/* Instructions */}
-          <Card className="mt-10 bg-gradient-to-br from-muted/30 to-muted/50 border-muted-foreground/20 shadow-sm">
-            <CardContent className="py-6 px-8">
-              <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-                <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+          <Card className="mt-10 bg-muted/30 border-muted-foreground/20 shadow-sm hover:shadow-md transition-all duration-200 ease-out">
+            <CardContent className="py-6 px-6">
+              <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-primary" />
                 Como usar o organograma
               </h3>
-              <ul className="space-y-3 text-sm text-muted-foreground">
+              <ul className="space-y-3 text-sm">
                 <li className="flex items-start gap-3">
-                  <span className="text-primary font-bold mt-0.5">↕</span>
+                  <span className="text-primary font-semibold mt-0.5">↕</span>
                   <div>
-                    <strong className="text-foreground">Arrastar e soltar:</strong>{' '}
-                    {isAdmin 
-                      ? 'Arraste membros entre níveis para reorganizar a hierarquia. As mudanças são salvas automaticamente.' 
-                      : roleGlobal === 'psychologist'
-                      ? 'Você pode mover subordinados diretos para níveis abaixo do seu.'
-                      : 'Apenas administradores e psicólogos podem reorganizar membros.'}
+                    <strong className="text-foreground font-medium">Arrastar e soltar:</strong>{' '}
+                    <span className="text-muted-foreground">
+                      {isAdmin 
+                        ? 'Arraste membros entre níveis para reorganizar a hierarquia. As mudanças são salvas automaticamente.' 
+                        : roleGlobal === 'psychologist'
+                        ? 'Você pode mover subordinados diretos para níveis abaixo do seu.'
+                        : 'Apenas administradores e psicólogos podem reorganizar membros.'}
+                    </span>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="text-primary font-bold mt-0.5">⚙</span>
+                  <span className="text-primary font-semibold mt-0.5">⚙</span>
                   <div>
-                    <strong className="text-foreground">Gerenciar Permissões:</strong> Configure as permissões e acessos específicos de cada nível hierárquico.
+                    <strong className="text-foreground font-medium">Gerenciar Permissões:</strong>{' '}
+                    <span className="text-muted-foreground">Configure as permissões e acessos específicos de cada nível hierárquico.</span>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="text-primary font-bold mt-0.5">+</span>
+                  <span className="text-primary font-semibold mt-0.5">+</span>
                   <div>
-                    <strong className="text-foreground">Adicionar Nível:</strong> Crie novos níveis hierárquicos conforme sua organização cresce.
+                    <strong className="text-foreground font-medium">Adicionar Nível:</strong>{' '}
+                    <span className="text-muted-foreground">Crie novos níveis hierárquicos conforme sua organização cresce.</span>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="text-primary font-bold mt-0.5">👁</span>
+                  <span className="text-primary font-semibold mt-0.5">👁</span>
                   <div>
-                    <strong className="text-foreground">Visualização clara:</strong> A estrutura mostra de forma intuitiva a posição de cada membro na hierarquia.
+                    <strong className="text-foreground font-medium">Visualização clara:</strong>{' '}
+                    <span className="text-muted-foreground">A estrutura mostra de forma intuitiva a posição de cada membro na hierarquia.</span>
                   </div>
                 </li>
               </ul>
