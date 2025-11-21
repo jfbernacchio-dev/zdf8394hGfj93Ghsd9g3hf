@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Users, Plus, User, Loader2 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,6 +43,7 @@ const TeamManagement = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
@@ -346,7 +348,7 @@ const TeamManagement = () => {
     return (
       <Card key={member.id} className="transition-all hover:shadow-sm">
         <CardContent className="p-4">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 mb-3">
             <Avatar className="h-12 w-12">
               <AvatarFallback className="bg-primary/10 text-primary font-semibold">
                 {getInitials(member.full_name)}
@@ -368,6 +370,14 @@ const TeamManagement = () => {
               </div>
             </div>
           </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full"
+            onClick={() => navigate(`/therapist/${member.user_id}`)}
+          >
+            Ver Perfil
+          </Button>
         </CardContent>
       </Card>
     );
