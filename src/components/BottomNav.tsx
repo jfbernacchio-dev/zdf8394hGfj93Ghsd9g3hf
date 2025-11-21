@@ -133,6 +133,16 @@ const BottomNav = () => {
                     Métricas
                   </Button>
                   <div className="border-t border-border my-3" />
+                  {(isAdmin || isPsychologist) && (
+                    <Button
+                      variant="ghost"
+                      className="justify-start h-14 text-base rounded-xl active:scale-98 transition-transform"
+                      onClick={() => handleMenuNavigation('/team-management')}
+                    >
+                      <Users className="w-5 h-5 mr-3" />
+                      Equipe
+                    </Button>
+                  )}
                   {isAdmin && !isSubordinate && (
                     <>
                       <Button
@@ -150,14 +160,6 @@ const BottomNav = () => {
                       >
                         <Users className="w-5 h-5 mr-3" />
                         Gestão Organizacional
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        className="justify-start h-14 text-base rounded-xl active:scale-98 transition-transform"
-                        onClick={() => handleMenuNavigation('/team-management')}
-                      >
-                        <Users className="w-5 h-5 mr-3" />
-                        Equipe
                       </Button>
                     </>
                   )}

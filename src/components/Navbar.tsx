@@ -192,6 +192,17 @@ const Navbar = () => {
               )}
               <ThemeToggle />
               {!isAccountant && <NotificationCenter />}
+              {(isAdmin || isFullTherapist) && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  title="Equipe"
+                  onClick={() => navigate('/team-management')}
+                  className={isActive('/team-management') ? 'bg-primary/10' : ''}
+                >
+                  <Users className="w-4 h-4" />
+                </Button>
+              )}
               {isAdmin && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -234,10 +245,6 @@ const Navbar = () => {
                     <DropdownMenuItem onClick={() => navigate('/admin/permission-review')}>
                       <Shield className="w-4 h-4 mr-2" />
                       Revisão de Permissões
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/team-management')}>
-                      <Users className="w-4 h-4 mr-2" />
-                      Equipe
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => navigate('/admin/backup-tests')}>

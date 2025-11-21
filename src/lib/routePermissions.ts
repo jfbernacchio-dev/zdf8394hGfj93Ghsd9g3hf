@@ -66,9 +66,9 @@ export const routePermissions: RoutePermissionsConfig = {
   },
 
   // ==================== GESTÃO DE EQUIPE ====================
-  // Admin pode visualizar equipe (psychologists também via lógica de componente)
+  // Admin e Full Therapist podem visualizar equipe
   '/team-management': {
-    allowedFor: ['admin'],
+    allowedFor: ['admin', 'fulltherapist'],
   },
 
   // ==================== DASHBOARD ====================
