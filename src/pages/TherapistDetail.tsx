@@ -29,28 +29,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { ArrowLeft, Calendar, Users, MessageSquare, Bell, Lock, FileText, Clock, User, Settings, ChevronRight, DollarSign, Shield, Network } from 'lucide-react';
+import { ArrowLeft, Calendar, Users, MessageSquare, Bell, Lock, FileText, Clock, User, ChevronRight, DollarSign, Shield, Network } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { getSubordinateAutonomyForAdmin } from '@/lib/resolveEffectivePermissions';
-import type { AutonomyPermissions } from '@/types/permissions';
 import Layout from '@/components/Layout';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { SubordinatePermissionCard } from '@/components/SubordinatePermissionCard';
 
 interface Notification {
   id: string;
@@ -87,8 +72,6 @@ const TherapistDetail = () => {
   });
   const [messageText, setMessageText] = useState('');
   const [loading, setLoading] = useState(true);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [autonomySettings, setAutonomySettings] = useState<AutonomyPermissions | null>(null);
   const [managerHasCNPJ, setManagerHasCNPJ] = useState(false);
   
   // FASE 2C: Estados copiados de Patients.tsx
@@ -99,15 +82,6 @@ const TherapistDetail = () => {
   
   const [unpaidSessionsCount, setUnpaidSessionsCount] = useState(0);
   const [totalUnpaidValue, setTotalUnpaidValue] = useState(0);
-  const [confirmCascadeDialog, setConfirmCascadeDialog] = useState<{
-    open: boolean;
-    field: 'manages_own_patients' | 'has_financial_access';
-    newValue: boolean;
-  }>({
-    open: false,
-    field: 'manages_own_patients',
-    newValue: false
-  });
 
   // FASE 8.5.4: Estados para contexto organizacional
   const [orgInfo, setOrgInfo] = useState<{
@@ -123,7 +97,6 @@ const TherapistDetail = () => {
     loadTherapistData();
     loadNotifications();
     loadPreferences();
-    loadAutonomySettings();
     checkManagerCNPJ();
     loadFinancialData();
     loadManagerProfile(); // FASE 2C: Carregar perfil do manager
@@ -350,12 +323,6 @@ const TherapistDetail = () => {
       .eq('id', notificationId);
 
     loadNotifications();
-  };
-
-  const loadAutonomySettings = async () => {
-    if (!id) return;
-    const settings = await getSubordinateAutonomyForAdmin(id);
-    setAutonomySettings(settings);
   };
 
   const checkManagerCNPJ = async () => {
@@ -605,140 +572,6 @@ const TherapistDetail = () => {
     loadFinancialData();
   };
 
-  const updateAutonomySetting = async (
-    field: 'manages_own_patients' | 'has_financial_access' | 'nfse_emission_mode',
-    value: boolean | string
-  ) => {
-    if (!id || !user) return;
-
-    // VALIDAÇÃO DE CASCADE
-    // Se está tentando desligar "manages_own_patients" E "has_financial_access" está ligado
-    if (field === 'manages_own_patients' && value === false && autonomySettings?.hasFinancialAccess) {
-      // Abrir dialog de confirmação em vez de executar diretamente
-      setConfirmCascadeDialog({
-        open: true,
-        field: 'manages_own_patients',
-        newValue: false
-      });
-      return; // PARAR AQUI - não executa o update
-    }
-
-    // Se não precisa de cascade, executar normalmente
-    setIsUpdating(true);
-    
-    try {
-      const { data: current } = await supabase
-        .from('subordinate_autonomy_settings')
-        .select('*')
-        .eq('subordinate_id', id)
-        .maybeSingle();
-
-      const updatedSettings = {
-        subordinate_id: id,
-        manager_id: user.id,
-        manages_own_patients: current?.manages_own_patients || false,
-        has_financial_access: current?.has_financial_access || false,
-        nfse_emission_mode: current?.nfse_emission_mode || 'own_company',
-        [field]: value
-      };
-
-      const { error } = await supabase
-        .from('subordinate_autonomy_settings')
-        .upsert(updatedSettings, { onConflict: 'subordinate_id' });
-
-      if (error) {
-        toast({ title: 'Erro ao atualizar configuração', variant: 'destructive' });
-        return;
-      }
-
-      toast({ title: 'Configuração atualizada!' });
-      await loadAutonomySettings();
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-  const executeCascadeUpdate = async () => {
-    if (!id || !user) return;
-
-    // Fechar dialog
-    setConfirmCascadeDialog({ 
-      open: false, 
-      field: 'manages_own_patients', 
-      newValue: false 
-    });
-
-    // Executar TRÊS atualizações em sequência (TRIPLE CASCADE):
-    // 1. Mudar nfse_emission_mode para 'own_company' (evita constraint violation)
-    // 2. Desligar has_financial_access
-    // 3. Desligar manages_own_patients
-
-    setIsUpdating(true);
-
-    try {
-      const { data: current } = await supabase
-        .from('subordinate_autonomy_settings')
-        .select('*')
-        .eq('subordinate_id', id)
-        .maybeSingle();
-
-      // Update 1: Mudar NFSe para 'own_company' (manter switches ligados)
-      const step1 = {
-        subordinate_id: id,
-        manager_id: user.id,
-        manages_own_patients: current?.manages_own_patients ?? true,
-        has_financial_access: current?.has_financial_access ?? true,
-        nfse_emission_mode: 'own_company' // MUDAR PARA OWN_COMPANY
-      };
-
-      const { error: error1 } = await supabase
-        .from('subordinate_autonomy_settings')
-        .upsert(step1, { onConflict: 'subordinate_id' });
-
-      if (error1) throw error1;
-
-      // Update 2: Desligar acesso financeiro
-      const step2 = {
-        ...step1,
-        has_financial_access: false // DESLIGAR
-      };
-
-      const { error: error2 } = await supabase
-        .from('subordinate_autonomy_settings')
-        .upsert(step2, { onConflict: 'subordinate_id' });
-
-      if (error2) throw error2;
-
-      // Update 3: Desligar gerenciamento de pacientes
-      const step3 = {
-        ...step2,
-        manages_own_patients: false // DESLIGAR
-      };
-
-      const { error: error3 } = await supabase
-        .from('subordinate_autonomy_settings')
-        .upsert(step3, { onConflict: 'subordinate_id' });
-
-      if (error3) throw error3;
-
-      toast({ 
-        title: 'Configurações atualizadas!',
-        description: 'Gerenciamento de pacientes e acesso financeiro foram desligados.'
-      });
-      await loadAutonomySettings();
-
-    } catch (error) {
-      console.error('Erro no cascade:', error);
-      toast({ 
-        title: 'Erro ao atualizar configurações', 
-        variant: 'destructive' 
-      });
-      await loadAutonomySettings(); // Recarregar para reverter estado visual
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'message': return <MessageSquare className="h-4 w-4" />;
@@ -756,33 +589,6 @@ const TherapistDetail = () => {
 
   return (
     <>
-      {/* Dialog de Confirmação de Cascade */}
-      <AlertDialog open={confirmCascadeDialog.open} onOpenChange={(open) => 
-        setConfirmCascadeDialog({ ...confirmCascadeDialog, open })
-      }>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Desligar gerenciamento de pacientes?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Para desligar o gerenciamento de pacientes próprios, o acesso financeiro também será desligado automaticamente.
-              <br /><br />
-              <strong>Após essa ação:</strong>
-              <ul className="list-disc list-inside mt-2 space-y-1">
-                <li>Subordinado não gerenciará pacientes próprios</li>
-                <li>Subordinado não terá acesso à tela financeira</li>
-                <li>Você (Full) verá todos os pacientes e sessões do subordinado</li>
-              </ul>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={executeCascadeUpdate}>
-              Confirmar e desligar ambos
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
       <div className="container mx-auto p-6 space-y-6">
         <div className="flex items-center gap-4">
           <Button variant="ghost" onClick={() => navigate('/team-management')}>
@@ -795,16 +601,26 @@ const TherapistDetail = () => {
           </div>
         </div>
 
+        {/* FASE 8.5.6: Aviso para admin sobre novo sistema */}
+        {isAdmin && (
+          <div className="rounded-md border border-dashed border-yellow-300 bg-yellow-50 px-3 py-2 text-xs text-yellow-800">
+            As permissões deste membro agora são configuradas pelo organograma e pelo modal{" "}
+            <span className="font-semibold">"Gerenciar Permissões"</span> no nível correspondente.
+            <button
+              type="button"
+              onClick={() => navigate("/org-management")}
+              className="ml-2 text-xs font-medium text-primary underline underline-offset-2"
+            >
+              Abrir organograma
+            </button>
+          </div>
+        )}
+
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-8">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-            <TabsTrigger value="autonomy">Autonomia</TabsTrigger>
             <TabsTrigger value="data">Dados</TabsTrigger>
             <TabsTrigger value="patients">Pacientes</TabsTrigger>
-            {/* Aba Financeiro: visível apenas quando subordinado NÃO tem acesso financeiro */}
-            {autonomySettings && !autonomySettings.hasFinancialAccess && (
-              <TabsTrigger value="financial">Financeiro</TabsTrigger>
-            )}
             <TabsTrigger value="sessions">Sessões</TabsTrigger>
             <TabsTrigger value="schedule">Agenda</TabsTrigger>
             <TabsTrigger value="journal">Journal</TabsTrigger>
@@ -977,36 +793,6 @@ const TherapistDetail = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="autonomy">
-            {/* FASE 8.5.4: Texto explicativo sobre integração */}
-            <Card className="mb-4 p-4 bg-muted/40">
-              <p className="text-sm text-muted-foreground">
-                As configurações abaixo combinam o sistema antigo de autonomia com o novo 
-                modelo de níveis e permissões. Em versões futuras, tudo isso ficará 
-                centralizado no organograma.
-              </p>
-            </Card>
-
-            {!autonomySettings || !therapist ? (
-              <Card className="p-6">
-                <p className="text-muted-foreground">Carregando configurações...</p>
-              </Card>
-            ) : (
-              <SubordinatePermissionCard
-                subordinate={{
-                  id: therapist.id,
-                  full_name: therapist.full_name,
-                  crp: therapist.crp || 'N/A',
-                  patient_count: patients.length,
-                  manages_own_patients: autonomySettings.managesOwnPatients,
-                  has_financial_access: autonomySettings.hasFinancialAccess,
-                  nfse_emission_mode: autonomySettings.nfseEmissionMode
-                }}
-                onUpdate={loadAutonomySettings}
-              />
-            )}
-          </TabsContent>
-
           <TabsContent value="patients">
             <Card className="p-6">
               <h3 className="text-lg font-semibold mb-4">Pacientes do Terapeuta</h3>
@@ -1027,12 +813,6 @@ const TherapistDetail = () => {
                             <Badge variant={patient.status === 'active' ? 'default' : 'secondary'}>
                               {patient.status === 'active' ? 'Ativo' : 'Inativo'}
                             </Badge>
-                            {autonomySettings.managesOwnPatients && (
-                              <Badge variant="outline" className="text-xs">
-                                <Lock className="w-3 h-3 mr-1" />
-                                Gestão Autônoma
-                              </Badge>
-                            )}
                           </div>
                         </div>
                         <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
@@ -1055,159 +835,6 @@ const TherapistDetail = () => {
               )}
             </Card>
           </TabsContent>
-
-          {/* Financial Tab - Apenas quando subordinado NÃO tem acesso financeiro */}
-          {autonomySettings && !autonomySettings.hasFinancialAccess && (
-            <TabsContent value="financial">
-              <Card className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <FileText className="h-6 w-6 text-primary" />
-                    <div>
-                      <h3 className="text-lg font-semibold">Controle Financeiro</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Gerencie as finanças dos pacientes de {therapist?.full_name}
-                      </p>
-                    </div>
-                  </div>
-                  <Button 
-                    onClick={generateGeneralInvoice}
-                    disabled={unpaidSessionsCount === 0}
-                    variant="outline"
-                  >
-                    <FileText className="w-4 h-4 mr-2" />
-                    Fazer Fechamento Geral
-                  </Button>
-                </div>
-
-                {/* Resumo Financeiro */}
-                <div className="grid gap-4 md:grid-cols-3 mb-6">
-                  <Card className="p-4 bg-muted/30">
-                    <p className="text-sm text-muted-foreground mb-1">Total de Pacientes</p>
-                    <p className="text-2xl font-bold">{patients.length}</p>
-                  </Card>
-                  <Card className="p-4 bg-orange-500/10">
-                    <p className="text-sm text-muted-foreground mb-1">Sessões Não Pagas</p>
-                    <p className="text-2xl font-bold text-orange-600">
-                      {sessions.filter(s => s.status === 'attended' && !s.paid).length}
-                    </p>
-                  </Card>
-                  <Card className="p-4 bg-green-500/10">
-                    <p className="text-sm text-muted-foreground mb-1">Valor Total em Aberto</p>
-                    <p className="text-2xl font-bold text-green-600">
-                      {formatBrazilianCurrency(
-                        (() => {
-                          const unpaidSessions = sessions.filter(s => s.status === 'attended' && !s.paid);
-                          
-                          // Separar sessões por tipo de paciente
-                          const monthlyPatientSessions = unpaidSessions.filter(s => s.patients?.monthly_price);
-                          const regularPatientSessions = unpaidSessions.filter(s => !s.patients?.monthly_price);
-                          
-                          // Agrupar sessões mensais por paciente + mês
-                          const monthlyGroups: Record<string, Set<string>> = {};
-                          monthlyPatientSessions.forEach(session => {
-                            const patientId = session.patient_id;
-                            const monthYear = format(parseISO(session.date), 'MM/yyyy');
-                            const key = `${patientId}-${monthYear}`;
-                            
-                            if (!monthlyGroups[patientId]) {
-                              monthlyGroups[patientId] = new Set();
-                            }
-                            monthlyGroups[patientId].add(monthYear);
-                          });
-                          
-                          // Calcular total mensal
-                          const monthlyValue = Object.entries(monthlyGroups).reduce((total, [patientId, months]) => {
-                            const session = monthlyPatientSessions.find(s => s.patient_id === patientId);
-                            const monthlyPrice = Number(session?.patients?.session_value || 0);
-                            return total + (months.size * monthlyPrice);
-                          }, 0);
-                          
-                          // Para pacientes regulares: somar valores individuais
-                          const regularTotal = regularPatientSessions.reduce((sum, s) => sum + Number(s.value || 0), 0);
-                          
-                          return monthlyValue + regularTotal;
-                        })()
-                      )}
-                    </p>
-                  </Card>
-                </div>
-
-                <Alert className="mb-6">
-                  <AlertDescription>
-                    Como este subordinado <strong>não tem acesso financeiro próprio</strong>, 
-                    todas as sessões dele aparecem automaticamente no seu <strong>Fechamento Geral</strong> 
-                    na página Financeiro.
-                  </AlertDescription>
-                </Alert>
-
-                {/* Lista de Pacientes com Saldo em Aberto */}
-                <div>
-                  <h4 className="font-semibold mb-3">Pacientes com Sessões Não Pagas</h4>
-                  <ScrollArea className="h-[400px]">
-                    <div className="space-y-2">
-                      {patients.filter(patient => {
-                        const unpaidSessions = sessions.filter(
-                          s => s.patient_id === patient.id && 
-                          s.status === 'attended' && 
-                          !s.paid
-                        );
-                        return unpaidSessions.length > 0;
-                      }).length === 0 ? (
-                        <p className="text-center text-muted-foreground py-8">
-                          Nenhum paciente com sessões pendentes
-                        </p>
-                      ) : (
-                        patients
-                          .filter(patient => {
-                            const unpaidSessions = sessions.filter(
-                              s => s.patient_id === patient.id && 
-                              s.status === 'attended' && 
-                              !s.paid
-                            );
-                            return unpaidSessions.length > 0;
-                          })
-                          .map(patient => {
-                            const unpaidSessions = sessions.filter(
-                              s => s.patient_id === patient.id && 
-                              s.status === 'attended' && 
-                              !s.paid
-                            );
-                            const totalValue = unpaidSessions.reduce(
-                              (sum, s) => sum + Number(s.value || 0), 
-                              0
-                            );
-                            
-                            return (
-                              <Card 
-                                key={patient.id} 
-                                className="p-4 hover:shadow-md transition-shadow cursor-pointer"
-                                onClick={() => navigate(`/patients/${patient.id}`)}
-                              >
-                                <div className="flex justify-between items-start">
-                                  <div className="flex-1">
-                                    <h5 className="font-semibold mb-1">{patient.name}</h5>
-                                    <p className="text-sm text-muted-foreground">
-                                      {unpaidSessions.length} sessão(ões) não paga(s)
-                                    </p>
-                                  </div>
-                                  <div className="text-right">
-                                    <p className="text-lg font-bold text-orange-600">
-                                      R$ {totalValue.toFixed(2).replace('.', ',')}
-                                    </p>
-                                    <ChevronRight className="w-5 h-5 text-muted-foreground ml-auto" />
-                                  </div>
-                                </div>
-                              </Card>
-                            );
-                          })
-                      )}
-                    </div>
-                  </ScrollArea>
-                </div>
-              </Card>
-            </TabsContent>
-          )}
 
           <TabsContent value="sessions">
             <Card className="p-6">

@@ -344,6 +344,7 @@ const TeamManagement = () => {
   const renderMemberCard = (member: TeamMember) => {
     const roleLabel = getRoleBadge(member.role);
     const roleColor = getRoleColor(member.role);
+    const isClinical = member.role === 'psychologist'; // Por enquanto só psicólogos
     
     return (
       <Card key={member.id} className="transition-all hover:shadow-sm">
@@ -370,14 +371,16 @@ const TeamManagement = () => {
               </div>
             </div>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="w-full"
-            onClick={() => navigate(`/therapist/${member.user_id}`)}
-          >
-            Ver Perfil
-          </Button>
+          {isClinical && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full"
+              onClick={() => navigate(`/therapist/${member.user_id}`)}
+            >
+              Ver Perfil
+            </Button>
+          )}
         </CardContent>
       </Card>
     );
