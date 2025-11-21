@@ -2143,13 +2143,13 @@ Assinatura do Profissional`;
               <div className="flex justify-center items-center py-8">
                 <p className="text-muted-foreground">Carregando permissões...</p>
               </div>
-            ) : (patient?.user_id === user?.id || canAccessClinical) ? (
+            ) : canEdit ? (
               <ClinicalComplaintSummary patientId={id!} />
             ) : (
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Este subordinado gerencia seus próprios pacientes. Você não tem acesso aos dados clínicos.
+                  {accessDeniedReason || 'Você não tem permissão para acessar dados clínicos deste paciente.'}
                 </AlertDescription>
               </Alert>
             )}
@@ -2161,13 +2161,13 @@ Assinatura do Profissional`;
               <div className="flex justify-center items-center py-8">
                 <p className="text-muted-foreground">Carregando permissões...</p>
               </div>
-            ) : (patient?.user_id === user?.id || canAccessClinical) ? (
+            ) : canEdit ? (
               <ClinicalEvolution patientId={id!} />
             ) : (
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Este subordinado gerencia seus próprios pacientes. Você não tem acesso aos dados clínicos.
+                  {accessDeniedReason || 'Você não tem permissão para acessar dados clínicos deste paciente.'}
                 </AlertDescription>
               </Alert>
             )}

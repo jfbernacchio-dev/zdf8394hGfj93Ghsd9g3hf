@@ -120,6 +120,7 @@ export async function canAccessPatient(
 
   // 1. Admin sempre tem acesso total
   if (isAdmin) {
+    console.log('[checkPatientAccess] ✅ Admin - acesso full');
     return { allowed: true, accessLevel: 'full' };
   }
 
@@ -131,6 +132,7 @@ export async function canAccessPatient(
     .single();
 
   if (error || !patient) {
+    console.log('[checkPatientAccess] ❌ Paciente não encontrado');
     return { 
       allowed: false, 
       accessLevel: 'none',
@@ -139,12 +141,19 @@ export async function canAccessPatient(
   }
 
   const ownerId = patient.user_id;
+  console.log('[checkPatientAccess] Owner do paciente:', ownerId);
 
   // 3. Buscar permissões do viewer
   const viewerPerms = await resolveEffectivePermissions(userId);
+  console.log('[checkPatientAccess] Permissões do viewer:', {
+    canAccessClinical: viewerPerms.canAccessClinical,
+    clinicalVisibleToSuperiors: viewerPerms.clinicalVisibleToSuperiors,
+    peerClinicalSharing: viewerPerms.peerClinicalSharing
+  });
 
-  // 4. Se não tem acesso clínico, bloquear
+  // 4. Se viewer não tem acesso clínico, bloquear
   if (!viewerPerms.canAccessClinical) {
+    console.log('[checkPatientAccess] ❌ Viewer não tem can_access_clinical');
     return {
       allowed: false,
       accessLevel: 'none',
@@ -152,8 +161,9 @@ export async function canAccessPatient(
     };
   }
 
-  // 5. Se é o próprio terapeuta do paciente
+  // 5. Se é o próprio terapeuta do paciente (dono sempre tem acesso full)
   if (ownerId === userId) {
+    console.log('[checkPatientAccess] ✅ Viewer é o dono - acesso full');
     return { allowed: true, accessLevel: 'full' };
   }
 
@@ -164,19 +174,25 @@ export async function canAccessPatient(
   // 7. Aplicar regras baseado no relacionamento
   switch (relationship) {
     case 'self':
+      console.log('[checkPatientAccess] ✅ Self - acesso full');
       return { allowed: true, accessLevel: 'full' };
 
     case 'superior': {
       // Buscar permissões do subordinado (dono do paciente)
       const ownerPerms = await resolveEffectivePermissions(ownerId);
+      console.log('[checkPatientAccess] [SUPERIOR] Permissões do owner (subordinado):', {
+        clinicalVisibleToSuperiors: ownerPerms.clinicalVisibleToSuperiors
+      });
       
       if (ownerPerms.clinicalVisibleToSuperiors) {
+        console.log('[checkPatientAccess] ✅ Superior - clinical_visible_to_superiors = true - acesso full');
         return { 
           allowed: true, 
           accessLevel: 'full',
           reason: 'Acesso como superior (dados clínicos visíveis)' 
         };
       } else {
+        console.log('[checkPatientAccess] ❌ Superior - clinical_visible_to_superiors = false - sem acesso');
         return {
           allowed: false,
           accessLevel: 'none',
@@ -189,20 +205,26 @@ export async function canAccessPatient(
       // Buscar permissões do dono do paciente (peer)
       const ownerPerms = await resolveEffectivePermissions(ownerId);
       const peerSharing = ownerPerms.peerClinicalSharing;
+      console.log('[checkPatientAccess] [PEER] Permissões do owner:', {
+        peerClinicalSharing: peerSharing
+      });
       
       if (peerSharing === 'none') {
+        console.log('[checkPatientAccess] ❌ Peer - peerClinicalSharing = none');
         return {
           allowed: false,
           accessLevel: 'none',
           reason: 'Este terapeuta não compartilha dados com pares'
         };
       } else if (peerSharing === 'view') {
+        console.log('[checkPatientAccess] ✅ Peer - peerClinicalSharing = view');
         return {
           allowed: true,
           accessLevel: 'view',
           reason: 'Acesso somente leitura (par do mesmo nível)'
         };
       } else if (peerSharing === 'full') {
+        console.log('[checkPatientAccess] ✅ Peer - peerClinicalSharing = full');
         return {
           allowed: true,
           accessLevel: 'full',
@@ -215,6 +237,7 @@ export async function canAccessPatient(
     case 'subordinate':
     case 'unrelated':
     default:
+      console.log('[checkPatientAccess] ❌ Subordinate/Unrelated - sem acesso');
       return {
         allowed: false,
         accessLevel: 'none',
@@ -222,6 +245,7 @@ export async function canAccessPatient(
       };
   }
 
+  console.log('[checkPatientAccess] ❌ Fallback - sem acesso');
   return {
     allowed: false,
     accessLevel: 'none',
