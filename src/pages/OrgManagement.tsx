@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Settings, Users, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Settings, Users, Trash2, TriangleAlert, User } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -83,7 +83,7 @@ export default function OrgManagement() {
   const [dragOverLevelId, setDragOverLevelId] = useState<string | null>(null);
 
   // Query para buscar níveis reais do banco
-  const { data: levels, isLoading: isLoadingLevels } = useQuery({
+  const { data: levels, isLoading: isLoadingLevels, error: errorLevels } = useQuery({
     queryKey: ['organization-levels', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -101,7 +101,7 @@ export default function OrgManagement() {
   });
 
   // Query para buscar usuários com suas posições
-  const { data: userPositions, isLoading: isLoadingUsers } = useQuery({
+  const { data: userPositions, isLoading: isLoadingUsers, error: errorUsers } = useQuery({
     queryKey: ['user-positions', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -680,35 +680,65 @@ export default function OrgManagement() {
 
         {/* Organogram View */}
         <div className="container mx-auto px-4 py-8">
-          {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="flex gap-6 pb-4 overflow-x-auto">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex-shrink-0 w-[320px] animate-pulse">
-                    <div className="rounded-xl border-2 bg-muted/50 h-[400px] p-6">
-                      <div className="h-6 bg-muted-foreground/20 rounded w-3/4 mb-4" />
-                      <div className="h-4 bg-muted-foreground/10 rounded w-1/2 mb-6" />
-                      <div className="space-y-3">
-                        {[1, 2, 3].map((j) => (
-                          <div key={j} className="h-16 bg-muted-foreground/10 rounded-lg" />
-                        ))}
+          {/* FASE 6E-6: Estado de erro ao carregar níveis */}
+          {errorLevels ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center max-w-xl mx-auto">
+              <div className="p-4 rounded-full bg-red-50 mb-4">
+                <TriangleAlert className="h-10 w-10 text-red-500" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Erro ao carregar níveis</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Não foi possível carregar sua estrutura organizacional.
+              </p>
+              <Button 
+                onClick={() => queryClient.invalidateQueries({ queryKey: ['organization-levels', user?.id] })}
+                className="gap-2"
+              >
+                <Settings className="h-4 w-4" />
+                Tentar novamente
+              </Button>
+            </div>
+          ) : isLoadingLevels ? (
+            /* FASE 6E-6: Loading state refinado */
+            <div className="flex flex-col items-center justify-center py-12">
+              <ScrollArea className="w-full">
+                <div className="flex gap-6 pb-4" style={{ minWidth: 'fit-content' }}>
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex-shrink-0 min-w-[280px] md:min-w-[340px] w-[340px]">
+                      <div className="rounded-xl border-2 bg-muted/30 h-[380px] p-6 animate-pulse">
+                        <div className="h-6 bg-muted-foreground/20 rounded w-3/4 mb-3" />
+                        <div className="h-4 bg-muted-foreground/10 rounded w-1/2 mb-6" />
+                        <div className="space-y-3">
+                          {[1, 2, 3, 4].map((j) => (
+                            <div key={j} className="h-16 bg-muted-foreground/10 rounded-lg" />
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-              <p className="text-sm text-muted-foreground mt-4">Carregando estrutura organizacional...</p>
+                  ))}
+                </div>
+              </ScrollArea>
+              <p className="text-sm text-muted-foreground mt-4 animate-pulse">Carregando estrutura organizacional...</p>
             </div>
           ) : !levels || levels.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Users className="h-16 w-16 text-muted-foreground/50 mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Nenhuma estrutura criada ainda</h3>
-              <p className="text-sm text-muted-foreground mb-1">
-                Clique em "Adicionar Nível" para começar a montar o organograma da sua equipe.
+            /* FASE 6E-6: Empty state elegante */
+            <div className="flex flex-col items-center justify-center py-16 text-center max-w-xl mx-auto">
+              <div className="p-6 rounded-full bg-primary/10 mb-4">
+                <Users className="h-16 w-16 text-primary/70" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Nenhum nível criado ainda</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Crie o primeiro nível para organizar sua equipe em uma estrutura hierárquica clara.
               </p>
-              <p className="text-xs text-muted-foreground/80">
-                Organize sua equipe em níveis hierárquicos e defina permissões personalizadas.
-              </p>
+              <Button 
+                size="lg"
+                onClick={handleAddLevel}
+                disabled={addLevelMutation.isPending}
+                className="gap-2"
+              >
+                <Plus className="h-5 w-5" />
+                Criar primeiro nível
+              </Button>
             </div>
           ) : (
             <ScrollArea className="w-full">
@@ -742,6 +772,13 @@ export default function OrgManagement() {
                               <Badge className="mt-2 bg-primary/10 text-primary font-medium px-2 py-0.5 border-0">
                                 {localUsersByLevel.get(level.id)?.length || 0} membro(s)
                               </Badge>
+                              {/* FASE 6E-6: Erro ao carregar usuários */}
+                              {errorUsers && (
+                                <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                                  <TriangleAlert className="h-3 w-3" />
+                                  Erro ao carregar membros deste nível
+                                </p>
+                              )}
                             </div>
                             <div className="flex items-center gap-2">
                               <Badge variant="outline" className="font-semibold px-3">
@@ -751,6 +788,7 @@ export default function OrgManagement() {
                               {isAdmin && (() => {
                                 const memberCount = localUsersByLevel.get(level.id)?.length ?? 0;
                                 const hasMembers = memberCount > 0;
+                                const isDeleting = deleteLevelMutation.isPending;
                                 
                                 return (
                                   <Button
@@ -773,11 +811,15 @@ export default function OrgManagement() {
                                     aria-label={
                                       hasMembers
                                         ? `Não é possível excluir o nível ${level.level_number} - possui membros`
-                                        : `Excluir nível ${level.level_number}`
+                                        : `Excluir nível ${level.level_number} ${isDeleting ? '- excluindo...' : ''}`
                                     }
-                                    disabled={deleteLevelMutation.isPending}
+                                    disabled={isDeleting}
                                   >
-                                    <Trash2 className="h-4 w-4" />
+                                    {isDeleting ? (
+                                      <div className="h-4 w-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+                                    ) : (
+                                      <Trash2 className="h-4 w-4" />
+                                    )}
                                   </Button>
                                 );
                               })()}
@@ -786,103 +828,135 @@ export default function OrgManagement() {
                         </CardHeader>
 
                         <CardContent className="space-y-3">
+                          {/* FASE 6E-6: Loading state para usuários dentro do nível */}
+                          {isLoadingUsers && (
+                            <div className="space-y-3 p-3">
+                              {[1, 2, 3].map((i) => (
+                                <div key={i} className="h-16 rounded-lg bg-muted/30 animate-pulse" />
+                              ))}
+                            </div>
+                          )}
+                          
                           {/* Users List - FASE 6D-1: Drag & drop zone */}
-                          <div 
-                            className={`
-                              space-y-2 min-h-[200px] max-h-[400px] overflow-y-auto rounded-lg 
-                              border-2 border-dashed transition-all duration-200 ease-out
-                              ${showDropFeedback 
-                                ? 'border-primary/60 bg-primary/10 p-3' 
-                                : showInvalidFeedback
-                                ? 'border-destructive/40 opacity-40 cursor-not-allowed p-3'
-                                : 'border-muted-foreground/20 p-3'
+                          {!isLoadingUsers && (
+                            <div 
+                              className={`
+                                space-y-2 min-h-[200px] max-h-[400px] overflow-y-auto rounded-lg 
+                                border-2 border-dashed transition-all duration-200 ease-out
+                                ${showDropFeedback 
+                                  ? 'border-primary/60 bg-primary/10 p-3' 
+                                  : showInvalidFeedback
+                                  ? 'border-destructive/40 opacity-40 cursor-not-allowed p-3'
+                                  : 'border-muted-foreground/20 p-3'
+                                }
+                              `}
+                              onDragOver={(e) => handleDragOver(e, level.id)}
+                              onDrop={(e) => handleDrop(e, level.id)}
+                              onDragLeave={() => setDragOverLevelId(null)}
+                              aria-dropeffect="move"
+                              aria-label={
+                                draggingUser 
+                                  ? isValidTarget
+                                    ? `Nível ${level.level_number} - destino permitido`
+                                    : `Nível ${level.level_number} - destino proibido`
+                                  : `Nível ${level.level_number}`
                               }
-                            `}
-                            onDragOver={(e) => handleDragOver(e, level.id)}
-                            onDrop={(e) => handleDrop(e, level.id)}
-                            onDragLeave={() => setDragOverLevelId(null)}
-                            aria-dropeffect="move"
-                          >
-                            {localUsersByLevel.get(level.id)?.map((userInfo) => {
-                              const initials = userInfo.full_name
-                                .split(' ')
-                                .map(n => n[0])
-                                .slice(0, 2)
-                                .join('')
-                                .toUpperCase();
+                            >
+                              {localUsersByLevel.get(level.id)?.map((userInfo) => {
+                                const initials = userInfo.full_name
+                                  .split(' ')
+                                  .map(n => n[0])
+                                  .slice(0, 2)
+                                  .join('')
+                                  .toUpperCase();
 
-                              const isDraggable = isAdmin || roleGlobal === 'psychologist';
-                              const isBeingDragged = draggingUser?.user.id === userInfo.id;
-                              
-                              // FASE 6E-2: Determinar se o usuário não pode ser arrastado
-                              const isNotDraggable = !isDraggable && (roleGlobal === 'assistant' || roleGlobal === 'accountant');
+                                const isDraggable = isAdmin || roleGlobal === 'psychologist';
+                                const isBeingDragged = draggingUser?.user.id === userInfo.id;
+                                const isSaving = updateUserPositionMutation.isPending && isBeingDragged;
+                                
+                                // FASE 6E-2: Determinar se o usuário não pode ser arrastado
+                                const isNotDraggable = !isDraggable && (roleGlobal === 'assistant' || roleGlobal === 'accountant');
 
-                              return (
-                                <Card
-                                  key={userInfo.id}
-                                  className={`
-                                    p-3 bg-white/80 dark:bg-neutral-800/50 border border-black/5
-                                    transition-all duration-200 ease-out
-                                    ${isDraggable ? 'cursor-grab active:cursor-grabbing' : ''}
-                                    ${isNotDraggable ? 'cursor-not-allowed opacity-75' : ''}
-                                    ${isBeingDragged 
-                                      ? 'opacity-40 scale-95' 
-                                      : 'opacity-100 scale-100 hover:shadow hover:translate-y-[1px]'
-                                    }
-                                  `}
-                                  draggable={isDraggable}
-                                  onDragStart={(e) => handleDragStart(e, level.id, userInfo)}
-                                  onDragEnd={handleDragEnd}
-                                  aria-label={`Membro ${userInfo.full_name}`}
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <Avatar className="h-10 w-10 ring-2 ring-white dark:ring-neutral-900">
-                                      <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">
-                                        {initials}
-                                      </AvatarFallback>
-                                    </Avatar>
-                                    <div className="flex-1 min-w-0">
-                                      <p className="font-semibold text-sm truncate">
-                                        {userInfo.full_name}
-                                      </p>
-                                      {userInfo.role && (
-                                        <Badge 
-                                          variant="outline" 
-                                          className={`text-xs mt-1 font-medium ${ROLE_COLORS[userInfo.role] || 'bg-gray-100 text-gray-700 border-gray-200'}`}
-                                        >
-                                          {ROLE_LABELS[userInfo.role] || userInfo.role}
-                                        </Badge>
-                                      )}
+                                return (
+                                  <Card
+                                    key={userInfo.id}
+                                    className={`
+                                      p-3 bg-white/80 dark:bg-neutral-800/50 border border-black/5
+                                      transition-all duration-200 ease-out
+                                      ${isDraggable && !isSaving ? 'cursor-grab active:cursor-grabbing' : ''}
+                                      ${isNotDraggable ? 'cursor-not-allowed opacity-75' : ''}
+                                      ${isSaving ? 'opacity-40 cursor-wait' : ''}
+                                      ${isBeingDragged && !isSaving
+                                        ? 'opacity-40 scale-95' 
+                                        : 'opacity-100 scale-100 hover:shadow hover:translate-y-[1px]'
+                                      }
+                                    `}
+                                    draggable={isDraggable && !isSaving}
+                                    onDragStart={(e) => handleDragStart(e, level.id, userInfo)}
+                                    onDragEnd={handleDragEnd}
+                                    aria-label={`Membro ${userInfo.full_name}${isSaving ? ' - salvando...' : ''}`}
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <Avatar className="h-10 w-10 ring-2 ring-white dark:ring-neutral-900">
+                                        <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">
+                                          {initials}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="font-semibold text-sm truncate">
+                                          {userInfo.full_name}
+                                        </p>
+                                        <div className="flex items-center gap-2 mt-1">
+                                          {userInfo.role && (
+                                            <Badge 
+                                              variant="outline" 
+                                              className={`text-xs font-medium ${ROLE_COLORS[userInfo.role] || 'bg-gray-100 text-gray-700 border-gray-200'}`}
+                                            >
+                                              {ROLE_LABELS[userInfo.role] || userInfo.role}
+                                            </Badge>
+                                          )}
+                                          {/* FASE 6E-6: Badge "Salvando..." durante persistência */}
+                                          {isSaving && (
+                                            <Badge variant="secondary" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                                              Salvando...
+                                            </Badge>
+                                          )}
+                                        </div>
+                                      </div>
                                     </div>
-                                  </div>
                                 </Card>
                               );
                             })}
 
-                            {/* Placeholder de drop para níveis vazios */}
-                            {(!localUsersByLevel.get(level.id) || localUsersByLevel.get(level.id)?.length === 0) && (
-                              showDropFeedback ? (
-                                <div className="flex flex-col items-center justify-center py-12 text-center">
-                                  <div className="h-14 w-14 rounded-full border-2 border-dashed border-primary/50 flex items-center justify-center mb-3">
-                                    <Users className="h-7 w-7 text-primary/60" />
+                              {/* FASE 6E-6: Placeholder elegante de drop para níveis vazios */}
+                              {(!localUsersByLevel.get(level.id) || localUsersByLevel.get(level.id)?.length === 0) && (
+                                showDropFeedback ? (
+                                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                                    <div className="h-14 w-14 rounded-full border-2 border-dashed border-primary/50 flex items-center justify-center mb-3">
+                                      <Users className="h-7 w-7 text-primary/60" />
+                                    </div>
+                                    <p className="text-sm font-medium text-primary">
+                                      Solte o membro aqui
+                                    </p>
                                   </div>
-                                  <p className="text-sm font-medium text-primary">
-                                    Solte o membro aqui
-                                  </p>
-                                </div>
-                              ) : (
-                                <div className="flex flex-col items-center justify-center py-12 text-center">
-                                  <Users className="h-10 w-10 text-muted-foreground/40 mb-2" />
-                                  <p className="text-sm text-muted-foreground mb-1">
-                                    Nenhum membro neste nível ainda
-                                  </p>
-                                  <p className="text-xs text-muted-foreground/70">
-                                    Arraste membros de outros níveis para cá, se tiver permissão.
-                                  </p>
-                                </div>
-                              )
-                            )}
-                          </div>
+                                ) : (
+                                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                                    <div className="p-3 rounded-full bg-muted/50 mb-2">
+                                      <User className="h-8 w-8 text-muted-foreground/50" />
+                                    </div>
+                                    <p className="text-sm text-muted-foreground">
+                                      Nenhum membro neste nível
+                                    </p>
+                                    {(isAdmin || roleGlobal === 'psychologist') && (
+                                      <p className="text-xs text-muted-foreground/70 mt-1">
+                                        Arraste membros de outros níveis para cá
+                                      </p>
+                                    )}
+                                  </div>
+                                )
+                              )}
+                            </div>
+                          )}
 
                           <Separator className="my-3" />
 
