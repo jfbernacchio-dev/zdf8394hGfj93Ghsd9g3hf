@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { usePermissionFlags } from '@/hooks/usePermissionFlags';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { TrendingUp, DollarSign, Users, AlertCircle, Calendar, PieChartIcon, Target, Activity, Percent, CalendarIcon, ChevronLeft, ChevronRight, PlusCircle, Receipt } from 'lucide-react';
@@ -24,8 +23,7 @@ import { useCardPermissions } from '@/hooks/useCardPermissions';
 const COLORS = ['hsl(100, 20%, 55%)', 'hsl(100, 25%, 65%)', 'hsl(100, 30%, 75%)', 'hsl(100, 15%, 45%)', 'hsl(100, 35%, 85%)', 'hsl(40, 35%, 75%)'];
 
 const Financial = () => {
-  const { user, isAdmin } = useAuth();
-  const { isSubordinate } = usePermissionFlags();
+  const { user, isAdmin, roleGlobal } = useAuth();
   const [patients, setPatients] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
@@ -34,13 +32,28 @@ const Financial = () => {
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
 
-  // 🔐 PERMISSIONS
+  // 🔐 PERMISSIONS - usar novo sistema
   const { 
     permissions, 
     loading: permissionsLoading,
     financialAccess 
   } = useEffectivePermissions();
   const { canViewFullFinancial } = useCardPermissions();
+
+  // Derivar flags localmente
+  const isAccountant = roleGlobal === 'accountant';
+  const isAssistant = roleGlobal === 'assistant';
+  const isPsychologist = roleGlobal === 'psychologist';
+
+  // Subordinado = não é admin e não é psicólogo nível 1
+  const isSubordinate =
+    (isAssistant || isAccountant) ||
+    (isPsychologist && permissions?.levelNumber && permissions.levelNumber > 1);
+
+  const isFullTherapist =
+    isPsychologist &&
+    permissions?.levelNumber &&
+    permissions.levelNumber === 1;
 
   // Validação local de permissão financeira (camada extra de segurança)
   useEffect(() => {
