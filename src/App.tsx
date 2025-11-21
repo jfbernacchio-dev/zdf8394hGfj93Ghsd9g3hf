@@ -7,6 +7,7 @@ import React from "react";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { PermissionRoute } from "./components/PermissionRoute";
+import { OrganizationGuard } from "./components/OrganizationGuard";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import DashboardExample from "./pages/DashboardExample";
@@ -61,7 +62,7 @@ import SetupOrganization from "./pages/SetupOrganization";
 
 const queryClient = new QueryClient();
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+const ProtectedRoute = ({ children, requiresOrg = true }: { children: React.ReactNode; requiresOrg?: boolean }) => {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -72,6 +73,11 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Se requiresOrg=true, validar organização ativa
+  if (requiresOrg) {
+    return <OrganizationGuard>{children}</OrganizationGuard>;
   }
 
   return <>{children}</>;
@@ -147,7 +153,7 @@ const App = () => (
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
             <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
-            <Route path="/setup-organization" element={<ProtectedRoute><SetupOrganization /></ProtectedRoute>} />
+            <Route path="/setup-organization" element={<ProtectedRoute requiresOrg={false}><SetupOrganization /></ProtectedRoute>} />
             
             <Route path="/financial" element={<ProtectedRoute><PermissionRoute path="/financial"><Layout><Financial /></Layout></PermissionRoute></ProtectedRoute>} />
             <Route path="/schedule" element={<ProtectedRoute><PermissionRoute path="/schedule"><Layout><Schedule /></Layout></PermissionRoute></ProtectedRoute>} />
