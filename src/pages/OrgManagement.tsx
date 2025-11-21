@@ -78,6 +78,9 @@ export default function OrgManagement() {
     fromLevelId: string;
     user: UserInLevel;
   } | null>(null);
+  
+  // FASE 6E-2: Estado para controlar hover durante drag
+  const [dragOverLevelId, setDragOverLevelId] = useState<string | null>(null);
 
   // Query para buscar níveis reais do banco
   const { data: levels, isLoading: isLoadingLevels } = useQuery({
@@ -295,6 +298,55 @@ export default function OrgManagement() {
     },
   });
 
+  // FASE 6E-2: Função auxiliar para verificar se o drop seria válido (apenas para feedback visual)
+  const isValidDropTarget = (targetLevelId: string): boolean => {
+    if (!draggingUser || !levels) return false;
+    
+    const { fromLevelId } = draggingUser;
+    
+    // Mesmo nível = inválido
+    if (fromLevelId === targetLevelId) return false;
+    
+    // Subordinados não podem mover ninguém
+    const isSubordinate = roleGlobal === 'assistant' || roleGlobal === 'accountant';
+    if (isSubordinate) return false;
+    
+    // Admin pode mover para qualquer lugar
+    if (isAdmin) return true;
+    
+    // Psicólogo: só pode mover para níveis abaixo
+    const isPsychologist = roleGlobal === 'psychologist';
+    if (isPsychologist) {
+      const sourceLevelInfo = levels.find(l => l.id === fromLevelId);
+      const targetLevelInfo = levels.find(l => l.id === targetLevelId);
+      
+      if (!sourceLevelInfo || !targetLevelInfo) return false;
+      
+      // Buscar nível do psicólogo logado
+      let userLevelNumber = 1;
+      for (const [levelId, users] of usersByLevel.entries()) {
+        const foundUser = users.find(u => u.user_id === user?.id);
+        if (foundUser) {
+          const levelInfo = levels.find(l => l.id === levelId);
+          if (levelInfo) {
+            userLevelNumber = levelInfo.level_number;
+            break;
+          }
+        }
+      }
+      
+      // Só pode mover para níveis com número maior (abaixo)
+      if (targetLevelInfo.level_number <= userLevelNumber) return false;
+      
+      // Não pode mover pessoas de níveis acima dele
+      if (sourceLevelInfo.level_number < userLevelNumber) return false;
+      
+      return true;
+    }
+    
+    return false;
+  };
+
   // FASE 6D-2: Handlers para drag & drop com validações
   const handleDragStart = (
     e: React.DragEvent<HTMLDivElement>,
@@ -331,6 +383,7 @@ export default function OrgManagement() {
 
   const handleDragEnd = () => {
     setDraggingUser(null);
+    setDragOverLevelId(null); // FASE 6E-2: Limpar hover
   };
 
   const handleDragOver = (
@@ -343,6 +396,9 @@ export default function OrgManagement() {
     if (!isAdmin && !isPsychologist) return;
     
     e.preventDefault(); // Necessário para permitir drop
+    
+    // FASE 6E-2: Atualizar visual do hover
+    setDragOverLevelId(targetLevelId);
   };
 
   const handleDrop = (
@@ -458,6 +514,7 @@ export default function OrgManagement() {
 
     setLocalUsersByLevel(clone);
     setDraggingUser(null);
+    setDragOverLevelId(null); // FASE 6E-2: Limpar hover
 
     // FASE 6D-3: Persistir movimento no banco
     updateUserPositionMutation.mutate({
@@ -583,117 +640,161 @@ export default function OrgManagement() {
           ) : (
             <ScrollArea className="w-full">
               <div className="flex gap-6 pb-4" style={{ minWidth: 'fit-content' }}>
-                {levels.map((level, index) => (
-                  <div key={level.id} className="flex-shrink-0 relative">
-                    {/* Level Card */}
-                    <Card className={`w-[320px] ${LEVEL_COLORS[index % LEVEL_COLORS.length]} border-2 transition-all duration-300 shadow-md hover:shadow-xl`}>
-                      <CardHeader className="pb-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <CardTitle className="text-xl font-bold tracking-tight">
-                              {level.level_name}
-                            </CardTitle>
-                            <p className="text-sm text-muted-foreground/80 mt-1.5 font-medium">
-                              {localUsersByLevel.get(level.id)?.length || 0} membro(s)
-                            </p>
-                          </div>
-                          <Badge variant="outline" className="ml-2 font-semibold px-3">
-                            N{level.level_number}
-                          </Badge>
-                        </div>
-                      </CardHeader>
-
-                      <CardContent className="space-y-3">
-                        {/* Users List - FASE 6D-1: Drag & drop zone */}
-                        <div 
-                          className="space-y-2 min-h-[200px] max-h-[400px] overflow-y-auto rounded-lg border-2 border-dashed border-muted-foreground/20 hover:border-primary/40 hover:bg-primary/5 transition-all duration-200 p-3"
-                          onDragOver={(e) => handleDragOver(e, level.id)}
-                          onDrop={(e) => handleDrop(e, level.id)}
-                        >
-                          {localUsersByLevel.get(level.id)?.map((userInfo) => {
-                            const initials = userInfo.full_name
-                              .split(' ')
-                              .map(n => n[0])
-                              .slice(0, 2)
-                              .join('')
-                              .toUpperCase();
-
-                            const isDraggable = isAdmin || roleGlobal === 'psychologist';
-                            const isBeingDragged = draggingUser?.user.id === userInfo.id;
-
-                            return (
-                              <Card
-                                key={userInfo.id}
-                                className={`
-                                  p-3.5 bg-card border border-border/50 
-                                  hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5
-                                  transition-all duration-200
-                                  ${isDraggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}
-                                  ${isBeingDragged ? 'opacity-40 scale-95' : 'opacity-100 scale-100'}
-                                `}
-                                draggable={isDraggable}
-                                onDragStart={(e) => handleDragStart(e, level.id, userInfo)}
-                                onDragEnd={handleDragEnd}
-                              >
-                                <div className="flex items-center gap-3">
-                                  <Avatar className="h-11 w-11 ring-2 ring-primary/10">
-                                    <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold text-sm">
-                                      {initials}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="font-semibold text-sm truncate">
-                                      {userInfo.full_name}
-                                    </p>
-                                    {userInfo.role && (
-                                      <Badge 
-                                        variant="outline" 
-                                        className={`text-xs mt-1.5 font-medium ${ROLE_COLORS[userInfo.role] || 'bg-gray-100 text-gray-700 border-gray-200'}`}
-                                      >
-                                        {ROLE_LABELS[userInfo.role] || userInfo.role}
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </div>
-                              </Card>
-                            );
-                          })}
-
-                          {(!localUsersByLevel.get(level.id) || localUsersByLevel.get(level.id)?.length === 0) && (
-                            <div className="flex flex-col items-center justify-center py-12 text-center">
-                              <Users className="h-12 w-12 text-muted-foreground/50 mb-3" />
-                              <p className="text-sm text-muted-foreground">
-                                Nenhum membro neste nível
+                {levels.map((level, index) => {
+                  // FASE 6E-2: Verificar se este nível é um drop target válido
+                  const isValidTarget = draggingUser ? isValidDropTarget(level.id) : false;
+                  const isBeingHovered = dragOverLevelId === level.id;
+                  const showDropFeedback = draggingUser && isBeingHovered && isValidTarget;
+                  const showInvalidFeedback = draggingUser && isBeingHovered && !isValidTarget;
+                  
+                  return (
+                    <div key={level.id} className="flex-shrink-0 relative">
+                      {/* Level Card */}
+                      <Card className={`
+                        w-[320px] ${LEVEL_COLORS[index % LEVEL_COLORS.length]} border-2 
+                        transition-all duration-200
+                        ${showDropFeedback ? 'shadow-xl ring-2 ring-primary/40 scale-[1.02]' : 'shadow-md hover:shadow-xl'}
+                        ${showInvalidFeedback ? 'opacity-60' : ''}
+                      `}>
+                        <CardHeader className="pb-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <CardTitle className="text-xl font-bold tracking-tight">
+                                {level.level_name}
+                              </CardTitle>
+                              <p className="text-sm text-muted-foreground/80 mt-1.5 font-medium">
+                                {localUsersByLevel.get(level.id)?.length || 0} membro(s)
                               </p>
                             </div>
-                          )}
-                        </div>
+                            <Badge variant="outline" className="ml-2 font-semibold px-3">
+                              N{level.level_number}
+                            </Badge>
+                          </div>
+                        </CardHeader>
 
-                      <Separator className="my-4" />
+                        <CardContent className="space-y-3">
+                          {/* Users List - FASE 6D-1: Drag & drop zone */}
+                          <div 
+                            className={`
+                              space-y-2 min-h-[200px] max-h-[400px] overflow-y-auto rounded-lg 
+                              border-2 border-dashed transition-all duration-200
+                              ${showDropFeedback 
+                                ? 'border-primary/60 bg-primary/10 p-4' 
+                                : showInvalidFeedback
+                                ? 'border-destructive/40 bg-destructive/5 p-3'
+                                : 'border-muted-foreground/20 hover:border-primary/40 hover:bg-primary/5 p-3'
+                              }
+                            `}
+                            onDragOver={(e) => handleDragOver(e, level.id)}
+                            onDrop={(e) => handleDrop(e, level.id)}
+                            onDragLeave={() => setDragOverLevelId(null)}
+                          >
+                            {localUsersByLevel.get(level.id)?.map((userInfo) => {
+                              const initials = userInfo.full_name
+                                .split(' ')
+                                .map(n => n[0])
+                                .slice(0, 2)
+                                .join('')
+                                .toUpperCase();
 
-                      {/* Actions */}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full gap-2 hover:bg-primary/10 transition-colors"
-                        onClick={() => handleManagePermissions(
-                          level.id,
-                          level.level_name,
-                          level.level_number
-                        )}
-                      >
-                        <Settings className="h-4 w-4" />
-                        Gerenciar Permissões
-                      </Button>
-                    </CardContent>
-                  </Card>
+                              const isDraggable = isAdmin || roleGlobal === 'psychologist';
+                              const isBeingDragged = draggingUser?.user.id === userInfo.id;
+                              
+                              // FASE 6E-2: Determinar se o usuário não pode ser arrastado
+                              const isNotDraggable = !isDraggable && (roleGlobal === 'assistant' || roleGlobal === 'accountant');
 
-                    {/* Connector Line (visual only) */}
-                    {index < levels.length - 1 && (
-                      <div className="absolute top-1/2 -translate-y-1/2 w-8 h-0.5 bg-gradient-to-r from-border to-transparent ml-[320px]" />
-                    )}
-                  </div>
-                ))}
+                              return (
+                                <Card
+                                  key={userInfo.id}
+                                  className={`
+                                    p-3.5 bg-card border border-border/50 
+                                    transition-all duration-200
+                                    ${isDraggable ? 'cursor-grab active:cursor-grabbing' : ''}
+                                    ${isNotDraggable ? 'cursor-not-allowed opacity-75' : ''}
+                                    ${isBeingDragged 
+                                      ? 'opacity-40 scale-95 shadow-lg ring-2 ring-primary/30' 
+                                      : 'opacity-100 scale-100 hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5'
+                                    }
+                                  `}
+                                  draggable={isDraggable}
+                                  onDragStart={(e) => handleDragStart(e, level.id, userInfo)}
+                                  onDragEnd={handleDragEnd}
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <Avatar className="h-11 w-11 ring-2 ring-primary/10">
+                                      <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold text-sm">
+                                        {initials}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-semibold text-sm truncate">
+                                        {userInfo.full_name}
+                                      </p>
+                                      {userInfo.role && (
+                                        <Badge 
+                                          variant="outline" 
+                                          className={`text-xs mt-1.5 font-medium ${ROLE_COLORS[userInfo.role] || 'bg-gray-100 text-gray-700 border-gray-200'}`}
+                                        >
+                                          {ROLE_LABELS[userInfo.role] || userInfo.role}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                </Card>
+                              );
+                            })}
+
+                            {/* FASE 6E-2: Placeholder de drop para níveis vazios */}
+                            {(!localUsersByLevel.get(level.id) || localUsersByLevel.get(level.id)?.length === 0) && (
+                              showDropFeedback ? (
+                                <div className="flex flex-col items-center justify-center py-12 text-center animate-fade-in">
+                                  <div className="h-16 w-16 rounded-full border-4 border-dashed border-primary/40 flex items-center justify-center mb-4">
+                                    <Users className="h-8 w-8 text-primary/60" />
+                                  </div>
+                                  <p className="text-sm font-semibold text-primary">
+                                    Solte o membro aqui
+                                  </p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    para adicioná-lo a este nível
+                                  </p>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col items-center justify-center py-12 text-center">
+                                  <Users className="h-12 w-12 text-muted-foreground/50 mb-3" />
+                                  <p className="text-sm text-muted-foreground">
+                                    Nenhum membro neste nível
+                                  </p>
+                                </div>
+                              )
+                            )}
+                          </div>
+
+                          <Separator className="my-4" />
+
+                          {/* Actions */}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full gap-2 hover:bg-primary/10 transition-colors"
+                            onClick={() => handleManagePermissions(
+                              level.id,
+                              level.level_name,
+                              level.level_number
+                            )}
+                          >
+                            <Settings className="h-4 w-4" />
+                            Gerenciar Permissões
+                          </Button>
+                        </CardContent>
+                      </Card>
+
+                      {/* Connector Line (visual only) */}
+                      {index < levels.length - 1 && (
+                        <div className="absolute top-1/2 -translate-y-1/2 w-8 h-0.5 bg-gradient-to-r from-border to-transparent ml-[320px]" />
+                      )}
+                    </div>
+                  );
+                })}
 
                 {/* Add Level Placeholder */}
                 <div className="flex-shrink-0">
