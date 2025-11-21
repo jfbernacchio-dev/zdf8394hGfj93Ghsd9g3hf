@@ -1556,6 +1556,7 @@ export type Database = {
           crp: string | null
           full_name: string
           id: string
+          organization_id: string | null
           phone: string | null
           send_nfse_to_therapist: boolean | null
           slot_duration: number | null
@@ -1574,6 +1575,7 @@ export type Database = {
           crp?: string | null
           full_name: string
           id: string
+          organization_id?: string | null
           phone?: string | null
           send_nfse_to_therapist?: boolean | null
           slot_duration?: number | null
@@ -1592,6 +1594,7 @@ export type Database = {
           crp?: string | null
           full_name?: string
           id?: string
+          organization_id?: string | null
           phone?: string | null
           send_nfse_to_therapist?: boolean | null
           slot_duration?: number | null

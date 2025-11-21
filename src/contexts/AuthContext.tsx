@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { getDefaultTemplate, applyLayoutSnapshot } from '@/lib/layoutStorage';
 import { sanitizeCPF } from '@/lib/brazilianFormat';
+import { resolveUserOrganization } from '@/lib/organizations';
 
 interface Profile {
   id: string;
@@ -20,6 +21,7 @@ interface Profile {
   work_end_time?: string;
   slot_duration?: number;
   break_time?: number;
+  organization_id?: string | null; // FASE 10.3
 }
 
 interface AuthContextType {
@@ -31,6 +33,7 @@ interface AuthContextType {
   isAdmin: boolean;
   isAccountant: boolean;
   roleGlobal: 'admin' | 'psychologist' | 'assistant' | 'accountant' | null;
+  organizationId: string | null; // FASE 10.3
   signUp: (email: string, password: string, userData: Omit<Profile, 'id'>) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -60,6 +63,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isAccountant, setIsAccountant] = useState(false);
   const [roleGlobal, setRoleGlobal] = useState<'admin' | 'psychologist' | 'assistant' | 'accountant' | null>(null);
+  const [organizationId, setOrganizationId] = useState<string | null>(null); // FASE 10.3
   const isFetchingProfileRef = useRef(false); // ✅ Mutex síncrono
   const { toast } = useToast();
 
@@ -206,6 +210,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // ✅ Marcar roles como carregados após todas as verificações
       setRolesLoaded(true);
       console.log('🔍 [LOG 18] DEPOIS de setRolesLoaded(true)');
+      
+      // FASE 10.3: Resolver organização do usuário
+      try {
+        console.log('🏢 [FASE 10.3] Resolvendo organização do usuário...');
+        const orgId = await resolveUserOrganization(userId);
+        setOrganizationId(orgId);
+        console.log('🏢 [FASE 10.3] Organização resolvida:', orgId || 'nenhuma');
+      } catch (orgError) {
+        console.error('🏢 [FASE 10.3] Erro ao resolver organização:', orgError);
+        setOrganizationId(null);
+      }
       
       // ✅ LOG FINAL COMPLETO
       console.log('====================================');
@@ -390,6 +405,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       isAdmin,
       isAccountant,
       roleGlobal,
+      organizationId, // FASE 10.3
       signUp, 
       signIn, 
       signOut, 
