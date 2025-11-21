@@ -239,6 +239,12 @@ const Navbar = () => {
                       <Shield className="w-4 h-4 mr-2" />
                       Revisão de Permissões
                     </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => navigate('/org-management')}>
+                      <Users className="w-4 h-4 mr-2" />
+                      Gestão Organizacional
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => navigate('/admin/backup-tests')}>
                       <Database className="w-4 h-4 mr-2" />
                       Testes de Backup
