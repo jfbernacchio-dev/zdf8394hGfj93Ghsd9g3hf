@@ -9,6 +9,7 @@ import { useState } from 'react';
 import mindwareLogo from '@/assets/mindware-logo-new.png';
 import { NotificationCenter } from './NotificationCenter';
 import { ThemeToggle } from './ThemeToggle';
+import { OrganizationSwitcher } from './OrganizationSwitcher';
 
 const Navbar = () => {
   const location = useLocation();
@@ -204,6 +205,7 @@ const Navbar = () => {
                 </DropdownMenu>
               )}
               <ThemeToggle />
+              <OrganizationSwitcher />
               {!isAccountant && <NotificationCenter />}
               {isAdmin && (
                 <DropdownMenu>
