@@ -1,28 +1,9 @@
 /**
- * FASE 10.1: Helper functions para organizações (somente leitura)
+ * FASE 10.2: Helper functions para organizações (CRUD completo)
  * 
- * ⚠️ ARQUIVO TEMPORARIAMENTE COMENTADO ⚠️
- * 
- * Este arquivo será descomentado após:
- * 1. Os tipos TypeScript serem regenerados pelo Supabase (types.ts)
- * 2. As tabelas organizations e organization_owners estarem disponíveis
- * 
- * Estas funções são preparatórias e não são usadas na UI ainda.
- * Serão utilizadas nas próximas fases quando implementarmos:
- * - Organograma por empresa
- * - NFSe por empresa
- * - Múltiplos donos do mesmo CNPJ
- * 
- * FASE 10.1 CONCLUÍDA:
- * ✅ Tabelas organizations e organization_owners criadas
- * ✅ Seed da organização "Espaço Mindware Psicologia Ltda." inserido
- * ✅ Admins adicionados como donos da organização
- * ⚠️ organization_levels NÃO foram modificados (será feito manualmente depois)
+ * Funções para gerenciar empresas/CNPJ no perfil do usuário.
  */
 
-// TODO: Descomentar após regeneração dos tipos Supabase
-
-/*
 import { supabase } from "@/integrations/supabase/client";
 
 export interface Organization {
@@ -47,147 +28,140 @@ export interface OrganizationWithOwners extends Organization {
   owners: OrganizationOwner[];
 }
 
-export async function getUserOrganizations(userId: string): Promise<OrganizationWithOwners[]> {
-  const { data: ownerships, error: ownershipError } = await supabase
-    .from('organization_owners')
-    .select('*')
-    .eq('user_id', userId);
+// ===== READ OPERATIONS =====
 
-  if (ownershipError) {
-    console.error('Error fetching user organizations:', ownershipError);
-    return [];
-  }
-
-  if (!ownerships || ownerships.length === 0) {
-    return [];
-  }
-
-  const orgIds = ownerships.map(o => o.organization_id);
-
-  const { data: organizations, error: orgError } = await supabase
-    .from('organizations')
-    .select('*')
-    .in('id', orgIds);
-
-  if (orgError) {
-    console.error('Error fetching organizations:', orgError);
-    return [];
-  }
-
-  const orgsWithOwners: OrganizationWithOwners[] = (organizations || []).map(org => {
-    const owners = ownerships.filter(o => o.organization_id === org.id);
-    return {
-      ...org,
-      owners
-    };
-  });
-
-  return orgsWithOwners;
-}
-
-export async function getPrimaryOrganizationForUser(userId: string): Promise<Organization | null> {
-  const { data: primaryOwnership, error: primaryError } = await supabase
+export async function getOrganizationByUser(userId: string): Promise<Organization | null> {
+  const { data: ownership, error: ownershipError } = await supabase
     .from('organization_owners')
     .select('organization_id')
     .eq('user_id', userId)
     .eq('is_primary', true)
-    .single();
+    .maybeSingle();
 
-  if (!primaryError && primaryOwnership) {
-    const { data: org, error: orgError } = await supabase
+  if (ownershipError || !ownership) {
+    // Try any ownership
+    const { data: anyOwnership } = await supabase
+      .from('organization_owners')
+      .select('organization_id')
+      .eq('user_id', userId)
+      .limit(1)
+      .maybeSingle();
+    
+    if (!anyOwnership) return null;
+    
+    const { data: org } = await supabase
       .from('organizations')
       .select('*')
-      .eq('id', primaryOwnership.organization_id)
+      .eq('id', anyOwnership.organization_id)
       .single();
-
-    if (!orgError && org) {
-      return org;
-    }
-  }
-
-  const { data: anyOwnership, error: anyError } = await supabase
-    .from('organization_owners')
-    .select('organization_id')
-    .eq('user_id', userId)
-    .limit(1)
-    .single();
-
-  if (anyError || !anyOwnership) {
-    return null;
+    
+    return org || null;
   }
 
   const { data: org, error: orgError } = await supabase
     .from('organizations')
     .select('*')
-    .eq('id', anyOwnership.organization_id)
+    .eq('id', ownership.organization_id)
     .single();
 
-  if (orgError) {
-    return null;
-  }
-
+  if (orgError) return null;
   return org;
 }
 
-export async function getOrganizationById(organizationId: string): Promise<Organization | null> {
+export async function getOrganizationsByCnpj(cnpj: string): Promise<Organization[]> {
   const { data, error } = await supabase
     .from('organizations')
     .select('*')
-    .eq('id', organizationId)
-    .single();
+    .eq('cnpj', cnpj);
 
   if (error) {
-    console.error('Error fetching organization:', error);
-    return null;
-  }
-
-  return data;
-}
-
-export async function getOrganizationOwners(organizationId: string): Promise<OrganizationOwner[]> {
-  const { data, error } = await supabase
-    .from('organization_owners')
-    .select('*')
-    .eq('organization_id', organizationId)
-    .order('is_primary', { ascending: false });
-
-  if (error) {
-    console.error('Error fetching organization owners:', error);
+    console.error('Error fetching organizations by CNPJ:', error);
     return [];
   }
 
   return data || [];
 }
 
-export async function isUserOrganizationOwner(
-  userId: string, 
-  organizationId: string
-): Promise<boolean> {
+export async function getOwnerRecord(userId: string): Promise<OrganizationOwner | null> {
   const { data, error } = await supabase
     .from('organization_owners')
-    .select('id')
+    .select('*')
     .eq('user_id', userId)
-    .eq('organization_id', organizationId)
-    .single();
+    .maybeSingle();
 
-  return !error && !!data;
+  if (error) {
+    console.error('Error fetching owner record:', error);
+    return null;
+  }
+
+  return data;
 }
 
-export async function isUserPrimaryOwner(
+// ===== WRITE OPERATIONS =====
+
+export async function createOrganization(data: {
+  cnpj: string;
+  legal_name: string;
+  notes?: string;
+  created_by: string;
+}): Promise<Organization | null> {
+  const { data: org, error } = await supabase
+    .from('organizations')
+    .insert({
+      cnpj: data.cnpj,
+      legal_name: data.legal_name,
+      notes: data.notes || null,
+      created_by: data.created_by,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating organization:', error);
+    return null;
+  }
+
+  return org;
+}
+
+export async function updateOrganization(
+  id: string,
+  data: {
+    cnpj?: string;
+    legal_name?: string;
+    notes?: string;
+  }
+): Promise<boolean> {
+  const { error } = await supabase
+    .from('organizations')
+    .update(data)
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error updating organization:', error);
+    return false;
+  }
+
+  return true;
+}
+
+export async function addOwner(
+  orgId: string,
   userId: string,
-  organizationId: string
+  isPrimary: boolean = true
 ): Promise<boolean> {
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('organization_owners')
-    .select('is_primary')
-    .eq('user_id', userId)
-    .eq('organization_id', organizationId)
-    .eq('is_primary', true)
-    .single();
+    .insert({
+      organization_id: orgId,
+      user_id: userId,
+      is_primary: isPrimary,
+    });
 
-  return !error && !!data;
+  if (error) {
+    console.error('Error adding owner:', error);
+    return false;
+  }
+
+  return true;
 }
-*/
-
-// Exportar placeholder vazio para evitar erros de importação
-export const ORGANIZATIONS_MODULE_PENDING = true;
