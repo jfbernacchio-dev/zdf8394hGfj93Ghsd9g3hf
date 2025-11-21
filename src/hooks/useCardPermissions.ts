@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { usePermissionFlags } from './usePermissionFlags';
 import { useEffectivePermissions } from './useEffectivePermissions';
 import { supabase } from '@/integrations/supabase/client';
 import type { PermissionDomain, AccessLevel, UserRole } from '@/types/permissions';
@@ -26,8 +25,8 @@ import { ALL_AVAILABLE_CARDS } from '@/types/cardTypes';
 
 export function useCardPermissions() {
   const authContext = useAuth();
-  const { isAdmin, isAccountant, user, rolesLoaded } = authContext;
-  const { isFullTherapist, isSubordinate } = usePermissionFlags();
+  const { isAdmin, isAccountant, user, rolesLoaded, roleGlobal } = authContext;
+  
   const { 
     permissions, 
     loading: permissionsLoading,
@@ -39,7 +38,21 @@ export function useCardPermissions() {
   
   const loading = !rolesLoaded || permissionsLoading;
 
-  // Derivar role atual baseado nos flags booleanos
+  // Derivar flags localmente a partir do novo sistema
+  const isPsychologist = roleGlobal === 'psychologist';
+  const isAssistant = roleGlobal === 'assistant';
+  
+  // isFullTherapist = psychologist no nível 1 (ou sem nível = assume topo)
+  const isFullTherapist = 
+    isPsychologist && 
+    (!permissions?.levelNumber || permissions.levelNumber === 1);
+  
+  // isSubordinate = assistants, accountants, ou psychologist em níveis > 1
+  const isSubordinate =
+    (isAssistant || isAccountant) ||
+    (isPsychologist && permissions?.levelNumber && permissions.levelNumber > 1);
+
+  // Derivar role atual baseado no roleGlobal e posição hierárquica
   const currentRole: UserRole | null =
     isAdmin ? 'admin' :
     isFullTherapist ? 'fulltherapist' :
