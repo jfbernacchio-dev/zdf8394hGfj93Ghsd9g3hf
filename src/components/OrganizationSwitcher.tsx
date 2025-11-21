@@ -35,9 +35,6 @@ export function OrganizationSwitcher() {
   const { organizations, activeOrganizationId, setActiveOrganizationId } = useAuth();
   const [open, setOpen] = useState(false);
 
-  console.log('[ORG_SWITCHER] organizations:', organizations);
-  console.log('[ORG_SWITCHER] activeOrganizationId:', activeOrganizationId);
-
   if (!organizations || organizations.length === 0) {
     return null;
   }
@@ -50,11 +47,8 @@ export function OrganizationSwitcher() {
       return;
     }
     
-    console.log('[ORG_SWITCHER] Trocando para organização:', orgId);
     setActiveOrganizationId(orgId);
     setOpen(false);
-    
-    // Recarregar página para aplicar nova organização
     window.location.reload();
   };
 

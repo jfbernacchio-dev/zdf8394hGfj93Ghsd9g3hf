@@ -2,21 +2,21 @@ import { supabase } from '@/integrations/supabase/client';
 
 /**
  * ============================================================================
- * HELPERS: Organization Filters
+ * HELPERS: Organization Filters (FASE 10.10 - Final)
  * ============================================================================
  * 
- * Funções auxiliares para filtrar dados por organização ativa.
- * Como as tabelas clínicas não têm organization_id direto, filtramos via user_id.
+ * Funções consolidadas para filtrar dados por organização ativa.
+ * Todas as queries multi-empresa devem usar estas funções.
  * 
  * ============================================================================
  */
 
 /**
- * Retorna todos os user_ids de perfis da organização especificada
+ * Retorna todos os user_ids de perfis da organização especificada.
+ * Esta é a função PRINCIPAL para filtro organizacional.
  */
 export async function getUserIdsInOrganization(organizationId: string): Promise<string[]> {
   if (!organizationId) {
-    console.warn('[ORG] organization_id é nulo/vazio');
     return [];
   }
 
@@ -30,10 +30,7 @@ export async function getUserIdsInOrganization(organizationId: string): Promise<
     return [];
   }
 
-  const userIds = (data || []).map(p => p.id);
-  console.log(`[ORG] ${userIds.length} usuários encontrados na organização ${organizationId}`);
-  
-  return userIds;
+  return (data || []).map(p => p.id);
 }
 
 /**
