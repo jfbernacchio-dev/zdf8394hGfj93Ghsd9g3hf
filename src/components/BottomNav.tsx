@@ -156,6 +156,14 @@ const BottomNav = () => {
                         <Shield className="w-5 h-5 mr-3" />
                         Segurança
                       </Button>
+                      <Button
+                        variant="ghost"
+                        className="justify-start h-14 text-base rounded-xl active:scale-98 transition-transform"
+                        onClick={() => handleMenuNavigation('/org-management')}
+                      >
+                        <Users className="w-5 h-5 mr-3" />
+                        Gestão Organizacional
+                      </Button>
                     </>
                   )}
                   <div className="border-t border-border my-3" />
