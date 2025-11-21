@@ -94,6 +94,19 @@ const Navbar = () => {
                       <span className="font-medium">WhatsApp</span>
                     </Link>
                   )}
+                  {(isAdmin || isFullTherapist) && (
+                    <Link
+                      to="/team-management"
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                        isActive('/team-management')
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                      }`}
+                    >
+                      <Users className="w-4 h-4" />
+                      <span className="font-medium">Equipe</span>
+                    </Link>
+                  )}
                   {!isAccountant && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -192,17 +205,6 @@ const Navbar = () => {
               )}
               <ThemeToggle />
               {!isAccountant && <NotificationCenter />}
-              {(isAdmin || isFullTherapist) && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  title="Equipe"
-                  onClick={() => navigate('/team-management')}
-                  className={isActive('/team-management') ? 'bg-primary/10' : ''}
-                >
-                  <Users className="w-4 h-4" />
-                </Button>
-              )}
               {isAdmin && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
