@@ -358,7 +358,7 @@ const TeamManagement = () => {
 
     // Validar formato de email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(createFormData.email)) {
+    if (!emailRegex.test(createFormData.email.trim())) {
       toast({
         title: "E-mail inválido",
         description: "Digite um e-mail válido.",
@@ -370,7 +370,15 @@ const TeamManagement = () => {
     setIsSubmitting(true);
 
     try {
+      console.debug('🔵 [CREATE_USER] Iniciando criação de usuário', {
+        email: createFormData.email,
+        full_name: createFormData.full_name,
+        role: createFormData.role,
+        level: createFormData.level
+      });
+
       // 1. Criar usuário usando createTherapist
+      console.debug('🔵 [CREATE_USER] Passo 1: Criando usuário no auth...');
       const temporaryPassword = `Temp${Math.random().toString(36).slice(2, 10)}!`;
       
       const { error: createError, userId } = await createTherapist(
@@ -385,10 +393,18 @@ const TeamManagement = () => {
       );
 
       if (createError || !userId) {
+        console.error('❌ [CREATE_USER] Erro no passo 1 (auth/profile):', {
+          error: createError,
+          message: createError?.message,
+          code: (createError as any)?.code
+        });
         throw createError || new Error('Falha ao criar usuário');
       }
 
+      console.debug('✅ [CREATE_USER] Passo 1 concluído. userId:', userId);
+
       // 2. Criar role psychologist
+      console.debug('🔵 [CREATE_USER] Passo 2: Criando role psychologist...');
       const { error: roleError } = await supabase
         .from('user_roles')
         .insert({
@@ -396,9 +412,19 @@ const TeamManagement = () => {
           role: 'psychologist',
         });
 
-      if (roleError) throw roleError;
+      if (roleError) {
+        console.error('❌ [CREATE_USER] Erro no passo 2 (role):', {
+          error: roleError,
+          message: roleError.message,
+          code: roleError.code
+        });
+        throw roleError;
+      }
+
+      console.debug('✅ [CREATE_USER] Passo 2 concluído.');
 
       // 3. Vincular ao nível escolhido
+      console.debug('🔵 [CREATE_USER] Passo 3: Vinculando ao nível organizacional...');
       // Encontrar ou criar posição
       let positionId: string;
 
@@ -410,7 +436,9 @@ const TeamManagement = () => {
 
       if (existingPosition) {
         positionId = existingPosition.id;
+        console.debug('🔵 [CREATE_USER] Posição existente encontrada:', positionId);
       } else {
+        console.debug('🔵 [CREATE_USER] Criando nova posição...');
         const { data: newPosition, error: positionError } = await supabase
           .from('organization_positions')
           .insert({
@@ -421,11 +449,20 @@ const TeamManagement = () => {
           .select('id')
           .single();
 
-        if (positionError) throw positionError;
+        if (positionError) {
+          console.error('❌ [CREATE_USER] Erro ao criar posição:', {
+            error: positionError,
+            message: positionError.message,
+            code: positionError.code
+          });
+          throw positionError;
+        }
         positionId = newPosition.id;
+        console.debug('✅ [CREATE_USER] Nova posição criada:', positionId);
       }
 
       // Criar vínculo em user_positions
+      console.debug('🔵 [CREATE_USER] Criando vínculo em user_positions...');
       const { error: userPositionError } = await supabase
         .from('user_positions')
         .insert({
@@ -433,7 +470,17 @@ const TeamManagement = () => {
           position_id: positionId,
         });
 
-      if (userPositionError) throw userPositionError;
+      if (userPositionError) {
+        console.error('❌ [CREATE_USER] Erro ao criar vínculo user_positions:', {
+          error: userPositionError,
+          message: userPositionError.message,
+          code: userPositionError.code
+        });
+        throw userPositionError;
+      }
+
+      console.debug('✅ [CREATE_USER] Passo 3 concluído.');
+      console.debug('🟢 [CREATE_USER] Usuário criado com sucesso!', { userId });
 
       await queryClient.invalidateQueries({ queryKey: ['team-members'] });
       
@@ -453,11 +500,34 @@ const TeamManagement = () => {
         role: 'psychologist',
         level: ''
       });
-    } catch (error) {
-      console.error('[TeamManagement] Erro ao criar usuário:', error);
+    } catch (error: any) {
+      console.error('❌ [CREATE_USER ERROR] Falha ao criar usuário:', {
+        message: error?.message,
+        code: error?.code,
+        details: error,
+      });
+
+      // Mapear mensagens de erro comuns
+      let userMessage = 'Erro ao criar usuário. Verifique os dados e tente novamente.';
+
+      if (typeof error?.message === 'string') {
+        const errorMsg = error.message.toLowerCase();
+        
+        if (errorMsg.includes('duplicate key') || errorMsg.includes('already registered') || errorMsg.includes('user already exists')) {
+          userMessage = 'Já existe um usuário cadastrado com este e-mail.';
+        } else if (errorMsg.includes('email') || errorMsg.includes('invalid email')) {
+          userMessage = 'Há um problema com o e-mail informado. Verifique e tente novamente.';
+        } else if (errorMsg.includes('violates row-level security') || errorMsg.includes('permission denied')) {
+          userMessage = 'Você não tem permissão para criar usuários neste nível.';
+        } else {
+          // Usar a mensagem do erro se for segura
+          userMessage = error.message;
+        }
+      }
+
       toast({
         title: "Erro ao criar usuário",
-        description: "Verifique os dados e tente novamente.",
+        description: userMessage,
         variant: "destructive",
       });
     } finally {
