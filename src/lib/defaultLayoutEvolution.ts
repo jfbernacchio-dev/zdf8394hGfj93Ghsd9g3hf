@@ -86,7 +86,9 @@ export function getFilteredEvolutionLayout(
 }
 
 // Function to reset layout to default
-export function resetToDefaultEvolutionLayout() {
+export const resetToDefaultLayout = resetToDefaultEvolutionLayout;
+
+export const resetToDefaultEvolutionLayout = () => {
   // Clear only evolution-specific customizations
   const keys = Object.keys(localStorage);
   keys.forEach(key => {
@@ -109,7 +111,4 @@ export function resetToDefaultEvolutionLayout() {
   Object.entries(DEFAULT_EVOLUTION_LAYOUT.cardSizes).forEach(([id, size]) => {
     localStorage.setItem(`card-size-${id}`, JSON.stringify(size));
   });
-}
-
-// Export alias for compatibility
-export const resetToDefaultLayout = resetToDefaultEvolutionLayout;
+};

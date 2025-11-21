@@ -1,4 +1,4 @@
-import type { EffectivePermissions } from '@/lib/resolveEffectivePermissions';
+import type { ExtendedAutonomyPermissions } from '@/hooks/useSubordinatePermissions';
 import { DASHBOARD_SECTIONS } from './defaultSectionsDashboard';
 import type { GridCardLayout } from '@/types/cardTypes';
 

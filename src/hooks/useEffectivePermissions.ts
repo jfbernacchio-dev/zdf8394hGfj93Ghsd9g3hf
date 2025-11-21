@@ -1,9 +1,14 @@
 /**
  * ============================================================================
- * HOOK: useEffectivePermissions - FASE 5 (SISTEMA CONSOLIDADO)
+ * HOOK: useEffectivePermissions - FASE 3 (SISTEMA NOVO)
  * ============================================================================
  * 
  * Hook unificado que resolve permissões efetivas do usuário atual.
+ * 
+ * SUBSTITUI:
+ * - useSubordinatePermissions
+ * - useLevelPermissions
+ * - usePermissionFlags (parcialmente)
  * 
  * FONTE DA VERDADE: resolveEffectivePermissions(userId)
  * ============================================================================
