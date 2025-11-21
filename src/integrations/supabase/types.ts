@@ -687,6 +687,68 @@ export type Database = {
           },
         ]
       }
+      level_role_settings: {
+        Row: {
+          can_access_clinical: boolean
+          can_access_marketing: boolean
+          can_access_whatsapp: boolean
+          can_edit_schedules: boolean
+          can_view_team_financial_summary: boolean
+          clinical_visible_to_superiors: boolean
+          created_at: string
+          financial_access: string
+          id: string
+          level_id: string
+          peer_agenda_sharing: boolean
+          peer_clinical_sharing: string
+          role_type: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+          uses_org_company_for_nfse: boolean
+        }
+        Insert: {
+          can_access_clinical?: boolean
+          can_access_marketing?: boolean
+          can_access_whatsapp?: boolean
+          can_edit_schedules?: boolean
+          can_view_team_financial_summary?: boolean
+          clinical_visible_to_superiors?: boolean
+          created_at?: string
+          financial_access?: string
+          id?: string
+          level_id: string
+          peer_agenda_sharing?: boolean
+          peer_clinical_sharing?: string
+          role_type: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          uses_org_company_for_nfse?: boolean
+        }
+        Update: {
+          can_access_clinical?: boolean
+          can_access_marketing?: boolean
+          can_access_whatsapp?: boolean
+          can_edit_schedules?: boolean
+          can_view_team_financial_summary?: boolean
+          clinical_visible_to_superiors?: boolean
+          created_at?: string
+          financial_access?: string
+          id?: string
+          level_id?: string
+          peer_agenda_sharing?: boolean
+          peer_clinical_sharing?: string
+          role_type?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          uses_org_company_for_nfse?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "level_role_settings_level_id_fkey"
+            columns: ["level_id"]
+            isOneToOne: false
+            referencedRelation: "organization_levels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       level_sharing_config: {
         Row: {
           created_at: string
@@ -2231,7 +2293,13 @@ export type Database = {
       validate_cpf: { Args: { cpf_input: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "therapist" | "accountant" | "fulltherapist"
+      app_role:
+        | "admin"
+        | "therapist"
+        | "accountant"
+        | "fulltherapist"
+        | "psychologist"
+        | "assistant"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2359,7 +2427,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "therapist", "accountant", "fulltherapist"],
+      app_role: [
+        "admin",
+        "therapist",
+        "accountant",
+        "fulltherapist",
+        "psychologist",
+        "assistant",
+      ],
     },
   },
 } as const
