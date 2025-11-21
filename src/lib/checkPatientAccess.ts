@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
-import { getSubordinateAutonomy } from "./checkSubordinateAutonomy";
-import type { ExtendedAutonomyPermissions } from '@/hooks/useSubordinatePermissions';
+import type { ExtendedAutonomyPermissions } from '@/types/permissions';
+import { resolveEffectivePermissions } from './resolveEffectivePermissions';
 
 interface AccessResult {
   allowed: boolean;
@@ -155,12 +155,13 @@ export async function canViewPatientClinicalData(
     return { allowed: true };
   }
 
-  // 3. Admin/Full verifica autonomia do subordinado
+  // 3. Admin/Full verifica permissões do subordinado (dono do paciente)
   if (isAdmin || !permissions) {
-    const subordinateAutonomy = await getSubordinateAutonomy(patient.user_id);
+    // Obter permissões efetivas do subordinado
+    const subordinatePerms = await resolveEffectivePermissions(patient.user_id);
     
-    // Se subordinado gerencia próprios, Admin NÃO vê clínico
-    if (subordinateAutonomy.managesOwnPatients) {
+    // Se dados clínicos NÃO são visíveis para superiores, Admin NÃO vê
+    if (!subordinatePerms.clinicalVisibleToSuperiors) {
       return {
         allowed: false,
         reason: 'Dados clínicos privados deste terapeuta'

@@ -294,3 +294,103 @@ function getRestrictedDefaultPermissions(
     isOrganizationOwner: hierarchyInfo.isOwner,
   };
 }
+
+/**
+ * ============================================================================
+ * HELPER FUNCTIONS - Substituem funções legadas de checkSubordinateAutonomy
+ * ============================================================================
+ */
+
+/**
+ * Verifica se um usuário tem acesso financeiro (substitui canAccessFinancial)
+ * @param userId - ID do usuário
+ * @returns true se tem acesso financeiro (financialAccess !== 'none')
+ */
+export async function hasFinancialAccess(userId: string): Promise<boolean> {
+  const perms = await resolveEffectivePermissions(userId);
+  return perms.financialAccess !== 'none';
+}
+
+/**
+ * Obtém lista de subordinados diretos cujas sessões devem entrar no fechamento
+ * financeiro do gerente (substitui getSubordinatesForFinancialClosing)
+ * 
+ * LÓGICA: Retorna subordinados que:
+ * 1. Estão registrados como subordinados do gerente (via subordinate_autonomy_settings)
+ * 2. Têm financialAccess diferente de 'full' no NOVO sistema de permissões
+ * 
+ * NOTA: Ainda usa subordinate_autonomy_settings para HIERARQUIA, mas
+ * verifica permissões via resolveEffectivePermissions (novo sistema)
+ * 
+ * @param managerId - ID do gerente/superior
+ * @returns Array de IDs dos subordinados
+ */
+export async function getSubordinatesForFinancialClosing(
+  managerId: string
+): Promise<string[]> {
+  try {
+    // 1. Buscar subordinados diretos via tabela antiga (apenas para hierarquia)
+    const { data: subordinates } = await supabase
+      .from('subordinate_autonomy_settings')
+      .select('subordinate_id')
+      .eq('manager_id', managerId);
+
+    if (!subordinates || subordinates.length === 0) {
+      return [];
+    }
+
+    // 2. Para cada subordinado, verificar permissões via NOVO sistema
+    const includedSubordinates: string[] = [];
+    
+    for (const sub of subordinates) {
+      const perms = await resolveEffectivePermissions(sub.subordinate_id);
+      
+      // Se NÃO tem acesso financeiro completo, entra no fechamento do gerente
+      if (perms.financialAccess !== 'full') {
+        includedSubordinates.push(sub.subordinate_id);
+      }
+    }
+
+    return includedSubordinates;
+  } catch (error) {
+    console.error('[getSubordinatesForFinancialClosing] Error:', error);
+    return [];
+  }
+}
+
+/**
+ * ============================================================================
+ * ADMINISTRAÇÃO LEGADA - Apenas para telas de gerenciamento
+ * ============================================================================
+ */
+
+/**
+ * Lê configurações de autonomia antigas para fins de ADMINISTRAÇÃO
+ * (NÃO usar para decisões de permissões em runtime - usar resolveEffectivePermissions)
+ * 
+ * @param subordinateId - ID do subordinado
+ * @returns Configurações básicas da tabela subordinate_autonomy_settings
+ */
+export async function getSubordinateAutonomyForAdmin(
+  subordinateId: string
+): Promise<{
+  managesOwnPatients: boolean;
+  hasFinancialAccess: boolean;
+  nfseEmissionMode: 'own_company' | 'manager_company';
+  canFullSeeClinic: boolean;
+  includeInFullFinancial: boolean;
+}> {
+  const { data } = await supabase
+    .from('subordinate_autonomy_settings')
+    .select('*')
+    .eq('subordinate_id', subordinateId)
+    .maybeSingle();
+
+  return {
+    managesOwnPatients: data?.manages_own_patients || false,
+    hasFinancialAccess: data?.has_financial_access || false,
+    nfseEmissionMode: (data?.nfse_emission_mode as 'own_company' | 'manager_company') || 'own_company',
+    canFullSeeClinic: !data?.manages_own_patients,
+    includeInFullFinancial: !data?.has_financial_access
+  };
+}

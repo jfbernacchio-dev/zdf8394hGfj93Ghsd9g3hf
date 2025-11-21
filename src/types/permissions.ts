@@ -50,6 +50,18 @@ export interface ExtendedAutonomyPermissions {
 }
 
 /**
+ * PERMISSÕES BÁSICAS DE AUTONOMIA (Sistema Antigo - Apenas para Administração)
+ * Usado apenas em telas de ADMINISTRAÇÃO para gerenciar configurações antigas
+ */
+export interface AutonomyPermissions {
+  managesOwnPatients: boolean;
+  hasFinancialAccess: boolean;
+  nfseEmissionMode: 'own_company' | 'manager_company';
+  canFullSeeClinic: boolean;
+  includeInFullFinancial: boolean;
+}
+
+/**
  * PERMISSÕES POR DOMÍNIO - FASE 1
  * Define o nível de acesso em cada domínio específico
  */

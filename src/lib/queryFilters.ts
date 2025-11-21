@@ -83,7 +83,7 @@ export async function getFinancialClosingUserIds(
   }
 
   // Admin/Full = próprias + subordinados que devem ser incluídos
-  const { getSubordinatesForFinancialClosing } = await import('@/lib/checkSubordinateAutonomy');
+  const { getSubordinatesForFinancialClosing } = await import('@/lib/resolveEffectivePermissions');
   const subordinateIds = await getSubordinatesForFinancialClosing(userId);
 
   if (subordinateIds.length === 0) {

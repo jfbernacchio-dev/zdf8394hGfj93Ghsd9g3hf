@@ -12,7 +12,7 @@ import { Loader2, DollarSign, FileText, AlertCircle, Download, Eye } from 'lucid
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { getSubordinatesForFinancialClosing } from '@/lib/checkSubordinateAutonomy';
+import { getSubordinatesForFinancialClosing } from '@/lib/resolveEffectivePermissions';
 
 interface NFSeWithStatus {
   id: string;
