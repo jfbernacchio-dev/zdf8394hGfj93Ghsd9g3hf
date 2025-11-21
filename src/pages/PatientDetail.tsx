@@ -40,6 +40,7 @@ import { ComplianceReminder } from '@/components/ComplianceReminder';
 import ClinicalComplaintSummary from '@/components/ClinicalComplaintSummary';
 import { ClinicalEvolution } from '@/components/ClinicalEvolution';
 import { useEffectivePermissions } from '@/hooks/useEffectivePermissions';
+import { AddCardDialog } from '@/components/AddCardDialog';
 import { toast } from 'sonner';
 import { format, parseISO, startOfMonth, endOfMonth, isFuture } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -682,10 +683,8 @@ const PatientDetailNew = () => {
     const unpaidSessions = allSessions.filter(s => s.status === 'attended' && getSessionPaymentStatus(s) === 'to_pay');
     
     if (unpaidSessions.length === 0) {
-      toast({ 
-        title: 'Nenhuma sessão em aberto', 
-        description: 'Não há sessões para fechamento.',
-        variant: 'destructive' 
+      toast.error('Nenhuma sessão em aberto', { 
+        description: 'Não há sessões para fechamento.'
       });
       return;
     }
@@ -774,12 +773,11 @@ Assinatura do Profissional`;
       .in('id', sessionIds);
 
     if (error) {
-      toast({ title: 'Erro ao atualizar sessões', variant: 'destructive' });
+      toast.error('Erro ao atualizar sessões');
       return;
     }
 
-    toast({ 
-      title: 'Sessões atualizadas!', 
+    toast.success('Sessões atualizadas!', { 
       description: `${sessionIds.length} sessão(ões) marcada(s) como paga(s).` 
     });
     
@@ -806,17 +804,14 @@ Assinatura do Profissional`;
         link.download = `paciente_${patient.name.replace(/\s/g, '_')}_${format(new Date(), 'yyyy-MM-dd')}.json`;
         link.click();
 
-        toast({
-          title: 'Dados exportados',
-          description: 'Os dados do paciente foram exportados com sucesso.',
+        toast.success('Dados exportados', {
+          description: 'Os dados do paciente foram exportados com sucesso.'
         });
       }
     } catch (error: any) {
       console.error('Error exporting data:', error);
-      toast({
-        title: 'Erro ao exportar',
-        description: error.message,
-        variant: 'destructive',
+      toast.error('Erro ao exportar', {
+        description: error.message
       });
     }
   };
@@ -828,10 +823,8 @@ Assinatura do Profissional`;
 
     if (confirmation !== patient.name) {
       if (confirmation !== null) {
-        toast({
-          title: 'Exclusão cancelada',
-          description: 'O nome digitado não confere.',
-          variant: 'destructive',
+        toast.error('Exclusão cancelada', {
+          description: 'O nome digitado não confere.'
         });
       }
       return;
@@ -867,28 +860,23 @@ Assinatura do Profissional`;
 
       if (error) throw error;
 
-      toast({
-        title: 'Paciente excluído',
-        description: 'Todos os dados foram permanentemente removidos.',
+      toast.success('Paciente excluído', {
+        description: 'Todos os dados foram permanentemente removidos.'
       });
 
       navigate('/patients');
     } catch (error: any) {
       console.error('Error deleting patient:', error);
-      toast({
-        title: 'Erro ao excluir',
-        description: error.message,
-        variant: 'destructive',
+      toast.error('Erro ao excluir', {
+        description: error.message
       });
     }
   };
 
   const handleSaveComplaint = async () => {
     if (!complaintText.trim()) {
-      toast({
-        title: 'Erro',
-        description: 'Digite uma queixa clínica',
-        variant: 'destructive',
+      toast.error('Erro', {
+        description: 'Digite uma queixa clínica'
       });
       return;
     }
@@ -922,15 +910,13 @@ Assinatura do Profissional`;
         if (error) throw error;
       }
 
-      toast({ title: 'Queixa clínica salva!' });
+      toast.success('Queixa clínica salva!');
       setIsComplaintDialogOpen(false);
       loadData();
     } catch (error: any) {
       console.error('Error saving complaint:', error);
-      toast({
-        title: 'Erro ao salvar',
-        description: error.message,
-        variant: 'destructive',
+      toast.error('Erro ao salvar', {
+        description: error.message
       });
     }
   };
@@ -952,24 +938,20 @@ Assinatura do Profissional`;
 
       if (error) throw error;
 
-      toast({ title: 'Revisão adiada por 3 meses' });
+      toast.success('Revisão adiada por 3 meses');
       loadData();
     } catch (error: any) {
       console.error('Error dismissing complaint:', error);
-      toast({
-        title: 'Erro',
-        description: error.message,
-        variant: 'destructive',
+      toast.error('Erro', {
+        description: error.message
       });
     }
   };
 
   const handleSaveNote = async () => {
     if (!noteText.trim()) {
-      toast({
-        title: 'Erro',
-        description: 'Digite o conteúdo da nota',
-        variant: 'destructive',
+      toast.error('Erro', {
+        description: 'Digite o conteúdo da nota'
       });
       return;
     }
@@ -1010,7 +992,7 @@ Assinatura do Profissional`;
 
         if (sessionError) throw sessionError;
 
-        toast({ title: 'Nota clínica salva e anexada à sessão!' });
+        toast.success('Nota clínica salva e anexada à sessão!');
       } else {
         // Save/append to general patient notes file
         const fileName = 'notas_gerais_paciente.txt';
@@ -1077,7 +1059,7 @@ Assinatura do Profissional`;
           if (dbError) throw dbError;
         }
 
-        toast({ title: 'Nota geral adicionada ao arquivo do paciente!' });
+        toast.success('Nota geral adicionada ao arquivo do paciente!');
       }
 
       setIsNoteDialogOpen(false);
@@ -1086,10 +1068,8 @@ Assinatura do Profissional`;
       loadData();
     } catch (error: any) {
       console.error('Error saving note:', error);
-      toast({
-        title: 'Erro ao salvar nota',
-        description: error.message,
-        variant: 'destructive',
+      toast.error('Erro ao salvar nota', {
+        description: error.message
       });
     }
   };
@@ -1130,7 +1110,7 @@ Assinatura do Profissional`;
     setIsEditMode(false);
     setTempSizes({});
     setTempSectionHeights({});
-    toast({ title: 'Layout salvo com sucesso!' });
+    toast.success('Layout salvo com sucesso!');
     
     // Force reload to apply saved sizes
     setTimeout(() => window.location.reload(), 300);
@@ -1149,7 +1129,7 @@ Assinatura do Profissional`;
       setVisibleCards(JSON.parse(savedCards));
     }
     
-    toast({ title: 'Alterações descartadas' });
+    toast.info('Alterações descartadas');
   };
 
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
@@ -1160,15 +1140,14 @@ Assinatura do Profissional`;
     // Save state to return to overview tab
     sessionStorage.setItem('returnToTab', 'overview');
     
-    toast({ title: 'Layout restaurado para o padrão!' });
+    toast.success('Layout restaurado para o padrão!');
     setTimeout(() => window.location.reload(), 500);
   };
 
   const handleAddCard = (cardConfig: CardConfig) => {
     if (!visibleCards.includes(cardConfig.id)) {
       setVisibleCards([...visibleCards, cardConfig.id]);
-      toast({ 
-        title: 'Card adicionado!', 
+      toast.success('Card adicionado!', { 
         description: `${cardConfig.name} foi adicionado ao layout.` 
       });
     }
@@ -1182,7 +1161,7 @@ Assinatura do Profissional`;
     delete newTempSizes[cardId];
     setTempSizes(newTempSizes);
     
-    toast({ title: 'Card removido do layout' });
+    toast.info('Card removido do layout');
   };
 
   const isCardVisible = (cardId: string) => visibleCards.includes(cardId);
@@ -2317,7 +2296,7 @@ Assinatura do Profissional`;
                 variant="outline"
                 onClick={() => {
                   navigator.clipboard.writeText(invoiceText);
-                  toast({ title: 'Copiado para área de transferência!' });
+                  toast.success('Copiado para área de transferência!');
                 }}
               >
                 Copiar Texto
