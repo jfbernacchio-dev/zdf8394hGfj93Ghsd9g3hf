@@ -50,6 +50,7 @@ import PeerSharingManagement from "./pages/PeerSharingManagement";
 import MigrationWizard from "./pages/MigrationWizard";
 import Organogram from "./pages/Organogram";
 import OrgManagement from "./pages/OrgManagement";
+import OrganizationDebug from "./pages/OrganizationDebug";
 import BackupTests from "./pages/BackupTests";
 import ConsentForm from "./pages/ConsentForm";
 import WhatsAppChat from "./pages/WhatsAppChat";
@@ -185,6 +186,7 @@ const App = () => (
             <Route path="/migration-wizard" element={<ProtectedRoute><Layout><MigrationWizard /></Layout></ProtectedRoute>} />
             <Route path="/organogram" element={<ProtectedRoute><Layout><Organogram /></Layout></ProtectedRoute>} />
             <Route path="/org-management" element={<ProtectedRoute><Layout><OrgManagement /></Layout></ProtectedRoute>} />
+            <Route path="/organization-debug" element={<ProtectedRoute><PermissionRoute path="/admin-settings"><Layout><OrganizationDebug /></Layout></PermissionRoute></ProtectedRoute>} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
