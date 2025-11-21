@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useState, useEffect } from 'react';
+import { getUserIdsInOrganization } from '@/lib/organizationFilters';
 
 /**
  * ============================================================================
@@ -21,7 +22,7 @@ import { useState, useEffect } from 'react';
  */
 
 export function useTeamData() {
-  const { user } = useAuth();
+  const { user, organizationId } = useAuth();
   const [subordinateIds, setSubordinateIds] = useState<string[]>([]);
   const [teamPatients, setTeamPatients] = useState<any[]>([]);
   const [teamSessions, setTeamSessions] = useState<any[]>([]);
@@ -29,19 +30,23 @@ export function useTeamData() {
 
   useEffect(() => {
     async function loadTeamData() {
-      if (!user) {
+      if (!user || !organizationId) {
         setLoading(false);
         return;
       }
 
       try {
-        // Buscar subordinados
+        const orgUserIds = await getUserIdsInOrganization(organizationId);
+        
+        // Buscar subordinados que pertencem à organização ativa
         const { data: subordinates } = await supabase
           .from('profiles')
           .select('id')
           .eq('created_by', user.id);
 
-        const subIds = subordinates?.map(s => s.id) || [];
+        const subIds = (subordinates?.map(s => s.id) || []).filter(id => 
+          orgUserIds.includes(id)
+        );
         setSubordinateIds(subIds);
 
         if (subIds.length === 0) {
@@ -79,7 +84,7 @@ export function useTeamData() {
     }
 
     loadTeamData();
-  }, [user]);
+  }, [user, organizationId]);
 
   return {
     teamPatients,

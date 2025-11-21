@@ -51,9 +51,10 @@ import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useOwnData } from '@/hooks/useOwnData';
 import { useTeamData } from '@/hooks/useTeamData';
+import { getUserIdsInOrganization } from '@/lib/organizationFilters';
 
 export default function DashboardExample() {
-  const { user } = useAuth();
+  const { user, organizationId } = useAuth();
   const [isEditMode, setIsEditMode] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
@@ -106,16 +107,20 @@ export default function DashboardExample() {
   }, [layout]);
 
   useEffect(() => {
-    if (user && !teamLoading) {
+    if (user && !teamLoading && organizationId) {
       loadData();
     }
-  }, [user, teamLoading, subordinateIds]);
+  }, [user, teamLoading, subordinateIds, organizationId]);
 
   const loadData = async () => {
+    if (!organizationId) return;
+    
+    const orgUserIds = await getUserIdsInOrganization(organizationId);
+    
     const { data: patientsData } = await supabase
       .from('patients')
       .select('*')
-      .eq('user_id', user!.id);
+      .in('user_id', orgUserIds);
     
     const patientIds = (patientsData || []).map(p => p.id);
     const allPatientIds = [...patientIds, ...teamPatients.map(p => p.id)];
@@ -125,15 +130,18 @@ export default function DashboardExample() {
       .select('*')
       .in('patient_id', allPatientIds);
     
-    // Buscar profiles apenas dos subordinados
+    // Buscar profiles apenas dos subordinados que pertencem à organização ativa
     let profilesData: any[] = [];
     if (subordinateIds && subordinateIds.length > 0) {
-      const { data } = await supabase
-        .from('profiles')
-        .select('id, full_name')
-        .in('id', subordinateIds)
-        .order('full_name');
-      profilesData = data || [];
+      const orgFilteredSubordinates = subordinateIds.filter(id => orgUserIds.includes(id));
+      if (orgFilteredSubordinates.length > 0) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', orgFilteredSubordinates)
+          .order('full_name');
+        profilesData = data || [];
+      }
     }
     
     setAllPatients(patientsData || []);

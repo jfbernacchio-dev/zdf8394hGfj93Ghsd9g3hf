@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -7,6 +8,7 @@ import { Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { getUserIdsInOrganization } from '@/lib/organizationFilters';
 
 interface SessionFileUploadProps {
   sessionId: string;
@@ -30,6 +32,7 @@ export function SessionFileUpload({ sessionId, sessionDate, patientId, onUploadC
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [category, setCategory] = useState<string>('');
   const [uploading, setUploading] = useState(false);
+  const { organizationId } = useAuth();
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -44,9 +47,28 @@ export function SessionFileUpload({ sessionId, sessionDate, patientId, onUploadC
       return;
     }
 
+    if (!organizationId) {
+      toast.error('Organização não identificada');
+      return;
+    }
+
     setUploading(true);
 
     try {
+      // Validar se o paciente pertence à organização ativa
+      const orgUserIds = await getUserIdsInOrganization(organizationId);
+      const { data: patient } = await supabase
+        .from('patients')
+        .select('user_id')
+        .eq('id', patientId)
+        .single();
+      
+      if (!patient || !orgUserIds.includes(patient.user_id)) {
+        toast.error('Paciente não pertence à organização ativa');
+        setUploading(false);
+        return;
+      }
+      
       // Format session date for filename
       const formattedDate = format(parseISO(sessionDate), 'dd-MM-yy', { locale: ptBR });
       

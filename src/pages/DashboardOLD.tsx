@@ -14,13 +14,14 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { parseISO, format, startOfMonth, endOfMonth, eachMonthOfInterval } from 'date-fns';
+import { getUserIdsInOrganization } from '@/lib/organizationFilters';
 import { ptBR } from 'date-fns/locale';
 import { NotificationPrompt } from '@/components/NotificationPrompt';
 import { ComplianceReminder } from '@/components/ComplianceReminder';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user, organizationId } = useAuth();
   const [patients, setPatients] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
   const [period, setPeriod] = useState('month');
@@ -30,16 +31,20 @@ const Dashboard = () => {
   const [dialogType, setDialogType] = useState<'expected' | 'actual' | 'unpaid' | null>(null);
 
   useEffect(() => {
-    if (user) {
+    if (user && organizationId) {
       loadData();
     }
-  }, [user]);
+  }, [user, organizationId]);
 
   const loadData = async () => {
+    if (!organizationId) return;
+    
+    const orgUserIds = await getUserIdsInOrganization(organizationId);
+    
     const { data: patientsData } = await supabase
       .from('patients')
       .select('*')
-      .eq('user_id', user!.id);
+      .in('user_id', orgUserIds);
 
     const { data: sessionsData } = await supabase
       .from('sessions')
@@ -49,7 +54,7 @@ const Dashboard = () => {
           user_id
         )
       `)
-      .eq('patients.user_id', user!.id);
+      .in('patients.user_id', orgUserIds);
 
     setPatients(patientsData || []);
     setSessions(sessionsData || []);

@@ -11,6 +11,7 @@ import { ArrowLeft } from 'lucide-react';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCPF, sanitizeCPF } from '@/lib/brazilianFormat';
+import { getUserIdsInOrganization } from '@/lib/organizationFilters';
 
 const therapistSchema = z.object({
   full_name: z.string().min(1, 'Nome completo é obrigatório'),
@@ -31,7 +32,7 @@ const therapistSchema = z.object({
 
 const CreateTherapist = () => {
   const navigate = useNavigate();
-  const { createTherapist, isAdmin, user } = useAuth();
+  const { createTherapist, isAdmin, user, organizationId } = useAuth();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
@@ -90,6 +91,12 @@ const CreateTherapist = () => {
     e.preventDefault();
     setErrors({});
     setLoading(true);
+
+    if (!organizationId) {
+      setErrors({ form: 'Organização ativa não identificada' });
+      setLoading(false);
+      return;
+    }
 
     try {
       const validatedData = therapistSchema.parse(formData);

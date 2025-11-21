@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { UserPlus, Calendar, Users, AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { getUserIdsInOrganization } from '@/lib/organizationFilters';
 
 
 interface Therapist {
@@ -20,19 +21,23 @@ interface Therapist {
 }
 
 const TherapistManagement = () => {
-  const { isAdmin, user } = useAuth();
+  const { isAdmin, user, organizationId } = useAuth();
   const navigate = useNavigate();
   const [therapists, setTherapists] = useState<Therapist[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchTherapists();
-  }, [user]);
+    if (organizationId) {
+      fetchTherapists();
+    }
+  }, [user, organizationId]);
 
   const fetchTherapists = async () => {
-    if (!user) return;
+    if (!user || !organizationId) return;
 
     try {
+      const orgUserIds = await getUserIdsInOrganization(organizationId);
+      
       // Get subordinate therapists via therapist_assignments
       const { data: assignments, error: assignmentsError } = await supabase
         .from('therapist_assignments')
@@ -48,12 +53,21 @@ const TherapistManagement = () => {
       }
 
       const subordinateIds = assignments.map(a => a.subordinate_id);
+      
+      // Filtrar apenas subordinados que pertencem à organização ativa
+      const orgSubordinates = subordinateIds.filter(id => orgUserIds.includes(id));
+
+      if (orgSubordinates.length === 0) {
+        setTherapists([]);
+        setLoading(false);
+        return;
+      }
 
       // Get profiles of subordinate therapists
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
-        .in('id', subordinateIds);
+        .in('id', orgSubordinates);
 
       if (profilesError) throw profilesError;
 

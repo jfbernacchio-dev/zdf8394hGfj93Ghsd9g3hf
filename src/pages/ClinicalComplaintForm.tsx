@@ -13,6 +13,8 @@ import { toast } from "sonner";
 import { ArrowLeft, Save, Search, Plus, X, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useAuth } from "@/contexts/AuthContext";
+import { getUserIdsInOrganization } from "@/lib/organizationFilters";
 
 interface CIDOption {
   code: string;
@@ -42,6 +44,7 @@ interface Medication {
 export default function ClinicalComplaintForm() {
   const { patientId, complaintId } = useParams();
   const navigate = useNavigate();
+  const { organizationId } = useAuth();
   const [loading, setLoading] = useState(false);
   const [patient, setPatient] = useState<any>(null);
 
@@ -100,12 +103,22 @@ export default function ClinicalComplaintForm() {
   }, [selectedCID, hasNoDiagnosis]);
 
   const loadPatient = async () => {
+    if (!organizationId) return;
+    
+    const orgUserIds = await getUserIdsInOrganization(organizationId);
+    
     const { data } = await supabase
       .from("patients")
       .select("*")
       .eq("id", patientId)
       .single();
-    if (data) setPatient(data);
+    
+    if (data && orgUserIds.includes(data.user_id)) {
+      setPatient(data);
+    } else if (data) {
+      toast.error('Paciente não pertence à organização ativa');
+      navigate('/patients');
+    }
   };
 
   const searchCID = async () => {

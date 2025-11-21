@@ -12,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
+import { getUserIdsInOrganization } from '@/lib/organizationFilters';
 
 interface PatientFilesProps {
   patientId: string;
@@ -32,7 +33,7 @@ const FILE_CATEGORIES = [
 ];
 
 export const PatientFiles = ({ patientId }: PatientFilesProps) => {
-  const { user } = useAuth();
+  const { user, organizationId } = useAuth();
   const { toast } = useToast();
   const [files, setFiles] = useState<any[]>([]);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
@@ -42,10 +43,28 @@ export const PatientFiles = ({ patientId }: PatientFilesProps) => {
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    loadFiles();
-  }, [patientId]);
+    if (organizationId) {
+      loadFiles();
+    }
+  }, [patientId, organizationId]);
 
   const loadFiles = async () => {
+    if (!organizationId) return;
+    
+    const orgUserIds = await getUserIdsInOrganization(organizationId);
+    
+    // Validar se o paciente pertence à organização antes de carregar arquivos
+    const { data: patient } = await supabase
+      .from('patients')
+      .select('user_id')
+      .eq('id', patientId)
+      .single();
+    
+    if (!patient || !orgUserIds.includes(patient.user_id)) {
+      console.warn('Paciente não pertence à organização ativa');
+      return;
+    }
+
     const { data, error } = await supabase
       .from('patient_files')
       .select('*')
