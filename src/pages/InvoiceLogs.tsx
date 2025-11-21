@@ -24,7 +24,7 @@ const InvoiceLogs = () => {
   const [logs, setLogs] = useState<InvoiceLog[]>([]);
   const [selectedLog, setSelectedLog] = useState<InvoiceLog | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, organizationId } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -32,10 +32,28 @@ const InvoiceLogs = () => {
   }, [user]);
 
   const loadLogs = async () => {
+    console.log('[ORG] InvoiceLogs - organizationId:', organizationId);
+    
+    // 🏢 FILTRO POR ORGANIZAÇÃO
+    if (!organizationId) {
+      console.warn('[ORG] Sem organizationId - não carregando logs');
+      setLogs([]);
+      return;
+    }
+
+    const { getUserIdsInOrganization } = await import('@/lib/organizationFilters');
+    const orgUserIds = await getUserIdsInOrganization(organizationId);
+
+    if (orgUserIds.length === 0) {
+      console.warn('[ORG] Nenhum usuário na organização');
+      setLogs([]);
+      return;
+    }
+
     const { data, error } = await supabase
       .from('invoice_logs')
       .select('*')
-      .eq('user_id', user!.id)
+      .in('user_id', orgUserIds)
       .order('created_at', { ascending: false });
 
     if (error) {

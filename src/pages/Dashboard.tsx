@@ -32,7 +32,7 @@ import { useCardPermissions } from '@/hooks/useCardPermissions';
 import { useEffectivePermissions } from '@/hooks/useEffectivePermissions';
 
 const DashboardTest = () => {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, organizationId } = useAuth();
   const [patients, setPatients] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
   const [period, setPeriod] = useState('month');
@@ -67,17 +67,36 @@ const DashboardTest = () => {
   }, [user, permissionsLoading]);
 
   const loadData = async () => {
+    console.log('[ORG] Dashboard - organizationId:', organizationId);
+    
+    // 🏢 FILTRO POR ORGANIZAÇÃO: Apenas usuários da mesma organização
+    if (!organizationId) {
+      console.warn('[ORG] Sem organizationId - não carregando dados');
+      setPatients([]);
+      setSessions([]);
+      return;
+    }
+
+    const { getUserIdsInOrganization } = await import('@/lib/organizationFilters');
+    const orgUserIds = await getUserIdsInOrganization(organizationId);
+
+    if (orgUserIds.length === 0) {
+      console.warn('[ORG] Nenhum usuário na organização');
+      setPatients([]);
+      setSessions([]);
+      return;
+    }
+
     // 🔐 QUERY FILTERING: Subordinados com managesOwnPatients só veem seus próprios pacientes
     const filterToOwn = shouldFilterToOwnData();
 
     let patientsQuery = supabase.from('patients').select('*');
     
     if (filterToOwn) {
-      // Subordinado que gerencia apenas próprios pacientes
-      patientsQuery = patientsQuery.eq('user_id', user!.id);
+      // Subordinado que gerencia apenas próprios pacientes (mas ainda filtra por org)
+      patientsQuery = patientsQuery.eq('user_id', user!.id).in('user_id', orgUserIds);
     } else {
-      // Admin/Full vê todos os pacientes (próprios + subordinados)
-      // Aqui vamos buscar pacientes próprios + de subordinados que NÃO gerem próprios
+      // Admin/Full vê todos os pacientes (próprios + subordinados) DA MESMA ORG
       const { data: subordinatesData } = await supabase
         .from('therapist_assignments')
         .select('subordinate_id')
@@ -96,12 +115,12 @@ const DashboardTest = () => {
           ?.filter(a => !a.manages_own_patients)
           .map(a => a.subordinate_id) || [];
 
-        // Incluir próprio user_id + subordinados viewable
-        const allViewableIds = [user!.id, ...viewableSubordinates];
+        // Incluir próprio user_id + subordinados viewable, MAS filtrando por org
+        const allViewableIds = [user!.id, ...viewableSubordinates].filter(id => orgUserIds.includes(id));
         patientsQuery = patientsQuery.in('user_id', allViewableIds);
       } else {
-        // Nenhum subordinado, apenas próprios pacientes
-        patientsQuery = patientsQuery.eq('user_id', user!.id);
+        // Nenhum subordinado, apenas próprios pacientes (mas ainda filtra por org)
+        patientsQuery = patientsQuery.eq('user_id', user!.id).in('user_id', orgUserIds);
       }
     }
 

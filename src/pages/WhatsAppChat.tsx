@@ -34,7 +34,7 @@ interface Message {
 }
 
 export default function WhatsAppChat() {
-  const { user } = useAuth();
+  const { user, organizationId } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -129,14 +129,34 @@ export default function WhatsAppChat() {
   }, [selectedConversation]);
 
   const loadConversations = async () => {
+    console.log('[ORG] WhatsApp - organizationId:', organizationId);
     setLoading(true);
     try {
+      // 🏢 FILTRO POR ORGANIZAÇÃO
+      if (!organizationId) {
+        console.warn('[ORG] Sem organizationId - não carregando conversas');
+        setConversations([]);
+        setLoading(false);
+        return;
+      }
+
+      const { getUserIdsInOrganization } = await import('@/lib/organizationFilters');
+      const orgUserIds = await getUserIdsInOrganization(organizationId);
+
+      if (orgUserIds.length === 0) {
+        console.warn('[ORG] Nenhum usuário na organização');
+        setConversations([]);
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from("whatsapp_conversations")
         .select(`
           *,
           patients!whatsapp_conversations_patient_id_fkey (
-            name
+            name,
+            user_id
           )
         `)
         .eq("user_id", user?.id)
@@ -144,8 +164,16 @@ export default function WhatsAppChat() {
 
       if (error) throw error;
       
+      // Filtrar conversas de pacientes que pertencem a usuários da mesma org
+      const conversationsInOrg = (data || []).filter((conv: any) => {
+        // Se não tem paciente vinculado, manter (pode ser conversa direta)
+        if (!conv.patients?.user_id) return true;
+        // Se tem paciente, verificar se o terapeuta está na org
+        return orgUserIds.includes(conv.patients.user_id);
+      });
+
       // Mapear para usar o nome do paciente em vez de contact_name
-      const conversationsWithPatientNames = (data || []).map((conv: any) => ({
+      const conversationsWithPatientNames = conversationsInOrg.map((conv: any) => ({
         ...conv,
         contact_name: conv.patients?.name || conv.contact_name || conv.phone_number,
       }));

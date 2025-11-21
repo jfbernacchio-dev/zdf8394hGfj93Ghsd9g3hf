@@ -31,7 +31,7 @@ const Patients = () => {
   const [isDuplicatesDialogOpen, setIsDuplicatesDialogOpen] = useState(false);
   const [duplicatesReport, setDuplicatesReport] = useState<any[]>([]);
   const navigate = useNavigate();
-  const { user, isAdmin, roleGlobal } = useAuth();
+  const { user, isAdmin, roleGlobal, organizationId } = useAuth();
   const { permissions, financialAccess, canAccessClinical } = useEffectivePermissions();
   const { toast } = useToast();
   const { shouldFilterToOwnData } = useCardPermissions();
@@ -52,22 +52,47 @@ const Patients = () => {
     if (!user) return;
 
     console.log('[Patients] 🔐 Carregando pacientes com filtro por permissões...');
+    console.log('[ORG] Patients - organizationId:', organizationId);
 
-    // Admin vê todos
+    // 🏢 FILTRO POR ORGANIZAÇÃO
+    if (!organizationId) {
+      console.warn('[ORG] Sem organizationId - não carregando dados');
+      setPatients([]);
+      setSessions([]);
+      setNfseIssued([]);
+      return;
+    }
+
+    const { getUserIdsInOrganization } = await import('@/lib/organizationFilters');
+    const orgUserIds = await getUserIdsInOrganization(organizationId);
+
+    if (orgUserIds.length === 0) {
+      console.warn('[ORG] Nenhum usuário na organização');
+      setPatients([]);
+      setSessions([]);
+      setNfseIssued([]);
+      return;
+    }
+
+    // Admin vê todos DA MESMA ORG
     if (isAdmin) {
-      console.log('[Patients] 👑 Admin - carregando todos os pacientes');
+      console.log('[Patients] 👑 Admin - carregando todos os pacientes da organização');
       const { data: allPatients } = await supabase
         .from('patients')
-        .select('*');
+        .select('*')
+        .in('user_id', orgUserIds);
+      
+      const patientIds = (allPatients || []).map(p => p.id);
       
       const { data: sessionsData } = await supabase
         .from('sessions')
-        .select('*');
+        .select('*')
+        .in('patient_id', patientIds);
 
       const { data: nfseData } = await supabase
         .from('nfse_issued')
         .select('id, session_ids, status')
-        .eq('user_id', user.id)
+        .in('user_id', orgUserIds)
         .in('status', ['processing', 'issued']);
 
       const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
@@ -79,23 +104,23 @@ const Patients = () => {
       return;
     }
 
-    // Buscar todos os pacientes
+    // Buscar todos os pacientes DA ORG
     const { data: allPatients } = await supabase
       .from('patients')
-      .select('*');
+      .select('*')
+      .in('user_id', orgUserIds);
 
     if (!allPatients || allPatients.length === 0) {
-      console.log('[Patients] Nenhum paciente encontrado no sistema');
+      console.log('[Patients] Nenhum paciente encontrado na organização');
       setPatients([]);
       setSessions([]);
       setNfseIssued([]);
       return;
     }
 
-    // 🔒 REGRA DE OURO: Dono SEMPRE vê seus próprios pacientes
+    // 🔒 REGRA DE OURO: Dono SEMPRE vê seus próprios pacientes + verificar permissões para outros
     const accessiblePatients = [];
     
-    // Verificar se viewer é admin (uma vez só)
     const { data: viewerRoles } = await supabase
       .from('user_roles')
       .select('role')
@@ -123,15 +148,18 @@ const Patients = () => {
 
     console.log(`[Patients] ✅ Acesso permitido a ${accessiblePatients.length} de ${allPatients.length} pacientes (${allPatients.filter(p => p.user_id === user.id).length} próprios)`);
 
+    const patientIds = accessiblePatients.map(p => p.id);
+
     const { data: sessionsData } = await supabase
       .from('sessions')
-      .select('*');
+      .select('*')
+      .in('patient_id', patientIds);
 
-    // Load NFSes issued (processing or issued status)
+    // Load NFSes issued da organização
     const { data: nfseData } = await supabase
       .from('nfse_issued')
       .select('id, session_ids, status')
-      .eq('user_id', user.id)
+      .in('user_id', orgUserIds)
       .in('status', ['processing', 'issued']);
 
     const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();

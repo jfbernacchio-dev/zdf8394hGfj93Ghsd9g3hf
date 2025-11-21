@@ -23,7 +23,7 @@ import { useCardPermissions } from '@/hooks/useCardPermissions';
 const COLORS = ['hsl(100, 20%, 55%)', 'hsl(100, 25%, 65%)', 'hsl(100, 30%, 75%)', 'hsl(100, 15%, 45%)', 'hsl(100, 35%, 85%)', 'hsl(40, 35%, 75%)'];
 
 const Financial = () => {
-  const { user, isAdmin, roleGlobal } = useAuth();
+  const { user, isAdmin, roleGlobal, organizationId } = useAuth();
   const [patients, setPatients] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
@@ -78,6 +78,26 @@ const Financial = () => {
   }, [user, permissionsLoading]);
 
   const loadData = async () => {
+    console.log('[ORG] Financial - organizationId:', organizationId);
+    
+    // 🏢 FILTRO POR ORGANIZAÇÃO
+    if (!organizationId) {
+      console.warn('[ORG] Sem organizationId - não carregando dados');
+      setPatients([]);
+      setSessions([]);
+      return;
+    }
+
+    const { getUserIdsInOrganization } = await import('@/lib/organizationFilters');
+    const orgUserIds = await getUserIdsInOrganization(organizationId);
+
+    if (orgUserIds.length === 0) {
+      console.warn('[ORG] Nenhum usuário na organização');
+      setPatients([]);
+      setSessions([]);
+      return;
+    }
+
     // Load profile data
     const { data: profileData } = await supabase
       .from('profiles')
@@ -87,7 +107,7 @@ const Financial = () => {
 
     setProfile(profileData);
 
-    // Load schedule blocks
+    // Load schedule blocks (apenas do usuário atual)
     const { data: blocksData } = await supabase
       .from('schedule_blocks')
       .select('*')
@@ -95,23 +115,26 @@ const Financial = () => {
 
     setScheduleBlocks(blocksData || []);
 
-    // 🔐 QUERY FILTERING BASEADO EM PERMISSÕES
+    // 🔐 QUERY FILTERING BASEADO EM PERMISSÕES + ORGANIZAÇÃO
     const viewFullFinancial = canViewFullFinancial();
 
     if (viewFullFinancial) {
-      // Admin/Full vê fechamento completo (próprio + subordinados sem acesso financeiro)
+      // Admin/Full vê fechamento completo (próprio + subordinados sem acesso financeiro) DA MESMA ORG
       
-      // Load patients próprios
-      const { data: patientsData } = await supabase
-        .from('patients')
-        .select('*')
-        .eq('user_id', user!.id);
-
-      // Load subordinates without financial access (suas sessões entram no fechamento)
+      // Load subordinates without financial access
       const { getSubordinatesForFinancialClosing } = await import('@/lib/resolveEffectivePermissions');
       const subordinateIds = await getSubordinatesForFinancialClosing(user!.id);
 
-      // Load sessions: próprias + subordinados sem acesso financeiro
+      // Filtrar subordinados pela organização
+      const viewableUserIds = [user!.id, ...subordinateIds].filter(id => orgUserIds.includes(id));
+
+      // Load patients desses usuários
+      const { data: patientsData } = await supabase
+        .from('patients')
+        .select('*')
+        .in('user_id', viewableUserIds);
+
+      // Load sessions desses pacientes
       let sessionsQuery = supabase
         .from('sessions')
         .select(`
@@ -120,21 +143,22 @@ const Financial = () => {
             user_id,
             name
           )
-        `);
-
-      // Se há subordinados para incluir, adicionar filtro OR
-      if (subordinateIds.length > 0) {
-        sessionsQuery = sessionsQuery.or(`patients.user_id.eq.${user!.id},patients.user_id.in.(${subordinateIds.join(',')})`);
-      } else {
-        sessionsQuery = sessionsQuery.eq('patients.user_id', user!.id);
-      }
+        `)
+        .in('patients.user_id', viewableUserIds);
 
       const { data: sessionsData } = await sessionsQuery;
 
       setPatients(patientsData || []);
       setSessions(sessionsData || []);
     } else {
-      // Subordinado com acesso financeiro limitado - só vê seus próprios dados
+      // Subordinado com acesso financeiro limitado - só vê seus próprios dados DA MESMA ORG
+      if (!orgUserIds.includes(user!.id)) {
+        console.warn('[ORG] Usuário não pertence à organização ativa');
+        setPatients([]);
+        setSessions([]);
+        return;
+      }
+
       const { data: patientsData } = await supabase
         .from('patients')
         .select('*')

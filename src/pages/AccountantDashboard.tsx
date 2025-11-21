@@ -28,7 +28,7 @@ interface NFSeData {
 }
 
 const AccountantDashboard = () => {
-  const { user } = useAuth();
+  const { user, organizationId } = useAuth();
   const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("current_month");
   const [startDate, setStartDate] = useState<Date>(startOfMonth(new Date()));
   const [endDate, setEndDate] = useState<Date>(endOfMonth(new Date()));
@@ -44,25 +44,46 @@ const AccountantDashboard = () => {
     const fetchSubordinatedTherapists = async () => {
       if (!user) return;
 
+      console.log('[ORG] AccountantDashboard - organizationId:', organizationId);
+
       try {
-        // PASSO 1: Buscar terapeutas Full diretamente atribuídos
+        // 🏢 FILTRO POR ORGANIZAÇÃO
+        if (!organizationId) {
+          console.warn('[ORG] Sem organizationId - não carregando terapeutas');
+          setSubordinatedTherapists([]);
+          return;
+        }
+
+        const { getUserIdsInOrganization } = await import('@/lib/organizationFilters');
+        const orgUserIds = await getUserIdsInOrganization(organizationId);
+
+        if (orgUserIds.length === 0) {
+          console.warn('[ORG] Nenhum usuário na organização');
+          setSubordinatedTherapists([]);
+          return;
+        }
+
+        // PASSO 1: Buscar terapeutas Full diretamente atribuídos (filtrados por org)
         const { data: assignments, error: assignError } = await supabase
           .from("accountant_therapist_assignments")
           .select(`
             therapist_id,
             profiles!accountant_therapist_assignments_therapist_id_fkey (
               id,
-              full_name
+              full_name,
+              organization_id
             )
           `)
           .eq("accountant_id", user.id);
 
         if (assignError) throw assignError;
 
-        const fullTherapists = assignments?.map((a: any) => ({
-          id: a.profiles.id,
-          full_name: a.profiles.full_name,
-        })) || [];
+        const fullTherapists = assignments
+          ?.filter((a: any) => orgUserIds.includes(a.profiles.id))
+          .map((a: any) => ({
+            id: a.profiles.id,
+            full_name: a.profiles.full_name,
+          })) || [];
 
         // PASSO 2: Buscar subordinados desses terapeutas Full
         if (fullTherapists.length === 0) {

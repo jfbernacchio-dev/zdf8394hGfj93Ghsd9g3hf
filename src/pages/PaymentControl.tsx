@@ -53,7 +53,7 @@ const PaymentControl = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [selectedNFSeIds, setSelectedNFSeIds] = useState<string[]>([]);
-  const { user } = useAuth();
+  const { user, organizationId } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -72,9 +72,27 @@ const PaymentControl = () => {
   const loadPendingNFSes = async () => {
     if (!user) return;
 
-    // SPRINT 7.2: Obter subordinados que entram no fechamento financeiro
+    console.log('[ORG] PaymentControl - organizationId:', organizationId);
+
+    // 🏢 FILTRO POR ORGANIZAÇÃO
+    if (!organizationId) {
+      console.warn('[ORG] Sem organizationId - não carregando NFSes pendentes');
+      setPendingNFSes([]);
+      return;
+    }
+
+    const { getUserIdsInOrganization } = await import('@/lib/organizationFilters');
+    const orgUserIds = await getUserIdsInOrganization(organizationId);
+
+    if (orgUserIds.length === 0) {
+      console.warn('[ORG] Nenhum usuário na organização');
+      setPendingNFSes([]);
+      return;
+    }
+
+    // SPRINT 7.2: Obter subordinados que entram no fechamento financeiro (filtrados por org)
     const subordinateIds = await getSubordinatesForFinancialClosing(user.id);
-    const allUserIds = [user.id, ...subordinateIds];
+    const allUserIds = [user.id, ...subordinateIds].filter(id => orgUserIds.includes(id));
 
     const { data: nfses, error: nfseError } = await supabase
       .from('nfse_issued')
@@ -125,9 +143,27 @@ const PaymentControl = () => {
   const loadPayments = async () => {
     if (!user) return;
 
-    // SPRINT 7.2: Obter subordinados que entram no fechamento financeiro
+    console.log('[ORG] PaymentControl - organizationId:', organizationId);
+
+    // 🏢 FILTRO POR ORGANIZAÇÃO
+    if (!organizationId) {
+      console.warn('[ORG] Sem organizationId - não carregando pagamentos');
+      setPayments([]);
+      return;
+    }
+
+    const { getUserIdsInOrganization } = await import('@/lib/organizationFilters');
+    const orgUserIds = await getUserIdsInOrganization(organizationId);
+
+    if (orgUserIds.length === 0) {
+      console.warn('[ORG] Nenhum usuário na organização');
+      setPayments([]);
+      return;
+    }
+
+    // SPRINT 7.2: Obter subordinados que entram no fechamento financeiro (filtrados por org)
     const subordinateIds = await getSubordinatesForFinancialClosing(user.id);
-    const allUserIds = [user.id, ...subordinateIds];
+    const allUserIds = [user.id, ...subordinateIds].filter(id => orgUserIds.includes(id));
 
     const { data, error } = await supabase
       .from('nfse_payments')
