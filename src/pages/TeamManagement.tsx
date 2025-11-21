@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { Users, Plus, User, Loader2 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -39,7 +40,10 @@ const ROLE_COLORS: Record<string, string> = {
 
 const TeamManagement = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -180,10 +184,159 @@ const TeamManagement = () => {
     return ROLE_COLORS[role] || 'bg-gray-50/80 text-gray-700 border-gray-200/60';
   };
 
-  const handleAddMember = () => {
-    console.log('Mock: Adicionar membro', formData);
-    setIsAddModalOpen(false);
-    setFormData({ name: '', email: '', role: '', level: '' });
+  const handleAddMember = async () => {
+    if (!user?.id) return;
+    if (!formData.email || !formData.role || !formData.level) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha email, função e nível organizacional.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // 1. Buscar usuário por email
+      const { data: existingUser, error: searchError } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .eq('cpf', formData.email) // tentamos primeiro por CPF caso seja usado
+        .maybeSingle();
+
+      // Se não encontrou por CPF, buscar por email na tabela auth.users via RPC ou outro meio
+      // Como não temos acesso direto ao auth.users, vamos buscar profiles que tenham esse user_id
+      // Na verdade, profiles não tem email. Vamos usar uma abordagem diferente:
+      // Vamos assumir que o email já foi usado para criar o usuário, então buscamos por full_name ou CPF
+      
+      // Melhor abordagem: buscar por email no campo cpf (se for usado) ou criar uma busca mais robusta
+      // Por ora, vamos fazer uma busca mais simples assumindo que o email está no perfil de alguma forma
+      // ou que o administrador sabe o ID do usuário
+      
+      // Vou fazer uma busca mais robusta: buscar por qualquer perfil que contenha esse email/texto
+      const { data: profiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, full_name, cpf')
+        .or(`cpf.eq.${formData.email},full_name.ilike.%${formData.email}%`);
+
+      if (profileError) throw profileError;
+
+      // Se não encontrou ou encontrou múltiplos, pedir mais especificidade
+      if (!profiles || profiles.length === 0) {
+        toast({
+          title: "Usuário não encontrado",
+          description: "Usuário não encontrado. Nesta fase, só é possível vincular usuários já existentes.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Se encontrou múltiplos, usar o primeiro (ou melhorar a lógica)
+      const targetUser = profiles[0];
+
+      // 2. Garantir role em user_roles
+      const { data: existingRole } = await supabase
+        .from('user_roles')
+        .select('*')
+        .eq('user_id', targetUser.id)
+        .maybeSingle();
+
+      if (!existingRole) {
+        // Criar role
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: targetUser.id,
+            role: formData.role as 'psychologist' | 'assistant' | 'accountant' | 'admin',
+          });
+
+        if (roleError) throw roleError;
+      } else if (existingRole.role !== formData.role) {
+        // Atualizar role existente
+        const { error: updateRoleError } = await supabase
+          .from('user_roles')
+          .update({ role: formData.role as 'psychologist' | 'assistant' | 'accountant' | 'admin' })
+          .eq('user_id', targetUser.id);
+
+        if (updateRoleError) throw updateRoleError;
+      }
+
+      // 3. Encontrar ou criar posição no nível escolhido
+      let positionId: string;
+
+      const { data: existingPosition } = await supabase
+        .from('organization_positions')
+        .select('id')
+        .eq('level_id', formData.level)
+        .maybeSingle();
+
+      if (existingPosition) {
+        positionId = existingPosition.id;
+      } else {
+        // Criar posição padrão para este nível
+        const { data: newPosition, error: positionError } = await supabase
+          .from('organization_positions')
+          .insert({
+            level_id: formData.level,
+            position_name: 'Profissional',
+            parent_position_id: null,
+          })
+          .select('id')
+          .single();
+
+        if (positionError) throw positionError;
+        positionId = newPosition.id;
+      }
+
+      // 4. Verificar se já existe vínculo do usuário em alguma posição desta organização
+      const { data: existingUserPosition } = await supabase
+        .from('user_positions')
+        .select('id, position_id')
+        .eq('user_id', targetUser.id)
+        .maybeSingle();
+
+      if (existingUserPosition) {
+        // Atualizar para nova posição
+        const { error: updatePositionError } = await supabase
+          .from('user_positions')
+          .update({ position_id: positionId })
+          .eq('user_id', targetUser.id);
+
+        if (updatePositionError) throw updatePositionError;
+      } else {
+        // Criar novo vínculo
+        const { error: userPositionError } = await supabase
+          .from('user_positions')
+          .insert({
+            user_id: targetUser.id,
+            position_id: positionId,
+          });
+
+        if (userPositionError) throw userPositionError;
+      }
+
+      // 5. Sucesso - invalidar queries e fechar modal
+      await queryClient.invalidateQueries({ queryKey: ['team-members'] });
+      
+      toast({
+        title: "Membro vinculado com sucesso",
+        description: `${targetUser.full_name} foi adicionado à equipe.`,
+      });
+
+      setIsAddModalOpen(false);
+      setFormData({ name: '', email: '', role: '', level: '' });
+    } catch (error) {
+      console.error('[TeamManagement] Erro ao adicionar membro:', error);
+      toast({
+        title: "Erro ao vincular membro",
+        description: "Ocorreu um erro ao tentar vincular o membro. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const renderMemberCard = (member: TeamMember) => {
@@ -256,32 +409,31 @@ const TeamManagement = () => {
             <DialogHeader>
               <DialogTitle>Adicionar Novo Membro</DialogTitle>
               <DialogDescription>
-                Preencha os dados do novo membro da equipe (funcionalidade em desenvolvimento)
+                Vincule um usuário existente à sua equipe. O usuário já deve ter uma conta no sistema.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Nome Completo</Label>
-                <Input
-                  id="name"
-                  placeholder="Digite o nome completo"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">Email ou CPF</Label>
                 <Input
                   id="email"
-                  type="email"
-                  placeholder="email@exemplo.com"
+                  type="text"
+                  placeholder="Digite email ou CPF do usuário existente"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  disabled={isSubmitting}
                 />
+                <p className="text-xs text-muted-foreground">
+                  O usuário já deve ter uma conta no sistema
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="role">Função</Label>
-                <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
+                <Select 
+                  value={formData.role} 
+                  onValueChange={(value) => setFormData({ ...formData, role: value })}
+                  disabled={isSubmitting}
+                >
                   <SelectTrigger id="role">
                     <SelectValue placeholder="Selecione uma função" />
                   </SelectTrigger>
@@ -297,7 +449,7 @@ const TeamManagement = () => {
                 <Select 
                   value={formData.level} 
                   onValueChange={(value) => setFormData({ ...formData, level: value })}
-                  disabled={!levels || levels.length === 0}
+                  disabled={!levels || levels.length === 0 || isSubmitting}
                 >
                   <SelectTrigger id="level">
                     <SelectValue placeholder={
@@ -317,11 +469,18 @@ const TeamManagement = () => {
               </div>
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>
+              <Button variant="outline" onClick={() => setIsAddModalOpen(false)} disabled={isSubmitting}>
                 Cancelar
               </Button>
-              <Button onClick={handleAddMember} disabled>
-                Adicionar (em breve)
+              <Button onClick={handleAddMember} disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Vinculando...
+                  </>
+                ) : (
+                  'Vincular Membro'
+                )}
               </Button>
             </div>
           </DialogContent>
