@@ -53,15 +53,6 @@ const Patients = () => {
 
     console.log('[Patients] 🔐 Carregando pacientes com filtro por permissões...');
 
-    // 🔐 FASE 8: Usar permissões do organograma
-    if (!permissions || !canAccessClinical) {
-      console.log('[Patients] ⛔ Usuário sem acesso clínico');
-      setPatients([]);
-      setSessions([]);
-      setNfseIssued([]);
-      return;
-    }
-
     // Admin vê todos
     if (isAdmin) {
       console.log('[Patients] 👑 Admin - carregando todos os pacientes');
@@ -78,6 +69,9 @@ const Patients = () => {
         .select('id, session_ids, status')
         .eq('user_id', user.id)
         .in('status', ['processing', 'issued']);
+
+      const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      setUserProfile(profileData);
 
       setPatients(allPatients || []);
       setSessions(sessionsData || []);
@@ -98,8 +92,9 @@ const Patients = () => {
       return;
     }
 
-    // Filtrar pacientes aos quais o usuário tem acesso
+    // 🔒 REGRA DE OURO: Dono SEMPRE vê seus próprios pacientes
     const accessiblePatients = [];
+    
     // Verificar se viewer é admin (uma vez só)
     const { data: viewerRoles } = await supabase
       .from('user_roles')
@@ -110,6 +105,13 @@ const Patients = () => {
     const isViewerAdmin = viewerRoles?.role === 'admin';
 
     for (const patient of allPatients) {
+      // Se é o dono, sempre tem acesso
+      if (patient.user_id === user.id) {
+        accessiblePatients.push(patient);
+        continue;
+      }
+
+      // Para terceiros, verificar permissões via canAccessPatient
       const accessResult = await import('@/lib/checkPatientAccess').then(m => 
         m.canAccessPatient(user.id, patient.id, isViewerAdmin)
       );
@@ -119,12 +121,7 @@ const Patients = () => {
       }
     }
 
-    console.log(`[Patients] ✅ Acesso permitido a ${accessiblePatients.length} de ${allPatients.length} pacientes`);
-
-    const { data: patientsData } = await supabase
-      .from('patients')
-      .select('*')
-      .in('id', accessiblePatients.map(p => p.id));
+    console.log(`[Patients] ✅ Acesso permitido a ${accessiblePatients.length} de ${allPatients.length} pacientes (${allPatients.filter(p => p.user_id === user.id).length} próprios)`);
 
     const { data: sessionsData } = await supabase
       .from('sessions')
@@ -134,15 +131,13 @@ const Patients = () => {
     const { data: nfseData } = await supabase
       .from('nfse_issued')
       .select('id, session_ids, status')
-      .eq('user_id', user!.id)
+      .eq('user_id', user.id)
       .in('status', ['processing', 'issued']);
 
-    if (user) {
-      const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-      setUserProfile(profileData);
-    }
+    const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+    setUserProfile(profileData);
 
-    setPatients(patientsData || []);
+    setPatients(accessiblePatients);
     setSessions(sessionsData || []);
     setNfseIssued(nfseData || []);
   };
