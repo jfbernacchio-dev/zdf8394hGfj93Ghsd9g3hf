@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Users, Calendar, LogOut, FileText, ChevronDown, Shield, Menu, TrendingUp, User, AlertTriangle, Database, ClipboardCheck, MessageCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { usePermissionFlags } from '@/hooks/usePermissionFlags';
+import { useEffectivePermissions } from '@/hooks/useEffectivePermissions';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from './ui/dropdown-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
 import { useState } from 'react';
@@ -13,17 +13,13 @@ import { ThemeToggle } from './ThemeToggle';
 const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut, profile, isAdmin, isAccountant } = useAuth();
-  const { isSubordinate, isFullTherapist } = usePermissionFlags();
+  const { signOut, profile, isAdmin, isAccountant, roleGlobal } = useAuth();
+  const effective = useEffectivePermissions();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // 🔍 LOG DIAGNÓSTICO 5: Estados de autenticação
-  console.log('=== NAVBAR - AUTH STATUS ===');
-  console.log('isAdmin:', isAdmin);
-  console.log('isFullTherapist:', isFullTherapist);
-  console.log('isAccountant:', isAccountant);
-  console.log('isSubordinate:', isSubordinate);
-  console.log('============================');
+  // Derive legacy flags from new permission system
+  const isFullTherapist = roleGlobal === 'psychologist';
+  const isSubordinate = roleGlobal === 'assistant' || roleGlobal === 'accountant';
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -98,15 +94,7 @@ const Navbar = () => {
                       <span className="font-medium">WhatsApp</span>
                     </Link>
                   )}
-                  {(() => {
-                    const shouldShow = (isAdmin || isFullTherapist) && !isSubordinate;
-                    // 🔍 LOG DIAGNÓSTICO 6: Visibilidade da aba Terapeutas
-                    console.log('=== TAB TERAPEUTAS - VISIBILIDADE ===');
-                    console.log('Condição atual: (isAdmin || isFullTherapist) && !isSubordinate');
-                    console.log('Resultado:', shouldShow);
-                    console.log('======================================');
-                    return shouldShow;
-                  })() && (
+                  {(isAdmin || isFullTherapist) && !isSubordinate && (
                     <Link
                       to="/therapists"
                       className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
