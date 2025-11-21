@@ -2338,6 +2338,7 @@ export type Database = {
         Returns: boolean
       }
       check_expired_temporary_access: { Args: never; Returns: undefined }
+      current_user_organization: { Args: never; Returns: string }
       get_all_subordinates: {
         Args: { _user_id: string }
         Returns: {
