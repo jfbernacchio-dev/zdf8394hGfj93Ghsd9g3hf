@@ -159,6 +159,7 @@ const App = () => (
             <Route path="/patient-old/:id" element={<ProtectedRoute><PermissionRoute path="/patients"><Layout><PatientDetailOLD /></Layout></PermissionRoute></ProtectedRoute>} />
             <Route path="/therapists" element={<ProtectedRoute><PermissionRoute path="/therapists"><Layout><TherapistManagement /></Layout></PermissionRoute></ProtectedRoute>} />
             <Route path="/therapists/:id" element={<ProtectedRoute><PermissionRoute path="/therapists"><Layout><TherapistDetail /></Layout></PermissionRoute></ProtectedRoute>} />
+            <Route path="/therapist/:id" element={<ProtectedRoute><PermissionRoute path="/therapists"><Layout><TherapistDetail /></Layout></PermissionRoute></ProtectedRoute>} />
             <Route path="/create-therapist" element={<ProtectedRoute><PermissionRoute path="/create-therapist"><Layout><CreateTherapist /></Layout></PermissionRoute></ProtectedRoute>} />
             <Route path="/team-management" element={<ProtectedRoute><PermissionRoute path="/team-management"><Layout><TeamManagement /></Layout></PermissionRoute></ProtectedRoute>} />
             <Route path="/permissions" element={<ProtectedRoute><PermissionRoute path="/permissions"><Layout><PermissionManagement /></Layout></PermissionRoute></ProtectedRoute>} />
