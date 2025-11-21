@@ -60,7 +60,7 @@ const ROLE_COLORS: Record<string, string> = {
 
 export default function OrgManagement() {
   const navigate = useNavigate();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, roleGlobal } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -222,21 +222,37 @@ export default function OrgManagement() {
 
   const isLoading = isLoadingLevels || isLoadingUsers;
 
-  // FASE 6D-1: Handlers para drag & drop
+  // FASE 6D-2: Handlers para drag & drop com validações
   const handleDragStart = (
     e: React.DragEvent<HTMLDivElement>,
     fromLevelId: string,
     user: UserInLevel
   ) => {
-    if (!isAdmin) {
+    const isPsychologist = roleGlobal === 'psychologist';
+    const isSubordinate = roleGlobal === 'assistant' || roleGlobal === 'accountant';
+
+    // Assistente/Contador não podem mover ninguém
+    if (isSubordinate) {
       e.preventDefault();
       toast({
         title: 'Permissão negada',
-        description: 'Apenas administradores podem reorganizar o organograma.',
+        description: 'Seu papel não permite alterar a organização.',
         variant: 'destructive',
       });
       return;
     }
+
+    // Admin e Psicólogo podem iniciar o drag
+    if (!isAdmin && !isPsychologist) {
+      e.preventDefault();
+      toast({
+        title: 'Permissão negada',
+        description: 'Você não tem permissão para reorganizar o organograma.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setDraggingUser({ fromLevelId, user });
   };
 
@@ -248,7 +264,11 @@ export default function OrgManagement() {
     e: React.DragEvent<HTMLDivElement>,
     targetLevelId: string
   ) => {
-    if (!isAdmin) return;
+    const isPsychologist = roleGlobal === 'psychologist';
+    
+    // Admin e Psicólogo podem fazer drop
+    if (!isAdmin && !isPsychologist) return;
+    
     e.preventDefault(); // Necessário para permitir drop
   };
 
@@ -257,15 +277,92 @@ export default function OrgManagement() {
     targetLevelId: string
   ) => {
     e.preventDefault();
-    if (!isAdmin || !draggingUser || !localUsersByLevel) return;
+    if (!draggingUser || !localUsersByLevel || !levels) return;
 
     const { fromLevelId, user } = draggingUser;
 
-    // Se soltar no mesmo nível, não fazer nada
+    // FASE 6D-2: Validações de regras de negócio
+    
+    // Regra estrutural: não pode mover para o mesmo nível
     if (fromLevelId === targetLevelId) {
       setDraggingUser(null);
       return;
     }
+
+    // Determinar papéis
+    const isPsychologist = roleGlobal === 'psychologist';
+    const isSubordinate = roleGlobal === 'assistant' || roleGlobal === 'accountant';
+
+    // REGRA 1: Assistente/Contador não podem mover ninguém
+    if (isSubordinate) {
+      toast({
+        title: 'Permissão negada',
+        description: 'Seu papel não permite alterar a organização.',
+        variant: 'destructive',
+      });
+      setDraggingUser(null);
+      return;
+    }
+
+    // Buscar informações dos níveis
+    const sourceLevelInfo = levels.find(l => l.id === fromLevelId);
+    const targetLevelInfo = levels.find(l => l.id === targetLevelId);
+
+    if (!sourceLevelInfo || !targetLevelInfo) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível identificar os níveis de origem e destino.',
+        variant: 'destructive',
+      });
+      setDraggingUser(null);
+      return;
+    }
+
+    const sourceLevelNumber = sourceLevelInfo.level_number;
+    const targetLevelNumber = targetLevelInfo.level_number;
+
+    // REGRA 2: Psicólogo só pode mover para níveis abaixo do seu
+    if (isPsychologist) {
+      // Buscar o nível do psicólogo logado
+      // Para isso, preciso encontrar em qual nível o user.id está
+      let userLevelNumber = 1; // Default
+      
+      for (const [levelId, users] of usersByLevel.entries()) {
+        const foundUser = users.find(u => u.user_id === user?.id);
+        if (foundUser) {
+          const levelInfo = levels.find(l => l.id === levelId);
+          if (levelInfo) {
+            userLevelNumber = levelInfo.level_number;
+            break;
+          }
+        }
+      }
+
+      // Psicólogo só pode mover para níveis com número MAIOR (abaixo na hierarquia)
+      if (targetLevelNumber <= userLevelNumber) {
+        toast({
+          title: 'Movimento não permitido',
+          description: 'Você só pode mover membros para níveis abaixo do seu.',
+          variant: 'destructive',
+        });
+        setDraggingUser(null);
+        return;
+      }
+
+      // Psicólogo não pode mover pessoas de níveis acima dele
+      if (sourceLevelNumber < userLevelNumber) {
+        toast({
+          title: 'Movimento não permitido',
+          description: 'Você não pode mover membros de níveis superiores ao seu.',
+          variant: 'destructive',
+        });
+        setDraggingUser(null);
+        return;
+      }
+    }
+
+    // REGRA 3: Admin pode mover qualquer um (sem restrições)
+    // Se chegou aqui e é admin, ou se é psicólogo que passou pelas validações, executar o movimento
 
     // Criar cópia do mapa
     const clone = new Map(localUsersByLevel);
@@ -438,8 +535,8 @@ export default function OrgManagement() {
                             return (
                               <Card
                                 key={userInfo.id}
-                                className={`p-3 bg-background hover:shadow-sm transition-shadow ${isAdmin ? 'cursor-grab active:cursor-grabbing' : ''}`}
-                                draggable={isAdmin}
+                                className={`p-3 bg-background hover:shadow-sm transition-shadow ${(isAdmin || roleGlobal === 'psychologist') ? 'cursor-grab active:cursor-grabbing' : ''}`}
+                                draggable={isAdmin || roleGlobal === 'psychologist'}
                                 onDragStart={(e) => handleDragStart(e, level.id, userInfo)}
                                 onDragEnd={handleDragEnd}
                               >
@@ -570,7 +667,13 @@ export default function OrgManagement() {
             <CardContent className="py-6">
               <h3 className="font-semibold mb-2">Como usar:</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>• <strong>Arrastar e soltar:</strong> {isAdmin ? 'Arraste membros entre níveis para reorganizar (prévia visual, não salva automaticamente)' : 'Apenas administradores podem reorganizar membros'}</li>
+                <li>• <strong>Arrastar e soltar:</strong> {
+                  isAdmin 
+                    ? 'Arraste membros entre níveis para reorganizar (prévia visual, não salva automaticamente)' 
+                    : roleGlobal === 'psychologist'
+                    ? 'Você pode mover subordinados diretos para níveis abaixo do seu'
+                    : 'Apenas administradores e psicólogos podem reorganizar membros'
+                }</li>
                 <li>• <strong>Gerenciar Permissões:</strong> Configure as permissões específicas de cada nível</li>
                 <li>• <strong>Adicionar Nível:</strong> Crie novos níveis hierárquicos conforme necessário</li>
                 <li>• <strong>Visualização:</strong> A estrutura mostra claramente quem está em cada nível</li>
