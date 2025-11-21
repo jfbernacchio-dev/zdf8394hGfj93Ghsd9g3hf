@@ -45,7 +45,8 @@ import { ArrowLeft, Calendar, Users, MessageSquare, Bell, Lock, FileText, Clock,
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { getSubordinateAutonomy, type AutonomyPermissions } from '@/lib/checkSubordinateAutonomy';
+import { getSubordinateAutonomyForAdmin } from '@/lib/resolveEffectivePermissions';
+import type { AutonomyPermissions } from '@/types/permissions';
 import Layout from '@/components/Layout';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -263,7 +264,7 @@ const TherapistDetail = () => {
 
   const loadAutonomySettings = async () => {
     if (!id) return;
-    const settings = await getSubordinateAutonomy(id);
+    const settings = await getSubordinateAutonomyForAdmin(id);
     setAutonomySettings(settings);
   };
 

@@ -60,8 +60,8 @@ const Financial = () => {
     const validateAccess = async () => {
       if (!user || !isSubordinate) return;
 
-      const { canAccessFinancial } = await import('@/lib/checkSubordinateAutonomy');
-      const hasAccess = await canAccessFinancial(user.id, true);
+      const { hasFinancialAccess } = await import('@/lib/resolveEffectivePermissions');
+      const hasAccess = await hasFinancialAccess(user.id);
 
       if (!hasAccess) {
         window.location.href = '/dashboard';
@@ -108,7 +108,7 @@ const Financial = () => {
         .eq('user_id', user!.id);
 
       // Load subordinates without financial access (suas sessões entram no fechamento)
-      const { getSubordinatesForFinancialClosing } = await import('@/lib/checkSubordinateAutonomy');
+      const { getSubordinatesForFinancialClosing } = await import('@/lib/resolveEffectivePermissions');
       const subordinateIds = await getSubordinatesForFinancialClosing(user!.id);
 
       // Load sessions: próprias + subordinados sem acesso financeiro
