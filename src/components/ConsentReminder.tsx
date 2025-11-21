@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { AlertCircle, Send, Loader2, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { getUserIdsInOrganization } from '@/lib/organizationFilters';
 
 interface ConsentReminderProps {
   patientId?: string; // Se fornecido, mostra apenas para este paciente
@@ -26,7 +27,7 @@ interface PendingToken {
 }
 
 export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
-  const { user } = useAuth();
+  const { user, organizationId } = useAuth();
   const { toast } = useToast();
   const [patientsWithoutConsent, setPatientsWithoutConsent] = useState<PatientWithoutConsent[]>([]);
   const [patientsAwaitingResponse, setPatientsAwaitingResponse] = useState<PatientWithoutConsent[]>([]);
@@ -35,21 +36,23 @@ export const ConsentReminder = ({ patientId }: ConsentReminderProps) => {
   const [pendingToken, setPendingToken] = useState<PendingToken | null>(null);
 
   useEffect(() => {
-    if (user) {
+    if (user && organizationId) {
       loadPatientsWithoutConsent();
     }
-  }, [user, patientId]);
+  }, [user, patientId, organizationId]);
 
   const loadPatientsWithoutConsent = async () => {
-    if (!user) return;
+    if (!user || !organizationId) return;
 
     setLoading(true);
     try {
+      const orgUserIds = await getUserIdsInOrganization(organizationId);
+      
       // Buscar pacientes ativos
       let query = supabase
         .from('patients')
         .select('id, name, email, phone, privacy_policy_accepted, is_minor, guardian_name, guardian_phone_1')
-        .eq('user_id', user.id)
+        .in('user_id', orgUserIds)
         .eq('status', 'active');
 
       // Para PatientDetail individual, buscar o paciente específico sem filtro de aceitação

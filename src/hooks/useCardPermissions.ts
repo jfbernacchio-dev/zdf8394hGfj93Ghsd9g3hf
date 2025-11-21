@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useEffectivePermissions } from './useEffectivePermissions';
 import { supabase } from '@/integrations/supabase/client';
 import type { PermissionDomain, AccessLevel, UserRole } from '@/types/permissions';
+import { getUserIdsInOrganization } from '@/lib/organizationFilters';
 import type { SectionConfig } from '@/types/sectionTypes';
 import type { CardConfig } from '@/types/cardTypes';
 import { ALL_AVAILABLE_CARDS } from '@/types/cardTypes';
@@ -25,7 +26,7 @@ import { ALL_AVAILABLE_CARDS } from '@/types/cardTypes';
 
 export function useCardPermissions() {
   const authContext = useAuth();
-  const { isAdmin, isAccountant, user, rolesLoaded, roleGlobal } = authContext;
+  const { isAdmin, isAccountant, user, rolesLoaded, roleGlobal, organizationId } = authContext;
   
   const { 
     permissions, 

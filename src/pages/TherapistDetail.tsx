@@ -36,6 +36,7 @@ import { ptBR } from 'date-fns/locale';
 import Layout from '@/components/Layout';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { getUserIdsInOrganization, isUserInOrganization } from '@/lib/organizationFilters';
 
 interface Notification {
   id: string;
@@ -56,7 +57,7 @@ interface NotificationPreferences {
 const TherapistDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isAdmin, user } = useAuth();
+  const { isAdmin, user, organizationId } = useAuth();
   const { toast } = useToast();
   
   const [therapist, setTherapist] = useState<any>(null);
@@ -193,9 +194,17 @@ const TherapistDetail = () => {
   };
 
   const loadTherapistData = async () => {
-    if (!id) return;
+    if (!id || !organizationId) return;
 
     try {
+      // Validar se o terapeuta pertence à organização ativa
+      const therapistInOrg = await isUserInOrganization(id, organizationId);
+      if (!therapistInOrg) {
+        toast({ title: 'Terapeuta não pertence à organização ativa', variant: 'destructive' });
+        navigate('/therapist-management');
+        return;
+      }
+
       // Get therapist profile
       const { data: profile } = await supabase
         .from('profiles')

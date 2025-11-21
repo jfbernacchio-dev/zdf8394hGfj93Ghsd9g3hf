@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Save, ArrowLeft, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { getUserIdsInOrganization } from '@/lib/organizationFilters';
 
 interface SessionEvaluationFormProps {
   sessionId?: string;
@@ -25,7 +26,7 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
   
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, organizationId } = useAuth();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -151,10 +152,13 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
   }, [sessionId, user]);
 
   const validateAndLoadSession = async () => {
-    if (!user) return;
+    if (!user || !organizationId) return;
     
     try {
       setLoading(true);
+      
+      // Validar organização
+      const orgUserIds = await getUserIdsInOrganization(organizationId);
       
       // Buscar a sessão com informações do paciente
       const { data: sessionData, error: sessionError } = await supabase
@@ -170,6 +174,12 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
       
       if (!sessionData) {
         setValidationError('Sessão não encontrada.');
+        return;
+      }
+
+      // Validar que o paciente pertence à organização ativa
+      if (!orgUserIds.includes(sessionData.patients.user_id)) {
+        setValidationError('Esta sessão não pertence à organização ativa.');
         return;
       }
 

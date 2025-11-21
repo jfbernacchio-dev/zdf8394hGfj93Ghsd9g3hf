@@ -25,6 +25,7 @@ import {
   updateOrganization, 
   addOwner 
 } from '@/lib/organizations';
+import { getUserIdsInOrganization } from '@/lib/organizationFilters';
 
 const WEEKDAYS = [
   { value: 0, label: 'Domingo' },
@@ -177,6 +178,14 @@ const ProfileEdit = () => {
     try {
       console.log('🔍 Carregando contadores...');
       
+      if (!organizationId) {
+        console.log('⚠️ Organização não definida');
+        setAvailableAccountants([]);
+        return;
+      }
+      
+      const orgUserIds = await getUserIdsInOrganization(organizationId);
+      
       // Buscar todos os usuários com role accountant
       const { data: accountantRoles, error: rolesError } = await supabase
         .from('user_roles')
@@ -190,10 +199,13 @@ const ProfileEdit = () => {
       }
 
       const accountantIds = accountantRoles?.map(r => r.user_id) || [];
-      console.log('👥 IDs de contadores:', accountantIds);
+      
+      // Filtrar apenas contadores da organização ativa
+      const orgAccountantIds = accountantIds.filter(id => orgUserIds.includes(id));
+      console.log('👥 IDs de contadores na organização:', orgAccountantIds);
 
-      if (accountantIds.length === 0) {
-        console.log('⚠️ Nenhum contador encontrado');
+      if (orgAccountantIds.length === 0) {
+        console.log('⚠️ Nenhum contador encontrado na organização ativa');
         setAvailableAccountants([]);
         return;
       }
@@ -201,7 +213,7 @@ const ProfileEdit = () => {
       const { data: accountants, error: accountantsError } = await supabase
         .from('profiles')
         .select('id, full_name')
-        .in('id', accountantIds)
+        .in('id', orgAccountantIds)
         .order('full_name');
 
       console.log('✅ Contadores carregados:', accountants);

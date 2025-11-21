@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowLeft, Shield, AlertCircle, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getUserIdsInOrganization } from '@/lib/organizationFilters';
 
 interface SubordinatePermission {
   id: string;
@@ -20,21 +21,25 @@ interface SubordinatePermission {
 }
 
 const PermissionManagement = () => {
-  const { isAdmin, user } = useAuth();
+  const { isAdmin, user, organizationId } = useAuth();
   const navigate = useNavigate();
   const [subordinates, setSubordinates] = useState<SubordinatePermission[]>([]);
   const [selectedSubordinateId, setSelectedSubordinateId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchSubordinates();
-  }, [user]);
+    if (organizationId) {
+      fetchSubordinates();
+    }
+  }, [user, organizationId]);
 
   const fetchSubordinates = async () => {
-    if (!user) return;
+    if (!user || !organizationId) return;
 
     setLoading(true);
     try {
+      const orgUserIds = await getUserIdsInOrganization(organizationId);
+      
       // Get subordinate assignments
       const { data: assignments, error: assignmentsError } = await supabase
         .from('therapist_assignments')
@@ -50,12 +55,21 @@ const PermissionManagement = () => {
       }
 
       const subordinateIds = assignments.map(a => a.subordinate_id);
+      
+      // Filtrar apenas subordinados que pertencem à organização ativa
+      const orgSubordinates = subordinateIds.filter(id => orgUserIds.includes(id));
+
+      if (orgSubordinates.length === 0) {
+        setSubordinates([]);
+        setLoading(false);
+        return;
+      }
 
       // Get profiles
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*')
-        .in('id', subordinateIds);
+        .in('id', orgSubordinates);
 
       if (profilesError) throw profilesError;
 
@@ -77,7 +91,7 @@ const PermissionManagement = () => {
       const { data: patientCounts } = await supabase
         .from('patients')
         .select('user_id')
-        .in('user_id', subordinateIds);
+        .in('user_id', orgSubordinates);
 
       // Build subordinates data
       const subordinatesData: SubordinatePermission[] = profiles.map((profile) => {
