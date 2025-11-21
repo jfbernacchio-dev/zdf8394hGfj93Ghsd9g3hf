@@ -10,13 +10,21 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Users } from 'lucide-react';
+import { ArrowLeft, Users, Building2 } from 'lucide-react';
 import { AccessManagement } from '@/components/AccessManagement';
 import { LayoutTemplateManager } from '@/components/LayoutTemplateManager';
 import { PermissionManagementCompact } from '@/components/PermissionManagementCompact';
+import { 
+  getOrganizationByUser, 
+  createOrganization, 
+  updateOrganization, 
+  addOwner 
+} from '@/lib/organizations';
 
 const WEEKDAYS = [
   { value: 0, label: 'Domingo' },
@@ -69,6 +77,14 @@ const ProfileEdit = () => {
   }, [selectedAccountantId]);
   const [isSubordinate, setIsSubordinate] = useState(false);
   
+  // FASE 10.2: Estados para empresa/CNPJ
+  const [useCompany, setUseCompany] = useState(false);
+  const [organizationId, setOrganizationId] = useState<string | null>(null);
+  const [companyCnpj, setCompanyCnpj] = useState('');
+  const [companyLegalName, setCompanyLegalName] = useState('');
+  const [companyNotes, setCompanyNotes] = useState('');
+  const [loadingCompany, setLoadingCompany] = useState(false);
+  
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -114,6 +130,24 @@ const ProfileEdit = () => {
 
     checkSubordinate();
   }, [profile, user]);
+
+  // FASE 10.2: Carregar dados da organização
+  useEffect(() => {
+    const loadOrganization = async () => {
+      if (!user) return;
+      
+      const org = await getOrganizationByUser(user.id);
+      if (org) {
+        setUseCompany(true);
+        setOrganizationId(org.id);
+        setCompanyCnpj(org.cnpj || '');
+        setCompanyLegalName(org.legal_name || '');
+        setCompanyNotes(org.notes || '');
+      }
+    };
+    
+    loadOrganization();
+  }, [user]);
 
   // Primeiro useEffect: Carrega lista de contadores disponíveis
   useEffect(() => {
@@ -591,6 +625,54 @@ const ProfileEdit = () => {
     }
   };
 
+  // FASE 10.2: Salvar empresa/CNPJ
+  const handleSaveCompany = async () => {
+    if (!user) return;
+    
+    setLoadingCompany(true);
+    try {
+      if (organizationId) {
+        // Atualizar organização existente
+        const success = await updateOrganization(organizationId, {
+          cnpj: companyCnpj,
+          legal_name: companyLegalName,
+          notes: companyNotes,
+        });
+        
+        if (!success) throw new Error('Erro ao atualizar organização');
+      } else {
+        // Criar nova organização
+        const org = await createOrganization({
+          cnpj: companyCnpj,
+          legal_name: companyLegalName,
+          notes: companyNotes,
+          created_by: user.id,
+        });
+        
+        if (!org) throw new Error('Erro ao criar organização');
+        
+        // Adicionar usuário como dono
+        const ownerSuccess = await addOwner(org.id, user.id, true);
+        if (!ownerSuccess) throw new Error('Erro ao adicionar dono');
+        
+        setOrganizationId(org.id);
+      }
+      
+      toast({
+        title: 'Empresa salva',
+        description: 'Os dados da empresa foram salvos com sucesso.',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao salvar empresa',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingCompany(false);
+    }
+  };
+
   return (
     <div className="container mx-auto p-6 max-w-4xl">
       <Button
@@ -775,6 +857,76 @@ const ProfileEdit = () => {
                     </p>
                   </div>
                 )}
+
+                {/* FASE 10.2: Seção de Empresa/CNPJ */}
+                <div className="pt-4 border-t space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="use-company" className="text-base font-medium">
+                        Usa CNPJ / Empresa
+                      </Label>
+                      <p className="text-sm text-muted-foreground">
+                        Configure os dados da sua empresa para emissão de notas fiscais
+                      </p>
+                    </div>
+                    <Switch
+                      id="use-company"
+                      checked={useCompany}
+                      onCheckedChange={setUseCompany}
+                    />
+                  </div>
+
+                  {useCompany && (
+                    <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <Building2 className="w-4 h-4" />
+                        Dados da Empresa
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="company-cnpj">CNPJ</Label>
+                          <Input
+                            id="company-cnpj"
+                            value={companyCnpj}
+                            onChange={(e) => setCompanyCnpj(e.target.value)}
+                            placeholder="00.000.000/0000-00"
+                          />
+                        </div>
+
+                        <div>
+                          <Label htmlFor="company-legal-name">Razão Social</Label>
+                          <Input
+                            id="company-legal-name"
+                            value={companyLegalName}
+                            onChange={(e) => setCompanyLegalName(e.target.value)}
+                            placeholder="Nome da empresa"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="company-notes">Observações</Label>
+                        <Textarea
+                          id="company-notes"
+                          value={companyNotes}
+                          onChange={(e) => setCompanyNotes(e.target.value)}
+                          placeholder="Notas e observações sobre a empresa"
+                          rows={3}
+                        />
+                      </div>
+
+                      <Button
+                        type="button"
+                        onClick={handleSaveCompany}
+                        disabled={loadingCompany}
+                        className="w-full"
+                      >
+                        {loadingCompany ? 'Salvando...' : 'Salvar Empresa'}
+                      </Button>
+                    </div>
+                  )}
+                </div>
 
                 <div className="flex gap-3 pt-4">
                   <Button type="submit" disabled={loading}>
