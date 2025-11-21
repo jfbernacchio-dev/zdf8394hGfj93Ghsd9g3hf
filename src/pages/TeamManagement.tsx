@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Users, Plus, User, Loader2 } from 'lucide-react';
+import { Users, Plus, User, Loader2, TriangleAlert } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -41,13 +41,16 @@ const ROLE_COLORS: Record<string, string> = {
 };
 
 const TeamManagement = () => {
-  const { user, createTherapist } = useAuth();
+  const { user, createTherapist, organizationId } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('existing');
+  
+  console.log('[TEAM] organizationId:', organizationId);
+  console.log('[TEAM] user.id:', user?.id);
   
   // Form para vincular existente
   const [linkFormData, setLinkFormData] = useState({
@@ -70,34 +73,46 @@ const TeamManagement = () => {
 
   // Carregar níveis da organização
   const { data: levels, isLoading: isLoadingLevels } = useQuery({
-    queryKey: ['organization-levels', user?.id],
+    queryKey: ['organization-levels', organizationId],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!organizationId) {
+        console.log('[TEAM] Sem organizationId, retornando vazio');
+        return [];
+      }
+      
+      console.log('[TEAM] Carregando níveis para org:', organizationId);
       
       const { data, error } = await supabase
         .from('organization_levels')
         .select('*')
-        .eq('organization_id', user.id)
+        .eq('organization_id', organizationId)
         .order('level_number', { ascending: true });
 
       if (error) throw error;
+      
+      console.log('[TEAM] levels loaded:', data);
       return data || [];
     },
-    enabled: !!user?.id,
+    enabled: !!organizationId,
   });
 
   // Carregar membros da equipe
   const { data: teamMembers, isLoading: isLoadingMembers } = useQuery({
-    queryKey: ['team-members', user?.id],
+    queryKey: ['team-members', organizationId],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!organizationId) {
+        console.log('[TEAM] Sem organizationId para carregar membros');
+        return [];
+      }
 
       try {
+        console.log('[TEAM] Carregando membros para org:', organizationId);
+        
         // Buscar níveis da organização
         const { data: orgLevels } = await supabase
           .from('organization_levels')
           .select('id, level_name, level_number')
-          .eq('organization_id', user.id);
+          .eq('organization_id', organizationId);
 
         if (!orgLevels || orgLevels.length === 0) return [];
 
@@ -161,13 +176,14 @@ const TeamManagement = () => {
           });
         }
 
+        console.log('[TEAM] team members loaded:', members);
         return members;
       } catch (error) {
         console.error('[TeamManagement] Erro ao carregar membros:', error);
         return [];
       }
     },
-    enabled: !!user?.id,
+    enabled: !!organizationId,
   });
 
   // Agrupar membros por role
@@ -604,6 +620,31 @@ const TeamManagement = () => {
   };
 
   const isLoading = isLoadingLevels || isLoadingMembers;
+
+  // Validação: usuário sem organização
+  if (!organizationId) {
+    return (
+      <div className="container mx-auto p-6 max-w-7xl">
+        <div className="flex flex-col items-center justify-center min-h-[400px] max-w-xl mx-auto text-center">
+          <div className="p-6 rounded-full bg-amber-50 mb-4">
+            <TriangleAlert className="h-16 w-16 text-amber-500" />
+          </div>
+          <h3 className="text-xl font-semibold mb-2">Configuração de empresa pendente</h3>
+          <p className="text-sm text-muted-foreground mb-6">
+            Para gerenciar sua equipe, você precisa configurar sua empresa/CNPJ no perfil.
+          </p>
+          <Button 
+            size="lg"
+            onClick={() => navigate('/profile-edit')}
+            className="gap-2"
+          >
+            <User className="h-5 w-5" />
+            Ir para o perfil
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
