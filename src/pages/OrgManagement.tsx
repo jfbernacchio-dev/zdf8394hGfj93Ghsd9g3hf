@@ -82,7 +82,7 @@ export default function OrgManagement() {
   // FASE 6E-2: Estado para controlar hover durante drag
   const [dragOverLevelId, setDragOverLevelId] = useState<string | null>(null);
 
-  // Query para buscar níveis reais do banco
+  // FASE 7.4: Query para buscar níveis reais do banco com retry automático
   const { data: levels, isLoading: isLoadingLevels, error: errorLevels } = useQuery({
     queryKey: ['organization-levels', user?.id],
     queryFn: async () => {
@@ -94,104 +94,159 @@ export default function OrgManagement() {
         .eq('organization_id', user.id)
         .order('level_number', { ascending: true });
 
-      if (error) throw error;
-      return data || [];
+      if (error) {
+        console.debug('[OrgManagement] Erro ao carregar níveis:', error);
+        throw error;
+      }
+      
+      // FASE 7.6: Sanitização de dados antes de retornar
+      const safeLevels = (data || []).filter(level => {
+        const isValid = level.id && 
+                       typeof level.level_number === 'number' && 
+                       level.level_name && 
+                       level.organization_id;
+        
+        if (!isValid) {
+          console.debug('[OrgManagement] Nível com dados inconsistentes filtrado:', level);
+        }
+        
+        return isValid;
+      });
+      
+      console.debug('[OrgManagement] Níveis carregados:', safeLevels.length);
+      return safeLevels;
     },
     enabled: !!user?.id,
+    retry: 3,
+    retryDelay: 500,
   });
 
-  // Query para buscar usuários com suas posições
+  // FASE 7.4: Query para buscar usuários com suas posições com retry automático
   const { data: userPositions, isLoading: isLoadingUsers, error: errorUsers } = useQuery({
     queryKey: ['user-positions', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
 
-      // Primeiro buscar todos os níveis da organização
-      const { data: orgLevels } = await supabase
-        .from('organization_levels')
-        .select('id')
-        .eq('organization_id', user.id);
+      try {
+        // Primeiro buscar todos os níveis da organização
+        const { data: orgLevels } = await supabase
+          .from('organization_levels')
+          .select('id')
+          .eq('organization_id', user.id);
 
-      if (!orgLevels || orgLevels.length === 0) return [];
+        if (!orgLevels || orgLevels.length === 0) {
+          console.debug('[OrgManagement] Nenhum nível encontrado para carregar usuários');
+          return [];
+        }
 
-      const levelIds = orgLevels.map(l => l.id);
+        const levelIds = orgLevels.map(l => l.id);
 
-      // Buscar positions desses níveis
-      const { data: positions } = await supabase
-        .from('organization_positions')
-        .select('id, level_id')
-        .in('level_id', levelIds);
+        // Buscar positions desses níveis
+        const { data: positions } = await supabase
+          .from('organization_positions')
+          .select('id, level_id')
+          .in('level_id', levelIds);
 
-      if (!positions || positions.length === 0) return [];
+        if (!positions || positions.length === 0) {
+          console.debug('[OrgManagement] Nenhuma posição encontrada');
+          return [];
+        }
 
-      const positionIds = positions.map(p => p.id);
+        const positionIds = positions.map(p => p.id);
 
-      // Buscar user_positions sem join com profiles
-      const { data, error } = await supabase
-        .from('user_positions')
-        .select('id, user_id, position_id')
-        .in('position_id', positionIds);
+        // Buscar user_positions sem join com profiles
+        const { data, error } = await supabase
+          .from('user_positions')
+          .select('id, user_id, position_id')
+          .in('position_id', positionIds);
 
-      if (error) {
-        toast({
-          title: 'Erro ao carregar membros',
-          description: 'Erro ao carregar membros da organização. Tente recarregar a página.',
-          variant: 'destructive',
+        if (error) {
+          console.debug('[OrgManagement] Erro ao carregar user_positions:', error);
+          toast({
+            title: 'Erro ao carregar membros',
+            description: 'Erro ao carregar membros da organização. Tente recarregar a página.',
+            variant: 'destructive',
+          });
+          throw error;
+        }
+
+        if (!data || data.length === 0) {
+          console.debug('[OrgManagement] Nenhum user_position encontrado');
+          return [];
+        }
+
+        // Buscar profiles dos usuários
+        const userIds = data.map(up => up.user_id);
+        
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', userIds);
+
+        if (profilesError) {
+          console.debug('[OrgManagement] Erro ao carregar profiles:', profilesError);
+          toast({
+            title: 'Erro ao carregar perfis',
+            description: 'Erro ao carregar membros da organização. Tente recarregar a página.',
+            variant: 'destructive',
+          });
+          throw profilesError;
+        }
+
+        // Criar mapa de profiles
+        const profilesMap = new Map<string, string>();
+        profilesData?.forEach(p => {
+          profilesMap.set(p.id, p.full_name);
         });
+
+        // Buscar roles dos usuários
+        const { data: rolesData } = await supabase
+          .from('user_roles')
+          .select('user_id, role')
+          .in('user_id', userIds);
+
+        // Criar mapa de roles
+        const rolesMap = new Map<string, string>();
+        rolesData?.forEach(r => rolesMap.set(r.user_id, r.role));
+
+        // FASE 7.6 & 7.7: Enriquecer e sanitizar dados
+        const enrichedData = data
+          ?.map(up => {
+            const position = positions.find(p => p.id === up.position_id);
+            
+            // FASE 7.7: Filtrar user_positions órfãos (positions que apontam para levels inexistentes)
+            if (!position || !position.level_id) {
+              console.debug('[OrgManagement] user_position órfão detectado:', up.id);
+              return null;
+            }
+            
+            // Verificar se o level_id existe nos níveis válidos
+            if (!levelIds.includes(position.level_id)) {
+              console.debug('[OrgManagement] position aponta para level inexistente:', position);
+              return null;
+            }
+            
+            const fullName = profilesMap.get(up.user_id) || 'Sem nome';
+
+            return {
+              ...up,
+              level_id: position.level_id,
+              role: rolesMap.get(up.user_id),
+              full_name: fullName,
+            };
+          })
+          .filter((item): item is NonNullable<typeof item> => item !== null); // Remover nulls
+
+        console.debug('[OrgManagement] Usuários carregados:', enrichedData?.length || 0);
+        return enrichedData || [];
+      } catch (error) {
+        console.debug('[OrgManagement] Erro geral ao carregar usuários:', error);
         throw error;
       }
-
-      if (!data || data.length === 0) return [];
-
-      // Buscar profiles dos usuários
-      const userIds = data.map(up => up.user_id);
-      
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, full_name')
-        .in('id', userIds);
-
-      if (profilesError) {
-        toast({
-          title: 'Erro ao carregar perfis',
-          description: 'Erro ao carregar membros da organização. Tente recarregar a página.',
-          variant: 'destructive',
-        });
-        throw profilesError;
-      }
-
-      // Criar mapa de profiles
-      const profilesMap = new Map<string, string>();
-      profilesData?.forEach(p => {
-        profilesMap.set(p.id, p.full_name);
-      });
-
-      // Buscar roles dos usuários
-      const { data: rolesData } = await supabase
-        .from('user_roles')
-        .select('user_id, role')
-        .in('user_id', userIds);
-
-      // Criar mapa de roles
-      const rolesMap = new Map<string, string>();
-      rolesData?.forEach(r => rolesMap.set(r.user_id, r.role));
-
-      // Enriquecer com level_id, role e full_name
-      const enrichedData = data?.map(up => {
-        const position = positions.find(p => p.id === up.position_id);
-        const fullName = profilesMap.get(up.user_id) ?? 'Sem nome';
-
-        return {
-          ...up,
-          level_id: position?.level_id,
-          role: rolesMap.get(up.user_id),
-          full_name: fullName,
-        };
-      });
-
-      return enrichedData || [];
     },
     enabled: !!user?.id,
+    retry: 3,
+    retryDelay: 500,
   });
 
   // Agrupar usuários por level_id
@@ -243,74 +298,109 @@ export default function OrgManagement() {
 
   const isLoading = isLoadingLevels || isLoadingUsers;
 
-  // FASE 6D-3: Mutation para persistir movimento de usuários entre níveis
+  // FASE 7.2 & 7.8: Mutation para persistir movimento de usuários entre níveis com fail-safe e logs
   const updateUserPositionMutation = useMutation({
     mutationFn: async ({ 
       userPositionId, 
-      destinationLevelId 
+      destinationLevelId,
+      rollbackData 
     }: { 
       userPositionId: string; 
       destinationLevelId: string;
+      rollbackData: { fromLevelId: string; toLevelId: string };
     }) => {
       if (!user?.id) throw new Error('Usuário não autenticado');
 
-      // 1. Buscar ou criar position para o nível de destino
-      let { data: existingPosition, error: fetchError } = await supabase
-        .from('organization_positions')
-        .select('id')
-        .eq('level_id', destinationLevelId)
-        .limit(1)
-        .maybeSingle();
+      console.debug('[OrgManagement] Iniciando movimento de usuário:', { userPositionId, destinationLevelId });
 
-      if (fetchError) throw fetchError;
-
-      let targetPositionId: string;
-
-      if (!existingPosition) {
-        // Criar nova posição automaticamente
-        const { data: newPosition, error: insertError } = await supabase
+      try {
+        // 1. Buscar ou criar position para o nível de destino
+        let { data: existingPosition, error: fetchError } = await supabase
           .from('organization_positions')
-          .insert({
-            level_id: destinationLevelId,
-            position_name: 'Posição automática',
-            parent_position_id: null,
-          })
           .select('id')
-          .single();
+          .eq('level_id', destinationLevelId)
+          .limit(1)
+          .maybeSingle();
 
-        if (insertError) throw insertError;
-        targetPositionId = newPosition.id;
-      } else {
-        targetPositionId = existingPosition.id;
+        if (fetchError) throw fetchError;
+
+        let targetPositionId: string;
+
+        if (!existingPosition) {
+          // Criar nova posição automaticamente
+          const { data: newPosition, error: insertError } = await supabase
+            .from('organization_positions')
+            .insert({
+              level_id: destinationLevelId,
+              position_name: 'Posição automática',
+              parent_position_id: null,
+            })
+            .select('id')
+            .single();
+
+          if (insertError) throw insertError;
+          targetPositionId = newPosition.id;
+          console.debug('[OrgManagement] Nova posição criada:', targetPositionId);
+        } else {
+          targetPositionId = existingPosition.id;
+        }
+
+        // 2. Atualizar user_positions
+        const { error: updateError } = await supabase
+          .from('user_positions')
+          .update({ position_id: targetPositionId })
+          .eq('id', userPositionId);
+
+        if (updateError) throw updateError;
+
+        console.debug('[OrgManagement] Usuário movido com sucesso:', userPositionId);
+        return { success: true, rollbackData };
+      } catch (error) {
+        console.debug('[OrgManagement] Erro durante movimento, preparando rollback:', error);
+        throw error;
       }
-
-      // 2. Atualizar user_positions
-      const { error: updateError } = await supabase
-        .from('user_positions')
-        .update({ position_id: targetPositionId })
-        .eq('id', userPositionId);
-
-      if (updateError) throw updateError;
-
-      return { success: true };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['organization-levels'] });
       queryClient.invalidateQueries({ queryKey: ['user-positions'] });
       
       // FASE 6D-4: Limpar estado local para forçar reconstrução com dados reais do banco
       setLocalUsersByLevel(new Map());
       
+      console.debug('[OrgManagement] Movimento persistido com sucesso');
+      
       toast({
         title: 'Movido com sucesso!',
         description: 'O membro foi movido para o novo nível.',
       });
     },
-    onError: (error: any) => {
-      console.error('[OrgManagement] Erro ao mover usuário:', error);
+    onError: (error: any, variables) => {
+      console.debug('[OrgManagement] Erro ao mover usuário, executando rollback:', error);
+      
+      // FASE 7.2: Fail-safe - Rollback do estado local
+      const { rollbackData } = variables;
+      if (rollbackData && draggingUser) {
+        const clone = new Map(localUsersByLevel);
+        const fromList = [...(clone.get(rollbackData.fromLevelId) ?? [])];
+        const toList = [...(clone.get(rollbackData.toLevelId) ?? [])];
+        
+        // Remover do destino e devolver à origem
+        const index = toList.findIndex((u) => u.id === draggingUser.user.id);
+        if (index !== -1) {
+          toList.splice(index, 1);
+          fromList.push(draggingUser.user);
+          
+          clone.set(rollbackData.fromLevelId, fromList);
+          clone.set(rollbackData.toLevelId, toList);
+          
+          setLocalUsersByLevel(clone);
+          console.debug('[OrgManagement] Rollback executado com sucesso');
+        }
+      }
+      
       toast({
         title: 'Erro ao mover usuário',
-        description: error?.message || 'Não foi possível mover o membro para o novo nível.',
+        description: error?.message || 'Não foi possível mover o membro. O estado foi restaurado.',
         variant: 'destructive',
       });
     },
@@ -365,18 +455,27 @@ export default function OrgManagement() {
     return false;
   };
 
-  // FASE 6D-2: Handlers para drag & drop com validações
+  // FASE 7.1 & 7.5: Handlers para drag & drop com proteção contra race conditions e guards estritos
   const handleDragStart = (
     e: React.DragEvent<HTMLDivElement>,
     fromLevelId: string,
     user: UserInLevel
   ) => {
+    // FASE 7.1: Proteção contra race condition - não permitir drag se há mutation pendente
+    if (updateUserPositionMutation.isPending || deleteLevelMutation.isPending || addLevelMutation.isPending) {
+      e.preventDefault();
+      console.debug('[OrgManagement] Drag bloqueado: mutation pendente');
+      return;
+    }
+    
+    // FASE 7.5: Guard estrito de roles
     const isPsychologist = roleGlobal === 'psychologist';
     const isSubordinate = roleGlobal === 'assistant' || roleGlobal === 'accountant';
 
     // Assistente/Contador não podem mover ninguém
     if (isSubordinate) {
       e.preventDefault();
+      console.debug('[OrgManagement] Drag negado: papel subordinado');
       toast({
         title: 'Permissão negada',
         description: 'Seu papel não permite alterar a organização.',
@@ -388,6 +487,7 @@ export default function OrgManagement() {
     // Admin e Psicólogo podem iniciar o drag
     if (!isAdmin && !isPsychologist) {
       e.preventDefault();
+      console.debug('[OrgManagement] Drag negado: sem permissão');
       toast({
         title: 'Permissão negada',
         description: 'Você não tem permissão para reorganizar o organograma.',
@@ -396,10 +496,13 @@ export default function OrgManagement() {
       return;
     }
 
+    console.debug('[OrgManagement] Drag iniciado:', { fromLevelId, userId: user.id });
     setDraggingUser({ fromLevelId, user });
   };
 
+  // FASE 7.9: Proteção contra drag outside bounds
   const handleDragEnd = () => {
+    console.debug('[OrgManagement] Drag finalizado');
     setDraggingUser(null);
     setDragOverLevelId(null); // FASE 6E-2: Limpar hover
   };
@@ -424,7 +527,17 @@ export default function OrgManagement() {
     targetLevelId: string
   ) => {
     e.preventDefault();
-    if (!draggingUser || !localUsersByLevel || !levels) return;
+    
+    // FASE 7.1: Proteção contra race condition
+    if (updateUserPositionMutation.isPending) {
+      console.debug('[OrgManagement] Drop bloqueado: mutation já em andamento');
+      return;
+    }
+    
+    if (!draggingUser || !localUsersByLevel || !levels) {
+      console.debug('[OrgManagement] Drop ignorado: dados insuficientes');
+      return;
+    }
 
     const { fromLevelId, user } = draggingUser;
 
@@ -432,16 +545,18 @@ export default function OrgManagement() {
     
     // Regra estrutural: não pode mover para o mesmo nível
     if (fromLevelId === targetLevelId) {
+      console.debug('[OrgManagement] Drop ignorado: mesmo nível');
       setDraggingUser(null);
       return;
     }
 
-    // Determinar papéis
+    // FASE 7.5: Determinar papéis com guard estrito
     const isPsychologist = roleGlobal === 'psychologist';
     const isSubordinate = roleGlobal === 'assistant' || roleGlobal === 'accountant';
 
-    // REGRA 1: Assistente/Contador não podem mover ninguém
+    // REGRA 1: Assistente/Contador não podem mover ninguém (guard redundante)
     if (isSubordinate) {
+      console.debug('[OrgManagement] Drop negado: papel subordinado');
       toast({
         title: 'Permissão negada',
         description: 'Seu papel não permite alterar a organização.',
@@ -450,12 +565,20 @@ export default function OrgManagement() {
       setDraggingUser(null);
       return;
     }
+    
+    // Guard adicional: verificar se tem permissão
+    if (!isAdmin && !isPsychologist) {
+      console.debug('[OrgManagement] Drop negado: sem permissão');
+      setDraggingUser(null);
+      return;
+    }
 
-    // Buscar informações dos níveis
+    // FASE 7.6: Buscar informações dos níveis com validação
     const sourceLevelInfo = levels.find(l => l.id === fromLevelId);
     const targetLevelInfo = levels.find(l => l.id === targetLevelId);
 
     if (!sourceLevelInfo || !targetLevelInfo) {
+      console.debug('[OrgManagement] Drop falhou: níveis não encontrados');
       toast({
         title: 'Erro',
         description: 'Não foi possível identificar os níveis de origem e destino.',
@@ -471,7 +594,6 @@ export default function OrgManagement() {
     // REGRA 2: Psicólogo só pode mover para níveis abaixo do seu
     if (isPsychologist) {
       // Buscar o nível do psicólogo logado
-      // Para isso, preciso encontrar em qual nível o user.id está
       let userLevelNumber = 1; // Default
       
       for (const [levelId, users] of usersByLevel.entries()) {
@@ -487,6 +609,7 @@ export default function OrgManagement() {
 
       // Psicólogo só pode mover para níveis com número MAIOR (abaixo na hierarquia)
       if (targetLevelNumber <= userLevelNumber) {
+        console.debug('[OrgManagement] Drop negado: psicólogo tentou mover para nível acima ou igual');
         toast({
           title: 'Movimento não permitido',
           description: 'Você só pode mover membros para níveis abaixo do seu.',
@@ -498,6 +621,7 @@ export default function OrgManagement() {
 
       // Psicólogo não pode mover pessoas de níveis acima dele
       if (sourceLevelNumber < userLevelNumber) {
+        console.debug('[OrgManagement] Drop negado: psicólogo tentou mover de nível superior');
         toast({
           title: 'Movimento não permitido',
           description: 'Você não pode mover membros de níveis superiores ao seu.',
@@ -509,7 +633,12 @@ export default function OrgManagement() {
     }
 
     // REGRA 3: Admin pode mover qualquer um (sem restrições)
-    // Se chegou aqui e é admin, ou se é psicólogo que passou pelas validações, executar o movimento
+    
+    console.debug('[OrgManagement] Drop validado, executando movimento:', {
+      from: fromLevelId,
+      to: targetLevelId,
+      user: user.id
+    });
 
     // Criar cópia do mapa
     const clone = new Map(localUsersByLevel);
@@ -520,6 +649,7 @@ export default function OrgManagement() {
     // Remover usuário do nível de origem
     const index = fromList.findIndex((u) => u.id === user.id);
     if (index === -1) {
+      console.debug('[OrgManagement] Drop falhou: usuário não encontrado na lista de origem');
       setDraggingUser(null);
       return;
     }
@@ -531,20 +661,25 @@ export default function OrgManagement() {
     clone.set(targetLevelId, toList);
 
     setLocalUsersByLevel(clone);
-    setDraggingUser(null);
     setDragOverLevelId(null); // FASE 6E-2: Limpar hover
 
-    // FASE 6D-3: Persistir movimento no banco
+    // FASE 7.2: Persistir movimento no banco com dados de rollback
     updateUserPositionMutation.mutate({
       userPositionId: user.id,
       destinationLevelId: targetLevelId,
+      rollbackData: { fromLevelId, toLevelId: targetLevelId },
     });
+    
+    // Limpar draggingUser após iniciar a mutation
+    setDraggingUser(null);
   };
 
-  // Mutation para adicionar novo nível
+  // FASE 7.1 & 7.8: Mutation para adicionar novo nível com proteção e logs
   const addLevelMutation = useMutation({
     mutationFn: async () => {
       if (!user?.id) throw new Error('Usuário não autenticado');
+
+      console.debug('[OrgManagement] Iniciando criação de nível');
 
       const maxLevelNumber = levels?.reduce((max, level) => 
         Math.max(max, level.level_number), 0) || 0;
@@ -562,7 +697,12 @@ export default function OrgManagement() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.debug('[OrgManagement] Erro ao criar nível:', error);
+        throw error;
+      }
+      
+      console.debug('[OrgManagement] Nível criado com sucesso:', data.id);
       return data;
     },
     onSuccess: () => {
@@ -573,6 +713,7 @@ export default function OrgManagement() {
       });
     },
     onError: (error) => {
+      console.debug('[OrgManagement] Falha ao adicionar nível');
       toast({
         title: 'Erro ao adicionar nível',
         description: 'Erro ao carregar níveis organizacionais.',
@@ -581,19 +722,31 @@ export default function OrgManagement() {
     },
   });
 
+  // FASE 7.1: Handler com proteção contra race condition
   const handleAddLevel = () => {
+    if (addLevelMutation.isPending) {
+      console.debug('[OrgManagement] Criação de nível bloqueada: mutation pendente');
+      return;
+    }
     addLevelMutation.mutate();
   };
 
-  // FASE 6E-5: Mutation para excluir nível
+  // FASE 7.1 & 7.8: Mutation para excluir nível com proteção e logs
   const deleteLevelMutation = useMutation({
     mutationFn: async (levelId: string) => {
+      console.debug('[OrgManagement] Iniciando exclusão de nível:', levelId);
+      
       const { error } = await supabase
         .from('organization_levels')
         .delete()
         .eq('id', levelId);
 
-      if (error) throw error;
+      if (error) {
+        console.debug('[OrgManagement] Erro ao excluir nível:', error);
+        throw error;
+      }
+      
+      console.debug('[OrgManagement] Nível excluído com sucesso:', levelId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['organization-levels', user?.id] });
@@ -604,6 +757,7 @@ export default function OrgManagement() {
       });
     },
     onError: () => {
+      console.debug('[OrgManagement] Falha ao excluir nível');
       toast({
         title: 'Erro ao excluir nível',
         description: 'Não foi possível excluir este nível. Tente novamente.',
@@ -612,13 +766,24 @@ export default function OrgManagement() {
     },
   });
 
-  // FASE 6E-5: Handler para excluir nível
+  // FASE 7.1 & 7.5: Handler para excluir nível com guards estritos
   const handleDeleteLevel = (levelId: string) => {
-    if (!isAdmin) return;
+    // Guard: apenas admin pode excluir
+    if (!isAdmin) {
+      console.debug('[OrgManagement] Exclusão negada: não é admin');
+      return;
+    }
+    
+    // FASE 7.1: Proteção contra race condition
+    if (deleteLevelMutation.isPending) {
+      console.debug('[OrgManagement] Exclusão bloqueada: mutation pendente');
+      return;
+    }
 
     const memberCount = localUsersByLevel.get(levelId)?.length ?? 0;
 
     if (memberCount > 0) {
+      console.debug('[OrgManagement] Exclusão bloqueada: nível possui membros');
       toast({
         title: 'Não é possível excluir este nível',
         description: 'Você precisa mover todos os membros deste nível antes de excluí-lo.',
@@ -628,7 +793,10 @@ export default function OrgManagement() {
     }
 
     const confirmed = window.confirm('Tem certeza que deseja excluir este nível? Esta ação não pode ser desfeita.');
-    if (!confirmed) return;
+    if (!confirmed) {
+      console.debug('[OrgManagement] Exclusão cancelada pelo usuário');
+      return;
+    }
 
     deleteLevelMutation.mutate(levelId);
   };
