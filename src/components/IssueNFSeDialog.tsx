@@ -7,8 +7,7 @@ import { FileText, Loader2 } from 'lucide-react';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import { format, parseISO } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
-import { usePermissionFlags } from '@/hooks/usePermissionFlags';
-import { canAccessFinancial } from '@/lib/checkSubordinateAutonomy';
+import { useEffectivePermissions } from '@/hooks/useEffectivePermissions';
 
 interface IssueNFSeDialogProps {
   patientId: string;
@@ -24,8 +23,9 @@ export default function IssueNFSeDialog({
   onSuccess,
 }: IssueNFSeDialogProps) {
   const { toast } = useToast();
-  const { user, roleGlobal } = useAuth();
-  const { isSubordinate } = usePermissionFlags();
+  const { user, roleGlobal, isAdmin } = useAuth();
+  const { permissions, financialAccess } = useEffectivePermissions();
+  
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingSessions, setLoadingSessions] = useState(false);
@@ -34,6 +34,11 @@ export default function IssueNFSeDialog({
   const [isMonthlyPatient, setIsMonthlyPatient] = useState(false);
   const [patientSessionValue, setPatientSessionValue] = useState(0);
   const [hasFinancialPermission, setHasFinancialPermission] = useState(true);
+
+  // Derivar flags localmente
+  const isAccountant = roleGlobal === 'accountant';
+  const isAssistant = roleGlobal === 'assistant';
+  const isPsychologist = roleGlobal === 'psychologist';
   
   // Atualizar sessões quando a prop externa mudar
   useEffect(() => {
@@ -44,23 +49,73 @@ export default function IssueNFSeDialog({
 
   // Validar permissões financeiras ao montar
   useEffect(() => {
-    const checkFinancialPermission = async () => {
-      if (!user || !isSubordinate) {
+    const checkFinancialPermission = () => {
+      if (!user) {
+        setHasFinancialPermission(false);
+        return;
+      }
+
+      // ============================================================
+      // NOVA LÓGICA DE PERMISSÕES (USANDO useEffectivePermissions)
+      // ============================================================
+
+      // Admin sempre pode emitir
+      if (isAdmin) {
         setHasFinancialPermission(true);
         return;
       }
 
-      const hasAccess = await canAccessFinancial(user.id, true);
-      setHasFinancialPermission(hasAccess);
-
-      if (!hasAccess) {
+      // Accountant gerencia mas nunca emite
+      if (isAccountant) {
+        setHasFinancialPermission(false);
         toast({
           title: 'Acesso negado',
-          description: 'Você não tem permissão para emitir NFSe. Entre em contato com seu gestor.',
+          description: 'Contadores não podem emitir NFSe diretamente. Essa ação é restrita a terapeutas.',
           variant: 'destructive',
         });
         setOpen(false);
+        return;
       }
+
+      // Assistant nunca emite
+      if (isAssistant) {
+        setHasFinancialPermission(false);
+        toast({
+          title: 'Acesso negado',
+          description: 'Assistentes não têm permissão para emitir NFSe.',
+          variant: 'destructive',
+        });
+        setOpen(false);
+        return;
+      }
+
+      // Psychologist pode emitir SE financialAccess === 'full'
+      if (isPsychologist) {
+        if (financialAccess === 'full') {
+          setHasFinancialPermission(true);
+        } else if (financialAccess === 'summary') {
+          setHasFinancialPermission(false);
+          toast({
+            title: 'Acesso restrito',
+            description: 'Você tem acesso apenas para visualizar dados financeiros, mas não pode emitir NFSe.',
+            variant: 'destructive',
+          });
+          setOpen(false);
+        } else {
+          // financialAccess === 'none'
+          setHasFinancialPermission(false);
+          toast({
+            title: 'Acesso negado',
+            description: 'Você não tem permissão para acessar funcionalidades financeiras. Entre em contato com seu gestor.',
+            variant: 'destructive',
+          });
+          setOpen(false);
+        }
+        return;
+      }
+
+      // Fallback: bloquear
+      setHasFinancialPermission(false);
     };
 
     if (open) {
@@ -76,7 +131,7 @@ export default function IssueNFSeDialog({
         }
       }
     }
-  }, [open, user, isSubordinate, externalUnpaidSessions]);
+  }, [open, user, isAdmin, isAccountant, isAssistant, isPsychologist, financialAccess, externalUnpaidSessions, hasFinancialPermission]);
 
   // Função para carregar APENAS configurações do paciente (SEMPRE executada)
   const loadPatientConfig = async () => {
