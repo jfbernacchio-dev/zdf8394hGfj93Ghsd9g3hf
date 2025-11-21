@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { usePermissionFlags } from '@/hooks/usePermissionFlags';
+import { useEffectivePermissions } from '@/hooks/useEffectivePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { routePermissions } from '@/lib/routePermissions';
 import { checkRoutePermission, getUserRoles } from '@/lib/checkPermissions';
-import { useEffectivePermissions } from '@/hooks/useEffectivePermissions';
 import type { PermissionDomain, AccessLevel } from '@/types/permissions';
 import type { EffectivePermissions } from '@/lib/resolveEffectivePermissions';
 
@@ -39,17 +38,26 @@ interface PermissionRouteProps {
 }
 
 export function PermissionRoute({ children, path }: PermissionRouteProps) {
-  const { user, isAdmin, isAccountant, rolesLoaded } = useAuth();
-  const { isFullTherapist, isSubordinate } = usePermissionFlags();
-  const { 
-    permissions, 
-    loading: permissionsLoading,
-    financialAccess 
-  } = useEffectivePermissions();
+  const { user, rolesLoaded, roleGlobal } = useAuth();
+  const effective = useEffectivePermissions();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [isRedirecting, setIsRedirecting] = useState(false);
+
+  // Derive flags from new permission system
+  const isAdmin = roleGlobal === 'admin';
+  const isAccountant = roleGlobal === 'accountant';
+  const isAssistant = roleGlobal === 'assistant';
+  const isPsychologist = roleGlobal === 'psychologist';
+  
+  // Subordinate: assistant or accountant roles
+  const isSubordinate = isAssistant || isAccountant;
+  // Full therapist: psychologist role (not subordinate)
+  const isFullTherapist = isPsychologist;
+  
+  const permissionsLoading = effective.loading;
+  const permissions = effective.permissions;
 
   useEffect(() => {
     // Aguardar carregamento de autenticação e roles
@@ -61,19 +69,6 @@ export function PermissionRoute({ children, path }: PermissionRouteProps) {
     if (isSubordinate && permissionsLoading) {
       return;
     }
-
-    // 🔍 LOG DIAGNÓSTICO: Estado completo no PermissionRoute
-    console.log('====================================');
-    console.log('🔍 [PermissionRoute] VERIFICAÇÃO DE ACESSO');
-    console.log('====================================');
-    console.log('Path tentado:', path);
-    console.log('User ID:', user?.id);
-    console.log('rolesLoaded:', rolesLoaded);
-    console.log('Flags de autenticação:');
-    console.log('  - isAdmin:', isAdmin);
-    console.log('  - isFullTherapist:', isFullTherapist);
-    console.log('  - isSubordinate:', isSubordinate);
-    console.log('  - isAccountant:', isAccountant);
     
     // Obter roles do usuário
     const userRoles = getUserRoles({ 
@@ -83,26 +78,13 @@ export function PermissionRoute({ children, path }: PermissionRouteProps) {
       isAccountant 
     });
 
-    console.log('User roles calculadas:', userRoles);
-
     // Buscar configuração da rota
     const routeConfig = routePermissions[path];
-    console.log('Configuração da rota:', JSON.stringify(routeConfig, null, 2));
 
     // ETAPA 1: Verificar permissão baseada em ROLE (allowedFor/blockedFor)
     const roleCheck = checkRoutePermission(userRoles, routeConfig);
     
-    console.log('Resultado da verificação:');
-    console.log('  - allowed:', roleCheck.allowed);
-    console.log('  - reason:', roleCheck.reason);
-    console.log('====================================');
-    
     if (!roleCheck.allowed) {
-      console.log('❌ [PermissionRoute] ACESSO NEGADO!');
-      console.log(`Path: ${path}`);
-      console.log(`Razão: ${roleCheck.reason}`);
-      console.log('====================================');
-      
       setHasPermission(false);
       setIsRedirecting(true);
       
@@ -117,9 +99,6 @@ export function PermissionRoute({ children, path }: PermissionRouteProps) {
       navigate(targetDashboard, { replace: true });
       return;
     }
-    
-    console.log('✅ [PermissionRoute] ACESSO PERMITIDO!');
-    console.log('====================================');
 
     // ETAPA 2: Verificar permissão baseada em DOMÍNIO (se especificado)
     if (routeConfig?.requiresDomain && routeConfig?.minimumAccess) {
@@ -138,7 +117,6 @@ export function PermissionRoute({ children, path }: PermissionRouteProps) {
         const hasAccess = checkAccessLevel(domainAccess, minAccess);
 
         if (!hasAccess) {
-          console.log(`[PermissionRoute] Insufficient domain access for ${path}: requires ${minAccess} on ${domain}, has ${domainAccess}`);
           setHasPermission(false);
           setIsRedirecting(true);
           
@@ -156,7 +134,7 @@ export function PermissionRoute({ children, path }: PermissionRouteProps) {
 
     // Acesso permitido
     setHasPermission(true);
-  }, [user, rolesLoaded, isAdmin, isSubordinate, isAccountant, permissionsLoading, permissions, path, navigate, toast]);
+  }, [user, rolesLoaded, isAdmin, isSubordinate, isAccountant, permissionsLoading, permissions, path, navigate, toast, isFullTherapist]);
 
   // Loading state
   if (!user || !rolesLoaded || (isSubordinate && permissionsLoading) || hasPermission === null) {
