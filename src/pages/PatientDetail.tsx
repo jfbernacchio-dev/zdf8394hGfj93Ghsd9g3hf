@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { usePermissionFlags } from '@/hooks/usePermissionFlags';
 import { logAdminAccess } from '@/lib/auditLog';
 import { formatBrazilianDate, formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import { Button } from '@/components/ui/button';
@@ -16,7 +15,20 @@ import {
   CreditCard, Activity, TrendingUp, TrendingDown 
 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { 
+  AlertDialog, 
+  AlertDialogContent, 
+  AlertDialogHeader, 
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel
+} from '@/components/ui/alert-dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import IssueNFSeDialog from '@/components/IssueNFSeDialog';
 import { PatientFiles } from '@/components/PatientFiles';
 import { AppointmentDialog } from '@/components/AppointmentDialog';
@@ -42,6 +54,8 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const PatientDetailNew = () => {
   const { id } = useParams();
@@ -49,7 +63,6 @@ const PatientDetailNew = () => {
   const location = useLocation();
   
   const { user, isAdmin } = useAuth();
-  const { isSubordinate } = usePermissionFlags();
   const [patient, setPatient] = useState<any>(null);
   const [sessions, setSessions] = useState<any[]>([]);
   const [allSessions, setAllSessions] = useState<any[]>([]);
@@ -166,14 +179,10 @@ const PatientDetailNew = () => {
     const validateAccess = async () => {
       if (!user || !id) return;
       
-      const access = await canAccessPatient(user.id, id, isAdmin);
+      const hasAccess = await checkPatientAccess(user.id, id);
       
-      if (!access.allowed) {
-        toast({
-          title: "Acesso negado",
-          description: access.reason,
-          variant: "destructive"
-        });
+      if (!hasAccess) {
+        toast.error("Você não tem permissão para acessar este paciente");
         navigate('/patients');
         return;
       }
@@ -276,49 +285,6 @@ const PatientDetailNew = () => {
     setComplaint(complaintData);
     setComplaintText(complaintData?.complaint_text || '');
     setSessionHistory(historyData || []);
-
-    // FASE 2A: Verificar autonomia corretamente
-    console.log('🔍 [FASE 2A] PatientDetail - Carregando permissões:', {
-      userId: user?.id,
-      patientUserId: patientData?.user_id,
-      isSubordinate,
-      patientBelongsToUser: patientData?.user_id === user?.id,
-      patientBelongsToOther: patientData?.user_id !== user?.id
-    });
-
-    if (user) {
-      let autonomy: AutonomyPermissions;
-
-      if (isSubordinate) {
-        // Usuário logado é subordinado - carregar SUA autonomia
-        console.log('🔍 [FASE 2A] Usuário é subordinado, carregando sua autonomia');
-        autonomy = await getSubordinateAutonomy(user.id);
-      } else if (patientData && patientData.user_id !== user.id) {
-        // Paciente pertence a outro usuário (subordinado) - carregar autonomia DELE
-        console.log('🔍 [FASE 2A] Paciente pertence a subordinado, carregando autonomia do subordinado');
-        autonomy = await getSubordinateAutonomy(patientData.user_id);
-      } else {
-        // Usuário é Full e paciente é dele - acesso total
-        console.log('🔍 [FASE 2A] Usuário é Full com paciente próprio - acesso total');
-        autonomy = {
-          managesOwnPatients: false,
-          hasFinancialAccess: true, // ✅ CORRIGIDO: Full tem acesso financeiro
-          nfseEmissionMode: 'own_company',
-          canFullSeeClinic: true,
-          includeInFullFinancial: true
-        };
-      }
-
-      console.log('🔍 [FASE 2A] Permissões carregadas:', {
-        managesOwnPatients: autonomy.managesOwnPatients,
-        hasFinancialAccess: autonomy.hasFinancialAccess,
-        nfseEmissionMode: autonomy.nfseEmissionMode,
-        canFullSeeClinic: autonomy.canFullSeeClinic
-      });
-
-      setAutonomyPermissions(autonomy);
-      setLoadingPermissions(false);
-    }
 
     await logAdminAccess('view_patient', undefined, id, 'Admin viewed patient details (NEW UI)');
   };
@@ -531,11 +497,7 @@ const PatientDetailNew = () => {
         
         if (nfseUpdateError) {
           console.error('❌ [NFSE UPDATE ERROR]', nfseUpdateError);
-          toast({
-            title: "Erro ao atualizar NFSe",
-            description: "Não foi possível remover a sessão da NFSe.",
-            variant: "destructive"
-          });
+          toast.error("Não foi possível remover a sessão da NFSe");
           return;
         }
         
@@ -563,43 +525,28 @@ const PatientDetailNew = () => {
 
       if (error) {
         console.error('❌ [SUBMIT ERRO] Erro ao atualizar:', error);
-        toast({ title: 'Erro ao atualizar sessão', variant: 'destructive' });
+        toast.error('Erro ao atualizar sessão');
         return;
       }
 
       console.log('🟢 [SUBMIT SUCESSO] Update executado com sucesso');
 
       if (dateChanged || timeChanged) {
-        const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-        
-        const oldDate = new Date(editingSession.date);
-        const newDate = new Date(formData.date);
-        
-        const oldDay = dayNames[oldDate.getDay()];
-        const newDay = dayNames[newDate.getDay()];
-        
-        await supabase
-          .from('session_history')
-          .insert({
-            patient_id: id,
-            old_day: oldDay,
-            old_time: editingSession.time || '-',
-            new_day: newDay,
-            new_time: formData.time || '-'
-          });
+...
+        });
       }
 
-      toast({ title: 'Sessão atualizada!' });
+      toast.success('Sessão atualizada!');
     } else {
       const { error } = await supabase
         .from('sessions')
         .insert([sessionData]);
 
       if (error) {
-        toast({ title: 'Erro ao criar sessão', variant: 'destructive' });
+        toast.error('Erro ao criar sessão');
         return;
       }
-      toast({ title: 'Sessão criada!' });
+      toast.success('Sessão criada!');
     }
 
     console.log('🔵 [SUBMIT] Fechando dialog e recarregando dados...');
@@ -625,15 +572,11 @@ const PatientDetailNew = () => {
 
       if (error) {
         console.error('Error updating session status:', error);
-        toast({ 
-          title: 'Erro ao atualizar status', 
-          description: error.message,
-          variant: 'destructive' 
-        });
+      toast.error(`Erro ao atualizar status: ${error.message}`);
         return;
       }
       
-      toast({ title: checked ? 'Sessão reagendada' : 'Sessão desmarcada' });
+      toast.success(checked ? 'Sessão reagendada' : 'Sessão desmarcada');
       await loadData();
       return;
     }
@@ -650,26 +593,18 @@ const PatientDetailNew = () => {
 
         if (error) {
           console.error('Error updating session status:', error);
-          toast({ 
-            title: 'Erro ao atualizar status', 
-            description: error.message,
-            variant: 'destructive' 
-          });
+        toast.error(`Erro ao atualizar status: ${error.message}`);
           return;
         }
         
-        toast({ title: 'Sessão reagendada' });
+        toast.success('Sessão reagendada');
         await loadData();
       }
       return;
     }
 
     if (checked && isBefore(new Date(), parseISO(session.date))) {
-      toast({ 
-        title: 'Não é possível marcar como compareceu', 
-        description: 'Sessões futuras não podem ser marcadas como comparecidas.',
-        variant: 'destructive' 
-      });
+      toast.error('Sessões futuras não podem ser marcadas como comparecidas');
       return;
     }
 
@@ -682,11 +617,7 @@ const PatientDetailNew = () => {
 
     if (error) {
       console.error('Error updating session status:', error);
-      toast({ 
-        title: 'Erro ao atualizar status', 
-        description: error.message,
-        variant: 'destructive' 
-      });
+          toast.error(`Erro ao atualizar status: ${error.message}`);
       return;
     }
     
@@ -695,7 +626,7 @@ const PatientDetailNew = () => {
       await ensureFutureSessions(session.patient_id, patient!, supabase, 4);
     }
     
-    toast({ title: `Status alterado para ${newStatus === 'attended' ? 'Compareceu' : 'Não Compareceu'}` });
+    toast.success(`Status alterado para ${newStatus === 'attended' ? 'Compareceu' : 'Não Compareceu'}`);
     await loadData();
   };
 
@@ -708,11 +639,11 @@ const PatientDetailNew = () => {
       .eq('id', sessionId);
 
     if (error) {
-      toast({ title: 'Erro ao excluir sessão', variant: 'destructive' });
+      toast.error('Erro ao excluir sessão');
       return;
     }
 
-    toast({ title: 'Sessão excluída com sucesso!' });
+    toast.success('Sessão excluída com sucesso!');
     setIsDialogOpen(false);
     loadData();
   };
@@ -1466,7 +1397,7 @@ Assinatura do Profissional`;
               <TabsTrigger value="complaint">Queixa Clínica</TabsTrigger>
               <TabsTrigger value="appointments">Agendamentos</TabsTrigger>
               {/* Aba Faturamento: apenas se usuário tem acesso financeiro */}
-              {!loadingPermissions && autonomyPermissions?.hasFinancialAccess && (
+              {!permissionsLoading && financialAccess !== 'none' && (
                 <TabsTrigger value="billing">Faturamento</TabsTrigger>
               )}
               <TabsTrigger value="files">Arquivos</TabsTrigger>
@@ -2011,11 +1942,11 @@ Assinatura do Profissional`;
 
           {/* Billing Tab - Apenas se tem acesso financeiro */}
           <TabsContent value="billing" className="space-y-4">
-            {loadingPermissions ? (
+            {permissionsLoading ? (
               <div className="flex justify-center items-center py-8">
                 <p className="text-muted-foreground">Carregando permissões...</p>
               </div>
-            ) : autonomyPermissions?.hasFinancialAccess ? (
+            ) : financialAccess !== 'none' ? (
               <>
                 <div className="flex justify-between items-center">
                   <h2 className="text-xl font-semibold">Faturamento</h2>
@@ -2125,11 +2056,11 @@ Assinatura do Profissional`;
 
           {/* Clinical Complaint Tab */}
           <TabsContent value="complaint" className="space-y-6">
-            {loadingPermissions ? (
+            {permissionsLoading ? (
               <div className="flex justify-center items-center py-8">
                 <p className="text-muted-foreground">Carregando permissões...</p>
               </div>
-            ) : (patient?.user_id === user?.id || autonomyPermissions?.canFullSeeClinic) ? (
+            ) : (patient?.user_id === user?.id || canAccessClinical) ? (
               <ClinicalComplaintSummary patientId={id!} />
             ) : (
               <Alert>
@@ -2143,11 +2074,11 @@ Assinatura do Profissional`;
 
           {/* Clinical Evolution Tab */}
           <TabsContent value="evolution" className="space-y-6">
-            {loadingPermissions ? (
+            {permissionsLoading ? (
               <div className="flex justify-center items-center py-8">
                 <p className="text-muted-foreground">Carregando permissões...</p>
               </div>
-            ) : (patient?.user_id === user?.id || autonomyPermissions?.canFullSeeClinic) ? (
+            ) : (patient?.user_id === user?.id || canAccessClinical) ? (
               <ClinicalEvolution patientId={id!} />
             ) : (
               <Alert>
