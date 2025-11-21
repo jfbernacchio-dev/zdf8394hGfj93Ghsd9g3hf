@@ -276,6 +276,10 @@ export default function OrgManagement() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['organization-levels'] });
       queryClient.invalidateQueries({ queryKey: ['user-positions'] });
+      
+      // FASE 6D-4: Limpar estado local para forçar reconstrução com dados reais do banco
+      setLocalUsersByLevel(null);
+      
       toast({
         title: 'Movido com sucesso!',
         description: 'O membro foi movido para o novo nível.',
