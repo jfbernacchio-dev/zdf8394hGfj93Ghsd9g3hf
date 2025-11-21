@@ -28,6 +28,7 @@ interface UserInLevel {
   user_id: string;
   full_name: string;
   avatar_url?: string;
+  role?: string;
 }
 
 // Cores automáticas por índice
@@ -44,9 +45,16 @@ const LEVEL_COLORS = [
 
 const ROLE_LABELS: Record<string, string> = {
   psychologist: 'Psicólogo',
-  assistant: 'Assistente',
+  assistant: 'Secretária',
   accountant: 'Contador',
   admin: 'Admin',
+};
+
+const ROLE_COLORS: Record<string, string> = {
+  psychologist: 'bg-blue-100 text-blue-700 border-blue-200',
+  assistant: 'bg-purple-100 text-purple-700 border-purple-200',
+  accountant: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+  admin: 'bg-red-100 text-red-700 border-red-200',
 };
 
 export default function OrgManagement() {
@@ -121,12 +129,26 @@ export default function OrgManagement() {
         throw error;
       }
 
-      // Enriquecer com level_id
+      if (!data || data.length === 0) return [];
+
+      // Buscar roles dos usuários
+      const userIds = data.map(up => up.user_id);
+      const { data: rolesData } = await supabase
+        .from('user_roles')
+        .select('user_id, role')
+        .in('user_id', userIds);
+
+      // Criar mapa de roles
+      const rolesMap = new Map<string, string>();
+      rolesData?.forEach(r => rolesMap.set(r.user_id, r.role));
+
+      // Enriquecer com level_id e role
       const enrichedData = data?.map(up => {
         const position = positions.find(p => p.id === up.position_id);
         return {
           ...up,
           level_id: position?.level_id,
+          role: rolesMap.get(up.user_id),
         };
       });
 
@@ -144,6 +166,7 @@ export default function OrgManagement() {
     userPositions.forEach((position: any) => {
       const levelId = position.level_id;
       const fullName = position.profiles?.full_name || 'Sem nome';
+      const role = position.role;
       
       if (!levelId) return;
 
@@ -152,6 +175,7 @@ export default function OrgManagement() {
         user_id: position.user_id,
         full_name: fullName,
         avatar_url: undefined,
+        role: role,
       };
 
       const existing = map.get(levelId) || [];
@@ -315,6 +339,14 @@ export default function OrgManagement() {
                                     <p className="font-medium text-sm truncate">
                                       {userInfo.full_name}
                                     </p>
+                                    {userInfo.role && (
+                                      <Badge 
+                                        variant="outline" 
+                                        className={`text-xs mt-1 ${ROLE_COLORS[userInfo.role] || 'bg-gray-100 text-gray-700 border-gray-200'}`}
+                                      >
+                                        {ROLE_LABELS[userInfo.role] || userInfo.role}
+                                      </Badge>
+                                    )}
                                   </div>
                                 </div>
                               </Card>
