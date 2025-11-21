@@ -126,17 +126,10 @@ export default function OrgManagement() {
 
       const positionIds = positions.map(p => p.id);
 
-      // Buscar user_positions com profiles
+      // Buscar user_positions sem join com profiles
       const { data, error } = await supabase
         .from('user_positions')
-        .select(`
-          id,
-          user_id,
-          position_id,
-          profiles!inner (
-            full_name
-          )
-        `)
+        .select('id, user_id, position_id')
         .in('position_id', positionIds);
 
       if (error) {
@@ -150,8 +143,30 @@ export default function OrgManagement() {
 
       if (!data || data.length === 0) return [];
 
-      // Buscar roles dos usuários
+      // Buscar profiles dos usuários
       const userIds = data.map(up => up.user_id);
+      
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', userIds);
+
+      if (profilesError) {
+        toast({
+          title: 'Erro ao carregar perfis',
+          description: profilesError.message,
+          variant: 'destructive',
+        });
+        throw profilesError;
+      }
+
+      // Criar mapa de profiles
+      const profilesMap = new Map<string, string>();
+      profilesData?.forEach(p => {
+        profilesMap.set(p.id, p.full_name);
+      });
+
+      // Buscar roles dos usuários
       const { data: rolesData } = await supabase
         .from('user_roles')
         .select('user_id, role')
@@ -161,13 +176,16 @@ export default function OrgManagement() {
       const rolesMap = new Map<string, string>();
       rolesData?.forEach(r => rolesMap.set(r.user_id, r.role));
 
-      // Enriquecer com level_id e role
+      // Enriquecer com level_id, role e full_name
       const enrichedData = data?.map(up => {
         const position = positions.find(p => p.id === up.position_id);
+        const fullName = profilesMap.get(up.user_id) ?? 'Sem nome';
+
         return {
           ...up,
           level_id: position?.level_id,
           role: rolesMap.get(up.user_id),
+          full_name: fullName,
         };
       });
 
@@ -184,7 +202,7 @@ export default function OrgManagement() {
 
     userPositions.forEach((position: any) => {
       const levelId = position.level_id;
-      const fullName = position.profiles?.full_name || 'Sem nome';
+      const fullName = position.full_name || 'Sem nome';
       const role = position.role;
       
       if (!levelId) return;
