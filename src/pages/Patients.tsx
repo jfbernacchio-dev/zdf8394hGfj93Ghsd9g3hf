@@ -32,7 +32,7 @@ const Patients = () => {
   const [duplicatesReport, setDuplicatesReport] = useState<any[]>([]);
   const navigate = useNavigate();
   const { user, isAdmin, roleGlobal } = useAuth();
-  const { permissions, financialAccess } = useEffectivePermissions();
+  const { permissions, financialAccess, canAccessClinical } = useEffectivePermissions();
   const { toast } = useToast();
   const { shouldFilterToOwnData } = useCardPermissions();
 
@@ -49,44 +49,80 @@ const Patients = () => {
   }, [user]);
 
   const loadData = async () => {
-    // 🔐 QUERY FILTERING: Mesma lógica do Dashboard
-    const filterToOwn = shouldFilterToOwnData();
+    if (!user) return;
 
-    let patientsQuery = supabase.from('patients').select('*');
-    
-    if (filterToOwn) {
-      // Subordinado que gerencia apenas próprios pacientes
-      patientsQuery = patientsQuery.eq('user_id', user!.id);
-    } else {
-      // Admin/Full vê todos os pacientes (próprios + subordinados que NÃO gerem próprios)
-      const { data: subordinatesData } = await supabase
-        .from('therapist_assignments')
-        .select('subordinate_id')
-        .eq('manager_id', user!.id);
+    console.log('[Patients] 🔐 Carregando pacientes com filtro por permissões...');
 
-      if (subordinatesData && subordinatesData.length > 0) {
-        const subordinateIds = subordinatesData.map(s => s.subordinate_id);
-        
-        // Verificar quais subordinados NÃO gerem próprios pacientes
-        const { data: autonomyData } = await supabase
-          .from('subordinate_autonomy_settings')
-          .select('subordinate_id, manages_own_patients')
-          .in('subordinate_id', subordinateIds);
+    // 🔐 FASE 8: Usar permissões do organograma
+    if (!permissions || !canAccessClinical) {
+      console.log('[Patients] ⛔ Usuário sem acesso clínico');
+      setPatients([]);
+      setSessions([]);
+      setNfseIssued([]);
+      return;
+    }
 
-        const viewableSubordinates = autonomyData
-          ?.filter(a => !a.manages_own_patients)
-          .map(a => a.subordinate_id) || [];
+    // Admin vê todos
+    if (isAdmin) {
+      console.log('[Patients] 👑 Admin - carregando todos os pacientes');
+      const { data: allPatients } = await supabase
+        .from('patients')
+        .select('*');
+      
+      const { data: sessionsData } = await supabase
+        .from('sessions')
+        .select('*');
 
-        // Incluir próprio user_id + subordinados viewable
-        const allViewableIds = [user!.id, ...viewableSubordinates];
-        patientsQuery = patientsQuery.in('user_id', allViewableIds);
-      } else {
-        // Nenhum subordinado, apenas próprios pacientes
-        patientsQuery = patientsQuery.eq('user_id', user!.id);
+      const { data: nfseData } = await supabase
+        .from('nfse_issued')
+        .select('id, session_ids, status')
+        .eq('user_id', user.id)
+        .in('status', ['processing', 'issued']);
+
+      setPatients(allPatients || []);
+      setSessions(sessionsData || []);
+      setNfseIssued(nfseData || []);
+      return;
+    }
+
+    // Buscar todos os pacientes
+    const { data: allPatients } = await supabase
+      .from('patients')
+      .select('*');
+
+    if (!allPatients || allPatients.length === 0) {
+      console.log('[Patients] Nenhum paciente encontrado no sistema');
+      setPatients([]);
+      setSessions([]);
+      setNfseIssued([]);
+      return;
+    }
+
+    // Filtrar pacientes aos quais o usuário tem acesso
+    const accessiblePatients = [];
+    for (const patient of allPatients) {
+      const { data: ownerRoles } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', patient.user_id)
+        .maybeSingle();
+
+      const isOwnerAdmin = ownerRoles?.role === 'admin';
+      const accessResult = await import('@/lib/checkPatientAccess').then(m => 
+        m.canAccessPatient(user.id, patient.id, isOwnerAdmin)
+      );
+
+      if (accessResult.allowed) {
+        accessiblePatients.push(patient);
       }
     }
 
-    const { data: patientsData } = await patientsQuery;
+    console.log(`[Patients] ✅ Acesso permitido a ${accessiblePatients.length} de ${allPatients.length} pacientes`);
+
+    const { data: patientsData } = await supabase
+      .from('patients')
+      .select('*')
+      .in('id', accessiblePatients.map(p => p.id));
 
     const { data: sessionsData } = await supabase
       .from('sessions')

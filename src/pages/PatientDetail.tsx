@@ -100,6 +100,11 @@ const PatientDetailNew = () => {
     isAssistant ||
     isAccountant ||
     (isPsychologist && permissions?.levelNumber && permissions.levelNumber > 1);
+  
+  // 🔐 FASE 8: Controle de acesso clínico
+  const [accessLevel, setAccessLevel] = useState<'none' | 'view' | 'full'>('none');
+  const [accessDeniedReason, setAccessDeniedReason] = useState<string>('');
+  
   const [isComplaintDialogOpen, setIsComplaintDialogOpen] = useState(false);
   const [showFullHistory, setShowFullHistory] = useState(false);
   const [sessionHistory, setSessionHistory] = useState<any[]>([]);
@@ -185,18 +190,26 @@ const PatientDetailNew = () => {
       }
     });
 
-    // Validate access before loading data
+    // 🔐 FASE 8: Validar acesso com nível de permissão
     const validateAccess = async () => {
       if (!user || !id) return;
+
+      // Importar função dinâmicamente
+      const { checkPatientAccessLevel } = await import('@/lib/checkPatientAccess');
+      const accessResult = await checkPatientAccessLevel(user.id, id);
       
-      const hasAccess = await checkPatientAccess(user.id, id);
+      console.log('[PatientDetail] 🔐 Resultado de acesso:', accessResult);
       
-      if (!hasAccess) {
-        toast.error("Você não tem permissão para acessar este paciente");
-        navigate('/patients');
+      if (!accessResult.allowed) {
+        setAccessLevel('none');
+        setAccessDeniedReason(accessResult.reason || 'Acesso negado');
+        toast.error(accessResult.reason || "Você não tem permissão para acessar este paciente");
+        
+        // Não redirecionar imediatamente - mostrar tela de acesso negado
         return;
       }
       
+      setAccessLevel(accessResult.accessLevel || 'full');
       loadData();
     };
     
@@ -1290,6 +1303,43 @@ Assinatura do Profissional`;
     );
   };
 
+  // 🔐 FASE 8: Tela de acesso negado
+  if (accessLevel === 'none' && user) {
+    return (
+      <div className="container mx-auto p-4 max-w-2xl mt-20">
+        <Card className="border-destructive">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-destructive">
+              <AlertCircle className="h-6 w-6" />
+              Acesso Negado
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-muted-foreground">
+              {accessDeniedReason || 'Você não tem permissão para acessar este paciente.'}
+            </p>
+            <Button onClick={() => navigate('/patients')} variant="outline">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Voltar para lista de pacientes
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!patient) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-pulse text-lg">Carregando...</div>
+      </div>
+    );
+  }
+
+  // 🔐 FASE 8: Modo somente leitura
+  const isReadOnly = accessLevel === 'view';
+  const canEdit = accessLevel === 'full';
+  
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -1342,9 +1392,12 @@ Assinatura do Profissional`;
                 <Settings className="w-4 h-4 mr-2" />
                 {isEditMode ? 'Salvar Layout' : 'Editar Layout'}
               </Button>
+              {/* 🔐 FASE 8: Desabilitar edição em modo somente leitura */}
               <Button
                 onClick={() => navigate(`/patients/${id}/complaint/new`)}
                 variant="outline"
+                disabled={isReadOnly}
+                title={isReadOnly ? 'Ação não permitida em modo somente leitura' : undefined}
               >
                 <FileText className="w-4 h-4 mr-2" />
                 Nova Queixa
@@ -1352,6 +1405,8 @@ Assinatura do Profissional`;
               <Button
                 onClick={() => navigate(`/patients/${id}/edit`)}
                 variant="outline"
+                disabled={isReadOnly}
+                title={isReadOnly ? 'Ação não permitida em modo somente leitura' : undefined}
               >
                 <Edit className="w-4 h-4 mr-2" />
                 Editar
@@ -1363,6 +1418,18 @@ Assinatura do Profissional`;
 
       {/* Main Content */}
       <div className="container mx-auto px-6 py-6">
+        {/* 🔐 FASE 8: Banner de modo somente leitura */}
+        {isReadOnly && (
+          <div className="mb-6">
+            <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800">
+              <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              <AlertDescription className="text-amber-800 dark:text-amber-200">
+                Você está visualizando este paciente em <strong>modo somente leitura</strong> (compartilhamento entre pares do mesmo nível).
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
+        
         <div className="mb-6">
           <ConsentReminder patientId={id} />
         </div>
@@ -1662,44 +1729,51 @@ Assinatura do Profissional`;
                    { width: 350, height: 300 }
                  )}
 
-                 {/* Quick Actions Card */}
-                 {isCardVisible('quick-actions') && renderFunctionalCard(
-                   'quick-actions',
-                   <>
-                     <h3 className="font-semibold text-lg mb-4">Ações Rápidas</h3>
-                     <div className="space-y-2">
-                       <Button 
-                         onClick={openNewSessionDialog} 
-                         className="w-full justify-start gap-2"
-                         variant="outline"
-                       >
-                         <Plus className="w-4 h-4" />
-                         Nova Sessão
-                       </Button>
-                       <Button 
-                         onClick={() => setIsNoteDialogOpen(true)} 
-                         className="w-full justify-start gap-2"
-                         variant="outline"
-                       >
-                         <StickyNote className="w-4 h-4" />
-                         Nova Nota
-                       </Button>
-                       <Button 
-                         onClick={generateInvoice} 
-                         className="w-full justify-start gap-2"
-                         variant="outline"
-                       >
-                         <DollarSign className="w-4 h-4" />
-                         Gerar Recibo
-                       </Button>
-                       <Button 
-                         onClick={handleExportPatientData} 
-                         className="w-full justify-start gap-2"
-                         variant="outline"
-                       >
-                         <Download className="w-4 h-4" />
-                         Exportar Dados
-                       </Button>
+                  {/* Quick Actions Card */}
+                  {isCardVisible('quick-actions') && renderFunctionalCard(
+                    'quick-actions',
+                    <>
+                      <h3 className="font-semibold text-lg mb-4">Ações Rápidas</h3>
+                      <div className="space-y-2">
+                        {/* 🔐 FASE 8: Desabilitar ações em modo somente leitura */}
+                        <Button 
+                          onClick={openNewSessionDialog} 
+                          className="w-full justify-start gap-2"
+                          variant="outline"
+                          disabled={isReadOnly}
+                          title={isReadOnly ? 'Ação não permitida em modo somente leitura' : undefined}
+                        >
+                          <Plus className="w-4 h-4" />
+                          Nova Sessão
+                        </Button>
+                        <Button 
+                          onClick={() => setIsNoteDialogOpen(true)} 
+                          className="w-full justify-start gap-2"
+                          variant="outline"
+                          disabled={isReadOnly}
+                          title={isReadOnly ? 'Ação não permitida em modo somente leitura' : undefined}
+                        >
+                          <StickyNote className="w-4 h-4" />
+                          Nova Nota
+                        </Button>
+                        <Button 
+                          onClick={generateInvoice} 
+                          className="w-full justify-start gap-2"
+                          variant="outline"
+                          disabled={isReadOnly}
+                          title={isReadOnly ? 'Ação não permitida em modo somente leitura' : undefined}
+                        >
+                          <DollarSign className="w-4 h-4" />
+                          Gerar Recibo
+                        </Button>
+                        <Button 
+                          onClick={handleExportPatientData} 
+                          className="w-full justify-start gap-2"
+                          variant="outline"
+                        >
+                          <Download className="w-4 h-4" />
+                          Exportar Dados
+                        </Button>
                      </div>
                    </>,
                    { width: 350, height: 280 }
