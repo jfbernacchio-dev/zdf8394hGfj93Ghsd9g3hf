@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Settings, Users } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -14,13 +15,20 @@ import Layout from '@/components/Layout';
 
 /**
  * ============================================================================
- * FASE 6C-2: Conectar níveis reais do banco
+ * FASE 6C-3: Conectar usuários reais aos níveis
  * ============================================================================
  * 
- * Esta página agora busca organization_levels do Supabase.
- * Usuários ainda são placeholder (virão na FASE 6C-3).
+ * Esta página agora busca organization_levels e user_positions do Supabase.
+ * Usuários são renderizados dentro de cada nível.
  * Drag & drop ainda não funcional (virá na FASE 6C-4).
  */
+
+interface UserInLevel {
+  id: string;
+  user_id: string;
+  full_name: string;
+  avatar_url?: string;
+}
 
 // Cores automáticas por índice
 const LEVEL_COLORS = [
@@ -48,7 +56,7 @@ export default function OrgManagement() {
   const queryClient = useQueryClient();
 
   // Query para buscar níveis reais do banco
-  const { data: levels, isLoading } = useQuery({
+  const { data: levels, isLoading: isLoadingLevels } = useQuery({
     queryKey: ['organization-levels', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -64,6 +72,103 @@ export default function OrgManagement() {
     },
     enabled: !!user?.id,
   });
+
+  // Query para buscar usuários com suas posições
+  const { data: userPositions, isLoading: isLoadingUsers } = useQuery({
+    queryKey: ['user-positions', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+
+      // Primeiro buscar todos os níveis da organização
+      const { data: orgLevels } = await supabase
+        .from('organization_levels')
+        .select('id')
+        .eq('organization_id', user.id);
+
+      if (!orgLevels || orgLevels.length === 0) return [];
+
+      const levelIds = orgLevels.map(l => l.id);
+
+      // Buscar positions desses níveis
+      const { data: positions } = await supabase
+        .from('organization_positions')
+        .select('id, level_id')
+        .in('level_id', levelIds);
+
+      if (!positions || positions.length === 0) return [];
+
+      const positionIds = positions.map(p => p.id);
+
+      // Buscar user_positions com profiles
+      const { data, error } = await supabase
+        .from('user_positions')
+        .select(`
+          id,
+          user_id,
+          position_id,
+          profiles!inner (
+            full_name
+          )
+        `)
+        .in('position_id', positionIds);
+
+      if (error) {
+        toast({
+          title: 'Erro ao carregar usuários',
+          description: error.message,
+          variant: 'destructive',
+        });
+        throw error;
+      }
+
+      // Enriquecer com level_id
+      const enrichedData = data?.map(up => {
+        const position = positions.find(p => p.id === up.position_id);
+        return {
+          ...up,
+          level_id: position?.level_id,
+        };
+      });
+
+      return enrichedData || [];
+    },
+    enabled: !!user?.id,
+  });
+
+  // Agrupar usuários por level_id
+  const usersByLevel = useMemo(() => {
+    const map = new Map<string, UserInLevel[]>();
+    
+    if (!userPositions) return map;
+
+    userPositions.forEach((position: any) => {
+      const levelId = position.level_id;
+      const fullName = position.profiles?.full_name || 'Sem nome';
+      
+      if (!levelId) return;
+
+      const userInfo: UserInLevel = {
+        id: position.id,
+        user_id: position.user_id,
+        full_name: fullName,
+        avatar_url: undefined,
+      };
+
+      const existing = map.get(levelId) || [];
+      map.set(levelId, [...existing, userInfo]);
+    });
+
+    return map;
+  }, [userPositions]);
+
+  // Total de membros
+  const totalMembers = useMemo(() => {
+    let count = 0;
+    usersByLevel.forEach(users => count += users.length);
+    return count;
+  }, [usersByLevel]);
+
+  const isLoading = isLoadingLevels || isLoadingUsers;
 
   // Mutation para adicionar novo nível
   const addLevelMutation = useMutation({
@@ -175,7 +280,7 @@ export default function OrgManagement() {
                               {level.level_name}
                             </CardTitle>
                             <p className="text-sm text-muted-foreground mt-1">
-                              0 membro(s)
+                              {usersByLevel.get(level.id)?.length || 0} membro(s)
                             </p>
                           </div>
                           <Badge variant="outline" className="ml-2">
@@ -185,17 +290,45 @@ export default function OrgManagement() {
                       </CardHeader>
 
                       <CardContent className="space-y-3">
-                        {/* Users List - Placeholder vazio por enquanto */}
+                        {/* Users List */}
                         <div className="space-y-2 min-h-[200px] max-h-[400px] overflow-y-auto">
-                          <div className="flex flex-col items-center justify-center py-12 text-center">
-                            <Users className="h-12 w-12 text-muted-foreground/50 mb-3" />
-                            <p className="text-sm text-muted-foreground">
-                              Nenhum membro neste nível
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              (Usuários serão conectados na próxima fase)
-                            </p>
-                          </div>
+                          {usersByLevel.get(level.id)?.map((userInfo) => {
+                            const initials = userInfo.full_name
+                              .split(' ')
+                              .map(n => n[0])
+                              .slice(0, 2)
+                              .join('')
+                              .toUpperCase();
+
+                            return (
+                              <Card
+                                key={userInfo.id}
+                                className="p-3 bg-background hover:shadow-sm transition-shadow"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <Avatar className="h-10 w-10">
+                                    <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                                      {initials}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-sm truncate">
+                                      {userInfo.full_name}
+                                    </p>
+                                  </div>
+                                </div>
+                              </Card>
+                            );
+                          })}
+
+                          {(!usersByLevel.get(level.id) || usersByLevel.get(level.id)?.length === 0) && (
+                            <div className="flex flex-col items-center justify-center py-12 text-center">
+                              <Users className="h-12 w-12 text-muted-foreground/50 mb-3" />
+                              <p className="text-sm text-muted-foreground">
+                                Nenhum membro neste nível
+                              </p>
+                            </div>
+                          )}
                         </div>
 
                       <Separator />
@@ -249,10 +382,7 @@ export default function OrgManagement() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-3xl font-bold">
-                    0
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    (Usuários virão na FASE 6C-3)
+                    {totalMembers}
                   </p>
                 </CardContent>
               </Card>
