@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Settings, Users } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/Layout';
+import { LevelPermissionModal } from '@/components/LevelPermissionModal';
 
 /**
  * ============================================================================
@@ -62,6 +63,14 @@ export default function OrgManagement() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Estado do modal de permissões
+  const [permissionModalOpen, setPermissionModalOpen] = useState(false);
+  const [selectedLevel, setSelectedLevel] = useState<{
+    id: string;
+    name: string;
+    number: number;
+  } | null>(null);
 
   // Query para buscar níveis reais do banco
   const { data: levels, isLoading: isLoadingLevels } = useQuery({
@@ -238,6 +247,11 @@ export default function OrgManagement() {
     addLevelMutation.mutate();
   };
 
+  const handleManagePermissions = (levelId: string, levelName: string, levelNumber: number) => {
+    setSelectedLevel({ id: levelId, name: levelName, number: levelNumber });
+    setPermissionModalOpen(true);
+  };
+
   return (
     <Layout>
       <div className="min-h-screen bg-background">
@@ -370,6 +384,11 @@ export default function OrgManagement() {
                         variant="outline"
                         size="sm"
                         className="w-full gap-2"
+                        onClick={() => handleManagePermissions(
+                          level.id,
+                          level.level_name,
+                          level.level_number
+                        )}
                       >
                         <Settings className="h-4 w-4" />
                         Gerenciar Permissões
@@ -459,6 +478,16 @@ export default function OrgManagement() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Modal de Permissões */}
+        {selectedLevel && (
+          <LevelPermissionModal
+            open={permissionModalOpen}
+            onOpenChange={setPermissionModalOpen}
+            levelName={selectedLevel.name}
+            levelNumber={selectedLevel.number}
+          />
+        )}
       </div>
     </Layout>
   );
