@@ -10,12 +10,11 @@ import { Plus, Search, Edit, FileText, AlertCircle, CheckCheck } from 'lucide-re
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { usePermissionFlags } from '@/hooks/usePermissionFlags';
+import { useEffectivePermissions } from '@/hooks/useEffectivePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import { ConsentReminder } from '@/components/ConsentReminder';
-import { getSubordinateAutonomy, AutonomyPermissions } from '@/lib/checkSubordinateAutonomy';
 import { useCardPermissions } from '@/hooks/useCardPermissions';
 
 const Patients = () => {
@@ -31,50 +30,23 @@ const Patients = () => {
   const [userProfile, setUserProfile] = useState<any>(null);
   const [isDuplicatesDialogOpen, setIsDuplicatesDialogOpen] = useState(false);
   const [duplicatesReport, setDuplicatesReport] = useState<any[]>([]);
-  const [autonomyPermissions, setAutonomyPermissions] = useState<AutonomyPermissions | null>(null);
-  const [loadingPermissions, setLoadingPermissions] = useState(true);
   const navigate = useNavigate();
-  const { user, isAdmin } = useAuth();
-  const { isSubordinate } = usePermissionFlags();
+  const { user, isAdmin, roleGlobal } = useAuth();
+  const { permissions, financialAccess } = useEffectivePermissions();
   const { toast } = useToast();
   const { shouldFilterToOwnData } = useCardPermissions();
+
+  // Derivar flags localmente baseado no novo sistema
+  const isAccountant = roleGlobal === 'accountant';
+  const isAssistant = roleGlobal === 'assistant';
+  const isPsychologist = roleGlobal === 'psychologist';
+  const isSubordinate = isAssistant || isAccountant || (isPsychologist && permissions?.levelNumber && permissions.levelNumber > 1);
 
   useEffect(() => {
     if (user) {
       loadData();
-      loadPermissions();
     }
-  }, [user, isSubordinate]);
-
-  const loadPermissions = async () => {
-    if (!user) return;
-
-    console.log('🔍 [FASE 2B] Patients - Carregando permissões:', {
-      userId: user.id,
-      isSubordinate
-    });
-
-    if (isSubordinate) {
-      // Usuário é subordinado - carregar SUA autonomia
-      const autonomy = await getSubordinateAutonomy(user.id);
-      console.log('🔍 [FASE 2B] Subordinado - Permissões:', {
-        hasFinancialAccess: autonomy.hasFinancialAccess
-      });
-      setAutonomyPermissions(autonomy);
-    } else {
-      // Usuário é Full - acesso total
-      console.log('🔍 [FASE 2B] Full - Acesso total concedido');
-      setAutonomyPermissions({
-        managesOwnPatients: false,
-        hasFinancialAccess: true,
-        nfseEmissionMode: 'own_company',
-        canFullSeeClinic: true,
-        includeInFullFinancial: true
-      });
-    }
-    
-    setLoadingPermissions(false);
-  };
+  }, [user]);
 
   const loadData = async () => {
     // 🔐 QUERY FILTERING: Mesma lógica do Dashboard
@@ -552,7 +524,7 @@ const Patients = () => {
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
-            {!loadingPermissions && (!isSubordinate || autonomyPermissions?.hasFinancialAccess) && (
+            {financialAccess !== 'none' && (
               <Button onClick={generateGeneralInvoice} variant="outline" className="w-full sm:w-auto">
                 <FileText className="w-4 h-4 mr-2" />
                 <span className="hidden sm:inline">Fazer Fechamento Geral</span>
