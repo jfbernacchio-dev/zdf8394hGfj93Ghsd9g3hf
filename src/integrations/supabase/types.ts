@@ -2289,6 +2289,10 @@ export type Database = {
         Returns: boolean
       }
       is_organization_owner: { Args: { _user_id: string }; Returns: boolean }
+      is_same_organization: {
+        Args: { target_user_id: string }
+        Returns: boolean
+      }
       is_subordinate: { Args: { _user_id: string }; Returns: boolean }
       validate_cpf: { Args: { cpf_input: string }; Returns: boolean }
     }
