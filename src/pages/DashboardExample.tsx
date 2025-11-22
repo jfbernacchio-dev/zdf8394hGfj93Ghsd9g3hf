@@ -404,6 +404,7 @@ export default function DashboardExample() {
   // IMPORTANTE: Este useMemo DEVE estar antes do early return para evitar erro de hooks
   const visibleSections = useMemo(() => {
     if (!permissionContext) return {};
+    if (permissionsLoading) return {}; // ⚠️ não filtra sections enquanto permissões estiverem carregando
     
     const filtered: Record<string, typeof DASHBOARD_SECTIONS[string]> = {};
     
@@ -421,7 +422,7 @@ export default function DashboardExample() {
     });
     
     return filtered;
-  }, [permissionContext]);
+  }, [permissionContext, permissionsLoading]);
 
   // FASE 12.1: Aguardar carregamento de permissões
   if (loading || permissionsLoading) {
