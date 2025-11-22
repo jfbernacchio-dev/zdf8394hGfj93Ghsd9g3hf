@@ -65,29 +65,53 @@ export function useDashboardPermissions() {
 
   // Montar contexto de permissões
   const permissionContext: DashboardPermissionContext | null = useMemo(() => {
-    if (!user || !organizationId || !permissions) return null;
+    if (!user || !organizationId) return null;
 
-    return {
+    // FASE 12.1.2: Admin e Owner primário têm visibilidade TOTAL
+    const hasFullAccess = isAdmin || isOrganizationOwner;
+
+    const ctx = {
       userId: user.id,
       organizationId,
       
-      // Derivar flags de acesso
-      canAccessClinical,
-      canAccessFinancial: financialAccess !== 'none',
-      canAccessAdministrative: true, // Todos podem ver dados administrativos (sessões, agenda)
-      canAccessMarketing,
-      canAccessWhatsapp,
-      canAccessTeam: canViewTeamFinancialSummary || isOrganizationOwner,
+      // Se for admin/owner, todas as flags são true
+      canAccessClinical: hasFullAccess ? true : canAccessClinical,
+      canAccessFinancial: hasFullAccess ? true : (financialAccess !== 'none'),
+      canAccessAdministrative: true, // Todos podem ver dados administrativos
+      canAccessMarketing: hasFullAccess ? true : canAccessMarketing,
+      canAccessWhatsapp: hasFullAccess ? true : canAccessWhatsapp,
+      canAccessTeam: hasFullAccess ? true : (canViewTeamFinancialSummary || isOrganizationOwner),
       
       // Role
       isAdmin: isAdmin || false,
       isOrganizationOwner,
       
       // Específicos
-      canViewTeamFinancialSummary,
+      canViewTeamFinancialSummary: hasFullAccess ? true : canViewTeamFinancialSummary,
       peerAgendaSharing,
       peerClinicalSharing,
     };
+
+    // Log de debug detalhado
+    console.log('[DASH_PERM] Visibilidade Dashboard', {
+      userId: ctx.userId,
+      organizationId: ctx.organizationId,
+      isAdmin: ctx.isAdmin,
+      isOrganizationOwner: ctx.isOrganizationOwner,
+      hasFullAccess,
+      visibility: {
+        financial: { canViewSection: ctx.canAccessFinancial },
+        administrative: { canViewSection: ctx.canAccessAdministrative },
+        clinical: { canViewSection: ctx.canAccessClinical },
+        general: { canViewSection: true },
+        charts: { canViewSection: true },
+        team: { canViewSection: ctx.canAccessTeam },
+        marketing: { canViewSection: ctx.canAccessMarketing },
+        media: { canViewSection: ctx.canAccessMarketing },
+      },
+    });
+
+    return ctx;
   }, [
     user,
     organizationId,
@@ -126,6 +150,11 @@ export function canViewDashboardCard(
   const config = card.permissionConfig;
   if (!config) return true; // Cards sem config são sempre visíveis
 
+  // FASE 12.1.2: Admin e Owner têm visibilidade TOTAL - bypass todas as checagens
+  if (ctx.isAdmin || ctx.isOrganizationOwner) {
+    return true;
+  }
+
   // 1. CHECAR DOMÍNIO
   if (!canAccessDomain(config.domain, ctx)) {
     return false;
@@ -133,15 +162,9 @@ export function canViewDashboardCard(
 
   // 2. CHECAR BLOQUEIOS EXPLÍCITOS
   if (config.blockedFor) {
-    // Admin nunca é bloqueado
-    if (ctx.isAdmin) return true;
-    
     // Checar se algum bloqueio se aplica
-    // Nota: as roles em blockedFor são as antigas ('admin', 'subordinate', etc.)
-    // Por enquanto, vamos mapear usando flags simples
     const hasBlockingRole = config.blockedFor.some(blockedRole => {
       if (blockedRole === 'subordinate') {
-        // Se é "bloqueado para subordinado", libera para owners
         return !ctx.isOrganizationOwner;
       }
       return false;
@@ -173,8 +196,8 @@ function canAccessDomain(
   domain: PermissionDomain,
   ctx: DashboardPermissionContext
 ): boolean {
-  // Admin tem acesso a tudo
-  if (ctx.isAdmin) return true;
+  // FASE 12.1.2: Admin e Owner têm acesso TOTAL a todos os domínios
+  if (ctx.isAdmin || ctx.isOrganizationOwner) return true;
 
   switch (domain) {
     case 'general':
