@@ -208,7 +208,9 @@ export function canViewDashboardCard(
     // Checar se algum bloqueio se aplica
     const hasBlockingRole = config.blockedFor.some(blockedRole => {
       if (blockedRole === 'subordinate') {
-        return !ctx.isOrganizationOwner;
+        // Bloquear apenas se o usuário É subordinate (não é admin nem owner)
+        const isSubordinate = !ctx.isAdmin && !ctx.isOrganizationOwner;
+        return isSubordinate;
       }
       return false;
     });
