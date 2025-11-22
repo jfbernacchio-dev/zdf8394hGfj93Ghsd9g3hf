@@ -30,6 +30,8 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { DEFAULT_DASHBOARD_GRID_LAYOUT } from '@/lib/defaultLayoutDashboardExample';
 import { useChartTimeScale, generateTimeIntervals, formatTimeLabel, getIntervalBounds, getScaleLabel, TimeScale } from '@/hooks/useChartTimeScale';
+import { useDashboardPermissions, filterCardsByPermissions } from '@/hooks/useDashboardPermissions';
+import { ALL_AVAILABLE_CARDS } from '@/types/cardTypes';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -65,6 +67,9 @@ export default function DashboardExample() {
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
   const [profiles, setProfiles] = useState<any[]>([]);
+
+  // FASE 12.1: Sistema de permissões integrado
+  const { permissionContext, loading: permissionsLoading, canViewCard } = useDashboardPermissions();
 
   // Buscar dados da equipe
   const { teamPatients, teamSessions, subordinateIds, loading: teamLoading } = useTeamData();
@@ -386,7 +391,8 @@ export default function DashboardExample() {
     );
   };
 
-  if (loading) {
+  // FASE 12.1: Aguardar carregamento de permissões
+  if (loading || permissionsLoading) {
     return (
       <Layout>
         <div className="space-y-6 p-6 animate-fade-in">
@@ -414,6 +420,28 @@ export default function DashboardExample() {
       </Layout>
     );
   }
+
+  // FASE 12.1: Filtrar seções visíveis baseado em permissões
+  const visibleSections = useMemo(() => {
+    if (!permissionContext) return {};
+    
+    const filtered: Record<string, typeof DASHBOARD_SECTIONS[string]> = {};
+    
+    Object.entries(DASHBOARD_SECTIONS).forEach(([sectionId, section]) => {
+      // Verificar se seção tem algum card visível
+      const sectionCards = ALL_AVAILABLE_CARDS.filter(card => 
+        section.availableCardIds.includes(card.id)
+      );
+      const visibleCards = filterCardsByPermissions(sectionCards, permissionContext);
+      
+      // Só incluir seção se tiver pelo menos um card visível
+      if (visibleCards.length > 0) {
+        filtered[sectionId] = section;
+      }
+    });
+    
+    return filtered;
+  }, [permissionContext]);
 
   return (
     <Layout>
@@ -570,7 +598,7 @@ export default function DashboardExample() {
 
         {/* Renderizar seções */}
         <div className="space-y-6">
-          {Object.entries(DASHBOARD_SECTIONS).map(([sectionId, sectionConfig]) => {
+          {Object.entries(visibleSections).map(([sectionId, sectionConfig]) => {
             const section = layout[sectionId];
             if (!section || !section.cardLayouts.length) {
               // Seção vazia ou sem permissão
@@ -644,38 +672,46 @@ export default function DashboardExample() {
                             </p>
                           </div>
                         )}
-                        {cardLayouts.map((cardLayout) => (
-                          <div key={cardLayout.i} data-grid={cardLayout}>
-                            <UICard className="h-full flex flex-col shadow-md hover:shadow-lg transition-shadow">
-                              {isEditMode && (
-                                <div className="drag-handle cursor-move bg-primary/10 hover:bg-primary/20 active:bg-primary/30 p-2 border-b flex items-center justify-center group transition-colors">
-                                  <GripVertical className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
-                                </div>
-                              )}
-                              <CardContent className="p-4 flex-1 overflow-auto">
-                                {renderDashboardCard(cardLayout.i, {
-                                  isEditMode,
-                                  patients: sectionId === 'dashboard-team' ? teamPatients : ownPatients,
-                                  sessions: sectionId === 'dashboard-team' ? teamSessions : ownSessions,
-                                  profiles,
-                                  start,
-                                  end,
-                                  automaticScale,
-                                  getScale,
-                                  setScaleOverride,
-                                  clearOverride,
-                                  hasOverride,
-                                  aggregatedData: sectionId === 'dashboard-team' ? teamAggregatedData : aggregatedData,
-                                })}
-                              </CardContent>
-                              {isEditMode && (
-                                <Badge variant="secondary" className="absolute top-2 right-2 text-xs z-10">
-                                  {cardLayout.w} × {cardLayout.h}
-                                </Badge>
-                              )}
-                            </UICard>
-                          </div>
-                        ))}
+                        {cardLayouts.map((cardLayout) => {
+                          // FASE 12.1: Verificar permissão do card antes de renderizar
+                          const card = ALL_AVAILABLE_CARDS.find(c => c.id === cardLayout.i);
+                          if (!card || !canViewCard(card)) {
+                            return null;
+                          }
+
+                          return (
+                            <div key={cardLayout.i} data-grid={cardLayout}>
+                              <UICard className="h-full flex flex-col shadow-md hover:shadow-lg transition-shadow">
+                                {isEditMode && (
+                                  <div className="drag-handle cursor-move bg-primary/10 hover:bg-primary/20 active:bg-primary/30 p-2 border-b flex items-center justify-center group transition-colors">
+                                    <GripVertical className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
+                                  </div>
+                                )}
+                                <CardContent className="p-4 flex-1 overflow-auto">
+                                  {renderDashboardCard(cardLayout.i, {
+                                    isEditMode,
+                                    patients: sectionId === 'dashboard-team' ? teamPatients : ownPatients,
+                                    sessions: sectionId === 'dashboard-team' ? teamSessions : ownSessions,
+                                    profiles,
+                                    start,
+                                    end,
+                                    automaticScale,
+                                    getScale,
+                                    setScaleOverride,
+                                    clearOverride,
+                                    hasOverride,
+                                    aggregatedData: sectionId === 'dashboard-team' ? teamAggregatedData : aggregatedData,
+                                  })}
+                                </CardContent>
+                                {isEditMode && (
+                                  <Badge variant="secondary" className="absolute top-2 right-2 text-xs z-10">
+                                    {cardLayout.w} × {cardLayout.h}
+                                  </Badge>
+                                )}
+                              </UICard>
+                            </div>
+                          );
+                        })}
                       </GridCardContainer>
                     </div>
                   </div>
