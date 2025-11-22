@@ -391,6 +391,29 @@ export default function DashboardExample() {
     );
   };
 
+  // FASE 12.1: Filtrar seções visíveis baseado em permissões
+  // IMPORTANTE: Este useMemo DEVE estar antes do early return para evitar erro de hooks
+  const visibleSections = useMemo(() => {
+    if (!permissionContext) return {};
+    
+    const filtered: Record<string, typeof DASHBOARD_SECTIONS[string]> = {};
+    
+    Object.entries(DASHBOARD_SECTIONS).forEach(([sectionId, section]) => {
+      // Verificar se seção tem algum card visível
+      const sectionCards = ALL_AVAILABLE_CARDS.filter(card => 
+        section.availableCardIds.includes(card.id)
+      );
+      const visibleCards = filterCardsByPermissions(sectionCards, permissionContext);
+      
+      // Só incluir seção se tiver pelo menos um card visível
+      if (visibleCards.length > 0) {
+        filtered[sectionId] = section;
+      }
+    });
+    
+    return filtered;
+  }, [permissionContext]);
+
   // FASE 12.1: Aguardar carregamento de permissões
   if (loading || permissionsLoading) {
     return (
@@ -420,28 +443,6 @@ export default function DashboardExample() {
       </Layout>
     );
   }
-
-  // FASE 12.1: Filtrar seções visíveis baseado em permissões
-  const visibleSections = useMemo(() => {
-    if (!permissionContext) return {};
-    
-    const filtered: Record<string, typeof DASHBOARD_SECTIONS[string]> = {};
-    
-    Object.entries(DASHBOARD_SECTIONS).forEach(([sectionId, section]) => {
-      // Verificar se seção tem algum card visível
-      const sectionCards = ALL_AVAILABLE_CARDS.filter(card => 
-        section.availableCardIds.includes(card.id)
-      );
-      const visibleCards = filterCardsByPermissions(sectionCards, permissionContext);
-      
-      // Só incluir seção se tiver pelo menos um card visível
-      if (visibleCards.length > 0) {
-        filtered[sectionId] = section;
-      }
-    });
-    
-    return filtered;
-  }, [permissionContext]);
 
   return (
     <Layout>
