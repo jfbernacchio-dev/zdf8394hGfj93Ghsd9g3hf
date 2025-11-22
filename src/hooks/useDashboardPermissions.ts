@@ -288,5 +288,31 @@ export function filterCardsByPermissions(
   ctx: DashboardPermissionContext | null
 ): CardConfig[] {
   if (!ctx) return [];
-  return cards.filter(card => canViewDashboardCard(card, ctx));
+  
+  const filtered = cards.filter(card => canViewDashboardCard(card, ctx));
+  
+  // 🎯 LOG ESPECÍFICO: Se estamos filtrando cards de team, mostrar detalhes
+  const hasTeamCards = cards.some(c => c.permissionConfig?.domain === 'team');
+  if (hasTeamCards) {
+    console.log('[FILTER_TEAM_CARDS] 🔍 Filtrando cards de team', {
+      totalCards: cards.length,
+      filteredCards: filtered.length,
+      ctx: {
+        isAdmin: ctx.isAdmin,
+        isOrganizationOwner: ctx.isOrganizationOwner,
+        canAccessTeam: ctx.canAccessTeam,
+        canAccessClinical: ctx.canAccessClinical,
+        canAccessFinancial: ctx.canAccessFinancial,
+      },
+      cardsDetail: cards.map(card => ({
+        id: card.id,
+        domain: card.permissionConfig?.domain,
+        allowed: canViewDashboardCard(card, ctx),
+        blockedFor: card.permissionConfig?.blockedFor,
+        requiresFinancialAccess: card.permissionConfig?.requiresFinancialAccess,
+      })),
+    });
+  }
+  
+  return filtered;
 }

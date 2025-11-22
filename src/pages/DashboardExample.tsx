@@ -430,6 +430,21 @@ export default function DashboardExample() {
       );
       const visibleCards = filterCardsByPermissions(sectionCards, permissionContext);
       
+      // 🎯 LOG ESPECÍFICO PARA DASHBOARD-TEAM
+      if (sectionId === 'dashboard-team') {
+        console.log('[TEAM_DEBUG] 🔎 Detalhes completos de dashboard-team', {
+          sectionId,
+          totalCards: sectionCards.length,
+          visibleCards: visibleCards.length,
+          permissionContext,
+          cardsDetailed: sectionCards.map(card => ({
+            id: card.id,
+            domain: card.permissionConfig?.domain,
+            isVisible: visibleCards.some(vc => vc.id === card.id),
+          })),
+        });
+      }
+      
       console.log('[VISIBLE_SECTIONS_CALC] 🔍 Seção:', sectionId, {
         totalCards: sectionCards.length,
         visibleCards: visibleCards.length,

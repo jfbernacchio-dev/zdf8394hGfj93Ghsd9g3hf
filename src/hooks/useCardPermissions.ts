@@ -128,6 +128,28 @@ export function useCardPermissions() {
     if (!card) return true; // Se não encontrado, libera
 
     const domain = card.permissionConfig.domain;
+    
+    // 🎯 LOG ESPECÍFICO: Cards de team
+    if (domain === 'team') {
+      const result = hasAccess(domain);
+      console.log('[CARD_PERM_TEAM] 🎯 canViewCard(team)', {
+        cardId,
+        domain,
+        isAdmin,
+        isFullTherapist,
+        isAccountant,
+        isSubordinate,
+        roleGlobal,
+        permissionsSummary: {
+          canAccessClinical: permissions?.canAccessClinical,
+          canAccessFinancial: permissions?.financialAccess,
+          canAccessMarketing: permissions?.canAccessMarketing,
+          canAccessWhatsapp: permissions?.canAccessWhatsapp,
+          levelNumber: permissions?.levelNumber,
+        },
+        result,
+      });
+    }
 
     return hasAccess(domain);
   };
