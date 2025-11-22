@@ -450,6 +450,7 @@ export type Database = {
           complaint_id: string
           created_at: string | null
           id: string
+          organization_id: string | null
           specifier_type: string
           specifier_value: string
         }
@@ -457,6 +458,7 @@ export type Database = {
           complaint_id: string
           created_at?: string | null
           id?: string
+          organization_id?: string | null
           specifier_type: string
           specifier_value: string
         }
@@ -464,6 +466,7 @@ export type Database = {
           complaint_id?: string
           created_at?: string | null
           id?: string
+          organization_id?: string | null
           specifier_type?: string
           specifier_value?: string
         }
@@ -1850,6 +1853,7 @@ export type Database = {
           new_time: string
           old_day: string
           old_time: string
+          organization_id: string | null
           patient_id: string
         }
         Insert: {
@@ -1859,6 +1863,7 @@ export type Database = {
           new_time: string
           old_day: string
           old_time: string
+          organization_id?: string | null
           patient_id: string
         }
         Update: {
@@ -1868,6 +1873,7 @@ export type Database = {
           new_time?: string
           old_day?: string
           old_time?: string
+          organization_id?: string | null
           patient_id?: string
         }
         Relationships: [
@@ -1954,6 +1960,7 @@ export type Database = {
           manager_id: string
           manages_own_patients: boolean
           nfse_emission_mode: string | null
+          organization_id: string | null
           subordinate_id: string
           updated_at: string
         }
@@ -1964,6 +1971,7 @@ export type Database = {
           manager_id: string
           manages_own_patients?: boolean
           nfse_emission_mode?: string | null
+          organization_id?: string | null
           subordinate_id: string
           updated_at?: string
         }
@@ -1974,6 +1982,7 @@ export type Database = {
           manager_id?: string
           manages_own_patients?: boolean
           nfse_emission_mode?: string | null
+          organization_id?: string | null
           subordinate_id?: string
           updated_at?: string
         }
@@ -2231,6 +2240,7 @@ export type Database = {
           id: string
           last_message_at: string
           last_message_from: string
+          organization_id: string | null
           patient_id: string | null
           phone_number: string
           status: string
@@ -2245,6 +2255,7 @@ export type Database = {
           id?: string
           last_message_at?: string
           last_message_from: string
+          organization_id?: string | null
           patient_id?: string | null
           phone_number: string
           status?: string
@@ -2259,6 +2270,7 @@ export type Database = {
           id?: string
           last_message_at?: string
           last_message_from?: string
+          organization_id?: string | null
           patient_id?: string | null
           phone_number?: string
           status?: string
@@ -2287,6 +2299,7 @@ export type Database = {
           media_url: string | null
           message_type: string
           metadata: Json | null
+          organization_id: string | null
           status: string
           whatsapp_message_id: string | null
         }
@@ -2299,6 +2312,7 @@ export type Database = {
           media_url?: string | null
           message_type: string
           metadata?: Json | null
+          organization_id?: string | null
           status?: string
           whatsapp_message_id?: string | null
         }
@@ -2311,6 +2325,7 @@ export type Database = {
           media_url?: string | null
           message_type?: string
           metadata?: Json | null
+          organization_id?: string | null
           status?: string
           whatsapp_message_id?: string | null
         }
@@ -2413,10 +2428,6 @@ export type Database = {
         Returns: boolean
       }
       is_organization_owner: { Args: { _user_id: string }; Returns: boolean }
-      is_same_organization: {
-        Args: { target_user_id: string }
-        Returns: boolean
-      }
       is_subordinate: { Args: { _user_id: string }; Returns: boolean }
       resolve_organization_for_user: {
         Args: { _user_id: string }
