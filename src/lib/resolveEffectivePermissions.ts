@@ -150,6 +150,7 @@ export async function resolveEffectivePermissions(
       if (roleGlobal === 'admin' || hierarchyInfo.isOwner) {
         const bootstrapPermissions = getDefaultFullPermissions(hierarchyInfo, roleGlobal);
         console.log('[PERM] 🚀 Bootstrap permissivo aplicado (admin/owner):', bootstrapPermissions);
+        console.log('[PERM] 🌐 Visibilidade TOTAL concedida: financial=full, clinical=full, marketing=full, team=full, whatsapp=full');
         return bootstrapPermissions;
       }
       

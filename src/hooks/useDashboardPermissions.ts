@@ -118,6 +118,22 @@ export function useDashboardPermissions() {
       },
     });
 
+    // Log adicional de visibilidade por domínio (FASE 12.3.7)
+    console.log('[DASH_PERM] 🌐 Visibilidade final por domínio', {
+      userId: ctx.userId,
+      globalRole: permissions?.roleType,
+      isOrganizationOwner: ctx.isOrganizationOwner,
+      visibilityByDomain: {
+        financial: { canView: ctx.canAccessFinancial, scope: financialAccess },
+        clinical: { canView: ctx.canAccessClinical, scope: 'full' },
+        administrative: { canView: ctx.canAccessAdministrative, scope: 'full' },
+        team: { canView: ctx.canAccessTeam, scope: 'full' },
+        media: { canView: ctx.canAccessMarketing, scope: 'full' },
+        whatsapp: { canView: ctx.canAccessWhatsapp },
+        marketing: { canView: ctx.canAccessMarketing, scope: 'full' },
+      },
+    });
+
     return ctx;
   }, [
     user,
