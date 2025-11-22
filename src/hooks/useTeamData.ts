@@ -42,7 +42,7 @@ export function useTeamData() {
           organizationId,
         });
 
-        // FASE 12.3.4: Logar current_user_organization()
+        // FASE 12.3.5: Logar current_user_organization()
         const { data: orgFromFn, error: orgFnError } = await supabase
           .rpc('current_user_organization');
 
@@ -52,6 +52,13 @@ export function useTeamData() {
         console.log('[DEBUG_ORG] 🔍 current_user_organization error:', orgFnError);
 
         setLoading(true);
+
+        // FASE 12.3.5: Logar antes de calcular escopo
+        console.log('[TEAM_DEBUG] 🔄 Calculando escopo de equipe...');
+        console.log('[TEAM_DEBUG] 🔄 params:', {
+          orgId: organizationId,
+          userId: user?.id,
+        });
 
         // FASE 12.3: Usar escopo de compartilhamento para determinar usuários visíveis
         // Importar dinamicamente para evitar ciclo de dependência
@@ -66,6 +73,7 @@ export function useTeamData() {
           domain: 'team',
         });
 
+        console.log('[TEAM_DEBUG] ✅ userIds no escopo da equipe:', visibleUserIds);
         console.log('[TEAM_METRICS] 👥 Usuários visíveis no escopo de equipe:', {
           count: visibleUserIds.length,
           ids: visibleUserIds,
@@ -88,6 +96,9 @@ export function useTeamData() {
           .in('user_id', visibleUserIds)
           .eq('organization_id', organizationId);
 
+        console.log('[TEAM_API] 📋 table=patients data:', patientsData);
+        console.log('[TEAM_API] 📋 table=patients error:', patientsError);
+
         if (patientsError) {
           console.error('[TEAM_METRICS] ❌ Erro ao buscar pacientes:', patientsError);
           throw patientsError;
@@ -108,6 +119,9 @@ export function useTeamData() {
             .select('*')
             .in('patient_id', patientIds)
             .eq('organization_id', organizationId);
+
+          console.log('[TEAM_API] 📋 table=sessions data:', sessionsData);
+          console.log('[TEAM_API] 📋 table=sessions error:', sessionsError);
 
           if (sessionsError) {
             console.error('[TEAM_METRICS] ❌ Erro ao buscar sessões:', sessionsError);
