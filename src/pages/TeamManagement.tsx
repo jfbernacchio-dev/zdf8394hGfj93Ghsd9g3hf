@@ -88,6 +88,9 @@ const TeamManagement = () => {
         .eq('organization_id', organizationId)
         .order('level_number', { ascending: true });
 
+      console.log('[TEAM_API] 📋 table=organization_levels data:', data);
+      console.log('[TEAM_API] 📋 table=organization_levels error:', error);
+
       if (error) throw error;
       
       console.log('[TEAM] levels loaded:', data);
@@ -125,6 +128,8 @@ const TeamManagement = () => {
           .select('id, level_id, position_name')
           .in('level_id', levelIds);
 
+        console.log('[TEAM_API] 📋 table=organization_positions data:', positions);
+        console.log('[TEAM_API] 📋 table=organization_positions error:', posError);
         console.log('[ORG_POS] Result:', { positions, posError });
         
         if (posError) {
@@ -141,26 +146,35 @@ const TeamManagement = () => {
         const positionIds = positions.map(p => p.id);
 
         // Buscar user_positions
-        const { data: userPositions } = await supabase
+        const { data: userPositions, error: upError } = await supabase
           .from('user_positions')
           .select('user_id, position_id')
           .in('position_id', positionIds);
+
+        console.log('[TEAM_API] 📋 table=user_positions data:', userPositions);
+        console.log('[TEAM_API] 📋 table=user_positions error:', upError);
 
         if (!userPositions || userPositions.length === 0) return [];
 
         const userIds = [...new Set(userPositions.map(up => up.user_id))];
 
         // Buscar profiles
-        const { data: profiles } = await supabase
+        const { data: profiles, error: profilesError } = await supabase
           .from('profiles')
           .select('id, full_name')
           .in('id', userIds);
 
+        console.log('[TEAM_API] 📋 table=profiles data:', profiles);
+        console.log('[TEAM_API] 📋 table=profiles error:', profilesError);
+
         // Buscar roles
-        const { data: roles } = await supabase
+        const { data: roles, error: rolesError } = await supabase
           .from('user_roles')
           .select('user_id, role')
           .in('user_id', userIds);
+
+        console.log('[TEAM_API] 📋 table=user_roles data:', roles);
+        console.log('[TEAM_API] 📋 table=user_roles error:', rolesError);
 
         // Montar estrutura de membros
         const members: TeamMember[] = [];

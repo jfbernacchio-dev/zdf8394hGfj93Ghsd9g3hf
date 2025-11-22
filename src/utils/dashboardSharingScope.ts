@@ -114,6 +114,9 @@ async function getDirectSubordinates(
       _user_id: userId
     });
 
+    console.log('[TEAM_API] 📋 rpc=get_all_subordinates data:', data);
+    console.log('[TEAM_API] 📋 rpc=get_all_subordinates error:', error);
+
     if (error || !data) {
       console.warn('[TEAM_METRICS] ⚠️ Erro ao buscar subordinados:', error);
       return [];
@@ -146,6 +149,9 @@ async function getLevelSharedUsers(
       .eq('level_id', levelId)
       .maybeSingle();
 
+    console.log('[TEAM_API] 📋 table=level_sharing_config data:', sharingConfig);
+    console.log('[TEAM_API] 📋 table=level_sharing_config error:', configError);
+
     if (configError || !sharingConfig) {
       return [];
     }
@@ -163,6 +169,9 @@ async function getLevelSharedUsers(
       .select('user_id, position_id')
       .neq('user_id', userId);
 
+    console.log('[TEAM_API] 📋 table=user_positions (peers) data:', peers);
+    console.log('[TEAM_API] 📋 table=user_positions (peers) error:', peersError);
+
     if (peersError || !peers) {
       return [];
     }
@@ -173,6 +182,9 @@ async function getLevelSharedUsers(
       .select('id, level_id')
       .eq('level_id', levelId)
       .in('id', peers.map(p => p.position_id));
+
+    console.log('[TEAM_API] 📋 table=organization_positions (level filter) data:', positions);
+    console.log('[TEAM_API] 📋 table=organization_positions (level filter) error:', posError);
 
     if (posError || !positions) {
       return [];
@@ -206,6 +218,9 @@ async function getPeerSharedUsers(
       .from('peer_sharing')
       .select('sharer_user_id, receiver_user_id, shared_domains, is_bidirectional')
       .or(`sharer_user_id.eq.${userId},receiver_user_id.eq.${userId}`);
+
+    console.log('[TEAM_API] 📋 table=peer_sharing data:', sharingRecords);
+    console.log('[TEAM_API] 📋 table=peer_sharing error:', error);
 
     if (error || !sharingRecords) {
       return [];
