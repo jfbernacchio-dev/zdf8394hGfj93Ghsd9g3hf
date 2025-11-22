@@ -46,6 +46,14 @@ export async function getDashboardVisibleUserIds(
     domain,
   });
 
+  // FASE 12.3.4: Diagnosticar current_user_organization
+  const { data: orgFromFn, error: orgFnError } = await supabase
+    .rpc('current_user_organization');
+
+  console.log('[TEAM_DEBUG] 🔍 orgId (AuthContext):', organizationId);
+  console.log('[TEAM_DEBUG] 🔍 current_user_organization() RPC:', orgFromFn);
+  console.log('[TEAM_DEBUG] 🔍 current_user_organization error:', orgFnError);
+
   try {
     // 1. SEMPRE INCLUI O PRÓPRIO USUÁRIO
     const visibleUserIds = new Set<string>([userId]);
@@ -72,7 +80,18 @@ export async function getDashboardVisibleUserIds(
       domain,
       totalVisibleUsers: finalUserIds.length,
       includesOwnData: finalUserIds.includes(userId),
+      userIds: finalUserIds,
     });
+
+    // FASE 12.3.4: Buscar profiles desses userIds para verificar RLS
+    const { data: profilesData, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, full_name, organization_id')
+      .in('id', finalUserIds);
+
+    console.log('[TEAM_DEBUG] 📊 userIds considerados no escopo da equipe:', finalUserIds);
+    console.log('[TEAM_DEBUG] 📊 dados de profiles retornados:', profilesData);
+    console.log('[TEAM_DEBUG] 📊 erro ao buscar profiles:', profilesError);
 
     return finalUserIds;
 

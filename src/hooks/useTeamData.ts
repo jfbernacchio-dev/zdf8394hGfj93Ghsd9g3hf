@@ -42,6 +42,15 @@ export function useTeamData() {
           organizationId,
         });
 
+        // FASE 12.3.4: Logar current_user_organization()
+        const { data: orgFromFn, error: orgFnError } = await supabase
+          .rpc('current_user_organization');
+
+        console.log('[DEBUG_ORG] 🔍 user.id:', user?.id);
+        console.log('[DEBUG_ORG] 🔍 organizationId (AuthContext):', organizationId);
+        console.log('[DEBUG_ORG] 🔍 current_user_organization():', orgFromFn);
+        console.log('[DEBUG_ORG] 🔍 current_user_organization error:', orgFnError);
+
         setLoading(true);
 
         // FASE 12.3: Usar escopo de compartilhamento para determinar usuários visíveis
