@@ -98,41 +98,44 @@ export function useDashboardPermissions() {
       peerClinicalSharing,
     };
 
-    // Log de debug detalhado
-    console.log('[DASH_PERM] 🔎 Visibilidade calculada por level_role_settings', {
-      userId: ctx.userId,
-      organizationId: ctx.organizationId,
-      levelId: permissions?.levelId,
-      roleType: permissions?.roleType,
-      isAdmin: ctx.isAdmin,
-      isOrganizationOwner: ctx.isOrganizationOwner,
-      visibility: {
-        financial: { canViewSection: ctx.canAccessFinancial },
-        administrative: { canViewSection: ctx.canAccessAdministrative },
-        clinical: { canViewSection: ctx.canAccessClinical },
-        general: { canViewSection: true },
-        charts: { canViewSection: true },
-        team: { canViewSection: ctx.canAccessTeam },
-        marketing: { canViewSection: ctx.canAccessMarketing },
-        media: { canViewSection: ctx.canAccessMarketing },
-      },
-    });
+  // Log de debug detalhado
+  console.log('[DASH_PERM] 🔎 Visibilidade calculada por level_role_settings', {
+    userId: ctx.userId,
+    organizationId: ctx.organizationId,
+    levelId: permissions?.levelId,
+    roleType: permissions?.roleType,
+    isAdmin: ctx.isAdmin,
+    isOrganizationOwner: ctx.isOrganizationOwner,
+    visibility: {
+      financial: { canViewSection: ctx.canAccessFinancial },
+      administrative: { canViewSection: ctx.canAccessAdministrative },
+      clinical: { canViewSection: ctx.canAccessClinical },
+      general: { canViewSection: true },
+      charts: { canViewSection: true },
+      team: { canViewSection: ctx.canAccessTeam },
+      marketing: { canViewSection: ctx.canAccessMarketing },
+      media: { canViewSection: ctx.canAccessMarketing },
+    },
+  });
 
-    // Log adicional de visibilidade por domínio (FASE 12.3.7)
-    console.log('[DASH_PERM] 🌐 Visibilidade final por domínio', {
-      userId: ctx.userId,
-      globalRole: permissions?.roleType,
-      isOrganizationOwner: ctx.isOrganizationOwner,
-      visibilityByDomain: {
-        financial: { canView: ctx.canAccessFinancial, scope: financialAccess },
-        clinical: { canView: ctx.canAccessClinical, scope: 'full' },
-        administrative: { canView: ctx.canAccessAdministrative, scope: 'full' },
-        team: { canView: ctx.canAccessTeam, scope: 'full' },
-        media: { canView: ctx.canAccessMarketing, scope: 'full' },
-        whatsapp: { canView: ctx.canAccessWhatsapp },
-        marketing: { canView: ctx.canAccessMarketing, scope: 'full' },
-      },
-    });
+  // Log adicional de visibilidade por domínio (FASE 12.3.7)
+  console.log('[DASH_PERM] 🌐 Visibilidade final por domínio', {
+    userId: ctx.userId,
+    globalRole: permissions?.roleType,
+    isAdmin: ctx.isAdmin,
+    isOrganizationOwner: ctx.isOrganizationOwner,
+    visibilityByDomain: {
+      financial: { canView: ctx.canAccessFinancial, scope: financialAccess },
+      clinical: { canView: ctx.canAccessClinical, scope: 'full' },
+      administrative: { canView: ctx.canAccessAdministrative, scope: 'full' },
+      team: { canView: ctx.canAccessTeam, scope: 'full' },
+      media: { canView: ctx.canAccessMarketing, scope: 'full' },
+      whatsapp: { canView: ctx.canAccessWhatsapp },
+      marketing: { canView: ctx.canAccessMarketing, scope: 'full' },
+      general: { canView: true, scope: 'full' },
+      charts: { canView: true, scope: 'full' },
+    },
+  });
 
     return ctx;
   }, [
@@ -173,15 +176,31 @@ export function canViewDashboardCard(
   const config = card.permissionConfig;
   if (!config) return true; // Cards sem config são sempre visíveis
 
-  // FASE 12.3: REMOVER GOD MODE - verificar domínio sempre
+  // FASE 12.3.8: Verificar domínio com bypass para admin/owner
   // 1. CHECAR DOMÍNIO
-  if (!canAccessDomain(config.domain, ctx)) {
+  const canAccess = canAccessDomain(config.domain, ctx);
+  
+  if (!canAccess) {
     console.log('[DASH_PERM] ❌ Card bloqueado por domínio', {
       cardId: card.id,
       domain: config.domain,
       userId: ctx.userId,
+      isAdmin: ctx.isAdmin,
+      isOrganizationOwner: ctx.isOrganizationOwner,
+      canAccessTeam: ctx.canAccessTeam,
     });
     return false;
+  }
+  
+  // Log de sucesso para cards de team (debug FASE 12.3.8)
+  if (config.domain === 'team') {
+    console.log('[DASH_PERM] ✅ Card de equipe permitido', {
+      cardId: card.id,
+      domain: config.domain,
+      userId: ctx.userId,
+      isAdmin: ctx.isAdmin,
+      isOrganizationOwner: ctx.isOrganizationOwner,
+    });
   }
 
   // 2. CHECAR BLOQUEIOS EXPLÍCITOS
