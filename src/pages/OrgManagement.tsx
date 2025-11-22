@@ -164,10 +164,25 @@ export default function OrgManagement() {
         const levelIds = orgLevels.map(l => l.id);
 
         // Buscar positions desses níveis
-        const { data: positions } = await supabase
+        console.log('[ORG_MGMT] 🔎 Carregando positions para level_ids:', levelIds);
+        const { data: positions, error: posError } = await supabase
           .from('organization_positions')
           .select('id, level_id')
           .in('level_id', levelIds);
+
+        console.log('[ORG_MGMT] 🔎 Dados de posições carregados', {
+          positionsCount: positions?.length,
+          errorPositions: posError,
+        });
+        
+        if (posError) {
+          console.error('[ORG_MGMT] ❌ Erro ao buscar positions:', {
+            message: posError.message,
+            details: posError.details,
+            hint: posError.hint,
+            code: posError.code
+          });
+        }
 
         if (!positions || positions.length === 0) {
           console.debug('[OrgManagement] Nenhuma posição encontrada');

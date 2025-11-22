@@ -117,12 +117,24 @@ const TeamManagement = () => {
         if (!orgLevels || orgLevels.length === 0) return [];
 
         const levelIds = orgLevels.map(l => l.id);
+        console.log('[ORG_POS] Requesting positions with level_ids:', levelIds);
 
         // Buscar posições desses níveis
-        const { data: positions } = await supabase
+        const { data: positions, error: posError } = await supabase
           .from('organization_positions')
           .select('id, level_id, position_name')
           .in('level_id', levelIds);
+
+        console.log('[ORG_POS] Result:', { positions, posError });
+        
+        if (posError) {
+          console.error('[ORG_POS] ❌ Error loading positions:', {
+            message: posError.message,
+            details: posError.details,
+            hint: posError.hint,
+            code: posError.code
+          });
+        }
 
         if (!positions || positions.length === 0) return [];
 
