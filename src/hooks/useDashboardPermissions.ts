@@ -86,7 +86,7 @@ export function useDashboardPermissions() {
       canAccessAdministrative: true, // Todos podem ver dados administrativos
       canAccessMarketing,
       canAccessWhatsapp,
-      canAccessTeam: canViewTeamFinancialSummary || isOrganizationOwner,
+      canAccessTeam: canViewTeamFinancialSummary,
       
       // Role
       isAdmin: isAdmin || false,
