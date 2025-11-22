@@ -31,99 +31,93 @@ export function useTeamData() {
   useEffect(() => {
     async function loadTeamData() {
       if (!user || !organizationId) {
-        console.log('[TEAM_METRICS] No user or organizationId', { user: !!user, organizationId });
+        console.log('[TEAM_METRICS] ⏸️ Sem user ou organizationId, abortando');
         setLoading(false);
         return;
       }
 
-      console.log('[TEAM_METRICS] Starting load', {
-        userId: user.id,
-        organizationId,
-      });
-
       try {
-        const orgUserIds = await getUserIdsInOrganization(organizationId);
-        console.log('[TEAM_METRICS] Organization user IDs', { 
-          count: orgUserIds.length, 
-          ids: orgUserIds 
+        console.log('[TEAM_METRICS] 📊 Iniciando carregamento de dados da equipe', {
+          userId: user.id,
+          organizationId,
         });
+
+        setLoading(true);
+
+        // FASE 12.3: Usar escopo de compartilhamento para determinar usuários visíveis
+        // Importar dinamicamente para evitar ciclo de dependência
+        const { getDashboardVisibleUserIds } = await import('@/utils/dashboardSharingScope');
         
-        // Buscar subordinados que pertencem à organização ativa
-        // NOTA: Usando "created_by" - verificar se este campo existe e está populado
-        const { data: subordinates, error: subError } = await supabase
-          .from('profiles')
-          .select('id, full_name, created_by')
-          .eq('created_by', user.id);
-
-        console.log('[TEAM_METRICS] Subordinates query', {
-          count: subordinates?.length || 0,
-          subordinates,
-          error: subError,
-          filteredByOrg: orgUserIds.length,
+        // Buscar userIds visíveis para domínio 'team'
+        const visibleUserIds = await getDashboardVisibleUserIds({
+          supabase,
+          userId: user.id,
+          organizationId,
+          levelId: null, // TODO: obter levelId do useEffectivePermissions
+          domain: 'team',
         });
 
-        const subIds = (subordinates?.map(s => s.id) || []).filter(id => 
-          orgUserIds.includes(id)
-        );
-        
-        console.log('[TEAM_METRICS] Filtered subordinate IDs', {
-          total: subordinates?.length || 0,
-          filtered: subIds.length,
-          ids: subIds,
+        console.log('[TEAM_METRICS] 👥 Usuários visíveis no escopo de equipe:', {
+          count: visibleUserIds.length,
+          ids: visibleUserIds,
         });
 
-        setSubordinateIds(subIds);
+        setSubordinateIds(visibleUserIds.filter(id => id !== user.id));
 
-        if (subIds.length === 0) {
-          console.log('[TEAM_METRICS] No subordinates found - zero team data');
+        if (visibleUserIds.length <= 1) {
+          console.log('[TEAM_METRICS] 📭 Apenas próprio usuário no escopo, finalizando');
           setTeamPatients([]);
           setTeamSessions([]);
           setLoading(false);
           return;
         }
 
-        // Buscar pacientes dos subordinados
-        const { data: patients, error: patError } = await supabase
+        // 2. Buscar pacientes dos usuários visíveis
+        const { data: patientsData, error: patientsError } = await supabase
           .from('patients')
           .select('*')
-          .in('user_id', subIds);
+          .in('user_id', visibleUserIds)
+          .eq('organization_id', organizationId);
 
-        console.log('[TEAM_METRICS] Team patients query', {
-          count: patients?.length || 0,
-          subordinateIds: subIds.length,
-          error: patError,
+        if (patientsError) {
+          console.error('[TEAM_METRICS] ❌ Erro ao buscar pacientes:', patientsError);
+          throw patientsError;
+        }
+
+        console.log('[TEAM_METRICS] 🏥 Pacientes da equipe encontrados:', {
+          count: patientsData?.length || 0,
         });
 
-        setTeamPatients(patients || []);
+        setTeamPatients(patientsData || []);
 
-        // Buscar sessões dos pacientes dos subordinados
-        const patientIds = patients?.map(p => p.id) || [];
-        if (patientIds.length > 0) {
-          const { data: sessions, error: sessError } = await supabase
+        // 3. Buscar sessões desses pacientes
+        if (patientsData && patientsData.length > 0) {
+          const patientIds = patientsData.map((p: any) => p.id);
+          
+          const { data: sessionsData, error: sessionsError } = await supabase
             .from('sessions')
             .select('*')
-            .in('patient_id', patientIds);
+            .in('patient_id', patientIds)
+            .eq('organization_id', organizationId);
 
-          console.log('[TEAM_METRICS] Team sessions query', {
-            count: sessions?.length || 0,
-            patientIds: patientIds.length,
-            error: sessError,
+          if (sessionsError) {
+            console.error('[TEAM_METRICS] ❌ Erro ao buscar sessões:', sessionsError);
+            throw sessionsError;
+          }
+
+          console.log('[TEAM_METRICS] 📅 Sessões da equipe encontradas:', {
+            count: sessionsData?.length || 0,
           });
 
-          setTeamSessions(sessions || []);
+          setTeamSessions(sessionsData || []);
         } else {
-          console.log('[TEAM_METRICS] No team patients, zero sessions');
           setTeamSessions([]);
         }
 
-        console.log('[TEAM_METRICS] Final result', {
-          subordinates: subIds.length,
-          patients: patients?.length || 0,
-          sessions: (patientIds.length > 0 ? (await supabase.from('sessions').select('*').in('patient_id', patientIds)).data?.length : 0) || 0,
-        });
+        console.log('[TEAM_METRICS] ✅ Carregamento concluído com sucesso');
 
       } catch (error) {
-        console.error('[TEAM_METRICS] Error:', error);
+        console.error('[TEAM_METRICS] ❌ Erro ao carregar dados da equipe:', error);
       } finally {
         setLoading(false);
       }
