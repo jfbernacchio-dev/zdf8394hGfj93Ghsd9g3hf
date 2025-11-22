@@ -67,12 +67,15 @@ export const useDashboardLayout = (): UseDashboardLayoutReturn => {
 
       if (data?.layout_config) {
         const dbLayout = data.layout_config as unknown as DashboardGridLayout;
-        console.log('[useDashboardLayout] Layout grid carregado do Supabase:', dbLayout);
+        console.log('[DB_LAYOUT] 📦 Layout carregado do Supabase:', dbLayout);
+        console.log('[DB_LAYOUT] 🔑 Keys presentes:', Object.keys(dbLayout));
+        console.log('[DB_LAYOUT] 👥 dashboard-team existe?', 'dashboard-team' in dbLayout);
+        console.log('[DB_LAYOUT] 📊 dashboard-team cardLayouts:', dbLayout['dashboard-team']?.cardLayouts);
         setOriginalLayout(dbLayout);
         return dbLayout;
       }
 
-      console.log('[useDashboardLayout] Nenhum layout salvo, usando padrão grid');
+      console.log('[DB_LAYOUT] ⚠️ Nenhum layout salvo, usando padrão grid');
       return DEFAULT_DASHBOARD_GRID_LAYOUT;
     } catch (error) {
       console.error('[useDashboardLayout] Erro ao carregar layout:', error);
@@ -88,6 +91,11 @@ export const useDashboardLayout = (): UseDashboardLayoutReturn => {
     // ✅ MERGE: DEFAULT primeiro, depois baseLayout sobrescreve
     // Isso garante que novas sections (como dashboard-team) apareçam mesmo em layouts antigos
     const merged = { ...DEFAULT_DASHBOARD_GRID_LAYOUT, ...baseLayout };
+
+    console.log('[LAYOUT_AFTER_MERGE] 🔀 Resultado do spread operator:', merged);
+    console.log('[MERGED_KEYS] 🔑 Keys no merged:', Object.keys(merged));
+    console.log('[MERGED_KEYS] 👥 dashboard-team no merged?', 'dashboard-team' in merged);
+    console.log('[MERGED_KEYS] 📊 dashboard-team cardLayouts após merge:', merged['dashboard-team']?.cardLayouts);
 
     Object.keys(merged).forEach(sectionId => {
       const section = merged[sectionId];
@@ -115,7 +123,9 @@ export const useDashboardLayout = (): UseDashboardLayoutReturn => {
       });
     });
 
-    console.log('[useDashboardLayout] Layout merged com localStorage:', merged);
+    console.log('[FINAL_LAYOUT] ✅ Layout final após aplicar localStorage:', merged);
+    console.log('[FINAL_LAYOUT] 👥 dashboard-team final:', merged['dashboard-team']);
+    console.log('[FINAL_LAYOUT] 📊 dashboard-team cardLayouts final:', merged['dashboard-team']?.cardLayouts);
     return merged;
   }, []);
 
@@ -127,6 +137,8 @@ export const useDashboardLayout = (): UseDashboardLayoutReturn => {
       setLoading(true);
       const dbLayout = await loadLayoutFromDatabase();
       const finalLayout = loadLayoutFromLocalStorage(dbLayout);
+      console.log('[INIT_LAYOUT] 🎬 Antes de setLayout:', finalLayout);
+      console.log('[INIT_LAYOUT] 👥 dashboard-team antes do setState:', finalLayout['dashboard-team']);
       setLayout(finalLayout);
       setLoading(false);
     };
