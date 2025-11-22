@@ -85,7 +85,9 @@ export const useDashboardLayout = (): UseDashboardLayoutReturn => {
    * LOAD LAYOUT FROM LOCALSTORAGE
    */
   const loadLayoutFromLocalStorage = useCallback((baseLayout: DashboardGridLayout): DashboardGridLayout => {
-    const merged = { ...baseLayout };
+    // ✅ MERGE: DEFAULT primeiro, depois baseLayout sobrescreve
+    // Isso garante que novas sections (como dashboard-team) apareçam mesmo em layouts antigos
+    const merged = { ...DEFAULT_DASHBOARD_GRID_LAYOUT, ...baseLayout };
 
     Object.keys(merged).forEach(sectionId => {
       const section = merged[sectionId];
