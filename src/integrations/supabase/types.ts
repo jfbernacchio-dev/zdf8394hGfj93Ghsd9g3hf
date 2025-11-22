@@ -2354,6 +2354,10 @@ export type Database = {
         }[]
       }
       get_direct_superior: { Args: { _user_id: string }; Returns: string }
+      get_level_organization_id: {
+        Args: { _level_id: string }
+        Returns: string
+      }
       get_manager_id: { Args: { _subordinate_id: string }; Returns: string }
       get_organization_hierarchy_info: {
         Args: { _user_id: string }
