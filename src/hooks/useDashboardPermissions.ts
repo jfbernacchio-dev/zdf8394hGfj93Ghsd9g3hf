@@ -215,12 +215,18 @@ export function canViewDashboardCard(
 
 /**
  * Checar se usuário tem acesso a um domínio específico
- * FASE 12.3: Sem bypass para admin/owner - todos passam pela mesma lógica
+ * FASE 12.3.8: Admin/Owner SEMPRE podem ver todos os domínios (bypass total)
  */
 function canAccessDomain(
   domain: PermissionDomain,
   ctx: DashboardPermissionContext
 ): boolean {
+  // 🔓 FASE 12.3.8: Admin/Owner sempre podem ver todos os domínios
+  if (ctx.isAdmin || ctx.isOrganizationOwner) {
+    return true;
+  }
+  
+  // 🔒 Demais usuários seguem as permissões do level_role_settings
   switch (domain) {
     case 'general':
       return true; // Sempre acessível
