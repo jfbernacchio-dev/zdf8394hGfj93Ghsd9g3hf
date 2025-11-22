@@ -37,6 +37,7 @@ interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   rolesLoaded: boolean;
+  organizationsLoading: boolean; // FASE 11.3.1: Flag separada para loading de orgs
   isAdmin: boolean;
   isAccountant: boolean;
   roleGlobal: 'admin' | 'psychologist' | 'assistant' | 'accountant' | null;
@@ -70,6 +71,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [rolesLoaded, setRolesLoaded] = useState(false);
+  const [organizationsLoading, setOrganizationsLoading] = useState(true); // FASE 11.3.1
   const [isAdmin, setIsAdmin] = useState(false);
   const [isAccountant, setIsAccountant] = useState(false);
   const [roleGlobal, setRoleGlobal] = useState<'admin' | 'psychologist' | 'assistant' | 'accountant' | null>(null);
@@ -196,7 +198,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       // FASE 10.10: Carregar organizações do usuário
       try {
-        console.log('[AUTH] Carregando organizações para userId:', userId);
+        setOrganizationsLoading(true); // FASE 11.3.1: Marcar início do loading de orgs
+        console.log('[AUTH] 🔄 Iniciando carregamento de organizações para userId:', userId);
         
         const { data: userOrgs, error: orgsError } = await supabase
           .from('organization_owners')
@@ -212,10 +215,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           .eq('user_id', userId);
 
         if (orgsError) {
-          console.error('[AUTH] Erro ao buscar organization_owners:', orgsError);
+          console.error('[AUTH] ❌ Erro ao buscar organization_owners:', orgsError);
         }
 
-        console.log('[AUTH] userOrgs retornados:', userOrgs);
+        console.log('[AUTH] 📦 userOrgs retornados:', userOrgs);
 
         if (userOrgs && userOrgs.length > 0) {
           const orgsArray: Organization[] = userOrgs
@@ -232,30 +235,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               return a.legal_name.localeCompare(b.legal_name);
             });
 
-          console.log('[AUTH] Organizações processadas:', orgsArray);
+          console.log('[AUTH] ✅ Organizações processadas:', orgsArray);
           setOrganizations(orgsArray);
 
           const savedOrgId = localStorage.getItem('activeOrganizationId');
           let activeOrgId: string | null = null;
 
           if (savedOrgId && orgsArray.some(o => o.id === savedOrgId)) {
-            console.log('[AUTH] Usando org salva:', savedOrgId);
+            console.log('[AUTH] 💾 Usando org salva do localStorage:', savedOrgId);
             activeOrgId = savedOrgId;
           } else {
             const primaryOrg = orgsArray.find(o => o.is_primary);
             activeOrgId = primaryOrg ? primaryOrg.id : orgsArray[0].id;
-            console.log('[AUTH] Usando org primária/primeira:', activeOrgId);
+            console.log('[AUTH] 🎯 Usando org primária/primeira:', activeOrgId);
             localStorage.setItem('activeOrganizationId', activeOrgId);
           }
 
           setActiveOrganizationIdState(activeOrgId);
           setOrganizationId(activeOrgId);
+          
+          console.log('[AUTH] ✅ ORGANIZATIONS LOADING COMPLETE', {
+            userId,
+            organizationId: activeOrgId,
+            totalOrganizations: orgsArray.length,
+            organizations: orgsArray.map(o => o.legal_name)
+          });
         } else {
           // FALLBACK: Se não encontrou em organization_owners, tentar usar profiles.organization_id
-          console.warn('[AUTH] Nenhuma org encontrada em organization_owners, tentando fallback...');
+          console.warn('[AUTH] ⚠️ Nenhuma org encontrada em organization_owners, tentando fallback...');
           
           if (data?.organization_id) {
-            console.log('[AUTH] Usando organization_id do profile:', data.organization_id);
+            console.log('[AUTH] 🔄 Usando organization_id do profile:', data.organization_id);
             
             // Buscar info da organização diretamente
             const { data: orgData } = await supabase
@@ -272,29 +282,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 is_primary: true,
               };
 
-              console.log('[AUTH] Organização do profile encontrada:', fallbackOrg);
+              console.log('[AUTH] ✅ Organização do profile encontrada:', fallbackOrg);
               setOrganizations([fallbackOrg]);
               setActiveOrganizationIdState(orgData.id);
               setOrganizationId(orgData.id);
               localStorage.setItem('activeOrganizationId', orgData.id);
+              
+              console.log('[AUTH] ✅ ORGANIZATIONS LOADING COMPLETE (fallback)', {
+                userId,
+                organizationId: orgData.id,
+                totalOrganizations: 1
+              });
             } else {
-              console.warn('[AUTH] Organização do profile não encontrada no banco');
+              console.warn('[AUTH] ⚠️ Organização do profile não encontrada no banco');
               setOrganizations([]);
               setActiveOrganizationIdState(null);
               setOrganizationId(null);
             }
           } else {
-            console.warn('[AUTH] Usuário sem organization_id no profile e sem organization_owners');
+            console.warn('[AUTH] ⚠️ Usuário sem organization_id no profile e sem organization_owners');
             setOrganizations([]);
             setActiveOrganizationIdState(null);
             setOrganizationId(null);
           }
         }
       } catch (orgError) {
-        console.error('[AUTH] Erro ao resolver organização:', orgError);
+        console.error('[AUTH] ❌ Erro ao resolver organização:', orgError);
         setOrganizations([]);
         setActiveOrganizationIdState(null);
         setOrganizationId(null);
+      } finally {
+        setOrganizationsLoading(false); // FASE 11.3.1: Marcar fim do loading
+        console.log('[AUTH] 🏁 Organizations loading finalizado');
       }
       
     } catch (error) {
@@ -458,6 +477,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       profile, 
       loading,
       rolesLoaded,
+      organizationsLoading, // FASE 11.3.1
       isAdmin,
       isAccountant,
       roleGlobal,

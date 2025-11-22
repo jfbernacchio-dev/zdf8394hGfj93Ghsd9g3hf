@@ -25,42 +25,87 @@ interface OrganizationGuardProps {
 
 export function OrganizationGuard({ children }: OrganizationGuardProps) {
   const navigate = useNavigate();
-  const { organizationId, organizations, loading, rolesLoaded, user } = useAuth();
+  const { 
+    organizationId, 
+    organizations, 
+    loading, 
+    rolesLoaded, 
+    organizationsLoading, // FASE 11.3.1
+    user 
+  } = useAuth();
 
   useEffect(() => {
-    // Esperar loading completo
-    if (loading || !rolesLoaded || !user) {
+    console.log('[ORG_GUARD] 🔍 Verificando estado', {
+      loading,
+      rolesLoaded,
+      organizationsLoading,
+      user: user?.id,
+      organizationId,
+      organizationsCount: organizations?.length,
+      pathname: window.location.pathname
+    });
+
+    // ✅ REGRA 1: Esperar TODOS os loadings terminarem
+    if (loading || !rolesLoaded || organizationsLoading) {
+      console.log('[ORG_GUARD] ⏳ Ainda carregando, aguardando...');
       return;
     }
 
-    // IMPORTANTE: Só redirecionar se REALMENTE não tiver organização
-    // organizations === [] significa que tentamos carregar mas não encontramos nada
-    // organizations === null/undefined significa que ainda não tentamos
+    // ✅ REGRA 2: Se não há usuário, não fazemos nada (ProtectedRoute já cuida)
+    if (!user) {
+      console.log('[ORG_GUARD] ⚠️ Sem usuário autenticado');
+      return;
+    }
+
+    // ✅ REGRA 3: Se tem organizações mas organizationId está null, não redirecionar
+    // (AuthContext deve resolver automaticamente)
+    if (organizations && organizations.length > 0 && !organizationId) {
+      console.warn('[ORG_GUARD] ⚠️ Tem orgs mas organizationId null - aguardando resolução automática', {
+        organizations: organizations.map(o => ({ id: o.id, name: o.legal_name }))
+      });
+      return;
+    }
+
+    // ✅ REGRA 4: Só redirecionar se REALMENTE não há organizações
+    // APÓS todos os loadings terminarem
     if (organizations && organizations.length === 0 && !organizationId) {
-      console.warn('[ORG_GUARD] Usuário sem organização ativa, redirecionando...', {
+      console.error('[ORG_GUARD] 🚫 REDIRECIONANDO para /setup-organization', {
+        reason: 'Usuário sem organizações após loading completo',
+        userId: user.id,
+        email: user.email,
         organizationId,
-        organizations,
+        organizationsCount: 0,
         loading,
         rolesLoaded,
-        user: user?.id
+        organizationsLoading
       });
       navigate('/setup-organization', { replace: true });
+      return;
     }
-  }, [organizationId, organizations, loading, rolesLoaded, user, navigate]);
 
-  // Loading state
-  if (loading || !rolesLoaded) {
+    console.log('[ORG_GUARD] ✅ Validação OK, permitindo acesso', {
+      organizationId,
+      organizationsCount: organizations?.length
+    });
+  }, [organizationId, organizations, loading, rolesLoaded, organizationsLoading, user, navigate]);
+
+  // ✅ Loading state - mostrar enquanto QUALQUER coisa está carregando
+  if (loading || !rolesLoaded || organizationsLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Card className="p-8 text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-muted-foreground">Carregando...</p>
+          <p className="text-muted-foreground">
+            {loading && 'Carregando autenticação...'}
+            {!loading && !rolesLoaded && 'Carregando perfil...'}
+            {!loading && rolesLoaded && organizationsLoading && 'Carregando organizações...'}
+          </p>
         </Card>
       </div>
     );
   }
 
-  // Sem organização (APÓS loading completo)
+  // ✅ Sem organização (APENAS após loading completo)
   if (organizations && organizations.length === 0 && !organizationId) {
     return (
       <div className="flex items-center justify-center min-h-screen p-4">
@@ -82,6 +127,6 @@ export function OrganizationGuard({ children }: OrganizationGuardProps) {
     );
   }
 
-  // Tudo OK, renderizar conteúdo
+  // ✅ Tudo OK, renderizar conteúdo
   return <>{children}</>;
 }
