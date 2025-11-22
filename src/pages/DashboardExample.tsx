@@ -79,6 +79,13 @@ export default function DashboardExample() {
 
   // FASE 12.1: Sistema de permissões integrado
   const { permissionContext, loading: permissionsLoading, canViewCard } = useDashboardPermissions();
+  
+  // 🔍 LOG: Permissões carregadas
+  useEffect(() => {
+    if (!permissionsLoading) {
+      console.log('[PERMISSIONS] ✅ Permissões carregadas:', permissionContext);
+    }
+  }, [permissionsLoading, permissionContext]);
 
   // Buscar dados da equipe
   const { teamPatients, teamSessions, subordinateIds, loading: teamLoading } = useTeamData();
@@ -98,6 +105,14 @@ export default function DashboardExample() {
     saveLayout,
     resetLayout,
   } = useDashboardLayout();
+
+  // 🔍 LOG: Layout carregado no componente
+  useEffect(() => {
+    console.log('[COMPONENT_LAYOUT] 📦 Layout recebido do hook:', layout);
+    console.log('[COMPONENT_LAYOUT] 🔑 Keys no layout:', Object.keys(layout));
+    console.log('[COMPONENT_LAYOUT] 👥 dashboard-team existe?', 'dashboard-team' in layout);
+    console.log('[COMPONENT_LAYOUT] 📊 dashboard-team cardLayouts:', layout['dashboard-team']?.cardLayouts);
+  }, [layout]);
 
   // Check if layout is customized
   const isLayoutCustomized = useMemo(() => {
@@ -415,12 +430,20 @@ export default function DashboardExample() {
       );
       const visibleCards = filterCardsByPermissions(sectionCards, permissionContext);
       
+      console.log('[VISIBLE_SECTIONS_CALC] 🔍 Seção:', sectionId, {
+        totalCards: sectionCards.length,
+        visibleCards: visibleCards.length,
+        willInclude: visibleCards.length > 0
+      });
+      
       // Só incluir seção se tiver pelo menos um card visível
       if (visibleCards.length > 0) {
         filtered[sectionId] = section;
       }
     });
     
+    console.log('[VISIBLE_SECTIONS] ✅ Seções finais visíveis:', Object.keys(filtered));
+    console.log('[VISIBLE_SECTIONS] 👥 dashboard-team está visível?', 'dashboard-team' in filtered);
     return filtered;
   }, [permissionContext, permissionsLoading]);
 
@@ -611,7 +634,17 @@ export default function DashboardExample() {
         <div className="space-y-6">
           {Object.entries(visibleSections).map(([sectionId, sectionConfig]) => {
             const section = layout[sectionId];
+            
+            console.log('[RENDER_SECTION] 🎨 Tentando renderizar:', {
+              sectionId,
+              sectionConfig: sectionConfig.name,
+              section,
+              hasSection: !!section,
+              cardLayoutsCount: section?.cardLayouts?.length || 0
+            });
+            
             if (!section || !section.cardLayouts.length) {
+              console.log('[RENDER_SECTION] ⚠️ PULANDO seção (vazia ou sem permissão):', sectionId);
               // Seção vazia ou sem permissão
               return null;
             }
