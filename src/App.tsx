@@ -85,7 +85,7 @@ const ProtectedRoute = ({ children, requiresOrg = true }: { children: React.Reac
 
 const DashboardRoute = () => {
   const { isAccountant } = useAuth();
-  return isAccountant ? <AccountantDashboard /> : <Dashboard />;
+  return isAccountant ? <AccountantDashboard /> : <Layout><DashboardExample /></Layout>;
 };
 
 const ClinicalRoute = ({ children }: { children: React.ReactNode }) => {
@@ -133,6 +133,9 @@ const App = () => (
             {/* Landing Page Pública */}
             <Route path="/" element={<Index />} />
             
+            {/* Redirect /dashboard-example to /dashboard */}
+            <Route path="/dashboard-example" element={<Navigate to="/dashboard" replace />} />
+            
             {/* Páginas de Serviços Públicas */}
             <Route path="/servicos/terapia-cognitiva-comportamental" element={<TerapiaCognitivaComportamental />} />
             <Route path="/servicos/terapia-junguiana" element={<TerapiaJunguiana />} />
@@ -146,7 +149,6 @@ const App = () => (
             
             {/* Sistema de Gestão */}
             <Route path="/dashboard" element={<ProtectedRoute><PermissionRoute path="/dashboard"><DashboardRoute /></PermissionRoute></ProtectedRoute>} />
-            <Route path="/dashboard-example" element={<ProtectedRoute><Layout><DashboardExample /></Layout></ProtectedRoute>} />
             <Route path="/accountant-dashboard" element={<ProtectedRoute><PermissionRoute path="/accountant-dashboard"><Layout><AccountantDashboard /></Layout></PermissionRoute></ProtectedRoute>} />
             <Route path="/dashboard-old" element={<ProtectedRoute><Layout><DashboardOLD /></Layout></ProtectedRoute>} />
             <Route path="/install" element={<Install />} />

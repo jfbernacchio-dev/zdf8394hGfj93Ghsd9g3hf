@@ -57,6 +57,12 @@ import { getUserIdsInOrganization } from '@/lib/organizationFilters';
 
 export default function DashboardExample() {
   const { user, organizationId } = useAuth();
+  
+  // FASE 12.2: Log de confirmação da nova dashboard
+  useEffect(() => {
+    console.log('[DASHBOARD] Nova dashboard carregada com sucesso');
+  }, []);
+  
   const [isEditMode, setIsEditMode] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
