@@ -130,6 +130,7 @@ const TeamManagement = () => {
 
         console.log('[TEAM_API] 📋 table=organization_positions data:', positions);
         console.log('[TEAM_API] 📋 table=organization_positions error:', posError);
+        console.log('[TEAM_API] 📋 table=organization_positions rows:', positions?.length ?? 0);
         console.log('[ORG_POS] Result:', { positions, posError });
         
         if (posError) {
