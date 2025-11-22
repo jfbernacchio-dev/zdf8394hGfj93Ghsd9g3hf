@@ -102,10 +102,14 @@ export default function OrgManagement() {
         .eq('organization_id', organizationId)
         .order('level_number', { ascending: true });
 
-      if (error) {
-        console.debug('[OrgManagement] Erro ao carregar níveis:', error);
-        throw error;
-      }
+        if (error) {
+          console.debug('[OrgManagement] Erro ao carregar níveis:', error);
+          console.log('[ORG_MGMT] ❌ Erro ao buscar níveis', {
+            error,
+            organizationId,
+          });
+          throw error;
+        }
       
       // FASE 7.6: Sanitização de dados antes de retornar
       const safeLevels = (data || []).filter(level => {
@@ -122,7 +126,11 @@ export default function OrgManagement() {
       });
       
       console.debug('[OrgManagement] Níveis carregados:', safeLevels.length);
-      console.log('[ORG] levels loaded:', safeLevels);
+      console.log('[ORG_MGMT] 🔎 Dados de níveis carregados', {
+        levelsCount: safeLevels?.length || 0,
+        organizationId,
+        error: null,
+      });
       return safeLevels;
     },
     enabled: !!organizationId,
@@ -176,6 +184,10 @@ export default function OrgManagement() {
 
         if (error) {
           console.debug('[OrgManagement] Erro ao carregar user_positions:', error);
+          console.log('[ORG_MGMT] ❌ Erro ao buscar user_positions', {
+            error,
+            organizationId,
+          });
           toast({
             title: 'Erro ao carregar membros',
             description: 'Erro ao carregar membros da organização. Tente recarregar a página.',
@@ -252,7 +264,13 @@ export default function OrgManagement() {
           .filter((item): item is NonNullable<typeof item> => item !== null); // Remover nulls
 
         console.debug('[OrgManagement] Usuários carregados:', enrichedData?.length || 0);
-        console.log('[ORG] positions loaded:', enrichedData);
+        console.log('[ORG_MGMT] 🔎 Dados de posições e usuários carregados', {
+          positionsCount: positions?.length || 0,
+          userPositionsCount: enrichedData?.length || 0,
+          organizationId,
+          errorPositions: null,
+          errorUserPositions: null,
+        });
         return enrichedData || [];
       } catch (error) {
         console.debug('[OrgManagement] Erro geral ao carregar usuários:', error);

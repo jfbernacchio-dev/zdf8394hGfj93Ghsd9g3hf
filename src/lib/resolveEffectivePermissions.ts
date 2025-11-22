@@ -123,6 +123,13 @@ export async function resolveEffectivePermissions(
       .eq('role_type', roleGlobal)
       .maybeSingle();
     
+    console.log('[PERM] 🧩 level_role_settings carregado', {
+      levelId: hierarchyInfo.levelId,
+      globalRole: roleGlobal,
+      roleSettings,
+      error,
+    });
+    
     if (error) {
       console.error('[PERM] ❌ Erro ao buscar level_role_settings:', error);
       // Em caso de erro, retornar acesso restrito por segurança
@@ -130,10 +137,90 @@ export async function resolveEffectivePermissions(
     }
     
     // ========================================================================
-    // 5. SE NÃO TEM CONFIGURAÇÃO → DEFAULT RESTRITO
+    // 5. SE NÃO TEM CONFIGURAÇÃO → BOOTSTRAP AUTOMÁTICO
     // ========================================================================
     if (!roleSettings) {
-      console.warn('[PERM] ⚠️ Sem configuração para level + role, usando default restrito');
+      console.warn('[PERM] ⚠️ Nenhum level_role_settings para este nível/role. Aplicando bootstrap automático.', {
+        levelId: hierarchyInfo.levelId,
+        globalRole: roleGlobal,
+        isOwner: hierarchyInfo.isOwner,
+      });
+      
+      // Bootstrap permissivo para admin/owner
+      if (roleGlobal === 'admin' || hierarchyInfo.isOwner) {
+        const bootstrapPermissions = getDefaultFullPermissions(hierarchyInfo, roleGlobal);
+        console.log('[PERM] 🚀 Bootstrap permissivo aplicado (admin/owner):', bootstrapPermissions);
+        return bootstrapPermissions;
+      }
+      
+      // Bootstrap moderado para roles administrativos
+      if (roleGlobal === 'assistant') {
+        const bootstrapPermissions: EffectivePermissions = {
+          canAccessClinical: false,
+          financialAccess: 'summary',
+          canAccessMarketing: true,
+          canAccessWhatsapp: true,
+          usesOrgNFSe: true,
+          clinicalVisibleToSuperiors: true,
+          peerAgendaSharing: true,
+          peerClinicalSharing: 'none',
+          canEditSchedules: true,
+          canViewTeamFinancialSummary: false,
+          levelId: hierarchyInfo.levelId,
+          levelNumber: hierarchyInfo.levelNumber,
+          roleType: roleGlobal,
+          isOrganizationOwner: hierarchyInfo.isOwner,
+        };
+        console.log('[PERM] 🚀 Bootstrap moderado aplicado (assistant):', bootstrapPermissions);
+        return bootstrapPermissions;
+      }
+      
+      // Bootstrap restrito para contador
+      if (roleGlobal === 'accountant') {
+        const bootstrapPermissions: EffectivePermissions = {
+          canAccessClinical: false,
+          financialAccess: 'full',
+          canAccessMarketing: false,
+          canAccessWhatsapp: false,
+          usesOrgNFSe: true,
+          clinicalVisibleToSuperiors: false,
+          peerAgendaSharing: false,
+          peerClinicalSharing: 'none',
+          canEditSchedules: false,
+          canViewTeamFinancialSummary: true,
+          levelId: hierarchyInfo.levelId,
+          levelNumber: hierarchyInfo.levelNumber,
+          roleType: roleGlobal,
+          isOrganizationOwner: hierarchyInfo.isOwner,
+        };
+        console.log('[PERM] 🚀 Bootstrap restrito aplicado (accountant):', bootstrapPermissions);
+        return bootstrapPermissions;
+      }
+      
+      // Bootstrap clínico para psicólogo/terapeuta
+      if (roleGlobal === 'psychologist') {
+        const bootstrapPermissions: EffectivePermissions = {
+          canAccessClinical: true,
+          financialAccess: 'summary',
+          canAccessMarketing: false,
+          canAccessWhatsapp: false,
+          usesOrgNFSe: false,
+          clinicalVisibleToSuperiors: true,
+          peerAgendaSharing: true,
+          peerClinicalSharing: 'view',
+          canEditSchedules: true,
+          canViewTeamFinancialSummary: false,
+          levelId: hierarchyInfo.levelId,
+          levelNumber: hierarchyInfo.levelNumber,
+          roleType: roleGlobal,
+          isOrganizationOwner: hierarchyInfo.isOwner,
+        };
+        console.log('[PERM] 🚀 Bootstrap clínico aplicado (psychologist):', bootstrapPermissions);
+        return bootstrapPermissions;
+      }
+      
+      // Fallback final - restrito
+      console.warn('[PERM] ⚠️ Role não reconhecido para bootstrap, usando default restrito');
       return getRestrictedDefaultPermissions(hierarchyInfo, roleGlobal);
     }
     
