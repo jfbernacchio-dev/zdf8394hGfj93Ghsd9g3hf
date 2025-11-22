@@ -40,7 +40,7 @@ export const DASHBOARD_SECTIONS: Record<string, SectionConfig> = {
   'dashboard-administrative': {
     id: 'dashboard-administrative',
     name: 'Administrativa',
-    description: 'Sessões, pacientes e agendamentos',
+    description: 'Sessões, pacientes, agendamentos e WhatsApp',
     permissionConfig: {
       primaryDomain: 'administrative',
       secondaryDomains: [],
@@ -54,6 +54,7 @@ export const DASHBOARD_SECTIONS: Record<string, SectionConfig> = {
       'dashboard-pending-sessions',
       'dashboard-missed-sessions',
       'dashboard-attendance-rate',
+      'dashboard-whatsapp-unread', // Movido para administrativa
       'dashboard-chart-session-types',
       'dashboard-chart-therapist-distribution',
       'dashboard-chart-attendance-weekly',
@@ -99,7 +100,7 @@ export const DASHBOARD_SECTIONS: Record<string, SectionConfig> = {
       requiresOwnDataOnly: false,
     },
     availableCardIds: [
-      'dashboard-whatsapp-unread',
+      // Cards de mídia/marketing quando houver
     ],
     defaultHeight: 350,
     collapsible: true,

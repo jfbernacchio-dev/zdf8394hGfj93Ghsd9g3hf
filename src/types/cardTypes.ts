@@ -359,7 +359,7 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
     defaultWidth: 280,
     defaultHeight: 160,
     permissionConfig: {
-      domain: 'clinical',
+      domain: 'administrative', // Contagem de pacientes é administrativa, não clínica
     },
   },
   {
@@ -421,8 +421,7 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
     defaultWidth: 280,
     defaultHeight: 160,
     permissionConfig: {
-      domain: 'financial',
-      requiresFinancialAccess: true,
+      domain: 'administrative', // Faltas são métrica administrativa, não financeira
     },
   },
   {
@@ -472,8 +471,7 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
     defaultWidth: 280,
     defaultHeight: 160,
     permissionConfig: {
-      domain: 'media',
-      blockedFor: ['subordinate'],
+      domain: 'administrative', // Métrica administrativa de qualidade
     },
   },
   {
@@ -485,7 +483,7 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
     defaultWidth: 280,
     defaultHeight: 160,
     permissionConfig: {
-      domain: 'media',
+      domain: 'administrative', // Crescimento é métrica administrativa
       blockedFor: ['subordinate'],
     },
   },
@@ -973,8 +971,7 @@ export const AVAILABLE_MEDIA_CARDS: CardConfig[] = [
     defaultWidth: 280,
     defaultHeight: 160,
     permissionConfig: {
-      domain: 'media',
-      blockedFor: ['subordinate'],
+      domain: 'administrative', // WhatsApp é administrativo, não mídia
     },
   },
   {
