@@ -67,38 +67,45 @@ export function useDashboardPermissions() {
   const permissionContext: DashboardPermissionContext | null = useMemo(() => {
     if (!user || !organizationId) return null;
 
-    // FASE 12.1.2: Admin e Owner primário têm visibilidade TOTAL
-    const hasFullAccess = isAdmin || isOrganizationOwner;
+    // FASE 12.3: REMOVER GOD MODE - Todos passam pela mesma lógica de permissões
+    console.log('[DASH_PERM] ✂️ God mode desativado. Resolvendo por nível e role.', {
+      userId: user.id,
+      isAdmin,
+      isOrganizationOwner,
+      levelId: permissions?.levelId,
+      roleType: permissions?.roleType,
+    });
 
     const ctx = {
       userId: user.id,
       organizationId,
       
-      // Se for admin/owner, todas as flags são true
-      canAccessClinical: hasFullAccess ? true : canAccessClinical,
-      canAccessFinancial: hasFullAccess ? true : (financialAccess !== 'none'),
+      // Usar permissões efetivas de level_role_settings (sem bypass)
+      canAccessClinical,
+      canAccessFinancial: financialAccess !== 'none',
       canAccessAdministrative: true, // Todos podem ver dados administrativos
-      canAccessMarketing: hasFullAccess ? true : canAccessMarketing,
-      canAccessWhatsapp: hasFullAccess ? true : canAccessWhatsapp,
-      canAccessTeam: hasFullAccess ? true : (canViewTeamFinancialSummary || isOrganizationOwner),
+      canAccessMarketing,
+      canAccessWhatsapp,
+      canAccessTeam: canViewTeamFinancialSummary || isOrganizationOwner,
       
       // Role
       isAdmin: isAdmin || false,
       isOrganizationOwner,
       
       // Específicos
-      canViewTeamFinancialSummary: hasFullAccess ? true : canViewTeamFinancialSummary,
+      canViewTeamFinancialSummary,
       peerAgendaSharing,
       peerClinicalSharing,
     };
 
     // Log de debug detalhado
-    console.log('[DASH_PERM] Visibilidade Dashboard', {
+    console.log('[DASH_PERM] 🔎 Visibilidade calculada por level_role_settings', {
       userId: ctx.userId,
       organizationId: ctx.organizationId,
+      levelId: permissions?.levelId,
+      roleType: permissions?.roleType,
       isAdmin: ctx.isAdmin,
       isOrganizationOwner: ctx.isOrganizationOwner,
-      hasFullAccess,
       visibility: {
         financial: { canViewSection: ctx.canAccessFinancial },
         administrative: { canViewSection: ctx.canAccessAdministrative },
@@ -150,13 +157,14 @@ export function canViewDashboardCard(
   const config = card.permissionConfig;
   if (!config) return true; // Cards sem config são sempre visíveis
 
-  // FASE 12.1.2: Admin e Owner têm visibilidade TOTAL - bypass todas as checagens
-  if (ctx.isAdmin || ctx.isOrganizationOwner) {
-    return true;
-  }
-
+  // FASE 12.3: REMOVER GOD MODE - verificar domínio sempre
   // 1. CHECAR DOMÍNIO
   if (!canAccessDomain(config.domain, ctx)) {
+    console.log('[DASH_PERM] ❌ Card bloqueado por domínio', {
+      cardId: card.id,
+      domain: config.domain,
+      userId: ctx.userId,
+    });
     return false;
   }
 
@@ -191,14 +199,12 @@ export function canViewDashboardCard(
 
 /**
  * Checar se usuário tem acesso a um domínio específico
+ * FASE 12.3: Sem bypass para admin/owner - todos passam pela mesma lógica
  */
 function canAccessDomain(
   domain: PermissionDomain,
   ctx: DashboardPermissionContext
 ): boolean {
-  // FASE 12.1.2: Admin e Owner têm acesso TOTAL a todos os domínios
-  if (ctx.isAdmin || ctx.isOrganizationOwner) return true;
-
   switch (domain) {
     case 'general':
       return true; // Sempre acessível
