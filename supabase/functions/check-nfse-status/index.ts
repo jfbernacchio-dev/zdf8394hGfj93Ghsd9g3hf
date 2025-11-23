@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { getNFSeConfigForUser } from "../_shared/nfseConfigHelper.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -55,14 +54,14 @@ serve(async (req) => {
       throw new Error('NFSe não encontrada');
     }
 
-    // Load config to get token (considerando autonomia de subordinado)
-    const { config, isUsingManagerConfig, configOwnerId } = await getNFSeConfigForUser(
+    // Load config to get token (FASE N4: usando novo helper organizacional)
+    const { getEffectiveNFSeConfigForUser } = await import('../_shared/organizationNFSeConfigHelper.ts');
+    const { config, isUsingManagerConfig, configOwnerId, source } = await getEffectiveNFSeConfigForUser(
       nfseRecord.user_id,
       supabase
     );
     
-    console.log(`Using NFSe config from: ${configOwnerId}${isUsingManagerConfig ? ' (MANAGER)' : ' (OWN)'}`);
-
+    console.log(`[N4] Using NFSe config from: ${configOwnerId} (source: ${source})${isUsingManagerConfig ? ' [MANAGER]' : ' [OWN]'}`);
 
     // Get the appropriate token based on NFSe environment
     const tokenField = nfseRecord.environment === 'producao' 
