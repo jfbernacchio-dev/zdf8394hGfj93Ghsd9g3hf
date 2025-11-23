@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getNFSeConfigForUser } from "../_shared/nfseConfigHelper.ts";
+import { getEffectiveNFSeConfigForUser } from "../_shared/organizationNFSeConfigHelper.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -63,14 +64,13 @@ serve(async (req) => {
 
     console.log('Issuing NFSe for user:', user.id, 'patient:', patientId);
 
-    // Load config (considerando autonomia de subordinado)
-    const { config, isUsingManagerConfig, configOwnerId } = await getNFSeConfigForUser(
+    // N3: Carregar config efetiva (organization_nfse_config ou legacy fallback)
+    const { config, isUsingManagerConfig, configOwnerId, source } = await getEffectiveNFSeConfigForUser(
       user.id,
       supabase
     );
     
-    console.log(`Using NFSe config from: ${configOwnerId}${isUsingManagerConfig ? ' (MANAGER)' : ' (OWN)'}`);
-
+    console.log(`[N3] Using NFSe config from: ${configOwnerId} (${source})${isUsingManagerConfig ? ' [MANAGER]' : ''}`);
 
     // Get the appropriate token based on environment
     const tokenField = config.focusnfe_environment === 'producao' 

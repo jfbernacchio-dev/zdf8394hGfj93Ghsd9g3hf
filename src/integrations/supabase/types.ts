@@ -925,6 +925,7 @@ export type Database = {
           certificate_type: string | null
           created_at: string
           id: string
+          is_legacy: boolean | null
           organization_id: string | null
           updated_at: string
           user_id: string
@@ -936,6 +937,7 @@ export type Database = {
           certificate_type?: string | null
           created_at?: string
           id?: string
+          is_legacy?: boolean | null
           organization_id?: string | null
           updated_at?: string
           user_id: string
@@ -947,6 +949,7 @@ export type Database = {
           certificate_type?: string | null
           created_at?: string
           id?: string
+          is_legacy?: boolean | null
           organization_id?: string | null
           updated_at?: string
           user_id?: string
@@ -965,6 +968,7 @@ export type Database = {
           focusnfe_token_production: string | null
           id: string
           inscricao_municipal: string | null
+          is_legacy: boolean | null
           iss_rate: number | null
           organization_id: string | null
           razao_social: string | null
@@ -984,6 +988,7 @@ export type Database = {
           focusnfe_token_production?: string | null
           id?: string
           inscricao_municipal?: string | null
+          is_legacy?: boolean | null
           iss_rate?: number | null
           organization_id?: string | null
           razao_social?: string | null
@@ -1003,6 +1008,7 @@ export type Database = {
           focusnfe_token_production?: string | null
           id?: string
           inscricao_municipal?: string | null
+          is_legacy?: boolean | null
           iss_rate?: number | null
           organization_id?: string | null
           razao_social?: string | null
@@ -1207,6 +1213,83 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      organization_nfse_config: {
+        Row: {
+          anexo_simples: string | null
+          certificate_data: string | null
+          certificate_password: string | null
+          certificate_type: string | null
+          cnpj: string | null
+          codigo_municipio: string | null
+          created_at: string
+          focusnfe_environment: string | null
+          focusnfe_token_homologacao: string | null
+          focusnfe_token_production: string | null
+          id: string
+          inscricao_municipal: string | null
+          iss_rate: number | null
+          organization_id: string
+          razao_social: string | null
+          regime_tributario: string | null
+          service_code: string | null
+          service_description: string | null
+          updated_at: string
+          valid_until: string | null
+        }
+        Insert: {
+          anexo_simples?: string | null
+          certificate_data?: string | null
+          certificate_password?: string | null
+          certificate_type?: string | null
+          cnpj?: string | null
+          codigo_municipio?: string | null
+          created_at?: string
+          focusnfe_environment?: string | null
+          focusnfe_token_homologacao?: string | null
+          focusnfe_token_production?: string | null
+          id?: string
+          inscricao_municipal?: string | null
+          iss_rate?: number | null
+          organization_id: string
+          razao_social?: string | null
+          regime_tributario?: string | null
+          service_code?: string | null
+          service_description?: string | null
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Update: {
+          anexo_simples?: string | null
+          certificate_data?: string | null
+          certificate_password?: string | null
+          certificate_type?: string | null
+          cnpj?: string | null
+          codigo_municipio?: string | null
+          created_at?: string
+          focusnfe_environment?: string | null
+          focusnfe_token_homologacao?: string | null
+          focusnfe_token_production?: string | null
+          id?: string
+          inscricao_municipal?: string | null
+          iss_rate?: number | null
+          organization_id?: string
+          razao_social?: string | null
+          regime_tributario?: string | null
+          service_code?: string | null
+          service_description?: string | null
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_nfse_config_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       organization_owners: {
         Row: {
