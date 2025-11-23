@@ -114,16 +114,6 @@ export const AccessManagement = () => {
         const isSubordinate = !!assignment;
         const manager = managers?.find(m => m.id === assignment?.manager_id);
         
-        // LOG DETALHADO
-        console.log('=== USUÁRIO CARREGADO ===');
-        console.log('Nome:', profile.full_name);
-        console.log('ID:', profile.id);
-        console.log('Roles encontradas:', userRoles);
-        console.log('É subordinado?:', isSubordinate);
-        console.log('Manager ID:', assignment?.manager_id);
-        console.log('Manager Name:', manager?.full_name);
-        console.log('=========================');
-        
         return {
           id: profile.id,
           email: `${profile.id.substring(0, 8)}...`,
@@ -155,13 +145,6 @@ export const AccessManagement = () => {
     setCreating(true);
 
     try {
-      // 🔍 LOG DIAGNÓSTICO 1: Valor do role ANTES de enviar
-      console.log('=== LOG DIAGNÓSTICO - CREATE USER ===');
-      console.log('1. Valor de newRole no estado:', newRole);
-      console.log('2. Tipo de newRole:', typeof newRole);
-      console.log('=====================================');
-
-      // Usar Edge Function para criar usuário (evita problemas com RLS)
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Sessão não encontrada');
 
@@ -174,11 +157,6 @@ export const AccessManagement = () => {
         birth_date: '2000-01-01',
         role: newRole,
       };
-
-      // 🔍 LOG DIAGNÓSTICO 2: Body completo sendo enviado
-      console.log('=== REQUEST BODY ENVIADO ===');
-      console.log(JSON.stringify(requestBody, null, 2));
-      console.log('============================');
 
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user-with-role`,
@@ -426,13 +404,7 @@ export const AccessManagement = () => {
                   <Label htmlFor="new-role">Tipo de Acesso*</Label>
                   <Select 
                     value={newRole} 
-                    onValueChange={(value: any) => {
-                      // 🔍 LOG DIAGNÓSTICO 3: Mudança do Select
-                      console.log('=== SELECT CHANGED ===');
-                      console.log('Novo valor selecionado:', value);
-                      console.log('======================');
-                      setNewRole(value);
-                    }}
+                    onValueChange={(value: any) => setNewRole(value)}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -485,34 +457,17 @@ export const AccessManagement = () => {
                 const hasAccountantRole = user.roles.includes('accountant');
                 const hasFullTherapistRole = user.roles.includes('fulltherapist');
                 
-                // LOG DETALHADO DA RENDERIZAÇÃO
-                console.log('>>> RENDERIZANDO USUÁRIO:', user.full_name);
-                console.log('    Roles array:', user.roles);
-                console.log('    hasAdminRole:', hasAdminRole);
-                console.log('    hasAccountantRole:', hasAccountantRole);
-                console.log('    hasFullTherapistRole:', hasFullTherapistRole);
-                console.log('    is_subordinate:', user.is_subordinate);
-                
-                // Determinar o tipo principal do usuário
                 let userType = null;
-                let userTypeDebug = 'NENHUM';
                 
                 if (hasAdminRole) {
                   userType = <Badge variant="destructive">{getUserRoleLabelForUI(user, 'admin')}</Badge>;
-                  userTypeDebug = 'ADMIN';
                 } else if (hasAccountantRole && !hasFullTherapistRole) {
                   userType = <Badge variant="secondary">{getUserRoleLabelForUI(user, 'accountant')}</Badge>;
-                  userTypeDebug = 'CONTADOR';
                 } else if (user.is_subordinate) {
                   userType = <Badge className="bg-yellow-500 text-white hover:bg-yellow-600">Subordinado</Badge>;
-                  userTypeDebug = 'SUBORDINADO';
                 } else if (hasFullTherapistRole || (!hasAdminRole && !hasAccountantRole && !user.is_subordinate)) {
                   userType = <Badge className="bg-green-600 text-white hover:bg-green-700">{getUserRoleLabelForUI(user, 'fulltherapist')}</Badge>;
-                  userTypeDebug = 'TERAPEUTA FULL';
                 }
-                
-                console.log('    >>> TIPO DEFINIDO:', userTypeDebug);
-                console.log('    >>> userType é null?:', userType === null);
                 
                 // Permissões extras (accountant)
                 const extraPermissions = hasAccountantRole ? (

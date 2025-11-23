@@ -32,7 +32,7 @@ export async function canViewWhatsAppConversations(
   viewerId: string,
   targetUserId: string
 ): Promise<boolean> {
-  // HOTFIX W3.1: Olimpo bypassa todas as restrições
+  // Usuários Olimpo (whitelist) têm acesso total
   if (isOlimpoUser({ userId: viewerId })) {
     return true;
   }
@@ -94,7 +94,7 @@ export async function canManageWhatsAppConversations(
   managerId: string,
   targetUserId: string
 ): Promise<boolean> {
-  // HOTFIX W3.1: Olimpo bypassa todas as restrições
+  // Usuários Olimpo (whitelist) podem gerenciar todas as conversas
   if (isOlimpoUser({ userId: managerId })) {
     return true;
   }
@@ -137,7 +137,7 @@ export async function canManageWhatsAppConversations(
  * @returns Array de user_ids acessíveis
  */
 export async function getAccessibleWhatsAppUserIds(viewerId: string): Promise<string[]> {
-  // HOTFIX W3.1: Olimpo vê todos da organização
+  // Usuários Olimpo (whitelist) veem todas as conversas da organização
   if (isOlimpoUser({ userId: viewerId })) {
     const orgUsers = await getUsersInOrganization(viewerId);
     return orgUsers.length > 0 ? orgUsers : [viewerId];

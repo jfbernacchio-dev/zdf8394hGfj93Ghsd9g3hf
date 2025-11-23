@@ -31,86 +31,48 @@ export function useTeamData() {
   useEffect(() => {
     async function loadTeamData() {
       if (!user || !organizationId) {
-        console.log('[TEAM_METRICS] ⏸️ Sem user ou organizationId, abortando');
         setLoading(false);
         return;
       }
 
       try {
-        console.log('[TEAM_METRICS] 📊 Iniciando carregamento de dados da equipe', {
-          userId: user.id,
-          organizationId,
-        });
-
-        // FASE 12.3.5: Logar current_user_organization()
-        const { data: orgFromFn, error: orgFnError } = await supabase
-          .rpc('current_user_organization');
-
-        console.log('[DEBUG_ORG] 🔍 user.id:', user?.id);
-        console.log('[DEBUG_ORG] 🔍 organizationId (AuthContext):', organizationId);
-        console.log('[DEBUG_ORG] 🔍 current_user_organization():', orgFromFn);
-        console.log('[DEBUG_ORG] 🔍 current_user_organization error:', orgFnError);
-
         setLoading(true);
 
-        // FASE 12.3.5: Logar antes de calcular escopo
-        console.log('[TEAM_DEBUG] 🔄 Calculando escopo de equipe...');
-        console.log('[TEAM_DEBUG] 🔄 params:', {
-          orgId: organizationId,
-          userId: user?.id,
-        });
-
-        // FASE 12.3: Usar escopo de compartilhamento para determinar usuários visíveis
-        // Importar dinamicamente para evitar ciclo de dependência
+        // Usar escopo de compartilhamento para determinar usuários visíveis
         const { getDashboardVisibleUserIds } = await import('@/utils/dashboardSharingScope');
         
-        // Buscar userIds visíveis para domínio 'team'
         const visibleUserIds = await getDashboardVisibleUserIds({
           supabase,
           userId: user.id,
           organizationId,
-          levelId: null, // TODO: obter levelId do useEffectivePermissions
+          levelId: null,
           domain: 'team',
-        });
-
-        console.log('[TEAM_DEBUG] ✅ userIds no escopo da equipe:', visibleUserIds);
-        console.log('[TEAM_METRICS] 👥 Usuários visíveis no escopo de equipe:', {
-          count: visibleUserIds.length,
-          ids: visibleUserIds,
         });
 
         setSubordinateIds(visibleUserIds.filter(id => id !== user.id));
 
         if (visibleUserIds.length <= 1) {
-          console.log('[TEAM_METRICS] 📭 Apenas próprio usuário no escopo, finalizando');
           setTeamPatients([]);
           setTeamSessions([]);
           setLoading(false);
           return;
         }
 
-        // 2. Buscar pacientes dos usuários visíveis
+        // Buscar pacientes dos usuários visíveis
         const { data: patientsData, error: patientsError } = await supabase
           .from('patients')
           .select('*')
           .in('user_id', visibleUserIds)
           .eq('organization_id', organizationId);
 
-        console.log('[TEAM_API] 📋 table=patients data:', patientsData);
-        console.log('[TEAM_API] 📋 table=patients error:', patientsError);
-
         if (patientsError) {
-          console.error('[TEAM_METRICS] ❌ Erro ao buscar pacientes:', patientsError);
+          console.error('[useTeamData] Erro ao buscar pacientes:', patientsError);
           throw patientsError;
         }
 
-        console.log('[TEAM_METRICS] 🏥 Pacientes da equipe encontrados:', {
-          count: patientsData?.length || 0,
-        });
-
         setTeamPatients(patientsData || []);
 
-        // 3. Buscar sessões desses pacientes
+        // Buscar sessões desses pacientes
         if (patientsData && patientsData.length > 0) {
           const patientIds = patientsData.map((p: any) => p.id);
           
@@ -120,27 +82,18 @@ export function useTeamData() {
             .in('patient_id', patientIds)
             .eq('organization_id', organizationId);
 
-          console.log('[TEAM_API] 📋 table=sessions data:', sessionsData);
-          console.log('[TEAM_API] 📋 table=sessions error:', sessionsError);
-
           if (sessionsError) {
-            console.error('[TEAM_METRICS] ❌ Erro ao buscar sessões:', sessionsError);
+            console.error('[useTeamData] Erro ao buscar sessões:', sessionsError);
             throw sessionsError;
           }
-
-          console.log('[TEAM_METRICS] 📅 Sessões da equipe encontradas:', {
-            count: sessionsData?.length || 0,
-          });
 
           setTeamSessions(sessionsData || []);
         } else {
           setTeamSessions([]);
         }
 
-        console.log('[TEAM_METRICS] ✅ Carregamento concluído com sucesso');
-
       } catch (error) {
-        console.error('[TEAM_METRICS] ❌ Erro ao carregar dados da equipe:', error);
+        console.error('[useTeamData] Erro ao carregar dados da equipe:', error);
       } finally {
         setLoading(false);
       }
