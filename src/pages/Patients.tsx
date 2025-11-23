@@ -31,16 +31,27 @@ const Patients = () => {
   const [isDuplicatesDialogOpen, setIsDuplicatesDialogOpen] = useState(false);
   const [duplicatesReport, setDuplicatesReport] = useState<any[]>([]);
   const navigate = useNavigate();
-  const { user, isAdmin, roleGlobal, organizationId } = useAuth();
+  const { user, isAdmin, roleGlobal, organizationId, isClinicalProfessional } = useAuth();
   const { permissions, financialAccess, canAccessClinical } = useEffectivePermissions();
   const { toast } = useToast();
   const { shouldFilterToOwnData } = useCardPermissions();
 
-  // Derivar flags localmente baseado no novo sistema
+  // FASE 3.5: Derivar flags localmente baseado no novo sistema
   const isAccountant = roleGlobal === 'accountant';
   const isAssistant = roleGlobal === 'assistant';
   const isPsychologist = roleGlobal === 'psychologist';
-  const isSubordinate = isAssistant || isAccountant || (isPsychologist && permissions?.levelNumber && permissions.levelNumber > 1);
+  
+  // FASE 3.5: Flag clínica efetiva com fallback para compatibilidade
+  const effectiveIsClinicalProfessional =
+    typeof isClinicalProfessional === 'boolean'
+      ? isClinicalProfessional
+      : roleGlobal === 'psychologist'; // fallback de compatibilidade
+  
+  // FASE 3.5: Subordinado inclui profissionais clínicos em níveis > 1
+  const isSubordinate = 
+    isAssistant || 
+    isAccountant || 
+    (effectiveIsClinicalProfessional && permissions?.levelNumber && permissions.levelNumber > 1);
 
   useEffect(() => {
     if (user) {

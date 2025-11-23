@@ -64,7 +64,7 @@ const PatientDetailNew = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  const { user, isAdmin, roleGlobal, organizationId } = useAuth();
+  const { user, isAdmin, roleGlobal, organizationId, isClinicalProfessional } = useAuth();
   const [patient, setPatient] = useState<any>(null);
   const [sessions, setSessions] = useState<any[]>([]);
   const [allSessions, setAllSessions] = useState<any[]>([]);
@@ -93,14 +93,22 @@ const PatientDetailNew = () => {
   } = useEffectivePermissions();
   const { canViewCard } = useCardPermissions();
 
-  // Derived permission flags
+  // FASE 3.5: Derived permission flags
   const isAccountant = roleGlobal === 'accountant';
   const isAssistant = roleGlobal === 'assistant';
   const isPsychologist = roleGlobal === 'psychologist';
+  
+  // FASE 3.5: Flag clínica efetiva com fallback para compatibilidade
+  const effectiveIsClinicalProfessional =
+    typeof isClinicalProfessional === 'boolean'
+      ? isClinicalProfessional
+      : roleGlobal === 'psychologist'; // fallback de compatibilidade
+  
+  // FASE 3.5: Subordinado inclui profissionais clínicos em níveis > 1
   const isSubordinate =
     isAssistant ||
     isAccountant ||
-    (isPsychologist && permissions?.levelNumber && permissions.levelNumber > 1);
+    (effectiveIsClinicalProfessional && permissions?.levelNumber && permissions.levelNumber > 1);
   
   // 🔐 FASE 8: Controle de acesso clínico
   const [accessLevel, setAccessLevel] = useState<'none' | 'view' | 'full'>('none');
