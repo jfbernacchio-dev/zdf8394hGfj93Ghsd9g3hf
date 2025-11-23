@@ -97,12 +97,16 @@ export default function NFSeHistory() {
       const isFullOrAdmin = role === 'fulltherapist' || role === 'admin';
       const isAccountant = role === 'accountant';
 
-      // Buscar NFSes apenas de usuários DA MESMA ORG
-      const { data, error } = await supabase
+      // FASE N4: Buscar NFSes por organization_id (com fallback para user_id legado)
+      let query = supabase
         .from('nfse_issued')
         .select('*')
-        .in('user_id', orgUserIds)
         .order('issue_date', { ascending: false });
+
+      // Tentar primeiro por organization_id
+      query = query.or(`organization_id.eq.${organizationId},organization_id.is.null`);
+      
+      const { data, error } = await query;
 
       if (error) throw error;
 

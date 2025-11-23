@@ -1,6 +1,16 @@
 /**
- * Helper para buscar configuração NFSe considerando autonomia de subordinados
- * Retorna a config correta baseada no modo de emissão (própria empresa ou empresa do manager)
+ * ⚠️ OBSOLETO - FASE N4
+ * 
+ * Este helper foi substituído por `organizationNFSeConfigHelper.ts`
+ * que implementa o modelo organizacional completo (organization_nfse_config).
+ * 
+ * NÃO USE ESTE ARQUIVO EM NOVAS EDGE FUNCTIONS!
+ * Use: `getEffectiveNFSeConfigForUser` do arquivo `organizationNFSeConfigHelper.ts`
+ * 
+ * Este arquivo é mantido apenas para compatibilidade legada temporária.
+ * 
+ * @deprecated Desde FASE N4
+ * @see organizationNFSeConfigHelper.ts
  */
 
 export interface NFSeConfigResult {

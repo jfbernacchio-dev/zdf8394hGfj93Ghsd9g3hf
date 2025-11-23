@@ -54,16 +54,14 @@ serve(async (req) => {
       throw new Error('Apenas notas emitidas podem ser canceladas');
     }
 
-    // Load config to get token
-    const { data: config, error: configError } = await supabase
-      .from('nfse_config')
-      .select('*')
-      .eq('user_id', user.id)
-      .single();
-
-    if (configError || !config) {
-      throw new Error('Configuração fiscal não encontrada');
-    }
+    // Load config to get token (FASE N4: usando novo helper organizacional)
+    const { getEffectiveNFSeConfigForUser } = await import('../_shared/organizationNFSeConfigHelper.ts');
+    const { config, isUsingManagerConfig, configOwnerId, source } = await getEffectiveNFSeConfigForUser(
+      user.id,
+      supabase
+    );
+    
+    console.log(`[N4] Cancelling NFSe with config from: ${configOwnerId} (source: ${source})${isUsingManagerConfig ? ' [MANAGER]' : ' [OWN]'}`);
 
     // Get the appropriate token based on NFSe environment
     const tokenField = nfseRecord.environment === 'producao' 
