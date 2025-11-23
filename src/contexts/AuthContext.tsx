@@ -22,6 +22,15 @@ interface Profile {
   slot_duration?: number;
   break_time?: number;
   organization_id?: string | null; // FASE 10.3
+  professional_role_id?: string | null; // FASE 1.4
+  professional_roles?: {
+    id: string;
+    slug: string;
+    label: string;
+    description: string | null;
+    is_clinical: boolean;
+    is_active: boolean;
+  } | null; // FASE 1.4
 }
 
 interface Organization {
@@ -148,7 +157,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('*, professional_roles(*)') // FASE 1.4: carregar professional role
         .eq('id', userId)
         .maybeSingle();
 

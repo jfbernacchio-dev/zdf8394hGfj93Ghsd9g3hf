@@ -367,7 +367,7 @@ const ProfileEdit = () => {
       // 🔄 FORÇAR RELOAD do profile no AuthContext
       const { data: updatedProfile } = await supabase
         .from('profiles')
-        .select('*')
+        .select('*, professional_roles(*)') // FASE 1.4: carregar professional role
         .eq('id', user!.id)
         .single();
       

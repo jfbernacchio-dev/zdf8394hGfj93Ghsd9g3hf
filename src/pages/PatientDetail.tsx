@@ -286,7 +286,11 @@ const PatientDetailNew = () => {
       .in('status', ['processing', 'issued']);
     
     if (user) {
-      const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*, professional_roles(*)') // FASE 1.4: carregar professional role
+        .eq('id', user.id)
+        .single();
       setUserProfile(profileData);
     }
     

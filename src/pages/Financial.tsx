@@ -101,7 +101,7 @@ const Financial = () => {
     // Load profile data
     const { data: profileData } = await supabase
       .from('profiles')
-      .select('*')
+      .select('*, professional_roles(*)') // FASE 1.4: carregar professional role
       .eq('id', user!.id)
       .single();
 
