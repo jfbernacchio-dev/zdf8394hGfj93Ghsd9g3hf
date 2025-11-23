@@ -52,6 +52,8 @@ const LEVEL_COLORS = [
   'bg-rose-50/80 border-rose-200/60 hover:border-rose-300/80 border-t-4 border-t-rose-300/40',
 ];
 
+// Note: ROLE_LABELS is now deprecated in favor of getUserRoleLabelForUI()
+// Kept for backward compatibility only
 const ROLE_LABELS: Record<string, string> = {
   psychologist: 'Psicólogo',
   assistant: 'Secretária',

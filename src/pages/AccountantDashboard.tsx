@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import Layout from "@/components/Layout";
+import { getUserRoleLabelForUI } from "@/lib/professionalRoles";
 
 type PeriodPreset = "current_month" | "last_month" | "current_year" | "last_year" | "custom";
 
@@ -28,7 +29,7 @@ interface NFSeData {
 }
 
 const AccountantDashboard = () => {
-  const { user, organizationId } = useAuth();
+  const { user, organizationId, profile, roleGlobal } = useAuth();
   const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("current_month");
   const [startDate, setStartDate] = useState<Date>(startOfMonth(new Date()));
   const [endDate, setEndDate] = useState<Date>(endOfMonth(new Date()));
@@ -282,7 +283,9 @@ const AccountantDashboard = () => {
     <Layout>
       <div className="container mx-auto p-6 space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Dashboard Contador</h1>
+          <h1 className="text-3xl font-bold">
+            Dashboard {getUserRoleLabelForUI(profile, roleGlobal)}
+          </h1>
           
           <div className="flex gap-4 items-center">
             <Select
