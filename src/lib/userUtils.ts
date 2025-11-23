@@ -6,19 +6,27 @@
  */
 
 /**
- * Define se um usuário é "deus do Olimpo" para fins de acesso ao WhatsApp:
- * - Deve ser admin
- * - Deve ser owner da organização
- *
- * Isso é uma aproximação intencional de "João & Larissa".
- * Se no futuro houver mais owners/admins, eles também terão acesso.
- * Se for necessário restringir a um subconjunto, depois podemos trocar a lógica
- * para usar uma lista explícita de user_ids.
+ * Lista explícita de user_ids autorizados a usar WhatsApp (João & Larissa)
+ * 
+ * IDs obtidos da tabela profiles:
+ * - João Felipe Monteiro Dias Bernacchio (jfbernacchio@gmail.com)
+ * - Larissa Schwarcz Zein (larissaschwarcz@hotmail.com)
  */
-export function isOlimpoUser(opts: {
-  isAdmin: boolean;
-  isOrganizationOwner?: boolean | null;
-}): boolean {
-  const { isAdmin, isOrganizationOwner } = opts;
-  return !!isAdmin && !!isOrganizationOwner;
+const OLIMPO_USER_IDS = [
+  'cc630372-360c-49e7-99e8-2bd83a3ab75d', // João
+  '19ec4677-5531-4576-933c-38ed70ee0bda', // Larissa
+];
+
+/**
+ * Define se um usuário é "deus do Olimpo" para fins de acesso ao WhatsApp.
+ * 
+ * Usa whitelist explícita de user_ids (João & Larissa da Espaço Mindware).
+ * Esta é a abordagem mais fail-safe: apenas os IDs listados têm acesso.
+ * 
+ * Se no futuro for necessário adicionar mais usuários, basta incluir
+ * seus user_ids no array OLIMPO_USER_IDS.
+ */
+export function isOlimpoUser(opts: { userId?: string | null }): boolean {
+  if (!opts.userId) return false;
+  return OLIMPO_USER_IDS.includes(opts.userId);
 }
