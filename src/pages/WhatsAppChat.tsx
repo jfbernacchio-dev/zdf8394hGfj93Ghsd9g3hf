@@ -190,26 +190,22 @@ export default function WhatsAppChat() {
             patients!whatsapp_conversations_patient_id_fkey (
               name,
               user_id
-            ),
-            profiles!whatsapp_conversations_user_id_fkey (
-              full_name
             )
           `)
           .eq("organization_id", organizationId)
           .order("last_message_at", { ascending: false });
 
         if (error) {
-          console.error("[HOTFIX W3.2] Erro ao carregar conversas (Olimpo):", error);
+          console.error("[HOTFIX W3.3] Erro ao carregar conversas (Olimpo):", error);
           throw error;
         }
 
-        console.log('[HOTFIX W3.2] Olimpo - Conversas carregadas:', data?.length || 0);
+        console.log('[HOTFIX W3.3] Olimpo - Conversas carregadas:', data?.length || 0);
 
-        // Mapear para incluir o nome do paciente e do terapeuta
+        // Mapear para incluir o nome do paciente
         const conversationsWithNames = (data || []).map((conv: any) => ({
           ...conv,
           contact_name: conv.patients?.name || conv.contact_name || conv.phone_number,
-          therapist_name: conv.profiles?.full_name || 'Terapeuta',
         }));
         
         setConversations(conversationsWithNames);
@@ -239,9 +235,6 @@ export default function WhatsAppChat() {
           patients!whatsapp_conversations_patient_id_fkey (
             name,
             user_id
-          ),
-          profiles!whatsapp_conversations_user_id_fkey (
-            full_name
           )
         `)
         .in("user_id", accessibleUserIds)
@@ -249,11 +242,10 @@ export default function WhatsAppChat() {
 
       if (error) throw error;
       
-      // Mapear para incluir o nome do paciente e do terapeuta
+      // Mapear para incluir o nome do paciente
       const conversationsWithNames = (data || []).map((conv: any) => ({
         ...conv,
         contact_name: conv.patients?.name || conv.contact_name || conv.phone_number,
-        therapist_name: conv.profiles?.full_name || 'Terapeuta',
       }));
       
       setConversations(conversationsWithNames);
