@@ -26,7 +26,17 @@ import { ALL_AVAILABLE_CARDS } from '@/types/cardTypes';
 
 export function useCardPermissions() {
   const authContext = useAuth();
-  const { isAdmin, isAccountant, user, rolesLoaded, roleGlobal, organizationId } = authContext;
+  const { 
+    isAdmin, 
+    isAccountant, 
+    user, 
+    rolesLoaded, 
+    roleGlobal, 
+    organizationId,
+    // FASE 3.4: Metadata de professional_roles (passiva, não usada em decisões ainda)
+    professionalRoleSlug,
+    isClinicalProfessional,
+  } = authContext;
   
   const { 
     permissions, 
@@ -60,6 +70,20 @@ export function useCardPermissions() {
     isAccountant ? 'accountant' :
     isSubordinate ? 'subordinate' :
     null;
+  
+  // ============================================================================
+  // FASE 3.4: METADATA DE PROFESSIONAL ROLES (DISPONÍVEL, NÃO USADA AINDA)
+  // ============================================================================
+  // Esses campos estão disponíveis para fases futuras, mas NÃO são usados
+  // em nenhuma decisão de permissão nesta fase. Apenas registrados para
+  // futuras evoluções do sistema.
+  //
+  // - professionalRoleSlug: ex: 'psychologist', 'psychiatrist', 'nutritionist'
+  // - isClinicalProfessional: true se professional_roles.is_clinical = true
+  //
+  // NENHUMA lógica de canViewCard, hasAccess, shouldFilterToOwnData, etc.
+  // foi alterada. Esses dados são apenas metadata passiva.
+  // ============================================================================
 
   /**
    * FASE 3: Verifica se usuário tem acesso a um domínio específico
