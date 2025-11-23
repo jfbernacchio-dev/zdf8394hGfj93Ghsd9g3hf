@@ -140,3 +140,73 @@ export async function fetchUserProfessionalRole(userId: string): Promise<Profess
 
   return role as ProfessionalRole;
 }
+
+/**
+ * FASE 1.3 - Wrapper de fetchUserProfessionalRole com fallback
+ * Retorna um objeto com dados "unknown" se o usuário não tem role definido
+ * 
+ * ⚠️ NÃO USADO AINDA em AuthContext, signup ou team-management
+ * Preparação para FASE 2.x+
+ */
+export async function getProfessionalRoleForUser(userId: string): Promise<ProfessionalRole> {
+  const role = await fetchUserProfessionalRole(userId);
+
+  if (!role) {
+    return {
+      id: 'unknown',
+      slug: 'unknown',
+      label: 'Indefinido',
+      description: null,
+      is_clinical: false,
+      is_active: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+  }
+
+  return role;
+}
+
+/**
+ * FASE 1.3 - Lista todos os professional roles clínicos ativos
+ * (profissionais que atendem pacientes)
+ * 
+ * ⚠️ NÃO USADO AINDA - Preparação para FASE 2.x+
+ */
+export async function listClinicalProfessionalRoles(): Promise<ProfessionalRole[]> {
+  const { data, error } = await supabase
+    .from('professional_roles')
+    .select('*')
+    .eq('is_active', true)
+    .eq('is_clinical', true)
+    .order('label', { ascending: true });
+
+  if (error) {
+    console.error('Error listing clinical professional roles:', error);
+    throw error;
+  }
+
+  return data as ProfessionalRole[];
+}
+
+/**
+ * FASE 1.3 - Lista todos os professional roles administrativos ativos
+ * (profissionais que NÃO atendem pacientes: secretária, contador, etc.)
+ * 
+ * ⚠️ NÃO USADO AINDA - Preparação para FASE 2.x+
+ */
+export async function listAdministrativeProfessionalRoles(): Promise<ProfessionalRole[]> {
+  const { data, error } = await supabase
+    .from('professional_roles')
+    .select('*')
+    .eq('is_active', true)
+    .eq('is_clinical', false)
+    .order('label', { ascending: true });
+
+  if (error) {
+    console.error('Error listing administrative professional roles:', error);
+    throw error;
+  }
+
+  return data as ProfessionalRole[];
+}
