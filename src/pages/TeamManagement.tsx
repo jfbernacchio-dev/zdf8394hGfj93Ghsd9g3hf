@@ -34,6 +34,8 @@ interface TeamMember {
   } | null;
 }
 
+// Note: ROLE_LABELS is now deprecated in favor of getUserRoleLabelForUI()
+// Kept for backward compatibility only
 const ROLE_LABELS: Record<string, string> = {
   psychologist: 'Psicólogo',
   assistant: 'Secretária',
@@ -755,9 +757,9 @@ const TeamManagement = () => {
                       <SelectValue placeholder="Selecione uma função" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="psychologist">Psicólogo</SelectItem>
-                      <SelectItem value="assistant">Secretária</SelectItem>
-                      <SelectItem value="accountant">Contador</SelectItem>
+                      <SelectItem value="psychologist">{getUserRoleLabelForUI(null, 'psychologist')}</SelectItem>
+                      <SelectItem value="assistant">{getUserRoleLabelForUI(null, 'assistant')}</SelectItem>
+                      <SelectItem value="accountant">{getUserRoleLabelForUI(null, 'accountant')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

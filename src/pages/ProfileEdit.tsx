@@ -26,6 +26,7 @@ import {
   addOwner 
 } from '@/lib/organizations';
 import { getUserIdsInOrganization } from '@/lib/organizationFilters';
+import { getUserRoleLabelForUI } from '@/lib/professionalRoles';
 
 const WEEKDAYS = [
   { value: 0, label: 'Domingo' },
@@ -412,7 +413,7 @@ const ProfileEdit = () => {
 
           if (subordinates) {
             toast({
-              title: 'Não é possível remover contador',
+              title: `Não é possível remover ${getUserRoleLabelForUI(null, 'accountant').toLowerCase()}`,
               description: 'Você está em modo "NFSe da Empresa do Gestor". Primeiro altere o modo de emissão de NFSe para "Própria Empresa" nas configurações de autonomia.',
               variant: 'destructive',
             });

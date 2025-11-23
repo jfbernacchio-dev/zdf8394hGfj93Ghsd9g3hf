@@ -198,15 +198,17 @@ export const AccessManagement = () => {
         throw new Error(result.error || 'Erro ao criar usuário');
       }
 
-      const roleLabels = {
-        admin: 'Administrador',
-        accountant: 'Contador',
-        fulltherapist: 'Terapeuta Full'
+      const roleLabelMap: Record<string, string> = {
+        admin: 'admin',
+        accountant: 'accountant',
+        fulltherapist: 'psychologist'
       };
+      const systemRole = roleLabelMap[newRole] || newRole;
+      const roleLabel = getUserRoleLabelForUI(null, systemRole);
 
       toast({
         title: 'Usuário criado!',
-        description: `Acesso criado para ${newEmail} com perfil de ${roleLabels[newRole]}.`,
+        description: `Acesso criado para ${newEmail} com perfil de ${roleLabel}.`,
       });
 
       // Reset form
@@ -232,6 +234,8 @@ export const AccessManagement = () => {
 
   const handleToggleRole = async (userId: string, role: 'admin' | 'accountant', currentlyHas: boolean) => {
     try {
+      const roleLabel = getUserRoleLabelForUI(null, role);
+      
       if (currentlyHas) {
         // Remover role
         const { error } = await supabase
@@ -244,7 +248,7 @@ export const AccessManagement = () => {
 
         toast({
           title: 'Permissão removida',
-          description: `Permissão de ${role} foi removida.`,
+          description: `Permissão de ${roleLabel} foi removida.`,
         });
       } else {
         // Adicionar role
@@ -256,7 +260,7 @@ export const AccessManagement = () => {
 
         toast({
           title: 'Permissão adicionada',
-          description: `Permissão de ${role} foi adicionada.`,
+          description: `Permissão de ${roleLabel} foi adicionada.`,
         });
       }
 
@@ -326,16 +330,8 @@ export const AccessManagement = () => {
   };
 
   const getRoleLabel = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return 'Administrador';
-      case 'accountant':
-        return 'Contador';
-      case 'fulltherapist':
-        return 'Terapeuta Full';
-      default:
-        return role;
-    }
+    // Usar helper unificado com fallback para system role
+    return getUserRoleLabelForUI(null, role);
   };
 
   if (loading) {
@@ -442,9 +438,9 @@ export const AccessManagement = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="fulltherapist">Terapeuta Full (pode ter subordinados e accountant)</SelectItem>
-                      <SelectItem value="accountant">Contador (apenas dados financeiros)</SelectItem>
-                      <SelectItem value="admin">Administrador (acesso completo)</SelectItem>
+                      <SelectItem value="fulltherapist">{getUserRoleLabelForUI(null, 'psychologist')} (pode ter subordinados e contador)</SelectItem>
+                      <SelectItem value="accountant">{getUserRoleLabelForUI(null, 'accountant')} (apenas dados financeiros)</SelectItem>
+                      <SelectItem value="admin">{getUserRoleLabelForUI(null, 'admin')} (acesso completo)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -548,12 +544,12 @@ export const AccessManagement = () => {
                           {hasAccountantRole ? (
                             <>
                               <UserMinus className="w-3 h-3 mr-1" />
-                              Remover Contador
+                              Remover {getUserRoleLabelForUI(null, 'accountant')}
                             </>
                           ) : (
                             <>
                               <Shield className="w-3 h-3 mr-1" />
-                              Adicionar Contador
+                              Adicionar {getUserRoleLabelForUI(null, 'accountant')}
                             </>
                           )}
                         </Button>

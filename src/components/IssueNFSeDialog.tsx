@@ -8,6 +8,7 @@ import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import { format, parseISO } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffectivePermissions } from '@/hooks/useEffectivePermissions';
+import { getUserRoleLabelForUI } from '@/lib/professionalRoles';
 
 interface IssueNFSeDialogProps {
   patientId: string;
@@ -70,7 +71,7 @@ export default function IssueNFSeDialog({
         setHasFinancialPermission(false);
         toast({
           title: 'Acesso negado',
-          description: 'Contadores não podem emitir NFSe diretamente. Essa ação é restrita a terapeutas.',
+          description: `${getUserRoleLabelForUI(null, roleGlobal)} não podem emitir NFSe diretamente. Essa ação é restrita a terapeutas.`,
           variant: 'destructive',
         });
         setOpen(false);

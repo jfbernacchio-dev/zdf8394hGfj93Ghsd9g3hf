@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { getUserRoleLabelForUI } from '@/lib/professionalRoles';
 import { 
   User, 
   Lock, 
@@ -83,7 +84,7 @@ export function SubordinatePermissionCard({
 
       if (hasAccountant) {
         toast.error(
-          'Este subordinado possui contador atribuído. Remova o contador antes de mudar para modo "NFSe da Empresa do Gestor".'
+          `Este subordinado possui ${getUserRoleLabelForUI(null, 'accountant').toLowerCase()} atribuído. Remova o ${getUserRoleLabelForUI(null, 'accountant').toLowerCase()} antes de mudar para modo "NFSe da Empresa do Gestor".`
         );
         return;
       }
