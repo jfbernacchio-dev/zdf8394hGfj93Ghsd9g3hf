@@ -11,6 +11,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { resolveEffectivePermissions } from './resolveEffectivePermissions';
+import { isOlimpoUser } from './userUtils';
 
 /**
  * Verifica se um usuário pode visualizar conversas de outro usuário
@@ -31,6 +32,11 @@ export async function canViewWhatsAppConversations(
   viewerId: string,
   targetUserId: string
 ): Promise<boolean> {
+  // HOTFIX W3.1: Olimpo bypassa todas as restrições
+  if (isOlimpoUser({ userId: viewerId })) {
+    return true;
+  }
+
   // Sempre pode ver suas próprias conversas
   if (viewerId === targetUserId) {
     return true;
@@ -88,6 +94,11 @@ export async function canManageWhatsAppConversations(
   managerId: string,
   targetUserId: string
 ): Promise<boolean> {
+  // HOTFIX W3.1: Olimpo bypassa todas as restrições
+  if (isOlimpoUser({ userId: managerId })) {
+    return true;
+  }
+
   // Sempre pode responder em suas próprias conversas
   if (managerId === targetUserId) {
     return true;
@@ -126,6 +137,12 @@ export async function canManageWhatsAppConversations(
  * @returns Array de user_ids acessíveis
  */
 export async function getAccessibleWhatsAppUserIds(viewerId: string): Promise<string[]> {
+  // HOTFIX W3.1: Olimpo vê todos da organização
+  if (isOlimpoUser({ userId: viewerId })) {
+    const orgUsers = await getUsersInOrganization(viewerId);
+    return orgUsers.length > 0 ? orgUsers : [viewerId];
+  }
+
   const viewerPerms = await resolveEffectivePermissions(viewerId);
   const accessibleUserIds: string[] = [viewerId]; // Sempre inclui o próprio
 
