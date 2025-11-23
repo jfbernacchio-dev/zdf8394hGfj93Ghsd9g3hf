@@ -36,3 +36,9 @@ export type ProfessionalRoleSlug =
  */
 export type ProfessionalRoleInsert = Omit<ProfessionalRole, 'id' | 'created_at' | 'updated_at'>;
 export type ProfessionalRoleUpdate = Partial<ProfessionalRoleInsert>;
+
+/**
+ * FASE 2.2 - Kind de role profissional
+ * Categoriza um role como clínico, administrativo ou desconhecido
+ */
+export type ProfessionalRoleKind = 'clinical' | 'administrative' | 'unknown';

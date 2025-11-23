@@ -8,7 +8,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
-import type { ProfessionalRole, ProfessionalRoleSlug } from '@/types/professionalRoles';
+import type { ProfessionalRole, ProfessionalRoleSlug, ProfessionalRoleKind } from '@/types/professionalRoles';
 
 /**
  * Busca todos os roles profissionais ativos
@@ -209,4 +209,53 @@ export async function listAdministrativeProfessionalRoles(): Promise<Professiona
   }
 
   return data as ProfessionalRole[];
+}
+
+/**
+ * FASE 2.2 - Determina o "kind" de um professional role
+ * Retorna 'clinical', 'administrative' ou 'unknown'
+ * 
+ * ⚠️ NÃO USADO AINDA - Preparação para uso futuro
+ */
+export function getProfessionalRoleKind(role?: ProfessionalRole | null): ProfessionalRoleKind {
+  if (!role) return 'unknown';
+  if (role.is_clinical) return 'clinical';
+  return 'administrative';
+}
+
+/**
+ * FASE 2.2 - Determina o "kind" a partir de um Profile
+ * Tipo mínimo esperado para Profile (compatível com AuthContext)
+ * 
+ * ⚠️ NÃO USADO AINDA - Preparação para uso futuro
+ */
+type ProfileWithRole = {
+  professional_roles?: ProfessionalRole | null;
+};
+
+export function getProfessionalRoleKindFromProfile(profile?: ProfileWithRole | null): ProfessionalRoleKind {
+  if (!profile || !profile.professional_roles) return 'unknown';
+  return getProfessionalRoleKind(profile.professional_roles);
+}
+
+/**
+ * FASE 2.2 - Retorna label amigável do professional role
+ * Prioridade: label da tabela > fallback explícito > 'Profissional'
+ * 
+ * ⚠️ NÃO USADO AINDA - Preparação para uso futuro na UI
+ */
+export function getProfessionalRoleLabelFromProfile(
+  profile?: ProfileWithRole | null,
+  fallback?: string
+): string {
+  // 1) Se tiver professional_roles, usa o label da tabela nova
+  if (profile?.professional_roles?.label) {
+    return profile.professional_roles.label;
+  }
+
+  // 2) Se tiver fallback explícito, usa ele (pensado para chamadas futuras)
+  if (fallback) return fallback;
+
+  // 3) Fallback neutro genérico
+  return 'Profissional';
 }
