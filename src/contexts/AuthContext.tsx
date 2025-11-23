@@ -54,6 +54,10 @@ interface AuthContextType {
   organizations: Organization[]; // FASE 10.6
   activeOrganizationId: string | null; // FASE 10.6
   setActiveOrganizationId: (id: string) => void; // FASE 10.6
+  // FASE 2.1: Flags baseadas em professional_roles
+  professionalRoleSlug: string | null;
+  isClinicalProfessional: boolean;
+  isAdministrativeProfessional: boolean;
   signUp: (email: string, password: string, userData: Omit<Profile, 'id'>) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -89,6 +93,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [activeOrganizationId, setActiveOrganizationIdState] = useState<string | null>(null); // FASE 10.6
   const isFetchingProfileRef = useRef(false); // ✅ Mutex síncrono
   const { toast } = useToast();
+  
+  // FASE 2.1: Estados baseados em professional_roles (passivos, não usados ainda)
+  const [professionalRoleSlug, setProfessionalRoleSlug] = useState<string | null>(null);
+  const [isClinicalProfessional, setIsClinicalProfessional] = useState(false);
+  const [isAdministrativeProfessional, setIsAdministrativeProfessional] = useState(false);
 
   // FASE 10.6: Wrapper para setActiveOrganizationId que salva no localStorage
   const setActiveOrganizationId = (id: string) => {
@@ -115,6 +124,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setIsAdmin(false);
           setIsAccountant(false);
           setRoleGlobal(null);
+          // FASE 2.1: Resetar flags de professional_roles
+          setProfessionalRoleSlug(null);
+          setIsClinicalProfessional(false);
+          setIsAdministrativeProfessional(false);
         }
       }
     );
@@ -168,6 +181,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       
       setProfile(data);
+      
+      // FASE 2.1: Calcular flags baseadas em professional_roles (passivas)
+      if (data?.professional_roles) {
+        setProfessionalRoleSlug(data.professional_roles.slug);
+        setIsClinicalProfessional(data.professional_roles.is_clinical);
+        setIsAdministrativeProfessional(!data.professional_roles.is_clinical);
+      } else {
+        setProfessionalRoleSlug(null);
+        setIsClinicalProfessional(false);
+        setIsAdministrativeProfessional(false);
+      }
 
       // Load default layout template
       try {
@@ -494,6 +518,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       organizations, // FASE 10.6
       activeOrganizationId, // FASE 10.6
       setActiveOrganizationId, // FASE 10.6
+      // FASE 2.1: Flags baseadas em professional_roles (passivas, não usadas ainda)
+      professionalRoleSlug,
+      isClinicalProfessional,
+      isAdministrativeProfessional,
       signUp, 
       signIn, 
       signOut, 
