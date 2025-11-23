@@ -306,6 +306,50 @@ export type Database = {
         }
         Relationships: []
       }
+      clinical_approaches: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          label: string
+          professional_role_id: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          label: string
+          professional_role_id: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          label?: string
+          professional_role_id?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinical_approaches_professional_role_id_fkey"
+            columns: ["professional_role_id"]
+            isOneToOne: false
+            referencedRelation: "professional_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinical_complaints: {
         Row: {
           aggressiveness: string | null
@@ -1625,6 +1669,7 @@ export type Database = {
           birth_date: string
           break_time: number | null
           clinical_approach: string | null
+          clinical_approach_id: string | null
           cpf: string | null
           created_at: string
           created_by: string | null
@@ -1645,6 +1690,7 @@ export type Database = {
           birth_date: string
           break_time?: number | null
           clinical_approach?: string | null
+          clinical_approach_id?: string | null
           cpf?: string | null
           created_at?: string
           created_by?: string | null
@@ -1665,6 +1711,7 @@ export type Database = {
           birth_date?: string
           break_time?: number | null
           clinical_approach?: string | null
+          clinical_approach_id?: string | null
           cpf?: string | null
           created_at?: string
           created_by?: string | null
@@ -1682,6 +1729,13 @@ export type Database = {
           work_start_time?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "profiles_clinical_approach_id_fkey"
+            columns: ["clinical_approach_id"]
+            isOneToOne: false
+            referencedRelation: "clinical_approaches"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "profiles_professional_role_id_fkey"
             columns: ["professional_role_id"]
