@@ -85,7 +85,7 @@ const ProtectedRoute = ({ children, requiresOrg = true }: { children: React.Reac
 
 const DashboardRoute = () => {
   const { isAccountant } = useAuth();
-  return isAccountant ? <AccountantDashboard /> : <Layout><DashboardExample /></Layout>;
+  return isAccountant ? <AccountantDashboard /> : <DashboardExample />;
 };
 
 const ClinicalRoute = ({ children }: { children: React.ReactNode }) => {
@@ -193,7 +193,7 @@ const App = () => (
             <Route path="/peer-sharing" element={<ProtectedRoute><Layout><PeerSharingManagement /></Layout></ProtectedRoute>} />
             <Route path="/migration-wizard" element={<ProtectedRoute><Layout><MigrationWizard /></Layout></ProtectedRoute>} />
             <Route path="/organogram" element={<ProtectedRoute><Layout><Organogram /></Layout></ProtectedRoute>} />
-            <Route path="/org-management" element={<ProtectedRoute><Layout><OrgManagement /></Layout></ProtectedRoute>} />
+            <Route path="/org-management" element={<ProtectedRoute><OrgManagement /></ProtectedRoute>} />
             <Route path="/organization-debug" element={<ProtectedRoute><PermissionRoute path="/admin-settings"><Layout><OrganizationDebug /></Layout></PermissionRoute></ProtectedRoute>} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
