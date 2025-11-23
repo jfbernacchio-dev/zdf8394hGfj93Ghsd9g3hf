@@ -73,7 +73,7 @@ export default function PermissionReview() {
       const profilesPromises = rolesData.map(async (role) => {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('id, full_name, cpf')
+          .select('id, full_name, cpf, professional_role_id, professional_roles(*)')
           .eq('id', role.user_id)
           .single();
         return { ...role, profile };

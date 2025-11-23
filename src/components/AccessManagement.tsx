@@ -66,10 +66,10 @@ export const AccessManagement = () => {
     try {
       setLoading(true);
       
-      // Buscar todos os profiles com informações de subordinação
+      // FASE 2.3: Buscar todos os profiles com informações de subordinação
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, full_name, cpf, created_by')
+        .select('id, full_name, cpf, created_by, professional_role_id, professional_roles(*)')
         .order('full_name');
 
       if (profilesError) throw profilesError;
@@ -92,7 +92,7 @@ export const AccessManagement = () => {
       const managerIds = assignments?.map(a => a.manager_id) || [];
       const { data: managers, error: managersError } = await supabase
         .from('profiles')
-        .select('id, full_name')
+        .select('id, full_name, professional_role_id, professional_roles(*)')
         .in('id', managerIds);
 
       if (managersError) throw managersError;

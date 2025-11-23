@@ -84,7 +84,7 @@ export default function MigrationWizard() {
       // 1. Buscar todos os profiles
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, full_name')
+        .select('id, full_name, professional_role_id, professional_roles(*)')
         .order('full_name');
 
       if (profilesError) throw profilesError;

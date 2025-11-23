@@ -21,10 +21,17 @@ import type { PermissionDomain } from '@/types/permissions';
 
 /**
  * Contexto de permissões do usuário para dashboard
+ * FASE 2.3: Adicionado professional_roles como metadata
  */
 export interface DashboardPermissionContext {
   userId: string;
   organizationId: string;
+  
+  // FASE 2.3: Professional role metadata (passivo)
+  professionalRoleId?: string | null;
+  professionalRoleSlug?: string | null;
+  isClinicalProfessional?: boolean;
+  isAdministrativeProfessional?: boolean;
   
   // Flags derivados das permissões efetivas
   canAccessClinical: boolean;
@@ -49,7 +56,15 @@ export interface DashboardPermissionContext {
  * Retorna o contexto e uma função helper para checar cards
  */
 export function useDashboardPermissions() {
-  const { user, organizationId, isAdmin } = useAuth();
+  const { 
+    user, 
+    organizationId, 
+    isAdmin,
+    professionalRoleSlug,
+    isClinicalProfessional,
+    isAdministrativeProfessional,
+    profile,
+  } = useAuth();
   const {
     permissions,
     loading,
@@ -79,6 +94,12 @@ export function useDashboardPermissions() {
     const ctx = {
       userId: user.id,
       organizationId,
+      
+      // FASE 2.3: Professional role metadata (apenas informativo)
+      professionalRoleId: profile?.professional_role_id || null,
+      professionalRoleSlug,
+      isClinicalProfessional,
+      isAdministrativeProfessional,
       
       // Usar permissões efetivas de level_role_settings (sem bypass)
       canAccessClinical,
@@ -141,6 +162,10 @@ export function useDashboardPermissions() {
   }, [
     user,
     organizationId,
+    profile,
+    professionalRoleSlug,
+    isClinicalProfessional,
+    isAdministrativeProfessional,
     permissions,
     canAccessClinical,
     financialAccess,

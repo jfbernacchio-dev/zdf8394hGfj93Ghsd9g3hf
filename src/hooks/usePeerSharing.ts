@@ -31,6 +31,14 @@ export interface PeerInfo {
   level_id: string;
   level_name: string;
   level_number: number;
+  professional_role_id: string | null;
+  professional_role?: {
+    id: string;
+    slug: string;
+    label: string;
+    is_clinical: boolean;
+  } | null;
+  professionalRoleSlug?: string;
 }
 
 // ============================================================================
@@ -102,22 +110,34 @@ export function usePeerSharing() {
           .neq('user_id', user.id);
 
         if (peersData) {
-          // Buscar nomes dos peers
+          // FASE 2.3: Buscar nomes e professional_roles dos peers
           const peerIds = peersData.map((p: any) => p.user_id);
           const { data: profiles } = await supabase
             .from('profiles')
-            .select('id, full_name')
+            .select('id, full_name, professional_role_id, professional_roles(*)')
             .in('id', peerIds);
 
-          const profileMap = new Map(profiles?.map(p => [p.id, p.full_name]) || []);
+          const profileMap = new Map(
+            profiles?.map(p => [p.id, {
+              full_name: p.full_name,
+              professional_role_id: p.professional_role_id,
+              professional_roles: p.professional_roles
+            }]) || []
+          );
 
-          const peers: PeerInfo[] = peersData.map((p: any) => ({
-            user_id: p.user_id,
-            full_name: profileMap.get(p.user_id) || 'Usuário',
-            level_id: myLevelId,
-            level_name: p.organization_positions.organization_levels.level_name,
-            level_number: p.organization_positions.organization_levels.level_number,
-          }));
+          const peers: PeerInfo[] = peersData.map((p: any) => {
+            const profileInfo = profileMap.get(p.user_id);
+            return {
+              user_id: p.user_id,
+              full_name: profileInfo?.full_name || 'Usuário',
+              level_id: myLevelId,
+              level_name: p.organization_positions.organization_levels.level_name,
+              level_number: p.organization_positions.organization_levels.level_number,
+              professional_role_id: profileInfo?.professional_role_id || null,
+              professional_role: profileInfo?.professional_roles || null,
+              professionalRoleSlug: profileInfo?.professional_roles?.slug,
+            };
+          });
 
           setPeersInLevel(peers);
         }

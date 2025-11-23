@@ -166,7 +166,7 @@ export default function DashboardExample() {
       if (orgFilteredSubordinates.length > 0) {
         const { data } = await supabase
           .from('profiles')
-          .select('id, full_name')
+          .select('id, full_name, professional_role_id, professional_roles(*)')
           .in('id', orgFilteredSubordinates)
           .order('full_name');
         profilesData = data || [];
