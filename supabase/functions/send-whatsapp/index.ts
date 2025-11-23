@@ -165,6 +165,7 @@ const handler = async (req: Request): Promise<Response> => {
       let userId: string = "";
       let patientId: string | null | undefined;
       let contactName: string | undefined;
+      let organizationId: string | null = null;
 
       // 🚨 PRIORIDADE MÁXIMA: Flag de notificação do terapeuta
       if (metadata?.isTherapistNotification === true) {
@@ -213,8 +214,101 @@ const handler = async (req: Request): Promise<Response> => {
           userId = metadata?.userId || "";
           patientId = metadata?.patientId || null;
           contactName = metadata?.recipientName;
-          console.log("⚠️ Patient not found by phone - using metadata fallback");
+        console.log("⚠️ Patient not found by phone - using metadata fallback");
         }
+      }
+
+      // ============================================================================
+      // FASE W2: Verificar se a organização tem WhatsApp habilitado
+      // ============================================================================
+      // Esta função pode ser chamada de:
+      // 1. NFSe/Termos (fluxos internos): não deve quebrar o envio de e-mail
+      // 2. Outras automações futuras
+      //
+      // Se whatsapp_enabled = false, registramos um warning e pulamos o envio,
+      // mas retornamos sucesso (200) para não quebrar o fluxo principal.
+
+      if (userId) {
+        // Buscar organization_id do usuário
+        const { data: userProfile } = await supabase
+          .from("profiles")
+          .select("organization_id")
+          .eq("id", userId)
+          .maybeSingle();
+
+        organizationId = userProfile?.organization_id || null;
+
+        if (!organizationId) {
+          console.warn(`⚠️ [FASE W2] organization_id não encontrado para userId: ${userId}`);
+          // Não bloqueia, mas registra o warning
+          // O WhatsApp não será enviado, mas retornamos sucesso para não quebrar fluxos
+          return new Response(
+            JSON.stringify({
+              success: true,
+              skipped: true,
+              reason: "Organization not configured",
+              message: "WhatsApp message skipped - organization not found",
+            }),
+            {
+              status: 200,
+              headers: {
+                "Content-Type": "application/json",
+                ...corsHeaders,
+              },
+            }
+          );
+        }
+
+        // Verificar se WhatsApp está habilitado para a organização
+        const { data: organization } = await supabase
+          .from("organizations")
+          .select("id, whatsapp_enabled, legal_name")
+          .eq("id", organizationId)
+          .maybeSingle();
+
+        if (!organization) {
+          console.warn(`⚠️ [FASE W2] Organização não encontrada: ${organizationId}`);
+          return new Response(
+            JSON.stringify({
+              success: true,
+              skipped: true,
+              reason: "Organization not found",
+              message: "WhatsApp message skipped - organization not found",
+            }),
+            {
+              status: 200,
+              headers: {
+                "Content-Type": "application/json",
+                ...corsHeaders,
+              },
+            }
+          );
+        }
+
+        if (organization.whatsapp_enabled !== true) {
+          console.warn(
+            `🚫 [FASE W2] WhatsApp bloqueado para organização: ${organization.legal_name} (whatsapp_enabled = ${organization.whatsapp_enabled})`
+          );
+          console.warn(`ℹ️ [FASE W2] Fluxo de e-mail/NFSe deve continuar normalmente em quem chamou esta função.`);
+          
+          return new Response(
+            JSON.stringify({
+              success: true,
+              skipped: true,
+              reason: "WhatsApp not enabled for organization",
+              message: `WhatsApp message skipped - not enabled for ${organization.legal_name}`,
+            }),
+            {
+              status: 200,
+              headers: {
+                "Content-Type": "application/json",
+                ...corsHeaders,
+              },
+            }
+          );
+        }
+
+        console.log(`✅ [FASE W2] WhatsApp habilitado para: ${organization.legal_name}`);
       }
 
       if (userId) {

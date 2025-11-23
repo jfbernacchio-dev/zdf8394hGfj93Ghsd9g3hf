@@ -1285,6 +1285,7 @@ export type Database = {
           legal_name: string
           notes: string | null
           updated_at: string
+          whatsapp_enabled: boolean
         }
         Insert: {
           cnpj: string
@@ -1294,6 +1295,7 @@ export type Database = {
           legal_name: string
           notes?: string | null
           updated_at?: string
+          whatsapp_enabled?: boolean
         }
         Update: {
           cnpj?: string
@@ -1303,6 +1305,7 @@ export type Database = {
           legal_name?: string
           notes?: string | null
           updated_at?: string
+          whatsapp_enabled?: boolean
         }
         Relationships: []
       }

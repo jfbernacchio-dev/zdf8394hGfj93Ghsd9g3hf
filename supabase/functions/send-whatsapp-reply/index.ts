@@ -69,6 +69,12 @@ serve(async (req: Request): Promise<Response> => {
 
     const requestBody = await req.json();
 
+    // ============================================================================
+    // FASE W2: Verificar se a organização tem WhatsApp habilitado
+    // ============================================================================
+    // Esta função é chamada do frontend (chat), então o usuário está autenticado.
+    // Precisamos verificar se a organização do usuário tem whatsapp_enabled = true.
+
     // Validação de entrada com Zod para segurança
     const messageSchema = z.object({
       conversationId: z.string().uuid("ID de conversa inválido"),
@@ -112,6 +118,51 @@ serve(async (req: Request): Promise<Response> => {
     if (convError || !conversation) {
       throw new Error("Conversation not found");
     }
+
+    // FASE W2: Verificar whatsapp_enabled da organização do usuário
+    const { data: userProfile } = await supabase
+      .from("profiles")
+      .select("organization_id")
+      .eq("id", conversation.user_id)
+      .single();
+
+    if (!userProfile?.organization_id) {
+      console.error("❌ [FASE W2] User profile not found or missing organization_id:", conversation.user_id);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Configuração de organização não encontrada.",
+        }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const { data: organization } = await supabase
+      .from("organizations")
+      .select("id, whatsapp_enabled, legal_name")
+      .eq("id", userProfile.organization_id)
+      .single();
+
+    if (!organization || organization.whatsapp_enabled !== true) {
+      console.warn(
+        `🚫 [FASE W2] WhatsApp bloqueado para organização: ${organization?.legal_name || userProfile.organization_id} (whatsapp_enabled = ${organization?.whatsapp_enabled})`
+      );
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "WhatsApp não está habilitado para sua organização.",
+        }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    console.log(`✅ [FASE W2] WhatsApp habilitado para: ${organization.legal_name}`);
 
     // Check if window is expired
     const now = new Date();
