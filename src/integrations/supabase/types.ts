@@ -1633,6 +1633,7 @@ export type Database = {
           id: string
           organization_id: string | null
           phone: string | null
+          professional_role_id: string | null
           send_nfse_to_therapist: boolean | null
           slot_duration: number | null
           updated_at: string
@@ -1652,6 +1653,7 @@ export type Database = {
           id: string
           organization_id?: string | null
           phone?: string | null
+          professional_role_id?: string | null
           send_nfse_to_therapist?: boolean | null
           slot_duration?: number | null
           updated_at?: string
@@ -1671,6 +1673,7 @@ export type Database = {
           id?: string
           organization_id?: string | null
           phone?: string | null
+          professional_role_id?: string | null
           send_nfse_to_therapist?: boolean | null
           slot_duration?: number | null
           updated_at?: string
@@ -1678,7 +1681,15 @@ export type Database = {
           work_end_time?: string | null
           work_start_time?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_professional_role_id_fkey"
+            columns: ["professional_role_id"]
+            isOneToOne: false
+            referencedRelation: "professional_roles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       schedule_blocks: {
         Row: {
