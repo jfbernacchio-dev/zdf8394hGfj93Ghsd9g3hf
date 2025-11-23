@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEffectivePermissions } from "@/hooks/useEffectivePermissions";
 import { isOlimpoUser } from "@/lib/userUtils";
+import { getAccessibleWhatsAppUserIds, canManageWhatsAppConversations } from "@/lib/whatsappPermissions";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +10,7 @@ import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Send, MessageCircle, Clock, User, Trash2, Download, Image as ImageIcon } from "lucide-react";
+import { Send, MessageCircle, Clock, User, Trash2, Download, Image as ImageIcon, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -22,6 +24,7 @@ interface Conversation {
   unread_count: number;
   window_expires_at: string | null;
   patient_id: string | null;
+  user_id: string; // FASE W3: Necessário para saber de quem é a conversa
 }
 
 interface Message {
@@ -36,6 +39,7 @@ interface Message {
 
 export default function WhatsAppChat() {
   const { user, organizationId } = useAuth();
+  const { canAccessWhatsapp, secretaryCanAccessWhatsapp, canViewSubordinateWhatsapp, canManageSubordinateWhatsapp, isOrganizationOwner } = useEffectivePermissions();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -43,6 +47,7 @@ export default function WhatsAppChat() {
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [downloadingMedia, setDownloadingMedia] = useState<Set<string>>(new Set());
+  const [canRespondToSelected, setCanRespondToSelected] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // FASE W1: gate de Olimpo - bloqueia UI para todos exceto João & Larissa (whitelist)
@@ -122,9 +127,12 @@ export default function WhatsAppChat() {
   }, [messages]);
 
   useEffect(() => {
-    if (selectedConversation) {
+    if (selectedConversation && user) {
       loadMessages(selectedConversation.id);
       markAsRead(selectedConversation.id);
+
+      // FASE W3: Verificar se pode responder nesta conversa
+      checkCanRespond(selectedConversation.user_id);
 
       // Subscribe to new messages
       const channel = supabase
@@ -148,7 +156,7 @@ export default function WhatsAppChat() {
         supabase.removeChannel(channel);
       };
     }
-  }, [selectedConversation]);
+  }, [selectedConversation, user]);
 
   const loadConversations = async () => {
     console.log('[ORG] WhatsApp - organizationId:', organizationId);
@@ -162,11 +170,20 @@ export default function WhatsAppChat() {
         return;
       }
 
-      const { getUserIdsInOrganization } = await import('@/lib/organizationFilters');
-      const orgUserIds = await getUserIdsInOrganization(organizationId);
+      if (!user?.id) {
+        console.warn('[WhatsApp] Sem user id');
+        setConversations([]);
+        setLoading(false);
+        return;
+      }
 
-      if (orgUserIds.length === 0) {
-        console.warn('[ORG] Nenhum usuário na organização');
+      // FASE W3: Obter IDs de usuários cujas conversas este usuário pode ver
+      const accessibleUserIds = await getAccessibleWhatsAppUserIds(user.id);
+      
+      console.log('[FASE W3] WhatsApp - Usuários acessíveis:', accessibleUserIds);
+
+      if (accessibleUserIds.length === 0) {
+        console.warn('[FASE W3] Nenhum usuário acessível para WhatsApp');
         setConversations([]);
         setLoading(false);
         return;
@@ -179,28 +196,24 @@ export default function WhatsAppChat() {
           patients!whatsapp_conversations_patient_id_fkey (
             name,
             user_id
+          ),
+          profiles!whatsapp_conversations_user_id_fkey (
+            full_name
           )
         `)
-        .eq("user_id", user?.id)
+        .in("user_id", accessibleUserIds)
         .order("last_message_at", { ascending: false });
 
       if (error) throw error;
       
-      // Filtrar conversas de pacientes que pertencem a usuários da mesma org
-      const conversationsInOrg = (data || []).filter((conv: any) => {
-        // Se não tem paciente vinculado, manter (pode ser conversa direta)
-        if (!conv.patients?.user_id) return true;
-        // Se tem paciente, verificar se o terapeuta está na org
-        return orgUserIds.includes(conv.patients.user_id);
-      });
-
-      // Mapear para usar o nome do paciente em vez de contact_name
-      const conversationsWithPatientNames = conversationsInOrg.map((conv: any) => ({
+      // Mapear para incluir o nome do paciente e do terapeuta
+      const conversationsWithNames = (data || []).map((conv: any) => ({
         ...conv,
         contact_name: conv.patients?.name || conv.contact_name || conv.phone_number,
+        therapist_name: conv.profiles?.full_name || 'Terapeuta',
       }));
       
-      setConversations(conversationsWithPatientNames);
+      setConversations(conversationsWithNames);
     } catch (error: any) {
       console.error("Error loading conversations:", error);
       toast.error("Erro ao carregar conversas");
@@ -274,6 +287,12 @@ export default function WhatsAppChat() {
   const sendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation) return;
 
+    // FASE W3: Verificar se pode responder
+    if (!canRespondToSelected) {
+      toast.error("Você não tem permissão para responder esta conversa.");
+      return;
+    }
+
     setSending(true);
     try {
       const { data, error } = await supabase.functions.invoke("send-whatsapp-reply", {
@@ -296,6 +315,22 @@ export default function WhatsAppChat() {
       toast.error(error.message || "Erro ao enviar mensagem");
     } finally {
       setSending(false);
+    }
+  };
+
+  // FASE W3: Verificar se pode responder em uma conversa específica
+  const checkCanRespond = async (conversationOwnerId: string) => {
+    if (!user?.id) {
+      setCanRespondToSelected(false);
+      return;
+    }
+
+    try {
+      const canManage = await canManageWhatsAppConversations(user.id, conversationOwnerId);
+      setCanRespondToSelected(canManage);
+    } catch (error) {
+      console.error('[FASE W3] Erro ao verificar permissão de resposta:', error);
+      setCanRespondToSelected(false);
     }
   };
 

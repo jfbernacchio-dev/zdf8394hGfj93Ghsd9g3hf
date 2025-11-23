@@ -758,6 +758,8 @@ export type Database = {
           can_access_marketing: boolean
           can_access_whatsapp: boolean
           can_edit_schedules: boolean
+          can_manage_subordinate_whatsapp: boolean
+          can_view_subordinate_whatsapp: boolean
           can_view_team_financial_summary: boolean
           clinical_visible_to_superiors: boolean
           created_at: string
@@ -767,6 +769,7 @@ export type Database = {
           peer_agenda_sharing: boolean
           peer_clinical_sharing: string
           role_type: Database["public"]["Enums"]["app_role"]
+          secretary_can_access_whatsapp: boolean
           updated_at: string
           uses_org_company_for_nfse: boolean
         }
@@ -775,6 +778,8 @@ export type Database = {
           can_access_marketing?: boolean
           can_access_whatsapp?: boolean
           can_edit_schedules?: boolean
+          can_manage_subordinate_whatsapp?: boolean
+          can_view_subordinate_whatsapp?: boolean
           can_view_team_financial_summary?: boolean
           clinical_visible_to_superiors?: boolean
           created_at?: string
@@ -784,6 +789,7 @@ export type Database = {
           peer_agenda_sharing?: boolean
           peer_clinical_sharing?: string
           role_type: Database["public"]["Enums"]["app_role"]
+          secretary_can_access_whatsapp?: boolean
           updated_at?: string
           uses_org_company_for_nfse?: boolean
         }
@@ -792,6 +798,8 @@ export type Database = {
           can_access_marketing?: boolean
           can_access_whatsapp?: boolean
           can_edit_schedules?: boolean
+          can_manage_subordinate_whatsapp?: boolean
+          can_view_subordinate_whatsapp?: boolean
           can_view_team_financial_summary?: boolean
           clinical_visible_to_superiors?: boolean
           created_at?: string
@@ -801,6 +809,7 @@ export type Database = {
           peer_agenda_sharing?: boolean
           peer_clinical_sharing?: string
           role_type?: Database["public"]["Enums"]["app_role"]
+          secretary_can_access_whatsapp?: boolean
           updated_at?: string
           uses_org_company_for_nfse?: boolean
         }

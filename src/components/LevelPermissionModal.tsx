@@ -56,6 +56,10 @@ interface LevelRoleSettings {
   uses_org_company_for_nfse: boolean;
   can_edit_schedules: boolean;
   can_view_team_financial_summary: boolean;
+  // FASE W3: Permissões de WhatsApp hierárquicas
+  can_view_subordinate_whatsapp: boolean;
+  can_manage_subordinate_whatsapp: boolean;
+  secretary_can_access_whatsapp: boolean;
 }
 
 export function LevelPermissionModal({
@@ -81,6 +85,10 @@ export function LevelPermissionModal({
     uses_org_company_for_nfse: false,
     can_edit_schedules: false,
     can_view_team_financial_summary: false,
+    // FASE W3: Permissões de WhatsApp hierárquicas
+    can_view_subordinate_whatsapp: false,
+    can_manage_subordinate_whatsapp: false,
+    secretary_can_access_whatsapp: false,
   });
 
   // FASE 6C-pt3: Mutation para salvar as permissões
@@ -101,6 +109,10 @@ export function LevelPermissionModal({
           uses_org_company_for_nfse: newSettings.uses_org_company_for_nfse,
           can_edit_schedules: newSettings.can_edit_schedules,
           can_view_team_financial_summary: newSettings.can_view_team_financial_summary,
+          // FASE W3: Permissões de WhatsApp hierárquicas
+          can_view_subordinate_whatsapp: newSettings.can_view_subordinate_whatsapp,
+          can_manage_subordinate_whatsapp: newSettings.can_manage_subordinate_whatsapp,
+          secretary_can_access_whatsapp: newSettings.secretary_can_access_whatsapp,
         })
         .eq('level_id', levelId)
         .eq('role_type', 'psychologist');
@@ -153,6 +165,10 @@ export function LevelPermissionModal({
           uses_org_company_for_nfse: row.uses_org_company_for_nfse,
           can_edit_schedules: row.can_edit_schedules,
           can_view_team_financial_summary: row.can_view_team_financial_summary,
+          // FASE W3: Permissões de WhatsApp hierárquicas
+          can_view_subordinate_whatsapp: row.can_view_subordinate_whatsapp,
+          can_manage_subordinate_whatsapp: row.can_manage_subordinate_whatsapp,
+          secretary_can_access_whatsapp: row.secretary_can_access_whatsapp,
         });
       } catch (err) {
         console.error('[LevelPermissionModal] Failed to load settings:', err);
@@ -393,6 +409,75 @@ export function LevelPermissionModal({
                     checked={settings.can_edit_schedules}
                     onCheckedChange={(checked) =>
                       setSettings({ ...settings, can_edit_schedules: checked })
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* FASE W3: Permissões de WhatsApp */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-primary" />
+                <h3 className="font-semibold text-sm">Permissões de WhatsApp</h3>
+              </div>
+
+              <div className="space-y-4 pl-6">
+                {/* Ver conversas de subordinados */}
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="view-subordinate-whatsapp">
+                      Ver Conversas de Subordinados
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Permite visualizar conversas do WhatsApp de membros subordinados
+                    </p>
+                  </div>
+                  <Switch
+                    id="view-subordinate-whatsapp"
+                    checked={settings.can_view_subordinate_whatsapp}
+                    onCheckedChange={(checked) =>
+                      setSettings({ ...settings, can_view_subordinate_whatsapp: checked })
+                    }
+                  />
+                </div>
+
+                {/* Responder por subordinados */}
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="manage-subordinate-whatsapp">
+                      Responder por Subordinados
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Permite enviar mensagens em nome de subordinados (superior pode responder)
+                    </p>
+                  </div>
+                  <Switch
+                    id="manage-subordinate-whatsapp"
+                    checked={settings.can_manage_subordinate_whatsapp}
+                    onCheckedChange={(checked) =>
+                      setSettings({ ...settings, can_manage_subordinate_whatsapp: checked })
+                    }
+                  />
+                </div>
+
+                {/* Acesso total para secretária */}
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="secretary-whatsapp">
+                      Acesso Total de Secretária
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Permite que assistentes vejam e gerenciem TODAS as conversas da organização
+                    </p>
+                  </div>
+                  <Switch
+                    id="secretary-whatsapp"
+                    checked={settings.secretary_can_access_whatsapp}
+                    onCheckedChange={(checked) =>
+                      setSettings({ ...settings, secretary_can_access_whatsapp: checked })
                     }
                   />
                 </div>
