@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useDashboardPermissions } from "@/hooks/useDashboardPermissions";
+import { isOlimpoUser } from "@/lib/userUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,7 +36,8 @@ interface Message {
 }
 
 export default function WhatsAppChat() {
-  const { user, organizationId } = useAuth();
+  const { user, organizationId, isAdmin } = useAuth();
+  const { permissionContext } = useDashboardPermissions();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -43,6 +46,30 @@ export default function WhatsAppChat() {
   const [sending, setSending] = useState(false);
   const [downloadingMedia, setDownloadingMedia] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // FASE W1: gate de Olimpo - bloqueia UI para todos exceto admin + owner
+  const isOlimpo = isOlimpoUser({
+    isAdmin: !!isAdmin,
+    isOrganizationOwner: permissionContext?.isOrganizationOwner ?? false,
+  });
+
+  // Se não for usuário do Olimpo, mostra apenas mensagem de "em construção"
+  // e NÃO executa nenhuma lógica de carregamento de conversas/mensagens.
+  if (!isOlimpo) {
+    return (
+      <div className="flex flex-1 items-center justify-center p-6">
+        <div className="max-w-md text-center space-y-3">
+          <h1 className="text-xl font-semibold">
+            WhatsApp em construção
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            A integração de WhatsApp ainda está em fase de ajustes para sua conta.
+            Em breve será possível enviar e receber mensagens diretamente pelo sistema.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
