@@ -7,6 +7,7 @@ import { routePermissions } from '@/lib/routePermissions';
 import { checkRoutePermission, getUserRoles } from '@/lib/checkPermissions';
 import type { PermissionDomain, AccessLevel } from '@/types/permissions';
 import type { EffectivePermissions } from '@/lib/resolveEffectivePermissions';
+import { getEffectiveIsClinicalProfessional } from '@/lib/roleUtils';
 
 /**
  * ============================================================================
@@ -56,12 +57,11 @@ export function PermissionRoute({ children, path }: PermissionRouteProps) {
   // Full therapist: psychologist role (not subordinate)
   const isFullTherapist = isPsychologist;
   
-  // Effective clinical flag with fallback for compatibility
-  // Se isClinicalProfessional vier undefined/null, usa roleGlobal === 'psychologist' como fallback
-  const effectiveIsClinicalProfessional =
-    typeof isClinicalProfessional === 'boolean'
-      ? isClinicalProfessional
-      : roleGlobal === 'psychologist';
+  // FASE 3.7: Usar helper central para flag clínica efetiva
+  const effectiveIsClinicalProfessional = getEffectiveIsClinicalProfessional(
+    roleGlobal,
+    isClinicalProfessional
+  );
   
   const permissionsLoading = effective.loading;
   const permissions = effective.permissions;

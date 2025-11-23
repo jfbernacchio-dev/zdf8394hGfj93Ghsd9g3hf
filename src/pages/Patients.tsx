@@ -16,6 +16,7 @@ import { format, parseISO } from 'date-fns';
 import { formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import { ConsentReminder } from '@/components/ConsentReminder';
 import { useCardPermissions } from '@/hooks/useCardPermissions';
+import { getEffectiveIsClinicalProfessional } from '@/lib/roleUtils';
 
 const Patients = () => {
   const [patients, setPatients] = useState<any[]>([]);
@@ -41,11 +42,11 @@ const Patients = () => {
   const isAssistant = roleGlobal === 'assistant';
   const isPsychologist = roleGlobal === 'psychologist';
   
-  // FASE 3.5: Flag clínica efetiva com fallback para compatibilidade
-  const effectiveIsClinicalProfessional =
-    typeof isClinicalProfessional === 'boolean'
-      ? isClinicalProfessional
-      : roleGlobal === 'psychologist'; // fallback de compatibilidade
+  // FASE 3.7: Usar helper central para flag clínica efetiva
+  const effectiveIsClinicalProfessional = getEffectiveIsClinicalProfessional(
+    roleGlobal,
+    isClinicalProfessional
+  );
   
   // FASE 3.5: Subordinado inclui profissionais clínicos em níveis > 1
   const isSubordinate = 

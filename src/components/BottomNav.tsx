@@ -7,6 +7,7 @@ import { Button } from './ui/button';
 import { useState } from 'react';
 import { FileText, Shield, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { getEffectiveIsClinicalProfessional } from '@/lib/roleUtils';
 
 const BottomNav = () => {
   const location = useLocation();
@@ -20,11 +21,11 @@ const BottomNav = () => {
   const isPsychologist = roleGlobal === 'psychologist';
   const isSubordinate = roleGlobal === 'assistant' || roleGlobal === 'accountant';
   
-  // Effective clinical flag with fallback for compatibility
-  const effectiveIsClinicalProfessional =
-    typeof isClinicalProfessional === 'boolean'
-      ? isClinicalProfessional
-      : roleGlobal === 'psychologist';
+  // FASE 3.7: Usar helper central para flag clínica efetiva
+  const effectiveIsClinicalProfessional = getEffectiveIsClinicalProfessional(
+    roleGlobal,
+    isClinicalProfessional
+  );
 
   const isActive = (path: string) => location.pathname === path;
 

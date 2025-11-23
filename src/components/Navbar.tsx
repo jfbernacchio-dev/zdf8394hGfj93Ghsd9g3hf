@@ -10,6 +10,7 @@ import mindwareLogo from '@/assets/mindware-logo-new.png';
 import { NotificationCenter } from './NotificationCenter';
 import { ThemeToggle } from './ThemeToggle';
 import { OrganizationSwitcher } from './OrganizationSwitcher';
+import { getEffectiveIsClinicalProfessional } from '@/lib/roleUtils';
 
 const Navbar = () => {
   const location = useLocation();
@@ -22,11 +23,11 @@ const Navbar = () => {
   const isFullTherapist = roleGlobal === 'psychologist';
   const isSubordinate = roleGlobal === 'assistant' || roleGlobal === 'accountant';
   
-  // Effective clinical flag with fallback for compatibility
-  const effectiveIsClinicalProfessional =
-    typeof isClinicalProfessional === 'boolean'
-      ? isClinicalProfessional
-      : roleGlobal === 'psychologist';
+  // FASE 3.7: Usar helper central para flag clínica efetiva
+  const effectiveIsClinicalProfessional = getEffectiveIsClinicalProfessional(
+    roleGlobal,
+    isClinicalProfessional
+  );
 
   const isActive = (path: string) => location.pathname === path;
 
