@@ -27,6 +27,8 @@ import {
 } from '@/lib/organizations';
 import { getUserIdsInOrganization } from '@/lib/organizationFilters';
 import { getUserRoleLabelForUI } from '@/lib/professionalRoles';
+import { fetchClinicalApproachesForRoleId } from '@/lib/clinicalApproaches';
+import type { ClinicalApproach } from '@/types/clinicalApproaches';
 
 const WEEKDAYS = [
   { value: 0, label: 'Domingo' },
@@ -60,7 +62,11 @@ const ProfileEdit = () => {
   const [workEndTime, setWorkEndTime] = useState('18:00');
   const [slotDuration, setSlotDuration] = useState(60);
   const [breakTime, setBreakTime] = useState(15);
-  const [clinicalApproach, setClinicalApproach] = useState('');
+  const [clinicalApproach, setClinicalApproach] = useState(''); // FASE A2: Legacy, mantido por compatibilidade
+  
+  // FASE A2: Estados para clinical_approaches dinâmicos
+  const [clinicalApproachId, setClinicalApproachId] = useState<string | null>(null);
+  const [availableClinicalApproaches, setAvailableClinicalApproaches] = useState<ClinicalApproach[]>([]);
   
   // Subordinação de contador
   const [showSubordinationDialog, setShowSubordinationDialog] = useState(false);
@@ -108,7 +114,9 @@ const ProfileEdit = () => {
         console.log('🔄 [CHECKBOX SET] Setando checkbox para:', sendNfseValue);
         setSendNfseToTherapist(sendNfseValue);
         
+        // FASE A2: Carregar abordagem clínica
         setClinicalApproach(profile.clinical_approach || '');
+        setClinicalApproachId(profile.clinical_approach_id || null);
         
         setWorkDays(profile.work_days || [1, 2, 3, 4, 5]);
         setWorkStartTime(profile.work_start_time || '08:00');
@@ -132,6 +140,51 @@ const ProfileEdit = () => {
 
     checkSubordinate();
   }, [profile, user]);
+
+  // FASE A2: Carregar lista de abordagens clínicas disponíveis
+  useEffect(() => {
+    const loadClinicalApproaches = async () => {
+      if (!profile?.professional_role_id) {
+        setAvailableClinicalApproaches([]);
+        return;
+      }
+
+      try {
+        const approaches = await fetchClinicalApproachesForRoleId(profile.professional_role_id);
+        setAvailableClinicalApproaches(approaches);
+        
+        // FASE A2: Migração suave de dados legados
+        // Se clinical_approach_id é null mas clinical_approach (texto) existe,
+        // tentar mapear para um slug conhecido
+        if (!profile.clinical_approach_id && profile.clinical_approach) {
+          const legacyText = profile.clinical_approach.toLowerCase();
+          let matchedApproach: ClinicalApproach | undefined;
+          
+          if (legacyText.includes('tcc') || legacyText.includes('cognitiv')) {
+            matchedApproach = approaches.find(a => a.slug === 'tcc');
+          } else if (legacyText.includes('analítica') || legacyText.includes('analitica') || legacyText.includes('jung')) {
+            matchedApproach = approaches.find(a => a.slug === 'psicologia_analitica');
+          } else if (legacyText.includes('psicanálise') || legacyText.includes('psicanalise') || legacyText.includes('freud')) {
+            matchedApproach = approaches.find(a => a.slug === 'psicanalise');
+          } else if (legacyText.includes('fenomenolog')) {
+            matchedApproach = approaches.find(a => a.slug === 'fenomenologia');
+          } else if (legacyText.includes('behavior') || legacyText.includes('comportament')) {
+            matchedApproach = approaches.find(a => a.slug === 'behaviorismo');
+          }
+          
+          if (matchedApproach) {
+            console.log('🔄 [FASE A2] Mapeando abordagem legacy:', profile.clinical_approach, '→', matchedApproach.label);
+            setClinicalApproachId(matchedApproach.id);
+          }
+        }
+      } catch (error) {
+        console.error('[ProfileEdit] Erro ao carregar abordagens clínicas:', error);
+        setAvailableClinicalApproaches([]);
+      }
+    };
+
+    loadClinicalApproaches();
+  }, [profile?.professional_role_id, profile?.clinical_approach_id, profile?.clinical_approach]);
 
   // FASE 10.2: Carregar dados da organização
   useEffect(() => {
@@ -497,6 +550,9 @@ const ProfileEdit = () => {
     setLoading(true);
 
     try {
+      // FASE A2: Buscar label da abordagem selecionada para preencher campo legacy
+      const selectedApproach = availableClinicalApproaches.find(a => a.id === clinicalApproachId);
+      
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -505,7 +561,8 @@ const ProfileEdit = () => {
           work_end_time: workEndTime,
           slot_duration: slotDuration,
           break_time: breakTime,
-          clinical_approach: clinicalApproach,
+          clinical_approach_id: clinicalApproachId, // FASE A2: Novo campo
+          clinical_approach: selectedApproach?.label ?? null, // FASE A2: Legacy mantido por compatibilidade
         })
         .eq('id', user!.id);
 
@@ -959,21 +1016,27 @@ const ProfileEdit = () => {
             {!isAccountant && (
               <TabsContent value="clinical">
                 <form onSubmit={handleSubmitClinical} className="space-y-6">
-                  <div>
-                    <Label>Abordagem Clínica</Label>
-                    <Select value={clinicalApproach} onValueChange={setClinicalApproach}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione a abordagem" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="TCC">Terapia Cognitivo-Comportamental (TCC)</SelectItem>
-                        <SelectItem value="Psicologia Analítica">Psicologia Analítica</SelectItem>
-                        <SelectItem value="Psicanálise">Psicanálise</SelectItem>
-                        <SelectItem value="Fenomenologia">Fenomenologia</SelectItem>
-                        <SelectItem value="Behaviorismo">Behaviorismo</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {/* FASE A2: Dropdown dinâmico de abordagens clínicas */}
+                  {availableClinicalApproaches.length > 0 && (
+                    <div>
+                      <Label>Abordagem Clínica</Label>
+                      <Select 
+                        value={clinicalApproachId ?? ''} 
+                        onValueChange={(val) => setClinicalApproachId(val || null)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a abordagem" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableClinicalApproaches.map((approach) => (
+                            <SelectItem key={approach.id} value={approach.id}>
+                              {approach.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
 
                   <div>
                     <Label className="mb-3 block">Dias de Trabalho</Label>
