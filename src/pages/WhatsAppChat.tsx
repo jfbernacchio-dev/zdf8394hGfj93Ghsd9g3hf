@@ -178,28 +178,50 @@ export default function WhatsAppChat() {
         return;
       }
 
+      // ⭐ HOTFIX W3.2: BYPASS TOTAL DE PERMISSÕES PARA OLIMPO
+      // João e Larissa veem TODAS as conversas da organização diretamente
+      if (isOlimpoUser({ userId: user.id })) {
+        console.log('[HOTFIX W3.2] Usuário Olimpo detectado - carregando todas as conversas da organização');
+        
+        const { data, error } = await supabase
+          .from("whatsapp_conversations")
+          .select(`
+            *,
+            patients!whatsapp_conversations_patient_id_fkey (
+              name,
+              user_id
+            ),
+            profiles!whatsapp_conversations_user_id_fkey (
+              full_name
+            )
+          `)
+          .eq("organization_id", organizationId)
+          .order("last_message_at", { ascending: false });
+
+        if (error) {
+          console.error("[HOTFIX W3.2] Erro ao carregar conversas (Olimpo):", error);
+          throw error;
+        }
+
+        console.log('[HOTFIX W3.2] Olimpo - Conversas carregadas:', data?.length || 0);
+
+        // Mapear para incluir o nome do paciente e do terapeuta
+        const conversationsWithNames = (data || []).map((conv: any) => ({
+          ...conv,
+          contact_name: conv.patients?.name || conv.contact_name || conv.phone_number,
+          therapist_name: conv.profiles?.full_name || 'Terapeuta',
+        }));
+        
+        setConversations(conversationsWithNames);
+        setLoading(false);
+        return; // <<< IMPORTANTE: não deixa cair na lógica "normal"
+      }
+
+      // ⚙️ LÓGICA NORMAL PARA USUÁRIOS NÃO-OLIMPO (FASE W3)
       let accessibleUserIds: string[] = [];
 
-      // HOTFIX W3.1: Olimpo vê todas as conversas da organização (bypass completo)
-      if (isOlimpoUser({ userId: user.id })) {
-        console.log('[HOTFIX W3.1] Usuário Olimpo detectado - carregando todas as conversas da organização');
-        
-        // Buscar todos os user_ids da organização usando o organizationId do contexto
-        const { data: orgProfiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('organization_id', organizationId);
-        
-        if (profilesError) {
-          console.error('[HOTFIX W3.1] Erro ao buscar profiles da organização:', profilesError);
-        } else if (orgProfiles) {
-          accessibleUserIds = orgProfiles.map(p => p.id);
-          console.log('[HOTFIX W3.1] Olimpo - Total de usuários acessíveis:', accessibleUserIds.length);
-        }
-      } else {
-        // FASE W3: Obter IDs de usuários cujas conversas este usuário pode ver (regras W3)
-        accessibleUserIds = await getAccessibleWhatsAppUserIds(user.id);
-      }
+      // FASE W3: Obter IDs de usuários cujas conversas este usuário pode ver (regras W3)
+      accessibleUserIds = await getAccessibleWhatsAppUserIds(user.id);
       
       console.log('[FASE W3] WhatsApp - Usuários acessíveis:', accessibleUserIds);
 
