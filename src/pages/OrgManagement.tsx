@@ -871,10 +871,10 @@ export default function OrgManagement() {
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
                 <div>
-                  <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                  <h1 className="text-2xl md:text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
                     Gestão Organizacional
                   </h1>
-                  <p className="text-base text-muted-foreground mt-2">
+                  <p className="text-sm md:text-base text-muted-foreground mt-2">
                     Organize sua equipe em níveis hierárquicos, defina cargos e gerencie permissões de forma visual
                   </p>
                 </div>
@@ -904,7 +904,7 @@ export default function OrgManagement() {
               <div className="p-6 rounded-full bg-amber-50 mb-4">
                 <TriangleAlert className="h-16 w-16 text-amber-500" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Configuração de empresa pendente</h3>
+              <h3 className="text-lg font-semibold mb-2">Configuração de empresa pendente</h3>
               <p className="text-sm text-muted-foreground mb-6">
                 Para usar o organograma, você precisa configurar sua empresa/CNPJ no perfil.
               </p>
@@ -925,7 +925,7 @@ export default function OrgManagement() {
               <div className="p-4 rounded-full bg-red-50 mb-4">
                 <TriangleAlert className="h-10 w-10 text-red-500" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">Erro ao carregar níveis</h3>
+              <h3 className="text-base font-semibold mb-2">Erro ao carregar níveis</h3>
               <p className="text-sm text-muted-foreground mb-4">
                 Não foi possível carregar sua estrutura organizacional.
               </p>
@@ -965,7 +965,7 @@ export default function OrgManagement() {
               <div className="p-6 rounded-full bg-primary/10 mb-4">
                 <Users className="h-16 w-16 text-primary/70" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Nenhum nível criado ainda</h3>
+              <h3 className="text-lg font-semibold mb-2">Nenhum nível criado ainda</h3>
               <p className="text-sm text-muted-foreground mb-4">
                 Crie o primeiro nível para organizar sua equipe em uma estrutura hierárquica clara.
               </p>

@@ -656,7 +656,7 @@ const TeamManagement = () => {
           <div className="p-6 rounded-full bg-amber-50 mb-4">
             <TriangleAlert className="h-16 w-16 text-amber-500" />
           </div>
-          <h3 className="text-xl font-semibold mb-2">Configuração de empresa pendente</h3>
+          <h3 className="text-lg font-semibold mb-2">Configuração de empresa pendente</h3>
           <p className="text-sm text-muted-foreground mb-6">
             Para gerenciar sua equipe, você precisa configurar sua empresa/CNPJ no perfil.
           </p>
@@ -691,8 +691,8 @@ const TeamManagement = () => {
       {/* Header */}
       <div className="flex justify-between items-start mb-8">
         <div>
-          <h1 className="text-4xl font-bold text-foreground mb-2">Equipe</h1>
-          <p className="text-muted-foreground text-lg">
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Equipe</h1>
+          <p className="text-muted-foreground text-sm md:text-base">
             Gerencie os profissionais e colaboradores da sua clínica
           </p>
         </div>
