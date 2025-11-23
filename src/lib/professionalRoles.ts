@@ -99,3 +99,44 @@ export async function isProfessionalRoleClinical(slug: ProfessionalRoleSlug): Pr
     return false;
   }
 }
+
+/**
+ * FASE 1.2 - Busca o professional role de um usuário específico
+ * Retorna null se o usuário não tem professional_role_id definido
+ * ou se o role está inativo
+ * 
+ * ⚠️ NÃO USADO AINDA em AuthContext, signup ou team-management
+ * Preparação para FASE 1.3+
+ */
+export async function fetchUserProfessionalRole(userId: string): Promise<ProfessionalRole | null> {
+  // Busca o profile com o campo professional_role_id
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('professional_role_id')
+    .eq('id', userId)
+    .single();
+
+  if (profileError) {
+    console.error('Error fetching profile for professional role:', profileError);
+    throw profileError;
+  }
+
+  if (!profile?.professional_role_id) {
+    return null; // usuário ainda não tem role profissional definido
+  }
+
+  // Busca o professional role ativo
+  const { data: role, error: roleError } = await supabase
+    .from('professional_roles')
+    .select('*')
+    .eq('id', profile.professional_role_id)
+    .eq('is_active', true)
+    .single();
+
+  if (roleError) {
+    console.error(`Error fetching professional role ${profile.professional_role_id}:`, roleError);
+    throw roleError;
+  }
+
+  return role as ProfessionalRole;
+}
