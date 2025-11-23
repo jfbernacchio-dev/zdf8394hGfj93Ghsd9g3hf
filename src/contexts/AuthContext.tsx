@@ -14,7 +14,8 @@ interface Profile {
   birth_date: string;
   created_by?: string;
   phone?: string;
-  clinical_approach?: string;
+  clinical_approach?: string; // FASE A2: Mantido por compatibilidade
+  clinical_approach_id?: string | null; // FASE A2: Nova FK para clinical_approaches
   send_nfse_to_therapist?: boolean;
   work_days?: number[];
   work_start_time?: string;
@@ -31,6 +32,11 @@ interface Profile {
     is_clinical: boolean;
     is_active: boolean;
   } | null; // FASE 1.4
+  clinical_approaches?: {
+    id: string;
+    slug: string;
+    label: string;
+  } | null; // FASE A2: Relacionamento com clinical_approaches
 }
 
 interface Organization {
@@ -170,7 +176,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*, professional_roles(*)') // FASE 1.4: carregar professional role
+        .select(`
+          *,
+          professional_roles(*),
+          clinical_approaches:clinical_approach_id (
+            id,
+            slug,
+            label
+          )
+        `)
         .eq('id', userId)
         .maybeSingle();
 
