@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/Layout';
 import { LevelPermissionModal } from '@/components/LevelPermissionModal';
+import { getUserRoleLabelForUI } from '@/lib/professionalRoles';
 
 /**
  * ============================================================================
@@ -30,6 +31,13 @@ interface UserInLevel {
   full_name: string;
   avatar_url?: string;
   role?: string;
+  professional_role_id?: string | null;
+  professional_roles?: {
+    id: string;
+    slug: string;
+    label: string;
+    is_clinical: boolean;
+  } | null;
 }
 
 // Cores automáticas por índice - tons pastel suaves com border-top para hierarquia
@@ -235,9 +243,13 @@ export default function OrgManagement() {
         }
 
         // Criar mapa de profiles
-        const profilesMap = new Map<string, string>();
+        const profilesMap = new Map<string, any>();
         profilesData?.forEach(p => {
-          profilesMap.set(p.id, p.full_name);
+          profilesMap.set(p.id, {
+            full_name: p.full_name,
+            professional_role_id: p.professional_role_id,
+            professional_roles: p.professional_roles,
+          });
         });
 
         // Buscar roles dos usuários
@@ -267,13 +279,15 @@ export default function OrgManagement() {
               return null;
             }
             
-            const fullName = profilesMap.get(up.user_id) || 'Sem nome';
+            const fullName = profilesMap.get(up.user_id)?.full_name || 'Sem nome';
 
             return {
               ...up,
               level_id: position.level_id,
               role: rolesMap.get(up.user_id),
               full_name: fullName,
+              professional_role_id: profilesMap.get(up.user_id)?.professional_role_id,
+              professional_roles: profilesMap.get(up.user_id)?.professional_roles,
             };
           })
           .filter((item): item is NonNullable<typeof item> => item !== null); // Remover nulls
@@ -316,6 +330,8 @@ export default function OrgManagement() {
         full_name: fullName,
         avatar_url: undefined,
         role: role,
+        professional_role_id: position.professional_role_id,
+        professional_roles: position.professional_roles,
       };
 
       const existing = map.get(levelId) || [];
@@ -1151,7 +1167,7 @@ export default function OrgManagement() {
                                               variant="outline" 
                                               className={`text-xs font-medium ${ROLE_COLORS[userInfo.role] || 'bg-gray-100 text-gray-700 border-gray-200'}`}
                                             >
-                                              {ROLE_LABELS[userInfo.role] || userInfo.role}
+                                              {getUserRoleLabelForUI(userInfo, userInfo.role)}
                                             </Badge>
                                           )}
                                           {/* FASE 6E-6: Badge "Salvando..." durante persistência */}

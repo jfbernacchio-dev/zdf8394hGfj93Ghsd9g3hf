@@ -31,6 +31,7 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { UserPlus, Shield, UserMinus, Trash2 } from 'lucide-react';
+import { getUserRoleLabelForUI } from '@/lib/professionalRoles';
 
 interface UserWithRoles {
   id: string;
@@ -41,6 +42,13 @@ interface UserWithRoles {
   created_by: string | null;
   supervisor_name: string | null;
   is_subordinate: boolean;
+  professional_role_id?: string | null;
+  professional_roles?: {
+    id: string;
+    slug: string;
+    label: string;
+    is_clinical: boolean;
+  } | null;
 }
 
 export const AccessManagement = () => {
@@ -125,6 +133,8 @@ export const AccessManagement = () => {
           created_by: assignment?.manager_id || null, // Mantém compatibilidade com interface
           supervisor_name: manager?.full_name || null,
           is_subordinate: isSubordinate,
+          professional_role_id: profile.professional_role_id,
+          professional_roles: profile.professional_roles as any,
         };
       });
 
@@ -492,16 +502,16 @@ export const AccessManagement = () => {
                 let userTypeDebug = 'NENHUM';
                 
                 if (hasAdminRole) {
-                  userType = <Badge variant="destructive">Administrador</Badge>;
+                  userType = <Badge variant="destructive">{getUserRoleLabelForUI(user, 'admin')}</Badge>;
                   userTypeDebug = 'ADMIN';
                 } else if (hasAccountantRole && !hasFullTherapistRole) {
-                  userType = <Badge variant="secondary">Contador</Badge>;
+                  userType = <Badge variant="secondary">{getUserRoleLabelForUI(user, 'accountant')}</Badge>;
                   userTypeDebug = 'CONTADOR';
                 } else if (user.is_subordinate) {
                   userType = <Badge className="bg-yellow-500 text-white hover:bg-yellow-600">Subordinado</Badge>;
                   userTypeDebug = 'SUBORDINADO';
                 } else if (hasFullTherapistRole || (!hasAdminRole && !hasAccountantRole && !user.is_subordinate)) {
-                  userType = <Badge className="bg-green-600 text-white hover:bg-green-700">Terapeuta Full</Badge>;
+                  userType = <Badge className="bg-green-600 text-white hover:bg-green-700">{getUserRoleLabelForUI(user, 'fulltherapist')}</Badge>;
                   userTypeDebug = 'TERAPEUTA FULL';
                 }
                 
@@ -510,7 +520,7 @@ export const AccessManagement = () => {
                 
                 // Permissões extras (accountant)
                 const extraPermissions = hasAccountantRole ? (
-                  <Badge variant="secondary">Contador</Badge>
+                  <Badge variant="secondary">{getUserRoleLabelForUI(user, 'accountant')}</Badge>
                 ) : (
                   <span className="text-muted-foreground text-sm">-</span>
                 );

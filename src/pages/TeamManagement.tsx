@@ -15,6 +15,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { getUserRoleLabelForUI } from '@/lib/professionalRoles';
 
 interface TeamMember {
   id: string;
@@ -24,6 +25,13 @@ interface TeamMember {
   level_name: string;
   level_number: number;
   position_name?: string;
+  professional_role_id?: string | null;
+  professional_roles?: {
+    id: string;
+    slug: string;
+    label: string;
+    is_clinical: boolean;
+  } | null;
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -200,6 +208,8 @@ const TeamManagement = () => {
             level_name: level.level_name,
             level_number: level.level_number,
             position_name: position.position_name || undefined,
+            professional_role_id: profile.professional_role_id,
+            professional_roles: profile.professional_roles as any,
           });
         }
 
@@ -236,8 +246,9 @@ const TeamManagement = () => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
-  const getRoleBadge = (role: string) => {
-    return ROLE_LABELS[role] || role;
+  const getRoleBadge = (member: TeamMember) => {
+    // FASE 2.4: Usar helper com fallback para compatibilidade
+    return getUserRoleLabelForUI(member, member.role);
   };
 
   const getRoleColor = (role: string) => {
@@ -602,7 +613,7 @@ const TeamManagement = () => {
   };
 
   const renderMemberCard = (member: TeamMember) => {
-    const roleLabel = getRoleBadge(member.role);
+    const roleLabel = getRoleBadge(member);
     const roleColor = getRoleColor(member.role);
     const isClinical = member.role === 'psychologist'; // Por enquanto só psicólogos
     

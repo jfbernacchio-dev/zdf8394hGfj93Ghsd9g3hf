@@ -239,7 +239,7 @@ export function getProfessionalRoleKindFromProfile(profile?: ProfileWithRole | n
 }
 
 /**
- * FASE 2.2 - Retorna label amigável do professional role
+ * FASE 2.4 - Retorna label amigável do professional role
  * Prioridade: label da tabela > fallback explícito > 'Profissional'
  * 
  * ⚠️ NÃO USADO AINDA - Preparação para uso futuro na UI
@@ -259,3 +259,46 @@ export function getProfessionalRoleLabelFromProfile(
   // 3) Fallback neutro genérico
   return 'Profissional';
 }
+
+/**
+ * FASE 2.4 - Helper unificado para UI
+ * Retorna label para exibir na interface, com fallback inteligente
+ * 
+ * Prioridade:
+ * 1. professional_roles.label (dinâmico da tabela)
+ * 2. Label baseado em systemRole (compatibilidade)
+ * 3. 'Profissional' (fallback final)
+ * 
+ * @param profile - Profile do usuário com professional_roles (aceita partial)
+ * @param systemRole - Role do sistema (de user_roles)
+ */
+export function getUserRoleLabelForUI(
+  profile?: { professional_roles?: { label?: string } | null } | null,
+  systemRole?: string | null
+): string {
+  // 1) Tentar usar professional_roles.label
+  if (profile?.professional_roles?.label) {
+    return profile.professional_roles.label;
+  }
+
+  // 2) Fallback para labels baseados em systemRole
+  if (systemRole) {
+    switch (systemRole) {
+      case 'psychologist':
+      case 'fulltherapist':
+        return 'Psicólogo';
+      case 'assistant':
+        return 'Secretária';
+      case 'accountant':
+        return 'Contador';
+      case 'admin':
+        return 'Administrador';
+      default:
+        return 'Profissional';
+    }
+  }
+
+  // 3) Fallback final
+  return 'Profissional';
+}
+
