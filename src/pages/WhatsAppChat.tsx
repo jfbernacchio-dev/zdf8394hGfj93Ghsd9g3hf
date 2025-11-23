@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEffectivePermissions } from "@/hooks/useEffectivePermissions";
 import { isOlimpoUser } from "@/lib/userUtils";
 import { getAccessibleWhatsAppUserIds, canManageWhatsAppConversations } from "@/lib/whatsappPermissions";
+import { resolveEffectivePermissions } from "@/lib/resolveEffectivePermissions";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -177,8 +178,28 @@ export default function WhatsAppChat() {
         return;
       }
 
-      // FASE W3: Obter IDs de usuários cujas conversas este usuário pode ver
-      const accessibleUserIds = await getAccessibleWhatsAppUserIds(user.id);
+      let accessibleUserIds: string[] = [];
+
+      // HOTFIX W3.1: Olimpo vê todas as conversas da organização (bypass completo)
+      if (isOlimpoUser({ userId: user.id })) {
+        console.log('[HOTFIX W3.1] Usuário Olimpo detectado - carregando todas as conversas da organização');
+        
+        // Buscar todos os user_ids da organização usando o organizationId do contexto
+        const { data: orgProfiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('organization_id', organizationId);
+        
+        if (profilesError) {
+          console.error('[HOTFIX W3.1] Erro ao buscar profiles da organização:', profilesError);
+        } else if (orgProfiles) {
+          accessibleUserIds = orgProfiles.map(p => p.id);
+          console.log('[HOTFIX W3.1] Olimpo - Total de usuários acessíveis:', accessibleUserIds.length);
+        }
+      } else {
+        // FASE W3: Obter IDs de usuários cujas conversas este usuário pode ver (regras W3)
+        accessibleUserIds = await getAccessibleWhatsAppUserIds(user.id);
+      }
       
       console.log('[FASE W3] WhatsApp - Usuários acessíveis:', accessibleUserIds);
 
