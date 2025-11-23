@@ -221,7 +221,7 @@ export default function OrgManagement() {
         
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
-          .select('id, full_name')
+          .select('id, full_name, professional_role_id, professional_roles(*)')
           .in('id', userIds);
 
         if (profilesError) {

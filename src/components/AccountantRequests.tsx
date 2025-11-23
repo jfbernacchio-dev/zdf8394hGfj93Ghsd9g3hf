@@ -44,7 +44,7 @@ export const AccountantRequests = () => {
       const therapistIds = requestsData?.map(r => r.therapist_id) || [];
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, full_name')
+        .select('id, full_name, professional_role_id, professional_roles(*)')
         .in('id', therapistIds);
 
       if (profilesError) throw profilesError;

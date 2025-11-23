@@ -11,6 +11,14 @@ export interface OrganizationNode {
   parent_position_id: string | null;
   user_id: string | null;
   user_name: string | null;
+  professional_role_id?: string | null;
+  professional_role?: {
+    id: string;
+    slug: string;
+    label: string;
+    is_clinical: boolean;
+  } | null;
+  professionalRoleSlug?: string;
   children?: OrganizationNode[];
 }
 
@@ -106,11 +114,32 @@ export const useOrganogramData = () => {
         // Não abortar o hook - continuar com userPositions vazio
       }
 
+      // FASE 2.3: Buscar profiles dos usuários atribuídos (com professional_roles)
+      const userIds = userPositions?.map(up => up.user_id).filter(Boolean) || [];
+      let profilesMap = new Map();
+      
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name, professional_role_id, professional_roles(*)')
+          .in('id', userIds);
+        
+        profilesMap = new Map(
+          profiles?.map(p => [p.id, {
+            full_name: p.full_name,
+            professional_role_id: p.professional_role_id,
+            professional_roles: p.professional_roles
+          }]) || []
+        );
+      }
+
       // Build tree structure
       const positionsMap = new Map<string, OrganizationNode>();
       
       positions?.forEach(pos => {
         const userPos = userPositions?.find(up => up.position_id === pos.id);
+        const profileInfo = userPos?.user_id ? profilesMap.get(userPos.user_id) : null;
+        
         positionsMap.set(pos.id, {
           position_id: pos.id,
           position_name: pos.position_name || 'Sem nome',
@@ -119,7 +148,10 @@ export const useOrganogramData = () => {
           level_number: (pos.organization_levels as any)?.level_number || 0,
           parent_position_id: pos.parent_position_id,
           user_id: userPos?.user_id || null,
-          user_name: null, // Por enquanto sem buscar profiles
+          user_name: profileInfo?.full_name || null,
+          professional_role_id: profileInfo?.professional_role_id || null,
+          professional_role: profileInfo?.professional_roles || null,
+          professionalRoleSlug: profileInfo?.professional_roles?.slug,
           children: []
         });
       });

@@ -162,7 +162,7 @@ const TeamManagement = () => {
         // Buscar profiles
         const { data: profiles, error: profilesError } = await supabase
           .from('profiles')
-          .select('id, full_name')
+          .select('id, full_name, professional_role_id, professional_roles(*)')
           .in('id', userIds);
 
         console.log('[TEAM_API] 📋 table=profiles data:', profiles);
@@ -263,7 +263,7 @@ const TeamManagement = () => {
       const search = linkFormData.email.trim();
       const { data: profiles, error: profileError } = await supabase
         .from('profiles')
-        .select('id, full_name, cpf')
+        .select('id, full_name, cpf, professional_role_id, professional_roles(*)')
         .or(`cpf.eq.${search},full_name.ilike.%${search}%`);
 
       if (profileError) throw profileError;

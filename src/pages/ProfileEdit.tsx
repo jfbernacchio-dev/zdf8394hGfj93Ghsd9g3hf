@@ -212,7 +212,7 @@ const ProfileEdit = () => {
 
       const { data: accountants, error: accountantsError } = await supabase
         .from('profiles')
-        .select('id, full_name')
+        .select('id, full_name, professional_role_id, professional_roles(*)')
         .in('id', orgAccountantIds)
         .order('full_name');
 
@@ -533,7 +533,7 @@ const ProfileEdit = () => {
       // Buscar therapists que ainda não têm contador
       const { data: allTherapists, error: therapistsError } = await supabase
         .from('profiles')
-        .select('id, full_name')
+        .select('id, full_name, professional_role_id, professional_roles(*)')
         .neq('id', user.id);
 
       if (therapistsError) throw therapistsError;
