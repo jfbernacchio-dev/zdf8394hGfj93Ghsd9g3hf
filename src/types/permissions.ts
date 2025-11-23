@@ -4,8 +4,12 @@
 
 /**
  * ROLES BÁSICOS DO SISTEMA
+ * 
+ * NOTA: 'clinical' é um papel virtual que representa profissionais clínicos
+ * (professional_roles.is_clinical = true). Não é um role real no banco de dados,
+ * mas sim uma keyword usada internamente no routePermissions.
  */
-export type UserRole = 'admin' | 'fulltherapist' | 'subordinate' | 'accountant';
+export type UserRole = 'admin' | 'fulltherapist' | 'subordinate' | 'accountant' | 'clinical';
 
 /**
  * DOMÍNIOS DE PERMISSÃO - FASE 1

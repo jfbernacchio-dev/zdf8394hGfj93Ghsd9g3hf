@@ -38,7 +38,7 @@ interface PermissionRouteProps {
 }
 
 export function PermissionRoute({ children, path }: PermissionRouteProps) {
-  const { user, rolesLoaded, roleGlobal } = useAuth();
+  const { user, rolesLoaded, roleGlobal, isClinicalProfessional } = useAuth();
   const effective = useEffectivePermissions();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -55,6 +55,13 @@ export function PermissionRoute({ children, path }: PermissionRouteProps) {
   const isSubordinate = isAssistant || isAccountant;
   // Full therapist: psychologist role (not subordinate)
   const isFullTherapist = isPsychologist;
+  
+  // Effective clinical flag with fallback for compatibility
+  // Se isClinicalProfessional vier undefined/null, usa roleGlobal === 'psychologist' como fallback
+  const effectiveIsClinicalProfessional =
+    typeof isClinicalProfessional === 'boolean'
+      ? isClinicalProfessional
+      : roleGlobal === 'psychologist';
   
   const permissionsLoading = effective.loading;
   const permissions = effective.permissions;
@@ -75,7 +82,8 @@ export function PermissionRoute({ children, path }: PermissionRouteProps) {
       isAdmin, 
       isFullTherapist,
       isSubordinate, 
-      isAccountant 
+      isAccountant,
+      isClinicalProfessional: effectiveIsClinicalProfessional
     });
 
     // Buscar configuração da rota
@@ -134,7 +142,7 @@ export function PermissionRoute({ children, path }: PermissionRouteProps) {
 
     // Acesso permitido
     setHasPermission(true);
-  }, [user, rolesLoaded, isAdmin, isSubordinate, isAccountant, permissionsLoading, permissions, path, navigate, toast, isFullTherapist]);
+  }, [user, rolesLoaded, isAdmin, isSubordinate, isAccountant, permissionsLoading, permissions, path, navigate, toast, isFullTherapist, effectiveIsClinicalProfessional]);
 
   // Loading state
   if (!user || !rolesLoaded || (isSubordinate && permissionsLoading) || hasPermission === null) {

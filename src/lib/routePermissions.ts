@@ -52,23 +52,24 @@ export const routePermissions: RoutePermissionsConfig = {
   },
 
   // ==================== GESTÃO DE TERAPEUTAS ====================
-  // Admin e Full Therapists podem gerenciar terapeutas
+  // Admin e profissionais clínicos podem gerenciar terapeutas
+  // 'clinical' = papel virtual que representa isClinicalProfessional === true
   '/therapists': {
-    allowedFor: ['admin', 'fulltherapist'],
+    allowedFor: ['admin', 'clinical'],
   },
   
   '/create-therapist': {
-    allowedFor: ['admin', 'fulltherapist'],
+    allowedFor: ['admin', 'clinical'],
   },
 
   '/permissions': {
-    allowedFor: ['admin', 'fulltherapist'],
+    allowedFor: ['admin', 'clinical'],
   },
 
   // ==================== GESTÃO DE EQUIPE ====================
-  // Admin e Full Therapist podem visualizar equipe
+  // Admin e profissionais clínicos podem visualizar equipe
   '/team-management': {
-    allowedFor: ['admin', 'fulltherapist'],
+    allowedFor: ['admin', 'clinical'],
   },
 
   // ==================== DASHBOARD ====================

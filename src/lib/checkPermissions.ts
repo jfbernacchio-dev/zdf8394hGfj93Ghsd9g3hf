@@ -5,10 +5,15 @@ interface UserRoles {
   isFullTherapist: boolean;
   isSubordinate: boolean;
   isAccountant: boolean;
+  isClinicalProfessional?: boolean; // Novo flag opcional
 }
 
 /**
  * Converte flags booleanas em array de roles
+ * 
+ * NOTA: 'clinical' é um papel virtual que representa profissionais clínicos
+ * (isClinicalProfessional === true). Inclui psicólogos e outros profissionais
+ * clínicos dinâmicos da tabela professional_roles.
  */
 export function getUserRoles(flags: UserRoles): UserRole[] {
   // 🔍 LOG DIAGNÓSTICO: Flags recebidas
@@ -23,6 +28,9 @@ export function getUserRoles(flags: UserRoles): UserRole[] {
   if (flags.isFullTherapist) roles.push('fulltherapist');
   if (flags.isSubordinate) roles.push('subordinate');
   if (flags.isAccountant) roles.push('accountant');
+  
+  // Adiciona 'clinical' se o usuário é profissional clínico
+  if (flags.isClinicalProfessional) roles.push('clinical');
   
   console.log('Roles geradas:', roles);
   console.log('====================================');
