@@ -18,6 +18,10 @@ export type LevelRoleSettingsRow = {
   peer_clinical_sharing: 'none' | 'view' | 'full';
   can_edit_schedules: boolean;
   can_view_team_financial_summary: boolean;
+  // FASE W3: Permissões de WhatsApp hierárquicas
+  can_view_subordinate_whatsapp: boolean;
+  can_manage_subordinate_whatsapp: boolean;
+  secretary_can_access_whatsapp: boolean;
 };
 
 /**
@@ -50,6 +54,10 @@ export function getDefaultLevelRoleSettings(
     peer_clinical_sharing: 'none',
     can_edit_schedules: false,
     can_view_team_financial_summary: false,
+    // FASE W3: Permissões de WhatsApp hierárquicas
+    can_view_subordinate_whatsapp: false,
+    can_manage_subordinate_whatsapp: false,
+    secretary_can_access_whatsapp: false,
   };
 }
 

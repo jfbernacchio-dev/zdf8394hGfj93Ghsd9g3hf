@@ -49,6 +49,11 @@ export interface EffectivePermissions {
   canEditSchedules: boolean;
   canViewTeamFinancialSummary: boolean;
   
+  // FASE W3: Permissões de WhatsApp hierárquicas
+  canViewSubordinateWhatsapp: boolean;
+  canManageSubordinateWhatsapp: boolean;
+  secretaryCanAccessWhatsapp: boolean;
+  
   // Metadados de contexto
   levelId: string | null;
   levelNumber: number | null;
@@ -167,6 +172,10 @@ export async function resolveEffectivePermissions(
           peerClinicalSharing: 'none',
           canEditSchedules: true,
           canViewTeamFinancialSummary: false,
+          // FASE W3: Assistentes têm acesso amplo ao WhatsApp
+          canViewSubordinateWhatsapp: false,
+          canManageSubordinateWhatsapp: false,
+          secretaryCanAccessWhatsapp: true, // Secretária vê tudo
           levelId: hierarchyInfo.levelId,
           levelNumber: hierarchyInfo.levelNumber,
           roleType: roleGlobal,
@@ -189,6 +198,10 @@ export async function resolveEffectivePermissions(
           peerClinicalSharing: 'none',
           canEditSchedules: false,
           canViewTeamFinancialSummary: true,
+          // FASE W3: Contador não tem permissões de WhatsApp
+          canViewSubordinateWhatsapp: false,
+          canManageSubordinateWhatsapp: false,
+          secretaryCanAccessWhatsapp: false,
           levelId: hierarchyInfo.levelId,
           levelNumber: hierarchyInfo.levelNumber,
           roleType: roleGlobal,
@@ -211,6 +224,10 @@ export async function resolveEffectivePermissions(
           peerClinicalSharing: 'view',
           canEditSchedules: true,
           canViewTeamFinancialSummary: false,
+          // FASE W3: Psicólogo não tem permissões de WhatsApp por padrão
+          canViewSubordinateWhatsapp: false,
+          canManageSubordinateWhatsapp: false,
+          secretaryCanAccessWhatsapp: false,
           levelId: hierarchyInfo.levelId,
           levelNumber: hierarchyInfo.levelNumber,
           roleType: roleGlobal,
@@ -245,6 +262,11 @@ export async function resolveEffectivePermissions(
       
       canEditSchedules: roleSettings.can_edit_schedules,
       canViewTeamFinancialSummary: roleSettings.can_view_team_financial_summary,
+      
+      // FASE W3: Permissões de WhatsApp hierárquicas
+      canViewSubordinateWhatsapp: roleSettings.can_view_subordinate_whatsapp,
+      canManageSubordinateWhatsapp: roleSettings.can_manage_subordinate_whatsapp,
+      secretaryCanAccessWhatsapp: roleSettings.secretary_can_access_whatsapp,
       
       levelId: hierarchyInfo.levelId,
       levelNumber: hierarchyInfo.levelNumber,
@@ -349,6 +371,10 @@ function getDefaultFullPermissions(
     peerClinicalSharing: 'full',
     canEditSchedules: true,
     canViewTeamFinancialSummary: true,
+    // FASE W3: Admin/Owner tem todas permissões de WhatsApp
+    canViewSubordinateWhatsapp: true,
+    canManageSubordinateWhatsapp: true,
+    secretaryCanAccessWhatsapp: true,
     levelId: hierarchyInfo.levelId,
     levelNumber: hierarchyInfo.levelNumber,
     roleType: roleGlobal,
@@ -376,6 +402,10 @@ function getRestrictedDefaultPermissions(
     peerClinicalSharing: 'none',
     canEditSchedules: false,
     canViewTeamFinancialSummary: false,
+    // FASE W3: Permissões restritas não têm acesso ao WhatsApp
+    canViewSubordinateWhatsapp: false,
+    canManageSubordinateWhatsapp: false,
+    secretaryCanAccessWhatsapp: false,
     levelId: hierarchyInfo.levelId,
     levelNumber: hierarchyInfo.levelNumber,
     roleType: roleGlobal,

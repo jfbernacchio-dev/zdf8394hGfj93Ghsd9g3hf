@@ -63,5 +63,9 @@ export function useEffectivePermissions() {
     canEditSchedules: permissions?.canEditSchedules ?? false,
     canViewTeamFinancialSummary: permissions?.canViewTeamFinancialSummary ?? false,
     isOrganizationOwner: permissions?.isOrganizationOwner ?? false,
+    // FASE W3: Permissões de WhatsApp hierárquicas
+    canViewSubordinateWhatsapp: permissions?.canViewSubordinateWhatsapp ?? false,
+    canManageSubordinateWhatsapp: permissions?.canManageSubordinateWhatsapp ?? false,
+    secretaryCanAccessWhatsapp: permissions?.secretaryCanAccessWhatsapp ?? false,
   };
 }
