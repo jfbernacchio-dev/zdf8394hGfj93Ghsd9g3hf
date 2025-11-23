@@ -14,13 +14,19 @@ import { OrganizationSwitcher } from './OrganizationSwitcher';
 const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut, profile, isAdmin, isAccountant, roleGlobal } = useAuth();
+  const { signOut, profile, isAdmin, isAccountant, roleGlobal, isClinicalProfessional } = useAuth();
   const effective = useEffectivePermissions();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Derive legacy flags from new permission system
   const isFullTherapist = roleGlobal === 'psychologist';
   const isSubordinate = roleGlobal === 'assistant' || roleGlobal === 'accountant';
+  
+  // Effective clinical flag with fallback for compatibility
+  const effectiveIsClinicalProfessional =
+    typeof isClinicalProfessional === 'boolean'
+      ? isClinicalProfessional
+      : roleGlobal === 'psychologist';
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -95,7 +101,7 @@ const Navbar = () => {
                       <span className="font-medium">WhatsApp</span>
                     </Link>
                   )}
-                  {(isAdmin || isFullTherapist) && (
+                  {(isAdmin || effectiveIsClinicalProfessional) && (
                     <Link
                       to="/team-management"
                       className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${

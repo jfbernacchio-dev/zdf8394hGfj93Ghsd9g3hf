@@ -10,7 +10,7 @@ import { useNavigate } from 'react-router-dom';
 
 const BottomNav = () => {
   const location = useLocation();
-  const { signOut, roleGlobal } = useAuth();
+  const { signOut, roleGlobal, isClinicalProfessional } = useAuth();
   const effective = useEffectivePermissions();
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
@@ -19,6 +19,12 @@ const BottomNav = () => {
   const isAdmin = roleGlobal === 'admin';
   const isPsychologist = roleGlobal === 'psychologist';
   const isSubordinate = roleGlobal === 'assistant' || roleGlobal === 'accountant';
+  
+  // Effective clinical flag with fallback for compatibility
+  const effectiveIsClinicalProfessional =
+    typeof isClinicalProfessional === 'boolean'
+      ? isClinicalProfessional
+      : roleGlobal === 'psychologist';
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -133,7 +139,7 @@ const BottomNav = () => {
                     Métricas
                   </Button>
                   <div className="border-t border-border my-3" />
-                  {(isAdmin || isPsychologist) && (
+                  {(isAdmin || effectiveIsClinicalProfessional) && (
                     <Button
                       variant="ghost"
                       className="justify-start h-14 text-base rounded-xl active:scale-98 transition-transform"
