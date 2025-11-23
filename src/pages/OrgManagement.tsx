@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/Layout';
 import { LevelPermissionModal } from '@/components/LevelPermissionModal';
 import { getUserRoleLabelForUI } from '@/lib/professionalRoles';
+import { getEffectiveIsClinicalProfessional } from '@/lib/roleUtils';
 
 /**
  * ============================================================================
@@ -74,11 +75,11 @@ export default function OrgManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // FASE 3.6: Flag clínica efetiva com fallback para compatibilidade
-  const effectiveIsClinicalProfessional =
-    typeof isClinicalProfessional === 'boolean'
-      ? isClinicalProfessional
-      : roleGlobal === 'psychologist'; // fallback de compatibilidade
+  // FASE 3.7: Usar helper central para flag clínica efetiva
+  const effectiveIsClinicalProfessional = getEffectiveIsClinicalProfessional(
+    roleGlobal,
+    isClinicalProfessional
+  );
 
   console.log('[ORG] organizationId:', organizationId);
   console.log('[ORG] user.id:', user?.id);
