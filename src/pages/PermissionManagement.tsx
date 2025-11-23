@@ -68,7 +68,7 @@ const PermissionManagement = () => {
       // Get profiles
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('*')
+        .select('*, professional_roles(*)') // FASE 1.4: carregar professional role
         .in('id', orgSubordinates);
 
       if (profilesError) throw profilesError;

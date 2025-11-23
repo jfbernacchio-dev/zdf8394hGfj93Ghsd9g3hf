@@ -52,7 +52,7 @@ export const PermissionManagementCompact = () => {
       // Get profiles
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('*')
+        .select('*, professional_roles(*)') // FASE 1.4: carregar professional role
         .in('id', subordinateIds);
 
       if (profilesError) throw profilesError;

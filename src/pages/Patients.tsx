@@ -95,7 +95,11 @@ const Patients = () => {
         .in('user_id', orgUserIds)
         .in('status', ['processing', 'issued']);
 
-      const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*, professional_roles(*)') // FASE 1.4: carregar professional role
+        .eq('id', user.id)
+        .single();
       setUserProfile(profileData);
 
       setPatients(allPatients || []);
@@ -162,7 +166,11 @@ const Patients = () => {
       .in('user_id', orgUserIds)
       .in('status', ['processing', 'issued']);
 
-    const { data: profileData } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('*, professional_roles(*)') // FASE 1.4: carregar professional role
+      .eq('id', user.id)
+      .single();
     setUserProfile(profileData);
 
     setPatients(accessiblePatients);
