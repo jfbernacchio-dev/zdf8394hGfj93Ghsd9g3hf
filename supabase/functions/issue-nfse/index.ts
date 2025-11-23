@@ -129,21 +129,95 @@ serve(async (req) => {
       }
     }
 
-    // Load sessions (only sessions without NFSe issued)
+    // =====================================================
+    // N2.3: BLOQUEIO DEFENSIVO DE DUPLICIDADE
+    // =====================================================
+    
+    // Primeiro, carregar TODAS as sessões solicitadas (com ou sem NFSe)
+    const { data: allSessions, error: allSessionsError } = await supabase
+      .from('sessions')
+      .select('id, nfse_issued_id, patient_id')
+      .in('id', sessionIds)
+      .eq('patient_id', patientId);
+
+    if (allSessionsError || !allSessions || allSessions.length === 0) {
+      throw new Error('Sessões não encontradas');
+    }
+
+    if (allSessions.length !== sessionIds.length) {
+      throw new Error('Algumas sessões não foram encontradas');
+    }
+
+    // Identificar sessões que JÁ têm NFSe vinculada
+    const sessionsWithNFSe = allSessions.filter(s => s.nfse_issued_id !== null);
+    
+    if (sessionsWithNFSe.length > 0) {
+      // Verificar o status das NFSe vinculadas
+      const nfseIds = sessionsWithNFSe.map(s => s.nfse_issued_id).filter(Boolean);
+      
+      const { data: existingNFSes, error: nfseCheckError } = await supabase
+        .from('nfse_issued')
+        .select('id, status, nfse_number')
+        .in('id', nfseIds);
+
+      if (nfseCheckError) {
+        console.error('Error checking existing NFSe:', nfseCheckError);
+        throw new Error('Erro ao verificar NFSe existentes');
+      }
+
+      // Bloquear emissão se houver NFSe em andamento ou emitida (não error/cancelled)
+      const validNFSes = existingNFSes?.filter(
+        nfse => nfse.status !== 'error' && nfse.status !== 'cancelled'
+      ) || [];
+
+      if (validNFSes.length > 0) {
+        const nfseNumbers = validNFSes
+          .map(n => n.nfse_number || `(em processamento)`)
+          .join(', ');
+        
+        throw new Error(
+          `Já existe uma NFSe em andamento ou emitida para uma ou mais sessões selecionadas. ` +
+          `NFSe: ${nfseNumbers}. Para reemitir, cancele a nota anterior primeiro.`
+        );
+      }
+    }
+
+    // Também verificar se já existe NFSe em andamento com essas session_ids
+    // (proteção adicional caso o nfse_issued_id das sessions ainda não tenha sido atualizado)
+    const { data: nfseInProgress, error: progressCheckError } = await supabase
+      .from('nfse_issued')
+      .select('id, status, nfse_number, session_ids')
+      .in('status', ['processing', 'issued'])
+      .contains('session_ids', sessionIds);
+
+    if (progressCheckError) {
+      console.error('Error checking NFSe in progress:', progressCheckError);
+    }
+
+    if (nfseInProgress && nfseInProgress.length > 0) {
+      const conflictingNFSe = nfseInProgress[0];
+      const nfseNumber = conflictingNFSe.nfse_number || '(em processamento)';
+      
+      throw new Error(
+        `Já existe uma NFSe ${nfseNumber} em andamento ou emitida que inclui algumas dessas sessões. ` +
+        `Para reemitir, cancele a nota anterior primeiro.`
+      );
+    }
+
+    console.log('✓ N2.3: Verificação de duplicidade passou - nenhuma NFSe válida encontrada para essas sessões');
+
+    // =====================================================
+    // Agora carregar sessões com dados completos (apenas as sem NFSe válida)
+    // =====================================================
+    
     const { data: sessionsData, error: sessionsError } = await supabase
       .from('sessions')
       .select('*')
       .in('id', sessionIds)
-      .eq('patient_id', patientId)
-      .is('nfse_issued_id', null);
+      .eq('patient_id', patientId);
 
     if (sessionsError || !sessionsData || sessionsData.length === 0) {
-      throw new Error('Sessões não encontradas');
-    }
-
-    // Verify all sessions belong to the user
-    if (sessionsData.length !== sessionIds.length) {
-      throw new Error('Algumas sessões não foram encontradas');
+      throw new Error('Erro ao carregar dados das sessões');
     }
 
     // Sort sessions by date in ascending order (oldest to newest)
