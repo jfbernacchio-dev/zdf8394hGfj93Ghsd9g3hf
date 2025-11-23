@@ -70,9 +70,15 @@ const ROLE_COLORS: Record<string, string> = {
 
 export default function OrgManagement() {
   const navigate = useNavigate();
-  const { user, isAdmin, roleGlobal, organizationId } = useAuth();
+  const { user, isAdmin, roleGlobal, organizationId, isClinicalProfessional } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // FASE 3.6: Flag clínica efetiva com fallback para compatibilidade
+  const effectiveIsClinicalProfessional =
+    typeof isClinicalProfessional === 'boolean'
+      ? isClinicalProfessional
+      : roleGlobal === 'psychologist'; // fallback de compatibilidade
 
   console.log('[ORG] organizationId:', organizationId);
   console.log('[ORG] user.id:', user?.id);
@@ -488,9 +494,8 @@ export default function OrgManagement() {
     // Admin pode mover para qualquer lugar
     if (isAdmin) return true;
     
-    // Psicólogo: só pode mover para níveis abaixo
-    const isPsychologist = roleGlobal === 'psychologist';
-    if (isPsychologist) {
+    // FASE 3.6: Profissional clínico: só pode mover para níveis abaixo
+    if (effectiveIsClinicalProfessional) {
       const sourceLevelInfo = levels.find(l => l.id === fromLevelId);
       const targetLevelInfo = levels.find(l => l.id === targetLevelId);
       
@@ -535,7 +540,6 @@ export default function OrgManagement() {
     }
     
     // FASE 7.5: Guard estrito de roles
-    const isPsychologist = roleGlobal === 'psychologist';
     const isSubordinate = roleGlobal === 'assistant' || roleGlobal === 'accountant';
 
     // Assistente/Contador não podem mover ninguém
@@ -550,8 +554,8 @@ export default function OrgManagement() {
       return;
     }
 
-    // Admin e Psicólogo podem iniciar o drag
-    if (!isAdmin && !isPsychologist) {
+    // FASE 3.6: Admin e profissional clínico podem iniciar o drag
+    if (!isAdmin && !effectiveIsClinicalProfessional) {
       e.preventDefault();
       console.debug('[OrgManagement] Drag negado: sem permissão');
       toast({
@@ -577,10 +581,8 @@ export default function OrgManagement() {
     e: React.DragEvent<HTMLDivElement>,
     targetLevelId: string
   ) => {
-    const isPsychologist = roleGlobal === 'psychologist';
-    
-    // Admin e Psicólogo podem fazer drop
-    if (!isAdmin && !isPsychologist) return;
+    // FASE 3.6: Admin e profissional clínico podem fazer drop
+    if (!isAdmin && !effectiveIsClinicalProfessional) return;
     
     e.preventDefault(); // Necessário para permitir drop
     
@@ -617,7 +619,6 @@ export default function OrgManagement() {
     }
 
     // FASE 7.5: Determinar papéis com guard estrito
-    const isPsychologist = roleGlobal === 'psychologist';
     const isSubordinate = roleGlobal === 'assistant' || roleGlobal === 'accountant';
 
     // REGRA 1: Assistente/Contador não podem mover ninguém (guard redundante)
@@ -632,8 +633,8 @@ export default function OrgManagement() {
       return;
     }
     
-    // Guard adicional: verificar se tem permissão
-    if (!isAdmin && !isPsychologist) {
+    // FASE 3.6: Guard adicional - verificar se tem permissão
+    if (!isAdmin && !effectiveIsClinicalProfessional) {
       console.debug('[OrgManagement] Drop negado: sem permissão');
       setDraggingUser(null);
       return;
@@ -657,8 +658,8 @@ export default function OrgManagement() {
     const sourceLevelNumber = sourceLevelInfo.level_number;
     const targetLevelNumber = targetLevelInfo.level_number;
 
-    // REGRA 2: Psicólogo só pode mover para níveis abaixo do seu
-    if (isPsychologist) {
+    // FASE 3.6: REGRA 2 - Profissional clínico só pode mover para níveis abaixo do seu
+    if (effectiveIsClinicalProfessional) {
       // Buscar o nível do psicólogo logado
       let userLevelNumber = 1; // Default
       
@@ -1127,7 +1128,8 @@ export default function OrgManagement() {
                                   .join('')
                                   .toUpperCase();
 
-                                const isDraggable = isAdmin || roleGlobal === 'psychologist';
+                                // FASE 3.6: Determinar se pode arrastar - admin ou profissional clínico
+                                const isDraggable = isAdmin || effectiveIsClinicalProfessional;
                                 const isBeingDragged = draggingUser?.user.id === userInfo.id;
                                 const isSaving = updateUserPositionMutation.isPending && isBeingDragged;
                                 
@@ -1204,7 +1206,8 @@ export default function OrgManagement() {
                                     <p className="text-sm text-muted-foreground">
                                       Nenhum membro neste nível
                                     </p>
-                                    {(isAdmin || roleGlobal === 'psychologist') && (
+                                    {/* FASE 3.6: Mostrar dica apenas para admin ou clínicos */}
+                                    {(isAdmin || effectiveIsClinicalProfessional) && (
                                       <p className="text-xs text-muted-foreground/70 mt-1">
                                         Arraste membros de outros níveis para cá
                                       </p>
