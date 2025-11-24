@@ -171,14 +171,24 @@ const PatientDetailNew = () => {
     });
   }, [visibleCards, overviewContext.userProfessionalRole, overviewContext.hasClinicalAccess, overviewContext.hasFinancialAccess, overviewContext.activeApproach]);
   
-  // 🎯 C1.3: Handler for layout changes in overview grid
-  // Updates visibleCards order to match new grid layout
+  // 🎯 C1.5: Handler for layout changes in overview grid (improved)
+  // Updates visibleCards order to match new grid layout AND persists to localStorage
   const handleOverviewLayoutChange = useCallback((newOrder: string[]) => {
-    setVisibleCards(newOrder);
+    // Preserve any cards that might exist in visibleCards but not in newOrder
+    // (safety measure in case of grid initialization race conditions)
+    const reordered = [...newOrder];
+    const missing = visibleCards.filter(id => !newOrder.includes(id));
     
-    // TODO C1.5: Persist layout to localStorage or Supabase
-    console.log('[PatientDetail] Overview layout changed:', newOrder);
-  }, []);
+    const finalOrder = [...reordered, ...missing];
+    
+    // Update state
+    setVisibleCards(finalOrder);
+    
+    // Persist to localStorage (same key used on load)
+    localStorage.setItem('visible-cards', JSON.stringify(finalOrder));
+    
+    console.log('[PatientDetail] Overview layout changed and persisted:', finalOrder);
+  }, [visibleCards]);
   
   const getBrazilDate = () => {
     return new Date().toLocaleString('en-CA', { 
