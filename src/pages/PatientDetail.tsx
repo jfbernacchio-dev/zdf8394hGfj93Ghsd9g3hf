@@ -59,6 +59,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
+import { PATIENT_OVERVIEW_CARDS } from '@/config/patientOverviewCards';
 
 const PatientDetailNew = () => {
   const { id } = useParams();
@@ -128,6 +129,15 @@ const PatientDetailNew = () => {
   const [tempSectionHeights, setTempSectionHeights] = useState<Record<string, number>>({});
   const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
   const [visibleCards, setVisibleCards] = useState<string[]>([]);
+  
+  // FASE C1.2: Derive card IDs from catalog
+  const allOverviewCardIds = Object.keys(PATIENT_OVERVIEW_CARDS);
+  const statCardIds = Object.values(PATIENT_OVERVIEW_CARDS)
+    .filter(card => card.cardCategory === 'statistical')
+    .map(card => card.id);
+  const functionalCardIds = Object.values(PATIENT_OVERVIEW_CARDS)
+    .filter(card => card.cardCategory === 'functional')
+    .map(card => card.id);
   
   const getBrazilDate = () => {
     return new Date().toLocaleString('en-CA', { 
@@ -1482,9 +1492,7 @@ Assinatura do Profissional`;
             onTempHeightChange={handleTempSectionHeightChange}
           >
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              {['patient-stat-total', 'patient-stat-attended', 'patient-stat-scheduled', 'patient-stat-unpaid', 'patient-stat-nfse',
-                'patient-stat-total-all', 'patient-stat-revenue-month', 'patient-stat-paid-month', 'patient-stat-missed-month',
-                'patient-stat-attendance-rate', 'patient-stat-unscheduled-month'].map(cardId => renderStatCard(cardId))}
+              {statCardIds.map(cardId => renderStatCard(cardId))}
             </div>
           </ResizableSection>
         </div>
