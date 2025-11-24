@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -169,6 +169,15 @@ const PatientDetailNew = () => {
       return canSeeOverviewCard(def, overviewContext);
     });
   }, [visibleCards, overviewContext.userProfessionalRole, overviewContext.hasClinicalAccess, overviewContext.hasFinancialAccess, overviewContext.activeApproach]);
+  
+  // 🎯 C1.3: Handler for layout changes in overview grid
+  // Updates visibleCards order to match new grid layout
+  const handleOverviewLayoutChange = useCallback((newOrder: string[]) => {
+    setVisibleCards(newOrder);
+    
+    // TODO C1.5: Persist layout to localStorage or Supabase
+    console.log('[PatientDetail] Overview layout changed:', newOrder);
+  }, []);
   
   const getBrazilDate = () => {
     return new Date().toLocaleString('en-CA', { 
@@ -1323,6 +1332,17 @@ Assinatura do Profissional`;
   // Check if complaint needs review
   const needsComplaintReview = complaint && !complaint.dismissed_at && 
     new Date(complaint.next_review_date) <= now;
+
+  // 🎯 C1.3: Render overview card for grid (simplified - uses existing renderFunctionalCard)
+  const renderOverviewCardForGrid = useCallback((cardId: string) => {
+    // For now, reuse existing render logic (stat cards + functional cards)
+    // Grid wrapper already provides Card structure via data-grid
+    if (cardId.startsWith('patient-stat-')) {
+      return renderStatCard(cardId);
+    }
+    // Functional cards handled in TabsContent as before
+    return null;
+  }, []);
 
   // Render helper for stat cards
   const renderStatCard = (cardId: string) => {
