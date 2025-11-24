@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -36,7 +36,6 @@ import { AppointmentDialog } from '@/components/AppointmentDialog';
 import { useDashboardLayout } from '@/hooks/useDashboardLayout';
 import { useCardPermissions } from '@/hooks/useCardPermissions';
 import { GridCardContainer } from '@/components/GridCardContainer';
-import { PatientOverviewGrid } from '@/components/patient/PatientOverviewGrid';
 import { ConsentReminder } from '@/components/ConsentReminder';
 import { ComplianceReminder } from '@/components/ComplianceReminder';
 import ClinicalComplaintSummary from '@/components/ClinicalComplaintSummary';
@@ -60,12 +59,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-// FASE C1.1: Importação preparada para metadados de cards (não usado ainda)
-import { 
-  getPatientOverviewCardDefinition, 
-  canSeeOverviewCard,
-  type PatientOverviewContext 
-} from '@/config/patientOverviewCards';
 
 const PatientDetailNew = () => {
   const { id } = useParams();
@@ -101,26 +94,6 @@ const PatientDetailNew = () => {
   } = useEffectivePermissions();
   const { canViewCard } = useCardPermissions();
 
-  // 🎯 C1.2: Context for patient overview card filtering
-  // Built using data already available in PatientDetail
-  const overviewContext: PatientOverviewContext = {
-    // Professional role from profile (loaded at line ~305)
-    userProfessionalRole: userProfile?.professional_roles?.slug || undefined,
-    
-    // Global roles from auth context
-    userGlobalRoles: roleGlobal ? [roleGlobal] : [],
-    
-    // Clinical access from useEffectivePermissions
-    hasClinicalAccess: canAccessClinical,
-    
-    // Financial access: 'full' or 'own' = true, 'none' = false
-    hasFinancialAccess: financialAccess !== 'none',
-    
-    // TODO C1.5: activeApproach mapping - for now null (default template implicit)
-    // Will be enriched when clinical approach system is fully integrated
-    activeApproach: null
-  };
-
   // FASE 3.5: Derived permission flags
   const isAccountant = roleGlobal === 'accountant';
   const isAssistant = roleGlobal === 'assistant';
@@ -155,40 +128,6 @@ const PatientDetailNew = () => {
   const [tempSectionHeights, setTempSectionHeights] = useState<Record<string, number>>({});
   const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
   const [visibleCards, setVisibleCards] = useState<string[]>([]);
-  
-  // 🎯 C1.2: Filtered cards for overview tab using permission metadata
-  // Recomputes when visibleCards, overviewContext dependencies change
-  const filteredOverviewCards = useMemo(() => {
-    return visibleCards.filter((cardId) => {
-      const def = getPatientOverviewCardDefinition(cardId);
-      
-      // If no definition found, allow card (backwards compatibility)
-      // TODO C1.5: Make this stricter once all cards have definitions
-      if (!def) return true;
-      
-      // Apply canSeeOverviewCard filter
-      return canSeeOverviewCard(def, overviewContext);
-    });
-  }, [visibleCards, overviewContext.userProfessionalRole, overviewContext.hasClinicalAccess, overviewContext.hasFinancialAccess, overviewContext.activeApproach]);
-  
-  // 🎯 C1.5: Handler for layout changes in overview grid (improved)
-  // Updates visibleCards order to match new grid layout AND persists to localStorage
-  const handleOverviewLayoutChange = useCallback((newOrder: string[]) => {
-    // Preserve any cards that might exist in visibleCards but not in newOrder
-    // (safety measure in case of grid initialization race conditions)
-    const reordered = [...newOrder];
-    const missing = visibleCards.filter(id => !newOrder.includes(id));
-    
-    const finalOrder = [...reordered, ...missing];
-    
-    // Update state
-    setVisibleCards(finalOrder);
-    
-    // Persist to localStorage (same key used on load)
-    localStorage.setItem('visible-cards', JSON.stringify(finalOrder));
-    
-    console.log('[PatientDetail] Overview layout changed and persisted:', finalOrder);
-  }, [visibleCards]);
   
   const getBrazilDate = () => {
     return new Date().toLocaleString('en-CA', { 
@@ -1263,14 +1202,7 @@ Assinatura do Profissional`;
     toast.info('Card removido do layout');
   };
 
-  const isCardVisible = (cardId: string) => {
-    // 🎯 C1.2: Use filtered cards for overview tab (permission-aware)
-    // For other contexts (stats, other tabs), use full visibleCards list
-    if (activeTab === 'overview') {
-      return filteredOverviewCards.includes(cardId);
-    }
-    return visibleCards.includes(cardId);
-  };
+  const isCardVisible = (cardId: string) => visibleCards.includes(cardId);
 
   // Helper to render functional cards with remove button in edit mode
   const renderFunctionalCard = (cardId: string, content: React.ReactNode, config?: { width?: number; height?: number; className?: string; colSpan?: string }) => {
@@ -1343,7 +1275,6 @@ Assinatura do Profissional`;
   // Check if complaint needs review
   const needsComplaintReview = complaint && !complaint.dismissed_at && 
     new Date(complaint.next_review_date) <= now;
-
 
   // Render helper for stat cards
   const renderStatCard = (cardId: string) => {
@@ -1433,393 +1364,6 @@ Assinatura do Profissional`;
   // 🔐 FASE 8: Modo somente leitura
   const isReadOnly = accessLevel === 'view';
   const canEdit = accessLevel === 'full';
-
-  // 🎯 C1.4 ETAPA 2: Helper to render pure card content (without ResizableCard wrapper)
-  // This extracts the JSX content of each card so it can be used both in legacy mode and grid mode
-  const renderOverviewCardContent = (cardId: string): React.ReactNode => {
-    // STAT CARDS
-    if (cardId.startsWith('patient-stat-')) {
-      const statConfigs: Record<string, { label: string; value: number | string; sublabel: string; color?: string }> = {
-        'patient-stat-total': { label: 'Total no Mês', value: totalMonthSessions, sublabel: 'sessões', color: 'text-foreground' },
-        'patient-stat-attended': { label: 'Comparecidas', value: attendedMonthSessions, sublabel: 'no mês', color: 'text-accent' },
-        'patient-stat-scheduled': { label: 'Agendadas', value: scheduledMonthSessions, sublabel: 'no mês', color: 'text-blue-500' },
-        'patient-stat-unpaid': { label: 'A Pagar', value: unpaidMonthSessions, sublabel: 'no mês', color: 'text-orange-500' },
-        'patient-stat-nfse': { label: 'A Receber', value: nfseIssuedSessions, sublabel: 'NFSe emitida', color: 'text-emerald-500' },
-        'patient-stat-total-all': { label: 'Total Geral', value: totalAllSessions, sublabel: 'todas sessões', color: 'text-primary' },
-        'patient-stat-revenue-month': { label: 'Faturado', value: formatBrazilianCurrency(revenueMonth), sublabel: 'no mês', color: 'text-green-600' },
-        'patient-stat-paid-month': { label: 'Recebido', value: formatBrazilianCurrency(paidMonth), sublabel: 'no mês', color: 'text-green-500' },
-        'patient-stat-missed-month': { label: 'Faltas', value: missedMonthSessions, sublabel: 'no mês', color: 'text-red-500' },
-        'patient-stat-attendance-rate': { label: 'Taxa', value: `${attendanceRate}%`, sublabel: 'comparecimento', color: 'text-blue-600' },
-        'patient-stat-unscheduled-month': { label: 'Desmarcadas', value: unscheduledMonthSessions, sublabel: 'no mês', color: 'text-gray-500' },
-      };
-
-      const config = statConfigs[cardId];
-      if (!config) return null;
-
-      return (
-        <div className="flex flex-col">
-          <p className="text-sm text-muted-foreground mb-1">{config.label}</p>
-          <p className={cn("text-3xl font-bold", config.color)}>{config.value}</p>
-          <p className="text-xs text-muted-foreground mt-1">{config.sublabel}</p>
-        </div>
-      );
-    }
-
-    // FUNCTIONAL CARDS
-    switch (cardId) {
-      case 'patient-next-appointment':
-        if (!nextSession) return null;
-        return (
-          <div className="flex flex-col">
-            <p className="text-sm font-medium text-muted-foreground mb-2">Próximo Agendamento</p>
-            <div className="flex items-center gap-2 mb-1">
-              <Calendar className="w-5 h-5 text-primary" />
-              <p className="text-xl font-bold text-foreground">
-                {format(parseISO(nextSession.date), "EEE, dd 'de' MMM", { locale: ptBR })}
-              </p>
-            </div>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Clock className="w-4 h-4" />
-              <p className="text-base">{nextSession.time || 'Horário não definido'}</p>
-            </div>
-            <Badge variant="secondary" className="bg-primary/10 text-primary mt-3 self-start">Agendada</Badge>
-          </div>
-        );
-
-      case 'patient-contact-info':
-        return (
-          <>
-            <h3 className="font-semibold text-lg mb-4">Informações de Contato</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-              {patient.phone && (
-                <div className="flex items-start gap-3">
-                  <Phone className="w-4 h-4 text-muted-foreground mt-1" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Telefone</p>
-                    <p className="font-medium">{patient.phone}</p>
-                  </div>
-                </div>
-              )}
-              {patient.email && (
-                <div className="flex items-start gap-3">
-                  <Mail className="w-4 h-4 text-muted-foreground mt-1" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Email</p>
-                    <p className="font-medium text-sm">{patient.email}</p>
-                  </div>
-                </div>
-              )}
-              {patient.address && (
-                <div className="flex items-start gap-3">
-                  <MapPin className="w-4 h-4 text-muted-foreground mt-1" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Endereço</p>
-                    <p className="font-medium text-sm">{patient.address}</p>
-                  </div>
-                </div>
-              )}
-              {patient.cpf && (
-                <div className="flex items-start gap-3">
-                  <User className="w-4 h-4 text-muted-foreground mt-1" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">CPF</p>
-                    <p className="font-medium">{patient.cpf}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </>
-        );
-
-      case 'patient-clinical-complaint':
-        return (
-          <>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-lg flex items-center gap-2">
-                <FileText className="w-5 h-5 text-primary" />
-                Queixa Clínica
-              </h3>
-              <Button 
-                onClick={() => setIsComplaintDialogOpen(true)} 
-                size="sm"
-                variant="ghost"
-              >
-                <Edit className="w-4 h-4" />
-              </Button>
-            </div>
-            {needsComplaintReview && (
-              <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                    Atualização necessária
-                  </p>
-                  <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
-                    Revisar queixa clínica
-                  </p>
-                </div>
-              </div>
-            )}
-            <div className="text-sm text-muted-foreground">
-              {complaint?.complaint_text || 'Nenhuma queixa registrada'}
-            </div>
-          </>
-        );
-
-      case 'patient-clinical-info':
-        return (
-          <>
-            <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-              <Tag className="w-5 h-5 text-primary" />
-              Informações Clínicas
-            </h3>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between py-2 border-b">
-                <span className="text-muted-foreground">Profissional</span>
-                <span className="font-medium">{userProfile?.full_name || 'Não definido'}</span>
-              </div>
-              <div className="flex items-center justify-between py-2 border-b">
-                <span className="text-muted-foreground">Valor da Sessão</span>
-                <span className="font-medium">{formatBrazilianCurrency(patient.session_value)}</span>
-              </div>
-              <div className="flex items-center justify-between py-2 border-b">
-                <span className="text-muted-foreground">Modalidade</span>
-                <Badge variant="outline">{patient.monthly_price ? 'Mensal' : 'Por Sessão'}</Badge>
-              </div>
-              <div className="flex items-center justify-between py-2">
-                <span className="text-muted-foreground">Horário Padrão</span>
-                <span className="font-medium">{patient.session_time || 'Não definido'}</span>
-              </div>
-            </div>
-          </>
-        );
-
-      case 'patient-history':
-        return (
-          <>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-lg">Histórico</h3>
-            </div>
-            <div className={cn("space-y-3", !showFullHistory && "max-h-[200px] overflow-hidden relative")}>
-              {sessionHistory.length > 0 ? (
-                sessionHistory.slice(0, showFullHistory ? undefined : 3).map((history) => (
-                  <div 
-                    key={history.id}
-                    className="p-3 rounded-lg border bg-card text-xs"
-                  >
-                    <p className="text-muted-foreground">
-                      {format(new Date(history.changed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                    </p>
-                    <p className="mt-1">
-                      <span className="line-through text-muted-foreground">
-                        {history.old_day} {history.old_time}
-                      </span>
-                      {' → '}
-                      <span className="font-medium">
-                        {history.new_day} {history.new_time}
-                      </span>
-                    </p>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  Nenhuma alteração registrada
-                </p>
-              )}
-              {!showFullHistory && sessionHistory.length > 3 && (
-                <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-card to-transparent" />
-              )}
-            </div>
-            {sessionHistory.length > 3 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowFullHistory(!showFullHistory)}
-                className="w-full mt-2 text-xs"
-              >
-                {showFullHistory ? (
-                  <>
-                    <ChevronUp className="w-3 h-3 mr-1" />
-                    Mostrar menos
-                  </>
-                ) : (
-                  <>
-                    <ChevronDown className="w-3 h-3 mr-1" />
-                    Mostrar mais
-                  </>
-                )}
-              </Button>
-            )}
-          </>
-        );
-
-      case 'recent-notes':
-        return (
-          <>
-            <h3 className="font-semibold text-lg mb-4">Últimas Notas</h3>
-            <ScrollArea className="h-[200px]">
-              <div className="space-y-3">
-                {recentSessions.length > 0 ? (
-                  recentSessions.map((session) => (
-                    <div key={session.id} className="p-3 rounded-lg border bg-card text-xs">
-                      <p className="text-muted-foreground mb-1">
-                        {format(parseISO(session.date), 'dd/MM/yyyy')}
-                      </p>
-                      <p className="text-sm">{session.notes}</p>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    Nenhuma nota registrada
-                  </p>
-                )}
-              </div>
-            </ScrollArea>
-          </>
-        );
-
-      case 'quick-actions':
-        return (
-          <>
-            <h3 className="font-semibold text-lg mb-4">Ações Rápidas</h3>
-            <div className="space-y-2">
-              <Button 
-                onClick={openNewSessionDialog} 
-                className="w-full justify-start gap-2"
-                variant="outline"
-                disabled={isReadOnly}
-                title={isReadOnly ? 'Ação não permitida em modo somente leitura' : undefined}
-              >
-                <Plus className="w-4 h-4" />
-                Nova Sessão
-              </Button>
-              <Button 
-                onClick={() => setIsNoteDialogOpen(true)} 
-                className="w-full justify-start gap-2"
-                variant="outline"
-                disabled={isReadOnly}
-                title={isReadOnly ? 'Ação não permitida em modo somente leitura' : undefined}
-              >
-                <StickyNote className="w-4 h-4" />
-                Nova Nota
-              </Button>
-              <Button 
-                onClick={generateInvoice} 
-                className="w-full justify-start gap-2"
-                variant="outline"
-                disabled={isReadOnly}
-                title={isReadOnly ? 'Ação não permitida em modo somente leitura' : undefined}
-              >
-                <DollarSign className="w-4 h-4" />
-                Gerar Recibo
-              </Button>
-              <Button 
-                onClick={handleExportPatientData} 
-                className="w-full justify-start gap-2"
-                variant="outline"
-              >
-                <Download className="w-4 h-4" />
-                Exportar Dados
-              </Button>
-            </div>
-          </>
-        );
-
-      case 'payment-summary':
-        return (
-          <>
-            <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-primary" />
-              Resumo de Pagamentos
-            </h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center py-2 border-b">
-                <span className="text-sm text-muted-foreground">Total Faturado</span>
-                <span className="font-semibold text-green-600">
-                  {formatBrazilianCurrency(revenueMonth)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b">
-                <span className="text-sm text-muted-foreground">Já Recebido</span>
-                <span className="font-semibold text-green-500">
-                  {formatBrazilianCurrency(paidMonth)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center py-2">
-                <span className="text-sm text-muted-foreground">Pendente</span>
-                <span className="font-semibold text-orange-500">
-                  {formatBrazilianCurrency(revenueMonth - paidMonth)}
-                </span>
-              </div>
-              <div className="mt-4 pt-2 border-t">
-                <p className="text-xs text-muted-foreground">
-                  {unpaidMonthSessions} sessão(ões) não paga(s)
-                </p>
-              </div>
-            </div>
-          </>
-        );
-
-      case 'session-frequency':
-        return (
-          <>
-            <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-              <Activity className="w-5 h-5 text-primary" />
-              Frequência de Sessões
-            </h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Dia padrão</span>
-                <Badge variant="outline">{patient.session_day || 'Não definido'}</Badge>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Horário padrão</span>
-                <Badge variant="outline">{patient.session_time || 'Não definido'}</Badge>
-              </div>
-              <div className="mt-4 pt-3 border-t">
-                <div className="flex items-center gap-2 mb-2">
-                  {attendanceRate >= 80 ? (
-                    <TrendingUp className="w-4 h-4 text-green-500" />
-                  ) : (
-                    <TrendingDown className="w-4 h-4 text-orange-500" />
-                  )}
-                  <span className="text-sm font-medium">
-                    {attendanceRate >= 80 ? 'Frequência excelente' : 'Atenção à frequência'}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Taxa de {attendanceRate}% de comparecimento
-                </p>
-              </div>
-            </div>
-          </>
-        );
-
-      default:
-        return null;
-    }
-  };
-
-  // 🎯 C1.4 ETAPA 3: Render overview card for grid (uses pure content helper)
-  const renderOverviewCardForGrid = (cardId: string): React.ReactNode => {
-    const content = renderOverviewCardContent(cardId);
-    if (!content) return null;
-
-    // Wrap in Card with appropriate styling based on card type
-    const isStatCard = cardId.startsWith('patient-stat-');
-    const isNextAppointment = cardId === 'patient-next-appointment';
-    
-    return (
-      <Card className={cn(
-        "p-6 h-full flex flex-col",
-        isNextAppointment && "bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20"
-      )}>
-        <CardContent className={cn("flex-1", isStatCard ? "p-0" : "p-0")}>
-          {content}
-        </CardContent>
-      </Card>
-    );
-  };
   
   return (
     <div className="min-h-screen bg-background">
@@ -1994,13 +1538,346 @@ Assinatura do Profissional`;
                 tempHeight={tempSectionHeights['patient-functional-section']}
                 onTempHeightChange={handleTempSectionHeightChange}
               >
-              {/* 🎯 C1.4: Patient Overview Grid - Drag & drop enabled */}
-               <PatientOverviewGrid
-                 cardIds={filteredOverviewCards}
-                 renderCard={renderOverviewCardForGrid}
-                 isEditMode={isEditMode}
-                 onLayoutChange={handleOverviewLayoutChange}
-               />
+               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                 {nextSession && isCardVisible('patient-next-appointment') && renderFunctionalCard(
+                 'patient-next-appointment',
+                 <div className="flex flex-col">
+                   <p className="text-sm font-medium text-muted-foreground mb-2">Próximo Agendamento</p>
+                   <div className="flex items-center gap-2 mb-1">
+                     <Calendar className="w-5 h-5 text-primary" />
+                     <p className="text-xl font-bold text-foreground">
+                       {format(parseISO(nextSession.date), "EEE, dd 'de' MMM", { locale: ptBR })}
+                     </p>
+                   </div>
+                   <div className="flex items-center gap-2 text-muted-foreground">
+                     <Clock className="w-4 h-4" />
+                     <p className="text-base">{nextSession.time || 'Horário não definido'}</p>
+                   </div>
+                   <Badge variant="secondary" className="bg-primary/10 text-primary mt-3 self-start">Agendada</Badge>
+                 </div>,
+                 { className: 'bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20' }
+               )}
+
+               {isCardVisible('patient-contact-info') && renderFunctionalCard(
+                 'patient-contact-info',
+                 <>
+                   <h3 className="font-semibold text-lg mb-4">Informações de Contato</h3>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                     {patient.phone && (
+                       <div className="flex items-start gap-3">
+                         <Phone className="w-4 h-4 text-muted-foreground mt-1" />
+                         <div>
+                           <p className="text-sm text-muted-foreground">Telefone</p>
+                           <p className="font-medium">{patient.phone}</p>
+                         </div>
+                       </div>
+                     )}
+                     {patient.email && (
+                       <div className="flex items-start gap-3">
+                         <Mail className="w-4 h-4 text-muted-foreground mt-1" />
+                         <div>
+                           <p className="text-sm text-muted-foreground">Email</p>
+                           <p className="font-medium text-sm">{patient.email}</p>
+                         </div>
+                       </div>
+                     )}
+                     {patient.address && (
+                       <div className="flex items-start gap-3">
+                         <MapPin className="w-4 h-4 text-muted-foreground mt-1" />
+                         <div>
+                           <p className="text-sm text-muted-foreground">Endereço</p>
+                           <p className="font-medium text-sm">{patient.address}</p>
+                         </div>
+                       </div>
+                     )}
+                     {patient.cpf && (
+                       <div className="flex items-start gap-3">
+                         <User className="w-4 h-4 text-muted-foreground mt-1" />
+                         <div>
+                           <p className="text-sm text-muted-foreground">CPF</p>
+                           <p className="font-medium">{patient.cpf}</p>
+                         </div>
+                       </div>
+                     )}
+                   </div>
+                 </>
+               )}
+
+               {isCardVisible('patient-clinical-complaint') && renderFunctionalCard(
+                 'patient-clinical-complaint',
+                 <>
+                   <div className="flex items-center justify-between mb-4">
+                     <h3 className="font-semibold text-lg flex items-center gap-2">
+                       <FileText className="w-5 h-5 text-primary" />
+                       Queixa Clínica
+                     </h3>
+                     <Button 
+                       onClick={() => setIsComplaintDialogOpen(true)} 
+                       size="sm"
+                       variant="ghost"
+                     >
+                       <Edit className="w-4 h-4" />
+                     </Button>
+                   </div>
+                   {needsComplaintReview && (
+                     <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex items-start gap-2">
+                       <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5" />
+                       <div className="flex-1">
+                         <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                           Atualização necessária
+                         </p>
+                         <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                           Revisar queixa clínica
+                         </p>
+                       </div>
+                     </div>
+                   )}
+                   <div className="text-sm text-muted-foreground">
+                     {complaint?.complaint_text || 'Nenhuma queixa registrada'}
+                   </div>
+                  </>
+                  )}
+
+                   {isCardVisible('patient-clinical-info') && renderFunctionalCard(
+                 'patient-clinical-info',
+                 <>
+                   <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                     <Tag className="w-5 h-5 text-primary" />
+                     Informações Clínicas
+                   </h3>
+                   <div className="space-y-3">
+                     <div className="flex items-center justify-between py-2 border-b">
+                       <span className="text-muted-foreground">Profissional</span>
+                       <span className="font-medium">{userProfile?.full_name || 'Não definido'}</span>
+                     </div>
+                     <div className="flex items-center justify-between py-2 border-b">
+                       <span className="text-muted-foreground">Valor da Sessão</span>
+                       <span className="font-medium">{formatBrazilianCurrency(patient.session_value)}</span>
+                     </div>
+                     <div className="flex items-center justify-between py-2 border-b">
+                       <span className="text-muted-foreground">Modalidade</span>
+                       <Badge variant="outline">{patient.monthly_price ? 'Mensal' : 'Por Sessão'}</Badge>
+                     </div>
+                     <div className="flex items-center justify-between py-2">
+                       <span className="text-muted-foreground">Horário Padrão</span>
+                       <span className="font-medium">{patient.session_time || 'Não definido'}</span>
+                     </div>
+                   </div>
+                 </>,
+                 { width: 700, height: 280, className: 'lg:col-span-2' }
+                )}
+
+                  {isCardVisible('patient-history') && renderFunctionalCard(
+                   'patient-history',
+                   <>
+                     <div className="flex items-center justify-between mb-4">
+                       <h3 className="font-semibold text-lg">Histórico</h3>
+                     </div>
+                     <div className={cn("space-y-3", !showFullHistory && "max-h-[200px] overflow-hidden relative")}>
+                       {sessionHistory.length > 0 ? (
+                         sessionHistory.slice(0, showFullHistory ? undefined : 3).map((history) => (
+                           <div 
+                             key={history.id}
+                             className="p-3 rounded-lg border bg-card text-xs"
+                           >
+                             <p className="text-muted-foreground">
+                               {format(new Date(history.changed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                             </p>
+                             <p className="mt-1">
+                               <span className="line-through text-muted-foreground">
+                                 {history.old_day} {history.old_time}
+                               </span>
+                               {' → '}
+                               <span className="font-medium">
+                                 {history.new_day} {history.new_time}
+                               </span>
+                             </p>
+                           </div>
+                         ))
+                       ) : (
+                         <p className="text-sm text-muted-foreground text-center py-4">
+                           Nenhuma alteração registrada
+                         </p>
+                       )}
+                       {!showFullHistory && sessionHistory.length > 3 && (
+                         <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-card to-transparent" />
+                       )}
+                     </div>
+                     {sessionHistory.length > 3 && (
+                       <Button
+                         variant="ghost"
+                         size="sm"
+                         onClick={() => setShowFullHistory(!showFullHistory)}
+                         className="w-full mt-2 text-xs"
+                       >
+                         {showFullHistory ? (
+                           <>
+                             <ChevronUp className="w-3 h-3 mr-1" />
+                             Mostrar menos
+                           </>
+                         ) : (
+                           <>
+                             <ChevronDown className="w-3 h-3 mr-1" />
+                             Mostrar mais
+                           </>
+                         )}
+                       </Button>
+                     )}
+                   </>,
+                   { width: 350, height: 280 }
+                 )}
+
+                 {/* Recent Notes Card */}
+                 {isCardVisible('recent-notes') && renderFunctionalCard(
+                   'recent-notes',
+                   <>
+                     <h3 className="font-semibold text-lg mb-4">Últimas Notas</h3>
+                     <ScrollArea className="h-[200px]">
+                       <div className="space-y-3">
+                         {recentSessions.length > 0 ? (
+                           recentSessions.map((session) => (
+                             <div key={session.id} className="p-3 rounded-lg border bg-card text-xs">
+                               <p className="text-muted-foreground mb-1">
+                                 {format(parseISO(session.date), 'dd/MM/yyyy')}
+                               </p>
+                               <p className="text-sm">{session.notes}</p>
+                             </div>
+                           ))
+                         ) : (
+                           <p className="text-sm text-muted-foreground text-center py-4">
+                             Nenhuma nota registrada
+                           </p>
+                         )}
+                       </div>
+                     </ScrollArea>
+                   </>,
+                   { width: 350, height: 300 }
+                 )}
+
+                  {/* Quick Actions Card */}
+                  {isCardVisible('quick-actions') && renderFunctionalCard(
+                    'quick-actions',
+                    <>
+                      <h3 className="font-semibold text-lg mb-4">Ações Rápidas</h3>
+                      <div className="space-y-2">
+                        {/* 🔐 FASE 8: Desabilitar ações em modo somente leitura */}
+                        <Button 
+                          onClick={openNewSessionDialog} 
+                          className="w-full justify-start gap-2"
+                          variant="outline"
+                          disabled={isReadOnly}
+                          title={isReadOnly ? 'Ação não permitida em modo somente leitura' : undefined}
+                        >
+                          <Plus className="w-4 h-4" />
+                          Nova Sessão
+                        </Button>
+                        <Button 
+                          onClick={() => setIsNoteDialogOpen(true)} 
+                          className="w-full justify-start gap-2"
+                          variant="outline"
+                          disabled={isReadOnly}
+                          title={isReadOnly ? 'Ação não permitida em modo somente leitura' : undefined}
+                        >
+                          <StickyNote className="w-4 h-4" />
+                          Nova Nota
+                        </Button>
+                        <Button 
+                          onClick={generateInvoice} 
+                          className="w-full justify-start gap-2"
+                          variant="outline"
+                          disabled={isReadOnly}
+                          title={isReadOnly ? 'Ação não permitida em modo somente leitura' : undefined}
+                        >
+                          <DollarSign className="w-4 h-4" />
+                          Gerar Recibo
+                        </Button>
+                        <Button 
+                          onClick={handleExportPatientData} 
+                          className="w-full justify-start gap-2"
+                          variant="outline"
+                        >
+                          <Download className="w-4 h-4" />
+                          Exportar Dados
+                        </Button>
+                     </div>
+                   </>,
+                   { width: 350, height: 280 }
+                 )}
+
+                 {/* Payment Summary Card */}
+                 {isCardVisible('payment-summary') && renderFunctionalCard(
+                   'payment-summary',
+                   <>
+                     <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                       <CreditCard className="w-5 h-5 text-primary" />
+                       Resumo de Pagamentos
+                     </h3>
+                     <div className="space-y-3">
+                       <div className="flex justify-between items-center py-2 border-b">
+                         <span className="text-sm text-muted-foreground">Total Faturado</span>
+                         <span className="font-semibold text-green-600">
+                           {formatBrazilianCurrency(revenueMonth)}
+                         </span>
+                       </div>
+                       <div className="flex justify-between items-center py-2 border-b">
+                         <span className="text-sm text-muted-foreground">Já Recebido</span>
+                         <span className="font-semibold text-green-500">
+                           {formatBrazilianCurrency(paidMonth)}
+                         </span>
+                       </div>
+                       <div className="flex justify-between items-center py-2">
+                         <span className="text-sm text-muted-foreground">Pendente</span>
+                         <span className="font-semibold text-orange-500">
+                           {formatBrazilianCurrency(revenueMonth - paidMonth)}
+                         </span>
+                       </div>
+                       <div className="mt-4 pt-2 border-t">
+                         <p className="text-xs text-muted-foreground">
+                           {unpaidMonthSessions} sessão(ões) não paga(s)
+                         </p>
+                       </div>
+                     </div>
+                   </>,
+                   { width: 350, height: 250 }
+                 )}
+
+                 {/* Session Frequency Card */}
+                 {isCardVisible('session-frequency') && renderFunctionalCard(
+                   'session-frequency',
+                   <>
+                     <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                       <Activity className="w-5 h-5 text-primary" />
+                       Frequência de Sessões
+                     </h3>
+                     <div className="space-y-3">
+                       <div className="flex justify-between items-center">
+                         <span className="text-sm text-muted-foreground">Dia padrão</span>
+                         <Badge variant="outline">{patient.session_day || 'Não definido'}</Badge>
+                       </div>
+                       <div className="flex justify-between items-center">
+                         <span className="text-sm text-muted-foreground">Horário padrão</span>
+                         <Badge variant="outline">{patient.session_time || 'Não definido'}</Badge>
+                       </div>
+                       <div className="mt-4 pt-3 border-t">
+                         <div className="flex items-center gap-2 mb-2">
+                           {attendanceRate >= 80 ? (
+                             <TrendingUp className="w-4 h-4 text-green-500" />
+                           ) : (
+                             <TrendingDown className="w-4 h-4 text-orange-500" />
+                           )}
+                           <span className="text-sm font-medium">
+                             {attendanceRate >= 80 ? 'Frequência excelente' : 'Atenção à frequência'}
+                           </span>
+                         </div>
+                         <p className="text-xs text-muted-foreground">
+                           Taxa de {attendanceRate}% de comparecimento
+                         </p>
+                       </div>
+                     </div>
+                     </>,
+                       { width: 350, height: 250 }
+                    )}
+                </div>
               </ResizableSection>
            </TabsContent>
 
