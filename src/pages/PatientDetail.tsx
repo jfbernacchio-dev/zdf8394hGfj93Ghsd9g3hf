@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -100,6 +100,26 @@ const PatientDetailNew = () => {
   } = useEffectivePermissions();
   const { canViewCard } = useCardPermissions();
 
+  // 🎯 C1.2: Context for patient overview card filtering
+  // Built using data already available in PatientDetail
+  const overviewContext: PatientOverviewContext = {
+    // Professional role from profile (loaded at line ~305)
+    userProfessionalRole: userProfile?.professional_roles?.slug || undefined,
+    
+    // Global roles from auth context
+    userGlobalRoles: roleGlobal ? [roleGlobal] : [],
+    
+    // Clinical access from useEffectivePermissions
+    hasClinicalAccess: canAccessClinical,
+    
+    // Financial access: 'full' or 'own' = true, 'none' = false
+    hasFinancialAccess: financialAccess !== 'none',
+    
+    // TODO C1.5: activeApproach mapping - for now null (default template implicit)
+    // Will be enriched when clinical approach system is fully integrated
+    activeApproach: null
+  };
+
   // FASE 3.5: Derived permission flags
   const isAccountant = roleGlobal === 'accountant';
   const isAssistant = roleGlobal === 'assistant';
@@ -134,6 +154,21 @@ const PatientDetailNew = () => {
   const [tempSectionHeights, setTempSectionHeights] = useState<Record<string, number>>({});
   const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
   const [visibleCards, setVisibleCards] = useState<string[]>([]);
+  
+  // 🎯 C1.2: Filtered cards for overview tab using permission metadata
+  // Recomputes when visibleCards, overviewContext dependencies change
+  const filteredOverviewCards = useMemo(() => {
+    return visibleCards.filter((cardId) => {
+      const def = getPatientOverviewCardDefinition(cardId);
+      
+      // If no definition found, allow card (backwards compatibility)
+      // TODO C1.5: Make this stricter once all cards have definitions
+      if (!def) return true;
+      
+      // Apply canSeeOverviewCard filter
+      return canSeeOverviewCard(def, overviewContext);
+    });
+  }, [visibleCards, overviewContext.userProfessionalRole, overviewContext.hasClinicalAccess, overviewContext.hasFinancialAccess, overviewContext.activeApproach]);
   
   const getBrazilDate = () => {
     return new Date().toLocaleString('en-CA', { 
@@ -1208,7 +1243,14 @@ Assinatura do Profissional`;
     toast.info('Card removido do layout');
   };
 
-  const isCardVisible = (cardId: string) => visibleCards.includes(cardId);
+  const isCardVisible = (cardId: string) => {
+    // 🎯 C1.2: Use filtered cards for overview tab (permission-aware)
+    // For other contexts (stats, other tabs), use full visibleCards list
+    if (activeTab === 'overview') {
+      return filteredOverviewCards.includes(cardId);
+    }
+    return visibleCards.includes(cardId);
+  };
 
   // Helper to render functional cards with remove button in edit mode
   const renderFunctionalCard = (cardId: string, content: React.ReactNode, config?: { width?: number; height?: number; className?: string; colSpan?: string }) => {
