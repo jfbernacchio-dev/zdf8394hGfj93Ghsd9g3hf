@@ -146,7 +146,7 @@ const PatientDetailNew = () => {
     .filter(card => card.cardCategory === 'functional')
     .map(card => card.id);
   
-  // FASE C1.4: Use layout system to control card order
+  // FASE C1.4 & C1.7: Use layout system to control card order
   const {
     layout: overviewLayout,
     isLoading: isOverviewLayoutLoading,
@@ -154,21 +154,6 @@ const PatientDetailNew = () => {
     userId: user?.id || '',
     organizationId: organizationId || '',
   });
-  
-  // Get ordered card IDs from layout
-  const orderedOverviewCardIds = getLayoutCardIds(overviewLayout);
-  
-  // Filter by category while maintaining layout order
-  const orderedStatCardIds = orderedOverviewCardIds.filter((id) =>
-    statCardIds.includes(id)
-  );
-  const orderedFunctionalCardIds = orderedOverviewCardIds.filter((id) =>
-    functionalCardIds.includes(id)
-  );
-  
-  // Fallback to unordered lists if layout not ready
-  const baseStatCardIds = orderedStatCardIds.length > 0 ? orderedStatCardIds : statCardIds;
-  const baseFunctionalCardIds = orderedFunctionalCardIds.length > 0 ? orderedFunctionalCardIds : functionalCardIds;
   
   // FASE C1.6: Build permission context for card filtering
   const isOrgOwner = false; // TODO: Implementar verificação de owner quando necessário
@@ -181,19 +166,49 @@ const PatientDetailNew = () => {
     patientAccessLevel: accessLevel,
   };
   
-  // FASE C1.6: Filter cards by permissions
-  // Step 1: Filter all cards based on permissions
+  // FASE C1.6: Filter all cards by permissions first
   const permittedOverviewCardIds = allOverviewCardIds.filter((cardId) => {
     const def = getPatientOverviewCardDefinition(cardId);
     if (!def) return false;
     return canUserSeeOverviewCard(permissionCtx, def);
   });
   
-  // Step 2: Apply permission filter to category lists
-  // Combining: catalog → layout order → permission filter
-  const finalStatCardIds = baseStatCardIds.filter((id) =>
+  /**
+   * FASE C1.7: Helper function to order card IDs based on layout
+   * 
+   * @param layout - Current layout from usePatientOverviewLayout
+   * @param permittedIds - IDs that passed permission filter
+   * @returns Ordered array of card IDs
+   */
+  const layoutToOrderedCardIds = (
+    layout: typeof overviewLayout,
+    permittedIds: string[]
+  ): string[] => {
+    if (!layout || layout.length === 0) {
+      // Fallback: return permitted IDs in original order
+      return permittedIds;
+    }
+    
+    // Get card IDs from layout in order (layout already defines the order via y, x positions)
+    const layoutCardIds = getLayoutCardIds(layout);
+    
+    // Filter to include only permitted IDs, maintaining layout order
+    return layoutCardIds.filter(id => permittedIds.includes(id));
+  };
+  
+  // FASE C1.7: Apply layout ordering to STAT CARDS
+  // Pipeline: catalog → filter by category → filter by permission → order by layout
+  const permittedStatCardIds = statCardIds.filter((id) =>
     permittedOverviewCardIds.includes(id)
   );
+  const orderedStatCardIds = layoutToOrderedCardIds(overviewLayout, permittedStatCardIds);
+  
+  // Functional cards: keep existing logic for now (will be updated in future phase)
+  const orderedOverviewCardIds = getLayoutCardIds(overviewLayout);
+  const orderedFunctionalCardIds = orderedOverviewCardIds.filter((id) =>
+    functionalCardIds.includes(id)
+  );
+  const baseFunctionalCardIds = orderedFunctionalCardIds.length > 0 ? orderedFunctionalCardIds : functionalCardIds;
   const finalFunctionalCardIds = baseFunctionalCardIds.filter((id) =>
     permittedOverviewCardIds.includes(id)
   );
@@ -1561,7 +1576,7 @@ Assinatura do Profissional`;
             onTempHeightChange={handleTempSectionHeightChange}
           >
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              {finalStatCardIds.map(cardId => renderStatCard(cardId))}
+              {orderedStatCardIds.map(cardId => renderStatCard(cardId))}
             </div>
           </ResizableSection>
         </div>
