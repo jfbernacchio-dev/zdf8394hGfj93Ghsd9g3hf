@@ -30,3 +30,10 @@ dist-ssr
 .env.production
 *.docx
 *DADOS_FALTANTES*
+
+
+*.pem
+*.key
+*.pfx
+*.p12
+*credentials*.json
