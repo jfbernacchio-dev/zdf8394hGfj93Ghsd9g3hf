@@ -203,15 +203,12 @@ const PatientDetailNew = () => {
   );
   const orderedStatCardIds = layoutToOrderedCardIds(overviewLayout, permittedStatCardIds);
   
-  // Functional cards: keep existing logic for now (will be updated in future phase)
-  const orderedOverviewCardIds = getLayoutCardIds(overviewLayout);
-  const orderedFunctionalCardIds = orderedOverviewCardIds.filter((id) =>
-    functionalCardIds.includes(id)
-  );
-  const baseFunctionalCardIds = orderedFunctionalCardIds.length > 0 ? orderedFunctionalCardIds : functionalCardIds;
-  const finalFunctionalCardIds = baseFunctionalCardIds.filter((id) =>
+  // FASE C1.9: Apply same pipeline to FUNCTIONAL CARDS
+  // Pipeline: catalog → filter by category → filter by permission → order by layout
+  const permittedFunctionalCardIds = functionalCardIds.filter((id) =>
     permittedOverviewCardIds.includes(id)
   );
+  const orderedFunctionalCardIds = layoutToOrderedCardIds(overviewLayout, permittedFunctionalCardIds);
   
   const getBrazilDate = () => {
     return new Date().toLocaleString('en-CA', { 
@@ -1372,8 +1369,6 @@ Assinatura do Profissional`;
 
   // Render helper for stat cards
   const renderStatCard = (cardId: string) => {
-    if (!isCardVisible(cardId)) return null;
-
     const statConfigs: Record<string, { label: string; value: number | string; sublabel: string; color?: string }> = {
       'patient-stat-total': { label: 'Total no Mês', value: totalMonthSessions, sublabel: 'sessões', color: 'text-foreground' },
       'patient-stat-attended': { label: 'Comparecidas', value: attendedMonthSessions, sublabel: 'no mês', color: 'text-accent' },
@@ -1403,16 +1398,7 @@ Assinatura do Profissional`;
         allCardSizes={tempSizes}
         className="p-4 relative"
       >
-        {isEditMode && (
-          <Button
-            variant="destructive"
-            size="icon"
-            className="absolute top-2 right-2 h-6 w-6 z-50"
-            onClick={() => handleRemoveCard(cardId)}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        )}
+        {/* FASE C1.9: Stat cards não têm botão de remoção */}
         <div className="flex flex-col">
           <p className="text-sm text-muted-foreground mb-1">{config.label}</p>
           <p className={cn("text-3xl font-bold", config.color)}>{config.value}</p>
@@ -1503,10 +1489,13 @@ Assinatura do Profissional`;
                   Restaurar Padrão
                 </Button>
               )}
+              {/* FASE C1.9: Bloquear edição de layout em read-only */}
               <Button
                 onClick={isEditMode ? handleExitEditMode : handleEnterEditMode}
                 variant={isEditMode ? "default" : "outline"}
                 size="sm"
+                disabled={isReadOnly}
+                title={isReadOnly ? 'Ação não permitida em modo somente leitura' : undefined}
               >
                 <Settings className="w-4 h-4 mr-2" />
                 {isEditMode ? 'Salvar Layout' : 'Editar Layout'}
@@ -1620,8 +1609,8 @@ Assinatura do Profissional`;
                 onTempHeightChange={handleTempSectionHeightChange}
               >
                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                 {/* Render functional cards in layout order */}
-                 {finalFunctionalCardIds.map(cardId => {
+                 {/* FASE C1.9: Render functional cards in layout order, filtered by visibleCards */}
+                 {orderedFunctionalCardIds.map(cardId => {
                    // Skip if not visible
                    if (!isCardVisible(cardId)) return null;
                    
