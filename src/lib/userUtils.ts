@@ -12,8 +12,8 @@
  *
  */
 const OLIMPO_USER_IDS = [
-  "cc630372-360c-49e7-99e8-2bd83a3ab75d", // João
-  "19ec4677-5531-4576-933c-38ed70ee0bda", // Larissa
+  "cc630372-360c-49e7-99e8-2bd83a3ab75d",
+  "19ec4677-5531-4576-933c-38ed70ee0bda",
 ];
 
 /**
