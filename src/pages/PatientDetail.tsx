@@ -1555,19 +1555,7 @@ Assinatura do Profissional`;
 
         {/* Monthly Stats at Top - Always Visible */}
         <div className="mb-4">
-          {isEditMode && (
-            <div className="flex justify-end mb-4">
-              <Button
-                onClick={() => setIsAddCardDialogOpen(true)}
-                size="sm"
-                variant="outline"
-                className="gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                Adicionar Card
-              </Button>
-            </div>
-          )}
+          {/* FASE C1.8: Botão removido daqui, permanece apenas dentro da aba Overview */}
           <ResizableSection
             id="patient-stats-section"
             isEditMode={isEditMode}
@@ -1606,21 +1594,22 @@ Assinatura do Profissional`;
             </Button>
           </div>
 
-           {/* Overview Tab */}
-           <TabsContent value="overview" className="space-y-6">
-             {isEditMode && (
-               <div className="flex justify-end mb-4">
-                 <Button
-                   onClick={() => setIsAddCardDialogOpen(true)}
-                   size="sm"
-                   variant="outline"
-                   className="gap-2"
-                 >
-                   <Plus className="w-4 h-4" />
-                   Adicionar Card
-                 </Button>
-               </div>
-             )}
+         {/* Overview Tab */}
+         <TabsContent value="overview" className="space-y-6">
+           {/* FASE C1.8: Botão "Adicionar Card" somente em modo de edição e não em read-only */}
+           {isEditMode && !isReadOnly && (
+             <div className="flex justify-end mb-4">
+               <Button
+                 onClick={() => setIsAddCardDialogOpen(true)}
+                 size="sm"
+                 variant="outline"
+                 className="gap-2"
+               >
+                 <Plus className="w-4 h-4" />
+                 Adicionar Card
+               </Button>
+             </div>
+           )}
 
               {/* Functional Cards Section */}
               <ResizableSection
@@ -2738,13 +2727,27 @@ Assinatura do Profissional`;
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Add Card Dialog */}
+      {/* Add Card Dialog - FASE C1.8: Connected to patient overview */}
       <AddCardDialog
         open={isAddCardDialogOpen}
         onOpenChange={setIsAddCardDialogOpen}
         onAddCard={handleAddCard}
         onRemoveCard={handleRemoveCard}
         existingCardIds={visibleCards}
+        mode="patient-overview"
+        availableOverviewCards={
+          // Only functional cards that user has permission to see
+          functionalCardIds
+            .filter(id => permittedOverviewCardIds.includes(id))
+            .map(id => {
+              const def = getPatientOverviewCardDefinition(id);
+              return {
+                id,
+                name: def?.title || id,
+                description: def?.description || '',
+              };
+            })
+        }
       />
     </div>
   );
