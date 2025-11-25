@@ -63,6 +63,7 @@ import {
   PATIENT_OVERVIEW_CARDS, 
   getPatientOverviewCardDefinition,
   canUserSeeOverviewCard,
+  getDefaultPatientOverviewCardIds,
   type PatientOverviewPermissionContext 
 } from '@/config/patientOverviewCards';
 import { usePatientOverviewLayout } from '@/hooks/usePatientOverviewLayout';
@@ -135,7 +136,31 @@ const PatientDetailNew = () => {
   const [tempSizes, setTempSizes] = useState<Record<string, { width: number; height: number; x: number; y: number }>>({});
   const [tempSectionHeights, setTempSectionHeights] = useState<Record<string, number>>({});
   const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
-  const [visibleCards, setVisibleCards] = useState<string[]>([]);
+  
+  // ============================================================================
+  // FASE C1.12.1: CORREÇÃO CRÍTICA - Inicialização de visibleCards
+  // ============================================================================
+  //
+  // PROBLEMA DETECTADO NA C1.12:
+  // - visibleCards estava sendo inicializado como array vazio []
+  // - Isso fazia com que NENHUM functional card aparecesse por padrão
+  // - Apenas STAT cards eram visíveis inicialmente
+  //
+  // SOLUÇÃO:
+  // - Inicializar com getDefaultPatientOverviewCardIds()
+  // - Isso garante que functional cards com isDefaultVisible: true apareçam
+  // - Comportamento consistente com a intenção do sistema
+  //
+  // FUNCTIONAL CARDS AFETADOS (agora aparecem corretamente):
+  // - patient-next-appointment
+  // - patient-contact-info
+  // - patient-clinical-complaint
+  // - patient-clinical-info
+  // - patient-history
+  // ============================================================================
+  const [visibleCards, setVisibleCards] = useState<string[]>(() => 
+    getDefaultPatientOverviewCardIds()
+  );
   
   // FASE C1.2: Derive card IDs from catalog
   const allOverviewCardIds = Object.keys(PATIENT_OVERVIEW_CARDS);
