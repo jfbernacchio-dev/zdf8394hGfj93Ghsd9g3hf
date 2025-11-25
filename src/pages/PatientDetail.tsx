@@ -224,8 +224,18 @@ const PatientDetailNew = () => {
     if (savedCards) {
       setVisibleCards(JSON.parse(savedCards));
     } else {
-      // Use default layout
-      setVisibleCards(DEFAULT_LAYOUT.visibleCards);
+      // Default: mostrar todos os cards que são visíveis por padrão no catálogo
+      const defaultVisible = Object.values(PATIENT_OVERVIEW_CARDS)
+        .filter(card => card.isDefaultVisible)
+        .map(card => card.id);
+      setVisibleCards(defaultVisible);
+    }
+    
+    // FASE C1.5: Validação de convergência em desenvolvimento
+    if (process.env.NODE_ENV === 'development') {
+      import('@/lib/patientOverviewLayout').then(({ logLayoutConvergenceStatus }) => {
+        logLayoutConvergenceStatus();
+      });
     }
 
     // Set default section heights if not already set

@@ -310,3 +310,81 @@ export function getLayoutCardIds(layout: PatientOverviewCardLayout[]): string[] 
 export function getLayoutCardCount(layout: PatientOverviewCardLayout[]): number {
   return layout.length;
 }
+
+/**
+ * ============================================================================
+ * FASE C1.5: FUNÇÕES DE VALIDAÇÃO E CONVERGÊNCIA
+ * ============================================================================
+ */
+
+/**
+ * Verifica convergência entre o catálogo de cards e o layout padrão
+ * 
+ * Retorna informações sobre:
+ * - Cards no catálogo mas ausentes do layout
+ * - Cards no layout mas ausentes do catálogo (órfãos)
+ * - Total de cards em cada
+ * 
+ * @returns Objeto com análise de convergência
+ */
+export function validateLayoutCatalogConvergence(): {
+  isConverged: boolean;
+  missingInLayout: string[];
+  orphanedInLayout: string[];
+  catalogCount: number;
+  layoutCount: number;
+} {
+  const catalogIds = new Set(Object.keys(PATIENT_OVERVIEW_CARDS));
+  const layoutIds = new Set(DEFAULT_PATIENT_OVERVIEW_LAYOUT.map(item => item.id));
+  
+  const missingInLayout: string[] = [];
+  const orphanedInLayout: string[] = [];
+  
+  // Cards no catálogo mas não no layout
+  catalogIds.forEach(id => {
+    if (!layoutIds.has(id)) {
+      missingInLayout.push(id);
+    }
+  });
+  
+  // Cards no layout mas não no catálogo
+  layoutIds.forEach(id => {
+    if (!catalogIds.has(id)) {
+      orphanedInLayout.push(id);
+    }
+  });
+  
+  const isConverged = missingInLayout.length === 0 && orphanedInLayout.length === 0;
+  
+  return {
+    isConverged,
+    missingInLayout,
+    orphanedInLayout,
+    catalogCount: catalogIds.size,
+    layoutCount: layoutIds.size,
+  };
+}
+
+/**
+ * Loga o status de convergência no console (útil para debugging)
+ */
+export function logLayoutConvergenceStatus(): void {
+  const status = validateLayoutCatalogConvergence();
+  
+  console.log('📊 [PatientOverviewLayout] Status de Convergência:');
+  console.log(`   ✓ Convergido: ${status.isConverged ? 'SIM' : 'NÃO'}`);
+  console.log(`   📦 Cards no catálogo: ${status.catalogCount}`);
+  console.log(`   🎯 Cards no layout: ${status.layoutCount}`);
+  
+  if (status.missingInLayout.length > 0) {
+    console.warn(`   ⚠️ Cards ausentes no layout (${status.missingInLayout.length}):`, status.missingInLayout);
+  }
+  
+  if (status.orphanedInLayout.length > 0) {
+    console.warn(`   ⚠️ Cards órfãos no layout (${status.orphanedInLayout.length}):`, status.orphanedInLayout);
+  }
+  
+  if (status.isConverged) {
+    console.log('   ✅ Catálogo e layout estão perfeitamente sincronizados');
+  }
+}

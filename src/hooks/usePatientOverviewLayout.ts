@@ -88,10 +88,13 @@ export function usePatientOverviewLayout(
     readOnly = false,
   } = options;
 
+  // FASE C1.5: Validação de parâmetros
+  const hasValidParams = userId && organizationId;
+  
   // Estado principal
   const [layout, setLayout] = useState<PatientOverviewCardLayout[]>(() => {
     // Carregar do localStorage ou usar padrão
-    if (readOnly) return getDefaultPatientOverviewLayout();
+    if (readOnly || !hasValidParams) return getDefaultPatientOverviewLayout();
     
     const stored = loadPatientOverviewLayout(userId, organizationId);
     return stored || getDefaultPatientOverviewLayout();
@@ -99,16 +102,24 @@ export function usePatientOverviewLayout(
 
   const [isLoading, setIsLoading] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
-  const [hasStoredLayout, setHasStoredLayout] = useState(false);
+  const [hasStoredLayout, setHasStoredLayout] = useState(() => {
+    if (readOnly || !hasValidParams) return false;
+    const stored = loadPatientOverviewLayout(userId, organizationId);
+    return !!stored;
+  });
 
   // Refs para debounce
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const layoutToSaveRef = useRef<PatientOverviewCardLayout[] | null>(null);
+  
+  // FASE C1.5: Track if already loaded to prevent double-loading
+  const hasLoadedRef = useRef(false);
 
-  // Carregar layout na montagem
+  // Carregar layout na montagem (apenas se parâmetros mudarem)
   useEffect(() => {
-    if (readOnly) return;
-
+    if (readOnly || !hasValidParams || hasLoadedRef.current) return;
+    
+    hasLoadedRef.current = true;
     setIsLoading(true);
     
     try {
@@ -128,11 +139,11 @@ export function usePatientOverviewLayout(
     } finally {
       setIsLoading(false);
     }
-  }, [userId, organizationId, readOnly]);
+  }, [userId, organizationId, readOnly, hasValidParams]);
 
   // Função de salvamento com debounce
   const debouncedSave = useCallback(() => {
-    if (readOnly) return;
+    if (readOnly || !hasValidParams) return;
     
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
@@ -169,7 +180,7 @@ export function usePatientOverviewLayout(
 
   // Salvar imediatamente
   const saveNow = useCallback(() => {
-    if (readOnly) return;
+    if (readOnly || !hasValidParams) return;
     
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
@@ -186,7 +197,7 @@ export function usePatientOverviewLayout(
 
   // Resetar para o padrão
   const resetLayout = useCallback(() => {
-    if (readOnly) return;
+    if (readOnly || !hasValidParams) return;
     
     const defaultLayout = resetPatientOverviewLayout(userId, organizationId);
     
