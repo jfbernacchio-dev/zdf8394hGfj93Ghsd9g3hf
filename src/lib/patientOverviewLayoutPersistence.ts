@@ -36,11 +36,17 @@ const STORAGE_PREFIX = 'patient-overview-layout';
 /**
  * Gera a chave de storage para um usuário/organização
  * 
+ * FASE C1.5: Validação adicionada para prevenir keys inválidas
+ * 
  * @param userId - ID do usuário
  * @param organizationId - ID da organização
  * @returns Chave de storage
+ * @throws Error se userId ou organizationId forem vazios
  */
 function getStorageKey(userId: string, organizationId: string): string {
+  if (!userId || !organizationId) {
+    throw new Error('[PatientOverviewLayout] userId e organizationId são obrigatórios');
+  }
   return `${STORAGE_PREFIX}-${organizationId}-${userId}`;
 }
 
