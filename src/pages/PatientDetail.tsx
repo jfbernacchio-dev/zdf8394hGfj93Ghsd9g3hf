@@ -6,6 +6,8 @@ import { logAdminAccess } from '@/lib/auditLog';
 import { formatBrazilianDate, formatBrazilianCurrency } from '@/lib/brazilianFormat';
 import { getUserIdsInOrganization } from '@/lib/organizationFilters';
 import { Button } from '@/components/ui/button';
+import { usePatientOverviewLayout } from '@/hooks/usePatientOverviewLayout';
+import { renderPatientOverviewCard, PATIENT_OVERVIEW_AVAILABLE_CARDS } from '@/lib/patientOverviewCardRegistry';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -94,6 +96,19 @@ const PatientDetailNew = () => {
   } = useEffectivePermissions();
   const { canViewCard } = useCardPermissions();
 
+  // 🟦 C1.3: Hook de layout da Visão Geral (não conectado ainda à UI)
+  const {
+    layout: overviewLayout,
+    updateLayout: updateOverviewLayout,
+    addCard: addOverviewCard,
+    removeCard: removeOverviewCard,
+    saveLayout: saveOverviewLayout,
+    resetLayout: resetOverviewLayout,
+    loading: overviewLayoutLoading,
+    saving: overviewLayoutSaving,
+    isModified: overviewLayoutModified,
+  } = usePatientOverviewLayout();
+
   // FASE 3.5: Derived permission flags
   const isAccountant = roleGlobal === 'accountant';
   const isAssistant = roleGlobal === 'assistant';
@@ -128,6 +143,9 @@ const PatientDetailNew = () => {
   const [tempSectionHeights, setTempSectionHeights] = useState<Record<string, number>>({});
   const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
   const [visibleCards, setVisibleCards] = useState<string[]>([]);
+  
+  // 🟦 C1.3: Novo estado para modo de edição da Visão Geral (não usado ainda)
+  const [isOverviewLayoutEditMode, setIsOverviewLayoutEditMode] = useState(false);
   
   const getBrazilDate = () => {
     return new Date().toLocaleString('en-CA', { 
@@ -1516,6 +1534,13 @@ Assinatura do Profissional`;
 
            {/* Overview Tab */}
            <TabsContent value="overview" className="space-y-6">
+             {/* 🟦 C1.3: Wrapper silencioso - garante que hook está conectado (não altera UI) */}
+             {false && (
+               <div className="hidden">
+                 {JSON.stringify(overviewLayout)}
+               </div>
+             )}
+             
              {isEditMode && (
                <div className="flex justify-end mb-4">
                  <Button
