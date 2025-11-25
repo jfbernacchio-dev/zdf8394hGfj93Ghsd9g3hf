@@ -35,6 +35,9 @@ https://klxyilxprlzhxnwjzcvv.supabase.co/functions/v1/whatsapp-webhook
 
 Use o token que você acabou de criar no sistema. Este token é uma string aleatória que você definiu para autenticar o webhook.
 
+⚠️ **IMPORTANTE:**
+O token abaixo é apenas um exemplo. Nunca utilize tokens reais em documentação pública.
+
 **Exemplo de token:** `mindware_webhook_2024_secure_token_xyz123`
 
 ⚠️ **IMPORTANTE:** Use exatamente o mesmo token que você adicionou como secret `WHATSAPP_VERIFY_TOKEN` no sistema.

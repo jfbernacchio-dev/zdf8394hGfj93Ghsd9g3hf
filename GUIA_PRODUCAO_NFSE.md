@@ -48,9 +48,10 @@ Antes de mudar para produção, revise todos os dados fiscais:
 Na aba **"Certificado Digital"**:
 
 - **Tipo**: A1 (arquivo .pfx/.p12)
-- **Válido até**: 19/02/2026 ✅
+- **Válido até**: Verifique a data de validade do certificado ✅
 - **Arquivo**: Certificado já carregado ✅
-- **Senha**: 1607Mindware ✅
+- **Senha**: [SENHA_DO_CERTIFICADO_A1] ✅
+  ⚠️ **Nunca commit a senha real aqui.**
 
 Se o certificado estiver próximo do vencimento, renove antes de ir para produção.
 
@@ -135,8 +136,8 @@ Se precisar testar algo ou voltar para homologação:
 - Entre em contato com o suporte da FocusNFe
 
 ### Erro: "Certificado inválido"
-- Verifique a data de validade (19/02/2026)
-- Confirme se a senha está correta (1607Mindware)
+- Verifique a data de validade do certificado
+- Confirme se a senha está correta (solicite ao administrador)
 - Se necessário, faça upload do certificado novamente
 
 ### Erro: "Dados do tomador inválidos"
