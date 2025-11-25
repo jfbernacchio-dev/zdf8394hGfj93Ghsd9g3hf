@@ -16,7 +16,7 @@ import {
   ArrowLeft, Calendar, Clock, FileText, Trash2, ChevronDown, ChevronUp, 
   PlusCircle, Settings, Check, X, Edit, RotateCcw, Plus, StickyNote, 
   Phone, Mail, MapPin, User, AlertCircle, Tag, DollarSign, Download, 
-  CreditCard, Activity, TrendingUp, TrendingDown, GripVertical 
+  CreditCard, Activity, TrendingUp, TrendingDown, GripVertical, Save 
 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
@@ -1544,38 +1544,86 @@ Assinatura do Profissional`;
                </div>
              )}
              
-             {/* 🟦 C1.5: Controles de edição do layout */}
-             <div className="flex justify-end gap-2 mb-4">
-               {!isOverviewLayoutEditMode ? (
-                 <Button
-                   variant="outline"
-                   size="sm"
-                   onClick={() => setIsOverviewLayoutEditMode(true)}
-                 >
-                   <Edit className="w-4 h-4 mr-2" />
-                   Editar Layout
-                 </Button>
-               ) : (
-                 <>
-                   <Button
-                     variant="outline"
-                     size="sm"
-                     onClick={() => setIsOverviewLayoutEditMode(false)}
-                   >
-                     <X className="w-4 h-4 mr-2" />
-                     Sair do Modo de Edição
-                   </Button>
-                   <Button
-                     variant="outline"
-                     size="sm"
-                     onClick={() => setIsAddOverviewCardDialogOpen(true)}
-                   >
-                     <Plus className="w-4 h-4 mr-2" />
-                     Adicionar/Remover Cards
-                   </Button>
-                 </>
-               )}
-             </div>
+              {/* 🟦 C1.5 + C1.7: Controles de edição do layout */}
+              <div className="flex justify-end gap-2 mb-4">
+                {!isOverviewLayoutEditMode ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsOverviewLayoutEditMode(true)}
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Editar Layout
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsOverviewLayoutEditMode(false)}
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      Sair do Modo de Edição
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsAddOverviewCardDialogOpen(true)}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Adicionar/Remover Cards
+                    </Button>
+                    {/* 🟦 C1.7: Salvar Agora */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        await saveOverviewLayout();
+                        toast.success('Layout salvo com sucesso');
+                      }}
+                      disabled={overviewLayoutSaving}
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      Salvar Agora
+                    </Button>
+                    {/* 🟦 C1.7: Resetar Layout */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        await resetOverviewLayout();
+                        toast.success('Layout resetado para o padrão');
+                      }}
+                      disabled={overviewLayoutSaving}
+                    >
+                      <RotateCcw className="w-4 h-4 mr-2" />
+                      Resetar Layout
+                    </Button>
+                  </>
+                )}
+              </div>
+              
+              {/* 🟦 C1.7: Feedback visual de estado do layout */}
+              {isOverviewLayoutEditMode && (
+                <div className="flex justify-end mb-2 text-xs text-muted-foreground">
+                  {overviewLayoutSaving ? (
+                    <span className="flex items-center gap-1">
+                      <Activity className="w-3 h-3 animate-pulse" />
+                      Salvando alterações...
+                    </span>
+                  ) : overviewLayoutModified ? (
+                    <span className="flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      Alterações pendentes
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1">
+                      <Check className="w-3 h-3 text-green-600" />
+                      Layout salvo
+                    </span>
+                  )}
+                </div>
+              )}
              
              {/* 🟦 C1.4: NOVO LAYOUT COM GRID (placeholders) */}
              <div className="mt-4">
