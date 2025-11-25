@@ -59,7 +59,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { PATIENT_OVERVIEW_CARDS } from '@/config/patientOverviewCards';
+import { 
+  PATIENT_OVERVIEW_CARDS, 
+  getPatientOverviewCardDefinition,
+  canUserSeeOverviewCard,
+  type PatientOverviewPermissionContext 
+} from '@/config/patientOverviewCards';
 import { usePatientOverviewLayout } from '@/hooks/usePatientOverviewLayout';
 import { getLayoutCardIds } from '@/lib/patientOverviewLayout';
 
@@ -162,8 +167,36 @@ const PatientDetailNew = () => {
   );
   
   // Fallback to unordered lists if layout not ready
-  const finalStatCardIds = orderedStatCardIds.length > 0 ? orderedStatCardIds : statCardIds;
-  const finalFunctionalCardIds = orderedFunctionalCardIds.length > 0 ? orderedFunctionalCardIds : functionalCardIds;
+  const baseStatCardIds = orderedStatCardIds.length > 0 ? orderedStatCardIds : statCardIds;
+  const baseFunctionalCardIds = orderedFunctionalCardIds.length > 0 ? orderedFunctionalCardIds : functionalCardIds;
+  
+  // FASE C1.6: Build permission context for card filtering
+  const isOrgOwner = false; // TODO: Implementar verificação de owner quando necessário
+  const permissionCtx: PatientOverviewPermissionContext = {
+    roleGlobal,
+    isClinicalProfessional: effectiveIsClinicalProfessional,
+    isAdminOrOwner: isAdmin || isOrgOwner,
+    financialAccess,
+    canAccessClinical,
+    patientAccessLevel: accessLevel,
+  };
+  
+  // FASE C1.6: Filter cards by permissions
+  // Step 1: Filter all cards based on permissions
+  const permittedOverviewCardIds = allOverviewCardIds.filter((cardId) => {
+    const def = getPatientOverviewCardDefinition(cardId);
+    if (!def) return false;
+    return canUserSeeOverviewCard(permissionCtx, def);
+  });
+  
+  // Step 2: Apply permission filter to category lists
+  // Combining: catalog → layout order → permission filter
+  const finalStatCardIds = baseStatCardIds.filter((id) =>
+    permittedOverviewCardIds.includes(id)
+  );
+  const finalFunctionalCardIds = baseFunctionalCardIds.filter((id) =>
+    permittedOverviewCardIds.includes(id)
+  );
   
   const getBrazilDate = () => {
     return new Date().toLocaleString('en-CA', { 

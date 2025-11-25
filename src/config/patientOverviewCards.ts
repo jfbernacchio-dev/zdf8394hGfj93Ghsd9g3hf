@@ -574,3 +574,101 @@ export function getCardCountByCategory(): Record<PatientOverviewCardCategory, nu
   
   return counts;
 }
+
+/**
+ * ============================================================================
+ * FASE C1.6 — FILTRO DE PERMISSÕES
+ * ============================================================================
+ */
+
+/**
+ * Contexto de permissões do usuário para avaliar acesso aos cards
+ */
+export interface PatientOverviewPermissionContext {
+  /** Papel global do usuário (ex: 'psychologist', 'admin', 'assistant') */
+  roleGlobal?: string;
+  
+  /** Se é profissional clínico */
+  isClinicalProfessional?: boolean;
+  
+  /** Se é admin ou owner da organização */
+  isAdminOrOwner?: boolean;
+  
+  /** Nível de acesso financeiro: 'none' | 'view' | 'manage' */
+  financialAccess?: 'none' | 'view' | 'manage' | string;
+  
+  /** Se pode acessar dados clínicos */
+  canAccessClinical?: boolean;
+  
+  /** Nível de acesso ao paciente específico: 'none' | 'view' | 'full' */
+  patientAccessLevel?: 'none' | 'view' | 'full';
+}
+
+/**
+ * Determina se o usuário pode visualizar um card específico com base em suas permissões
+ * 
+ * REGRAS:
+ * 1. Cards clínicos: requerem canAccessClinical e patientAccessLevel >= 'view'
+ * 2. Cards financeiros: requerem financialAccess !== 'none'
+ * 3. Cards administrativos/gerais: permitidos por padrão
+ * 4. blockedFor: se o roleGlobal estiver bloqueado, nega acesso
+ * 
+ * @param ctx - Contexto de permissões do usuário
+ * @param card - Definição do card a ser avaliado
+ * @returns true se o usuário pode ver o card, false caso contrário
+ */
+export function canUserSeeOverviewCard(
+  ctx: PatientOverviewPermissionContext,
+  card: PatientOverviewCardDefinition
+): boolean {
+  // REGRA 4: Verificar se role está explicitamente bloqueado
+  if (card.blockedFor && ctx.roleGlobal && card.blockedFor.includes(ctx.roleGlobal)) {
+    return false;
+  }
+  
+  // REGRA 1: Cards do domínio clínico
+  if (card.domain === 'clinical') {
+    // Requer acesso clínico
+    if (!ctx.canAccessClinical) {
+      return false;
+    }
+    
+    // Requer acesso ao paciente (view ou full)
+    if (ctx.patientAccessLevel === 'none' || !ctx.patientAccessLevel) {
+      return false;
+    }
+    
+    // Se o card requer acesso clínico COMPLETO
+    if (card.requiresFullClinicalAccess && ctx.patientAccessLevel !== 'full') {
+      return false;
+    }
+    
+    return true;
+  }
+  
+  // REGRA 2: Cards do domínio financeiro
+  if (card.domain === 'financial' || card.requiresFinancialAccess) {
+    // Requer acesso financeiro diferente de 'none'
+    if (!ctx.financialAccess || ctx.financialAccess === 'none') {
+      return false;
+    }
+    
+    return true;
+  }
+  
+  // REGRA 3: Cards administrativos ou gerais
+  // Permitidos por padrão, a menos que haja outra restrição explícita
+  if (card.domain === 'administrative' || card.domain === 'general') {
+    return true;
+  }
+  
+  // REGRA 5: Fallback seguro
+  // Se o domínio não for reconhecido, ser conservador
+  // Se tiver indicação de clínico/financeiro mas domínio indefinido, negar
+  if (card.requiresFinancialAccess || card.requiresFullClinicalAccess) {
+    return false;
+  }
+  
+  // Caso contrário, permitir (cards sem domínio específico ou gerais)
+  return true;
+}
