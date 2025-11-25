@@ -1,15 +1,19 @@
 /**
  * ============================================================================
- * ADD CARD DIALOG - FASE 2 (REFATORAÇÃO COMPLETA)
+ * ADD CARD DIALOG - FASE 2 (REFATORAÇÃO COMPLETA) + C1.5 (PATIENT OVERVIEW)
  * ============================================================================
  * 
- * Dialog para adicionar/remover cards no dashboard
+ * Dialog para adicionar/remover cards no dashboard e na visão geral do paciente
  * Organizado por seções com estrutura de domínios
  * 
  * NOVA ESTRUTURA (FASE 2):
  * - Tabs principais: Uma por seção (Financeira, Administrativa, Clínica, Mídia)
  * - Sub-tabs: "Disponível" e "Adicionados" em cada seção
  * - Filtragem automática por permissões
+ * 
+ * C1.5: SUPORTE PARA PATIENT OVERVIEW:
+ * - Novo modo "patient-overview" que usa availableCardsBySection
+ * - Mantém compatibilidade total com dashboard
  * 
  * RETROCOMPATIBILIDADE:
  * - Mantém suporte para assinaturas antigas dos outros componentes
@@ -30,6 +34,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useCardPermissions } from '@/hooks/useCardPermissions';
 import { DASHBOARD_SECTIONS } from '@/lib/defaultSectionsDashboard';
 import type { CardConfig } from '@/types/cardTypes';
+import type { PatientOverviewCardMetadata } from '@/types/patientOverviewCardTypes';
 
 interface AddCardDialogProps {
   open: boolean;
@@ -41,8 +46,10 @@ interface AddCardDialogProps {
   sectionCards?: Record<string, string[]>;
   // Props legadas (para compatibilidade)
   existingCardIds?: string[];
-  mode?: 'patient' | 'dashboard-unified' | 'evolution';
+  mode?: 'patient' | 'dashboard-unified' | 'evolution' | 'patient-overview';
   sectionConfig?: any;
+  // C1.5: Nova prop para patient overview
+  availableCardsBySection?: Record<string, PatientOverviewCardMetadata[]>;
 }
 
 /**
@@ -80,14 +87,20 @@ export const AddCardDialog = ({
   existingCardIds = [],
   mode,
   sectionConfig,
+  availableCardsBySection,
 }: AddCardDialogProps) => {
   const { getAvailableCardsForSection, canViewSection, loading: permissionsLoading } = useCardPermissions();
   
   // Detectar se está usando nova ou antiga API
   const isNewAPI = sectionCards !== undefined;
   
+  // C1.5: Detectar modo patient-overview
+  const isPatientOverviewMode = mode === 'patient-overview';
+  
   // Estado: qual seção está selecionada
-  const [selectedSection, setSelectedSection] = useState<string>('dashboard-financial');
+  const [selectedSection, setSelectedSection] = useState<string>(
+    isPatientOverviewMode ? 'patient-overview-main' : 'dashboard-financial'
+  );
   
   // Estado: dentro da seção, qual sub-tab (disponível ou adicionados)
   const [viewMode, setViewMode] = useState<'available' | 'added'>('available');
@@ -181,35 +194,47 @@ export const AddCardDialog = ({
   /**
    * Renderiza um card individual com tooltip e badges duplos
    * FASE 2: Tooltips funcionais + Badges duplos para classificação dupla
+   * C1.5: Suporte para PatientOverviewCardMetadata
    */
   const renderCardItem = (
-    card: CardConfig, 
+    card: CardConfig | PatientOverviewCardMetadata, 
     sectionId: string, 
     action: 'add' | 'remove'
   ) => {
-    // Determinar badges: cards com classificação dupla mostram 2 badges
+    // C1.5: Detectar tipo de card
+    const isPatientOverviewCard = 'domain' in card && !('permissionConfig' in card);
+    
+    // Determinar badges
     const badges: string[] = [];
     
-    if (card.isChart) {
-      // Gráficos sempre têm badge "Gráfico"
-      badges.push('Gráficos');
-    }
-    
-    // Se pertence à seção team, adiciona badge "Equipe"
-    if (card.permissionConfig?.domain === 'team') {
-      badges.push('Equipe');
-    }
-    
-    // Se não tem badge especial ainda, adiciona o badge do domínio
-    if (badges.length === 0 && card.permissionConfig) {
-      badges.push(DOMAIN_LABELS[card.permissionConfig.domain] || card.permissionConfig.domain);
-    }
-    
-    // Se é gráfico com domínio específico, adiciona badge do domínio secundário
-    if (card.isChart && card.permissionConfig?.domain !== 'charts') {
-      const domainLabel = DOMAIN_LABELS[card.permissionConfig?.domain || ''];
-      if (domainLabel && !badges.includes(domainLabel)) {
-        badges.push(domainLabel);
+    if (isPatientOverviewCard) {
+      // Card de patient overview
+      const patientCard = card as PatientOverviewCardMetadata;
+      const domainLabels = {
+        financial: 'Financeiro',
+        clinical: 'Clínico',
+        sessions: 'Sessões',
+        contact: 'Contato',
+        administrative: 'Administrativo',
+      };
+      badges.push(domainLabels[patientCard.domain] || patientCard.domain);
+    } else {
+      // Card de dashboard (lógica original)
+      const dashboardCard = card as CardConfig;
+      if (dashboardCard.isChart) {
+        badges.push('Gráficos');
+      }
+      if (dashboardCard.permissionConfig?.domain === 'team') {
+        badges.push('Equipe');
+      }
+      if (badges.length === 0 && dashboardCard.permissionConfig) {
+        badges.push(DOMAIN_LABELS[dashboardCard.permissionConfig.domain] || dashboardCard.permissionConfig.domain);
+      }
+      if (dashboardCard.isChart && dashboardCard.permissionConfig?.domain !== 'charts') {
+        const domainLabel = DOMAIN_LABELS[dashboardCard.permissionConfig?.domain || ''];
+        if (domainLabel && !badges.includes(domainLabel)) {
+          badges.push(domainLabel);
+        }
       }
     }
     
@@ -218,7 +243,7 @@ export const AddCardDialog = ({
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <h4 className="font-medium text-sm">{card.name}</h4>
+              <h4 className="font-medium text-sm">{isPatientOverviewCard ? card.label : (card as CardConfig).name}</h4>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="ghost" size="sm" className="h-4 w-4 p-0">
@@ -226,13 +251,17 @@ export const AddCardDialog = ({
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent className="max-w-xs">
-                  <p className="font-semibold mb-1">{card.name}</p>
-                  <p className="text-xs">{card.detailedDescription || card.description}</p>
+                  <p className="font-semibold mb-1">{isPatientOverviewCard ? card.label : (card as CardConfig).name}</p>
+                  <p className="text-xs">
+                    {isPatientOverviewCard 
+                      ? card.description || 'Card da visão geral do paciente' 
+                      : ((card as CardConfig).detailedDescription || (card as CardConfig).description)}
+                  </p>
                 </TooltipContent>
               </Tooltip>
             </div>
             <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
-              {card.description}
+              {isPatientOverviewCard ? card.description : (card as CardConfig).description}
             </p>
             <div className="flex flex-wrap gap-1">
               {badges.map((badge, idx) => (
@@ -247,7 +276,7 @@ export const AddCardDialog = ({
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => handleAdd(sectionId, card.id, card)}
+              onClick={() => handleAdd(sectionId, card.id, card as CardConfig)}
               className="shrink-0"
             >
               <Plus className="w-4 h-4" />
@@ -267,12 +296,101 @@ export const AddCardDialog = ({
     );
   };
 
+  /**
+   * C1.5: Processa dados de uma seção de patient overview
+   */
+  const getPatientOverviewSectionData = (sectionId: string) => {
+    if (!availableCardsBySection || !availableCardsBySection[sectionId]) {
+      return null;
+    }
+
+    const availableCards = availableCardsBySection[sectionId];
+    const addedCardIds = sectionCards?.[sectionId] || [];
+    
+    const notAddedCards = availableCards.filter(card => !addedCardIds.includes(card.id));
+    const addedCards = availableCards.filter(card => addedCardIds.includes(card.id));
+
+    return {
+      availableCards: notAddedCards,
+      addedCards,
+    };
+  };
+
   // Se não está usando nova API, retornar null por enquanto (modo legado não implementado)
   if (!isNewAPI) {
     return null;
   }
 
-  // Filtrar seções visíveis pelo usuário
+  // C1.5: Modo patient overview
+  if (isPatientOverviewMode && availableCardsBySection) {
+    const sectionIds = Object.keys(availableCardsBySection);
+    
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-4xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Gerenciar Cards da Visão Geral</DialogTitle>
+            <DialogDescription>
+              Adicione ou remova cards da visão geral do paciente
+            </DialogDescription>
+          </DialogHeader>
+
+          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'available' | 'added')}>
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="available">
+                Disponível ({getPatientOverviewSectionData('patient-overview-main')?.availableCards.length || 0})
+              </TabsTrigger>
+              <TabsTrigger value="added">
+                Adicionados ({getPatientOverviewSectionData('patient-overview-main')?.addedCards.length || 0})
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Cards disponíveis para adicionar */}
+            <TabsContent value="available">
+              <ScrollArea className="h-[400px] pr-4">
+                {getPatientOverviewSectionData('patient-overview-main')?.availableCards.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>Nenhum card disponível para adicionar</p>
+                    <p className="text-xs mt-2">
+                      Todos os cards da visão geral já foram adicionados
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 pb-4">
+                    {getPatientOverviewSectionData('patient-overview-main')?.availableCards.map(card => 
+                      renderCardItem(card, 'patient-overview-main', 'add')
+                    )}
+                  </div>
+                )}
+              </ScrollArea>
+            </TabsContent>
+
+            {/* Cards adicionados para remover */}
+            <TabsContent value="added">
+              <ScrollArea className="h-[400px] pr-4">
+                {getPatientOverviewSectionData('patient-overview-main')?.addedCards.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>Nenhum card adicionado</p>
+                    <p className="text-xs mt-2">
+                      Vá para a aba "Disponível" para adicionar cards
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 pb-4">
+                    {getPatientOverviewSectionData('patient-overview-main')?.addedCards.map(card => 
+                      renderCardItem(card, 'patient-overview-main', 'remove')
+                    )}
+                  </div>
+                )}
+              </ScrollArea>
+            </TabsContent>
+          </Tabs>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Filtrar seções visíveis pelo usuário (dashboard mode)
   const visibleSections = Object.keys(DASHBOARD_SECTIONS).filter(sectionId => {
     const sectionConfig = DASHBOARD_SECTIONS[sectionId];
     return canViewSection(sectionConfig);
