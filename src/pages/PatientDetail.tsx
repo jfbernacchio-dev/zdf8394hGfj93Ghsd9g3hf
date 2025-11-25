@@ -147,6 +147,9 @@ const PatientDetailNew = () => {
   // 🟦 C1.3: Novo estado para modo de edição da Visão Geral (não usado ainda)
   const [isOverviewLayoutEditMode, setIsOverviewLayoutEditMode] = useState(false);
   
+  // 🟦 C1.5: Novo estado para dialog de adicionar cards da Visão Geral
+  const [isAddOverviewCardDialogOpen, setIsAddOverviewCardDialogOpen] = useState(false);
+  
   const getBrazilDate = () => {
     return new Date().toLocaleString('en-CA', { 
       timeZone: 'America/Sao_Paulo',
@@ -1541,6 +1544,39 @@ Assinatura do Profissional`;
                </div>
              )}
              
+             {/* 🟦 C1.5: Controles de edição do layout */}
+             <div className="flex justify-end gap-2 mb-4">
+               {!isOverviewLayoutEditMode ? (
+                 <Button
+                   variant="outline"
+                   size="sm"
+                   onClick={() => setIsOverviewLayoutEditMode(true)}
+                 >
+                   <Edit className="w-4 h-4 mr-2" />
+                   Editar Layout
+                 </Button>
+               ) : (
+                 <>
+                   <Button
+                     variant="outline"
+                     size="sm"
+                     onClick={() => setIsOverviewLayoutEditMode(false)}
+                   >
+                     <X className="w-4 h-4 mr-2" />
+                     Sair do Modo de Edição
+                   </Button>
+                   <Button
+                     variant="outline"
+                     size="sm"
+                     onClick={() => setIsAddOverviewCardDialogOpen(true)}
+                   >
+                     <Plus className="w-4 h-4 mr-2" />
+                     Adicionar/Remover Cards
+                   </Button>
+                 </>
+               )}
+             </div>
+             
              {/* 🟦 C1.4: NOVO LAYOUT COM GRID (placeholders) */}
              <div className="mt-4">
                <GridCardContainer
@@ -1574,6 +1610,21 @@ Assinatura do Profissional`;
                  ))}
                </GridCardContainer>
              </div>
+             
+             {/* 🟦 C1.5: Dialog de adicionar/remover cards */}
+             <AddCardDialog
+               open={isAddOverviewCardDialogOpen}
+               onOpenChange={setIsAddOverviewCardDialogOpen}
+               onAddCard={(sectionId: string, cardId: string) => addOverviewCard(sectionId, cardId)}
+               onRemoveCard={(sectionId: string, cardId: string) => removeOverviewCard(sectionId, cardId)}
+               sectionCards={{
+                 'patient-overview-main': overviewLayout['patient-overview-main']?.cardLayouts?.map(l => l.i) || []
+               }}
+               availableCardsBySection={{
+                 'patient-overview-main': PATIENT_OVERVIEW_AVAILABLE_CARDS
+               }}
+               mode="patient-overview"
+             />
 
              {/* 🟦 C1.4: LAYOUT ANTIGO COMENTADO (não apagar) */}
              {false && (
