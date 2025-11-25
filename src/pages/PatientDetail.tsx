@@ -1370,7 +1370,32 @@ Assinatura do Profissional`;
     toast.info('Card removido do layout');
   };
 
-  const isCardVisible = (cardId: string) => visibleCards.includes(cardId);
+  // ============================================================================
+  // FASE C1.11: ETAPA 5 DO PIPELINE - FILTRO DE PREFERÊNCIAS (visibleCards)
+  // ============================================================================
+  //
+  // Esta função implementa a ETAPA 5 do pipeline para FUNCTIONAL cards.
+  //
+  // Comportamento:
+  // - STAT cards (category='statistical'): SEMPRE visíveis (retorna true)
+  // - FUNCTIONAL cards (category='functional'): Apenas se estiver em visibleCards
+  //
+  // IMPORTANTE:
+  // - Esta função é chamada durante a renderização de FUNCTIONAL cards
+  // - STAT cards NÃO passam por esta função (são renderizados diretamente)
+  // - Mantém consistência com o pipeline CAT→PERM→LAYOUT→VISIBLE→RENDER
+  // ============================================================================
+  const isCardVisible = (cardId: string) => {
+    const def = getPatientOverviewCardDefinition(cardId);
+    
+    // STAT cards: sempre visíveis (se passaram por permissão)
+    if (def?.cardCategory === 'statistical') {
+      return true;
+    }
+    
+    // FUNCTIONAL cards: apenas se estiver em visibleCards
+    return visibleCards.includes(cardId);
+  };
 
   // Helper to render functional cards with remove button in edit mode
   const renderFunctionalCard = (cardId: string, content: React.ReactNode, config?: { width?: number; height?: number; className?: string; colSpan?: string }) => {
@@ -1566,13 +1591,13 @@ Assinatura do Profissional`;
                   Restaurar Padrão
                 </Button>
               )}
-              {/* FASE C1.9: Bloquear edição de layout em read-only */}
+              {/* FASE C1.11: Bloquear edição de layout em read-only ou sem acesso ao paciente */}
               <Button
                 onClick={isEditMode ? handleExitEditMode : handleEnterEditMode}
                 variant={isEditMode ? "default" : "outline"}
                 size="sm"
-                disabled={isReadOnly}
-                title={isReadOnly ? 'Ação não permitida em modo somente leitura' : undefined}
+                disabled={isReadOnly || accessLevel === 'none'}
+                title={isReadOnly ? 'Ação não permitida em modo somente leitura' : accessLevel === 'none' ? 'Sem acesso ao paciente' : undefined}
               >
                 <Settings className="w-4 h-4 mr-2" />
                 {isEditMode ? 'Salvar Layout' : 'Editar Layout'}
