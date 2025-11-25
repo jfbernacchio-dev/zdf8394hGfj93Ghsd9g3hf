@@ -41,10 +41,8 @@ interface AddCardDialogProps {
   sectionCards?: Record<string, string[]>;
   // Props legadas (para compatibilidade)
   existingCardIds?: string[];
-  mode?: 'patient' | 'dashboard-unified' | 'evolution' | 'patient-overview';
+  mode?: 'patient' | 'dashboard-unified' | 'evolution';
   sectionConfig?: any;
-  // FASE C1.8: Props para modo patient-overview
-  availableOverviewCards?: Array<{ id: string; name: string; description: string }>;
 }
 
 /**
@@ -82,15 +80,11 @@ export const AddCardDialog = ({
   existingCardIds = [],
   mode,
   sectionConfig,
-  availableOverviewCards = [],
 }: AddCardDialogProps) => {
   const { getAvailableCardsForSection, canViewSection, loading: permissionsLoading } = useCardPermissions();
   
   // Detectar se está usando nova ou antiga API
   const isNewAPI = sectionCards !== undefined;
-  
-  // FASE C1.8: Detectar modo patient-overview
-  const isPatientOverviewMode = mode === 'patient-overview';
   
   // Estado: qual seção está selecionada
   const [selectedSection, setSelectedSection] = useState<string>('dashboard-financial');
@@ -273,122 +267,7 @@ export const AddCardDialog = ({
     );
   };
 
-  // FASE C1.8: Suportar modo patient-overview
-  if (isPatientOverviewMode) {
-    const availableCards = availableOverviewCards.filter(
-      card => !existingCardIds.includes(card.id)
-    );
-    const addedCards = availableOverviewCards.filter(
-      card => existingCardIds.includes(card.id)
-    );
-    
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl max-h-[80vh]">
-          <DialogHeader>
-            <DialogTitle>Gerenciar Cards Funcionais</DialogTitle>
-            <DialogDescription>
-              Adicione ou remova cards da seção Visão Geral do paciente
-            </DialogDescription>
-          </DialogHeader>
-
-          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'available' | 'added')}>
-            <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="available">
-                Disponível ({availableCards.length})
-              </TabsTrigger>
-              <TabsTrigger value="added">
-                Adicionados ({addedCards.length})
-              </TabsTrigger>
-            </TabsList>
-
-            {/* Cards disponíveis */}
-            <TabsContent value="available">
-              <ScrollArea className="h-[400px] pr-4">
-                {availableCards.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <p>Nenhum card disponível</p>
-                    <p className="text-xs mt-2">
-                      Todos os cards funcionais já foram adicionados
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-3 pb-4">
-                    {availableCards.map(card => (
-                      <Card key={card.id} className="p-4 hover:border-primary/50 transition-colors">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-sm mb-1">{card.name}</h4>
-                            <p className="text-xs text-muted-foreground line-clamp-2">
-                              {card.description}
-                            </p>
-                          </div>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => {
-                              (onAddCard as (cardConfig: CardConfig) => void)({ 
-                                id: card.id, 
-                                name: card.name 
-                              } as CardConfig);
-                            }}
-                            className="shrink-0"
-                          >
-                            <Plus className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </ScrollArea>
-            </TabsContent>
-
-            {/* Cards adicionados */}
-            <TabsContent value="added">
-              <ScrollArea className="h-[400px] pr-4">
-                {addedCards.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <p>Nenhum card adicionado</p>
-                    <p className="text-xs mt-2">
-                      Vá para a aba "Disponível" para adicionar cards
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-3 pb-4">
-                    {addedCards.map(card => (
-                      <Card key={card.id} className="p-4 hover:border-primary/50 transition-colors">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-sm mb-1">{card.name}</h4>
-                            <p className="text-xs text-muted-foreground line-clamp-2">
-                              {card.description}
-                            </p>
-                          </div>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => {
-                              (onRemoveCard as (cardId: string) => void)(card.id);
-                            }}
-                            className="shrink-0 text-destructive hover:text-destructive"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </ScrollArea>
-            </TabsContent>
-          </Tabs>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-  
-  // Se não está usando nova API e não é patient-overview, retornar null (modo legado não implementado)
+  // Se não está usando nova API, retornar null por enquanto (modo legado não implementado)
   if (!isNewAPI) {
     return null;
   }

@@ -59,15 +59,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { 
-  PATIENT_OVERVIEW_CARDS, 
-  getPatientOverviewCardDefinition,
-  canUserSeeOverviewCard,
-  getDefaultPatientOverviewCardIds,
-  type PatientOverviewPermissionContext 
-} from '@/config/patientOverviewCards';
-import { usePatientOverviewLayout } from '@/hooks/usePatientOverviewLayout';
-import { getLayoutCardIds } from '@/lib/patientOverviewLayout';
 
 const PatientDetailNew = () => {
   const { id } = useParams();
@@ -136,181 +127,7 @@ const PatientDetailNew = () => {
   const [tempSizes, setTempSizes] = useState<Record<string, { width: number; height: number; x: number; y: number }>>({});
   const [tempSectionHeights, setTempSectionHeights] = useState<Record<string, number>>({});
   const [isAddCardDialogOpen, setIsAddCardDialogOpen] = useState(false);
-  
-  // ============================================================================
-  // FASE C1.12.1: CORREÇÃO CRÍTICA - Inicialização de visibleCards
-  // ============================================================================
-  //
-  // PROBLEMA DETECTADO NA C1.12:
-  // - visibleCards estava sendo inicializado como array vazio []
-  // - Isso fazia com que NENHUM functional card aparecesse por padrão
-  // - Apenas STAT cards eram visíveis inicialmente
-  //
-  // SOLUÇÃO:
-  // - Inicializar com getDefaultPatientOverviewCardIds()
-  // - Isso garante que functional cards com isDefaultVisible: true apareçam
-  // - Comportamento consistente com a intenção do sistema
-  //
-  // FUNCTIONAL CARDS AFETADOS (agora aparecem corretamente):
-  // - patient-next-appointment
-  // - patient-contact-info
-  // - patient-clinical-complaint
-  // - patient-clinical-info
-  // - patient-history
-  // ============================================================================
-  const [visibleCards, setVisibleCards] = useState<string[]>(() => 
-    getDefaultPatientOverviewCardIds()
-  );
-  
-  // FASE C1.2: Derive card IDs from catalog
-  const allOverviewCardIds = Object.keys(PATIENT_OVERVIEW_CARDS);
-  const statCardIds = Object.values(PATIENT_OVERVIEW_CARDS)
-    .filter(card => card.cardCategory === 'statistical')
-    .map(card => card.id);
-  const functionalCardIds = Object.values(PATIENT_OVERVIEW_CARDS)
-    .filter(card => card.cardCategory === 'functional')
-    .map(card => card.id);
-  
-  // FASE C1.4 & C1.7: Use layout system to control card order
-  const {
-    layout: overviewLayout,
-    isLoading: isOverviewLayoutLoading,
-  } = usePatientOverviewLayout({
-    userId: user?.id || '',
-    organizationId: organizationId || '',
-  });
-  
-  // FASE C1.6: Build permission context for card filtering
-  const isOrgOwner = false; // TODO: Implementar verificação de owner quando necessário
-  // ============================================================================
-  // FASE C1.10: CONTEXTO DE PERMISSÕES PARA CARDS DA ABA "VISÃO GERAL"
-  // ============================================================================
-  //
-  // Este objeto alimenta canUserSeeOverviewCard() e é o ÚNICO LUGAR onde
-  // regras de permissão são centralizadas para os cards da Visão Geral.
-  //
-  // IMPORTANTE:
-  // - Montado UMA VEZ por renderização
-  // - Reutilizado para TODOS os cards (STAT e FUNCTIONAL)
-  // - NÃO deve ser duplicado em outros lugares do código
-  //
-  // Campos:
-  // - roleGlobal: Role do usuário na organização (admin, fulltherapist, etc.)
-  // - isClinicalProfessional: Se é um profissional clínico (psicólogo, etc.)
-  // - isAdminOrOwner: Se tem poderes administrativos totais
-  // - financialAccess: Nível de acesso financeiro (none, read, write, full)
-  // - canAccessClinical: Permissão geral para dados clínicos
-  // - patientAccessLevel: Acesso específico a ESTE paciente (none, read, write)
-  // ============================================================================
-  const permissionCtx: PatientOverviewPermissionContext = {
-    roleGlobal,
-    isClinicalProfessional: effectiveIsClinicalProfessional,
-    isAdminOrOwner: isAdmin || isOrgOwner,
-    financialAccess,
-    canAccessClinical,
-    patientAccessLevel: accessLevel,
-  };
-  
-  // ============================================================================
-  // FASE C1.10: FILTRO CENTRAL DE PERMISSÕES
-  // ============================================================================
-  //
-  // Este é o ÚNICO PONTO onde canUserSeeOverviewCard() é chamado.
-  // O resultado é reutilizado para STAT e FUNCTIONAL cards.
-  //
-  // Pipeline até aqui:
-  // 1. ✅ Catálogo completo (PATIENT_OVERVIEW_CARDS)
-  // 2. ✅ Contexto de permissões montado (permissionCtx)
-  // 3. → Filtrar TODOS os cards por permissão (aqui)
-  //
-  // Próximos passos (aplicados separadamente para STAT e FUNCTIONAL):
-  // 4. Separar por categoria (statistical vs functional)
-  // 5. Ordenar por layout
-  // 6. Aplicar preferências (visibleCards - apenas para FUNCTIONAL)
-  // ============================================================================
-  const permittedOverviewCardIds = allOverviewCardIds.filter((cardId) => {
-    const def = getPatientOverviewCardDefinition(cardId);
-    if (!def) return false;
-    return canUserSeeOverviewCard(permissionCtx, def);
-  });
-  
-  // ============================================================================
-  // FASE C1.10: HELPER DE ORDENAÇÃO POR LAYOUT
-  // ============================================================================
-  //
-  // Esta função aplica a ordenação definida pelo layout aos cards permitidos.
-  //
-  // Parâmetros:
-  // - layout: Array de PatientOverviewCardLayout (posições x, y, w, h)
-  // - permittedIds: IDs que passaram pelo filtro de permissão
-  //
-  // Retorno:
-  // - Array de IDs ordenados conforme o layout
-  //
-  // Fallback:
-  // - Se layout estiver vazio/corrompido → retorna permittedIds na ordem original
-  //
-  // IMPORTANTE:
-  // - Esta função é REUTILIZADA para STAT e FUNCTIONAL cards separadamente
-  // - A ordenação respeita a hierarquia y (linha) → x (coluna) do layout
-  // ============================================================================
-  const layoutToOrderedCardIds = (
-    layout: typeof overviewLayout,
-    permittedIds: string[]
-  ): string[] => {
-    if (!layout || layout.length === 0) {
-      // Fallback: return permitted IDs in original order
-      return permittedIds;
-    }
-    
-    // Get card IDs from layout in order (layout already defines the order via y, x positions)
-    const layoutCardIds = getLayoutCardIds(layout);
-    
-    // Filter to include only permitted IDs, maintaining layout order
-    return layoutCardIds.filter(id => permittedIds.includes(id));
-  };
-  
-  // ============================================================================
-  // FASE C1.10: PIPELINE COMPLETO DE CARDS (STAT E FUNCTIONAL)
-  // ============================================================================
-  //
-  // Pipeline de 5 etapas (aplicado separadamente para STAT e FUNCTIONAL):
-  //
-  // ETAPA 1: ✅ Catálogo (allOverviewCardIds - já feito acima)
-  // ETAPA 2: ✅ Separação por categoria (statCardIds vs functionalCardIds)
-  // ETAPA 3: ✅ Filtro de permissões (permittedOverviewCardIds - já feito acima)
-  // ETAPA 4: ✅ Ordenação por layout (layoutToOrderedCardIds - aqui)
-  // ETAPA 5: Preferências do usuário (visibleCards - aplicado apenas a FUNCTIONAL)
-  //
-  // DIFERENÇAS ENTRE STAT E FUNCTIONAL:
-  //
-  // 📊 STAT CARDS:
-  //   - Sempre visíveis (se passarem por permissão)
-  //   - NÃO filtrados por visibleCards
-  //   - NÃO aparecem no AddCardDialog
-  //   - NÃO podem ser removidos via UI
-  //
-  // 🎯 FUNCTIONAL CARDS:
-  //   - Visibilidade controlada por visibleCards (ETAPA 5)
-  //   - Aparecem no AddCardDialog (mode="patient-overview")
-  //   - Podem ser adicionados/removidos via UI
-  //
-  // IMPORTANTE:
-  // - orderedStatCardIds → renderizado diretamente (sempre)
-  // - orderedFunctionalCardIds → renderizado apenas se isCardVisible(id) === true
-  // ============================================================================
-  
-  // STAT CARDS: Aplicar ETAPAS 3 e 4
-  const permittedStatCardIds = statCardIds.filter((id) =>
-    permittedOverviewCardIds.includes(id)
-  );
-  const orderedStatCardIds = layoutToOrderedCardIds(overviewLayout, permittedStatCardIds);
-  
-  // FUNCTIONAL CARDS: Aplicar ETAPAS 3 e 4 (ETAPA 5 aplicada na renderização)
-  const permittedFunctionalCardIds = functionalCardIds.filter((id) =>
-    permittedOverviewCardIds.includes(id)
-  );
-  const orderedFunctionalCardIds = layoutToOrderedCardIds(overviewLayout, permittedFunctionalCardIds);
+  const [visibleCards, setVisibleCards] = useState<string[]>([]);
   
   const getBrazilDate = () => {
     return new Date().toLocaleString('en-CA', { 
@@ -371,18 +188,8 @@ const PatientDetailNew = () => {
     if (savedCards) {
       setVisibleCards(JSON.parse(savedCards));
     } else {
-      // Default: mostrar todos os cards que são visíveis por padrão no catálogo
-      const defaultVisible = Object.values(PATIENT_OVERVIEW_CARDS)
-        .filter(card => card.isDefaultVisible)
-        .map(card => card.id);
-      setVisibleCards(defaultVisible);
-    }
-    
-    // FASE C1.5: Validação de convergência em desenvolvimento
-    if (process.env.NODE_ENV === 'development') {
-      import('@/lib/patientOverviewLayout').then(({ logLayoutConvergenceStatus }) => {
-        logLayoutConvergenceStatus();
-      });
+      // Use default layout
+      setVisibleCards(DEFAULT_LAYOUT.visibleCards);
     }
 
     // Set default section heights if not already set
@@ -1395,32 +1202,7 @@ Assinatura do Profissional`;
     toast.info('Card removido do layout');
   };
 
-  // ============================================================================
-  // FASE C1.11: ETAPA 5 DO PIPELINE - FILTRO DE PREFERÊNCIAS (visibleCards)
-  // ============================================================================
-  //
-  // Esta função implementa a ETAPA 5 do pipeline para FUNCTIONAL cards.
-  //
-  // Comportamento:
-  // - STAT cards (category='statistical'): SEMPRE visíveis (retorna true)
-  // - FUNCTIONAL cards (category='functional'): Apenas se estiver em visibleCards
-  //
-  // IMPORTANTE:
-  // - Esta função é chamada durante a renderização de FUNCTIONAL cards
-  // - STAT cards NÃO passam por esta função (são renderizados diretamente)
-  // - Mantém consistência com o pipeline CAT→PERM→LAYOUT→VISIBLE→RENDER
-  // ============================================================================
-  const isCardVisible = (cardId: string) => {
-    const def = getPatientOverviewCardDefinition(cardId);
-    
-    // STAT cards: sempre visíveis (se passaram por permissão)
-    if (def?.cardCategory === 'statistical') {
-      return true;
-    }
-    
-    // FUNCTIONAL cards: apenas se estiver em visibleCards
-    return visibleCards.includes(cardId);
-  };
+  const isCardVisible = (cardId: string) => visibleCards.includes(cardId);
 
   // Helper to render functional cards with remove button in edit mode
   const renderFunctionalCard = (cardId: string, content: React.ReactNode, config?: { width?: number; height?: number; className?: string; colSpan?: string }) => {
@@ -1496,6 +1278,8 @@ Assinatura do Profissional`;
 
   // Render helper for stat cards
   const renderStatCard = (cardId: string) => {
+    if (!isCardVisible(cardId)) return null;
+
     const statConfigs: Record<string, { label: string; value: number | string; sublabel: string; color?: string }> = {
       'patient-stat-total': { label: 'Total no Mês', value: totalMonthSessions, sublabel: 'sessões', color: 'text-foreground' },
       'patient-stat-attended': { label: 'Comparecidas', value: attendedMonthSessions, sublabel: 'no mês', color: 'text-accent' },
@@ -1525,7 +1309,16 @@ Assinatura do Profissional`;
         allCardSizes={tempSizes}
         className="p-4 relative"
       >
-        {/* FASE C1.9: Stat cards não têm botão de remoção */}
+        {isEditMode && (
+          <Button
+            variant="destructive"
+            size="icon"
+            className="absolute top-2 right-2 h-6 w-6 z-50"
+            onClick={() => handleRemoveCard(cardId)}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
         <div className="flex flex-col">
           <p className="text-sm text-muted-foreground mb-1">{config.label}</p>
           <p className={cn("text-3xl font-bold", config.color)}>{config.value}</p>
@@ -1616,13 +1409,10 @@ Assinatura do Profissional`;
                   Restaurar Padrão
                 </Button>
               )}
-              {/* FASE C1.11: Bloquear edição de layout em read-only ou sem acesso ao paciente */}
               <Button
                 onClick={isEditMode ? handleExitEditMode : handleEnterEditMode}
                 variant={isEditMode ? "default" : "outline"}
                 size="sm"
-                disabled={isReadOnly || accessLevel === 'none'}
-                title={isReadOnly ? 'Ação não permitida em modo somente leitura' : accessLevel === 'none' ? 'Sem acesso ao paciente' : undefined}
               >
                 <Settings className="w-4 h-4 mr-2" />
                 {isEditMode ? 'Salvar Layout' : 'Editar Layout'}
@@ -1671,7 +1461,19 @@ Assinatura do Profissional`;
 
         {/* Monthly Stats at Top - Always Visible */}
         <div className="mb-4">
-          {/* FASE C1.8: Botão removido daqui, permanece apenas dentro da aba Overview */}
+          {isEditMode && (
+            <div className="flex justify-end mb-4">
+              <Button
+                onClick={() => setIsAddCardDialogOpen(true)}
+                size="sm"
+                variant="outline"
+                className="gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Adicionar Card
+              </Button>
+            </div>
+          )}
           <ResizableSection
             id="patient-stats-section"
             isEditMode={isEditMode}
@@ -1680,7 +1482,9 @@ Assinatura do Profissional`;
             onTempHeightChange={handleTempSectionHeightChange}
           >
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              {orderedStatCardIds.map(cardId => renderStatCard(cardId))}
+              {['patient-stat-total', 'patient-stat-attended', 'patient-stat-scheduled', 'patient-stat-unpaid', 'patient-stat-nfse',
+                'patient-stat-total-all', 'patient-stat-revenue-month', 'patient-stat-paid-month', 'patient-stat-missed-month',
+                'patient-stat-attendance-rate', 'patient-stat-unscheduled-month'].map(cardId => renderStatCard(cardId))}
             </div>
           </ResizableSection>
         </div>
@@ -1710,73 +1514,23 @@ Assinatura do Profissional`;
             </Button>
           </div>
 
-          {/* ====================================================================
-              FASE C1.10: ABA "VISÃO GERAL" - SISTEMA DE CARDS
-              ====================================================================
-              
-              Esta aba contém o sistema de cards modular da Visão Geral,
-              implementado nas FASES C1.0 até C1.9 e documentado na C1.10.
-              
-              ESTRUTURA:
-              1. Botão "Adicionar Card" (apenas em isEditMode && !isReadOnly)
-              2. Seção de STAT CARDS (sempre no topo)
-              3. Seção de FUNCTIONAL CARDS (abaixo, controlada por visibleCards)
-              
-              INTEGRAÇÃO COM ADDCARDDIALOG:
-              - AddCardDialog opera em mode="patient-overview"
-              - Gerencia apenas FUNCTIONAL cards
-              - Lista de cards disponíveis = orderedFunctionalCardIds.filter(!visibleCards)
-              - Callbacks: handleAddCard() e handleRemoveCard()
-              
-              MODO DE EDIÇÃO:
-              - isEditMode=true: Permite editar layout, adicionar/remover cards
-              - isReadOnly=true: Bloqueia todas as edições (peer sharing)
-              
-              FUTURO (preparado mas não implementado):
-              - Templates por professionalRole
-              - Templates por clinicalApproach
-              - Grid com drag & drop (React Grid Layout)
-              - Sincronização via Supabase
-              ==================================================================== */}
-          <TabsContent value="overview" className="space-y-6">
-            {/* BOTÃO "ADICIONAR CARD" - Apenas em modo de edição */}
-            {isEditMode && !isReadOnly && (
-              <div className="flex justify-end mb-4">
-                <Button
-                  onClick={() => setIsAddCardDialogOpen(true)}
-                  size="sm"
-                  variant="outline"
-                  className="gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  Adicionar Card
-                </Button>
-              </div>
-            )}
+           {/* Overview Tab */}
+           <TabsContent value="overview" className="space-y-6">
+             {isEditMode && (
+               <div className="flex justify-end mb-4">
+                 <Button
+                   onClick={() => setIsAddCardDialogOpen(true)}
+                   size="sm"
+                   variant="outline"
+                   className="gap-2"
+                 >
+                   <Plus className="w-4 h-4" />
+                   Adicionar Card
+                 </Button>
+               </div>
+             )}
 
-              {/* ================================================================
-                  SEÇÃO DE FUNCTIONAL CARDS
-                  ================================================================
-                  
-                  Renderização dos cards funcionais (category='functional').
-                  
-                  PIPELINE APLICADO ATÉ AQUI:
-                  1. ✅ Catálogo (PATIENT_OVERVIEW_CARDS)
-                  2. ✅ Filtro por categoria (functionalCardIds)
-                  3. ✅ Filtro por permissões (permittedFunctionalCardIds)
-                  4. ✅ Ordenação por layout (orderedFunctionalCardIds)
-                  5. → Filtro por preferências (isCardVisible - aplicado abaixo)
-                  
-                  IMPORTANTE:
-                  - isCardVisible(cardId) implementa a ETAPA 5 do pipeline
-                  - Apenas cards em visibleCards são renderizados
-                  - STAT cards sempre passam por isCardVisible (não são filtrados)
-                  - FUNCTIONAL cards são filtrados por visibleCards
-                  
-                  GRID:
-                  - Responsivo: 1 coluna em mobile, 3 colunas em desktop
-                  - Preparado para substituição por React Grid Layout (futuro)
-                  ================================================================ */}
+              {/* Functional Cards Section */}
               <ResizableSection
                 id="patient-functional-section"
                 isEditMode={isEditMode}
@@ -1785,368 +1539,344 @@ Assinatura do Profissional`;
                 onTempHeightChange={handleTempSectionHeightChange}
               >
                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                 {/* Loop através dos FUNCTIONAL cards ordenados por layout */}
-                 {orderedFunctionalCardIds.map(cardId => {
-                   // ETAPA 5 DO PIPELINE: Filtrar por visibleCards
-                   // Se o card não estiver visível, pular renderização
-                   if (!isCardVisible(cardId)) return null;
-                   
-                   // Render each card based on its ID
-                   if (cardId === 'patient-next-appointment' && nextSession) {
-                     return renderFunctionalCard(
-                       'patient-next-appointment',
-                       <div className="flex flex-col">
-                         <p className="text-sm font-medium text-muted-foreground mb-2">Próximo Agendamento</p>
-                         <div className="flex items-center gap-2 mb-1">
-                           <Calendar className="w-5 h-5 text-primary" />
-                           <p className="text-xl font-bold text-foreground">
-                             {format(parseISO(nextSession.date), "EEE, dd 'de' MMM", { locale: ptBR })}
-                           </p>
+                 {nextSession && isCardVisible('patient-next-appointment') && renderFunctionalCard(
+                 'patient-next-appointment',
+                 <div className="flex flex-col">
+                   <p className="text-sm font-medium text-muted-foreground mb-2">Próximo Agendamento</p>
+                   <div className="flex items-center gap-2 mb-1">
+                     <Calendar className="w-5 h-5 text-primary" />
+                     <p className="text-xl font-bold text-foreground">
+                       {format(parseISO(nextSession.date), "EEE, dd 'de' MMM", { locale: ptBR })}
+                     </p>
+                   </div>
+                   <div className="flex items-center gap-2 text-muted-foreground">
+                     <Clock className="w-4 h-4" />
+                     <p className="text-base">{nextSession.time || 'Horário não definido'}</p>
+                   </div>
+                   <Badge variant="secondary" className="bg-primary/10 text-primary mt-3 self-start">Agendada</Badge>
+                 </div>,
+                 { className: 'bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20' }
+               )}
+
+               {isCardVisible('patient-contact-info') && renderFunctionalCard(
+                 'patient-contact-info',
+                 <>
+                   <h3 className="font-semibold text-lg mb-4">Informações de Contato</h3>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                     {patient.phone && (
+                       <div className="flex items-start gap-3">
+                         <Phone className="w-4 h-4 text-muted-foreground mt-1" />
+                         <div>
+                           <p className="text-sm text-muted-foreground">Telefone</p>
+                           <p className="font-medium">{patient.phone}</p>
                          </div>
-                         <div className="flex items-center gap-2 text-muted-foreground">
-                           <Clock className="w-4 h-4" />
-                           <p className="text-base">{nextSession.time || 'Horário não definido'}</p>
+                       </div>
+                     )}
+                     {patient.email && (
+                       <div className="flex items-start gap-3">
+                         <Mail className="w-4 h-4 text-muted-foreground mt-1" />
+                         <div>
+                           <p className="text-sm text-muted-foreground">Email</p>
+                           <p className="font-medium text-sm">{patient.email}</p>
                          </div>
-                         <Badge variant="secondary" className="bg-primary/10 text-primary mt-3 self-start">Agendada</Badge>
-                       </div>,
-                       { className: 'bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20' }
-                     );
-                   }
-                   
-                   if (cardId === 'patient-contact-info') {
-                     return renderFunctionalCard(
-                       'patient-contact-info',
-                       <>
-                         <h3 className="font-semibold text-lg mb-4">Informações de Contato</h3>
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                           {patient.phone && (
-                             <div className="flex items-start gap-3">
-                               <Phone className="w-4 h-4 text-muted-foreground mt-1" />
-                               <div>
-                                 <p className="text-sm text-muted-foreground">Telefone</p>
-                                 <p className="font-medium">{patient.phone}</p>
-                               </div>
-                             </div>
-                           )}
-                           {patient.email && (
-                             <div className="flex items-start gap-3">
-                               <Mail className="w-4 h-4 text-muted-foreground mt-1" />
-                               <div>
-                                 <p className="text-sm text-muted-foreground">Email</p>
-                                 <p className="font-medium text-sm">{patient.email}</p>
-                               </div>
-                             </div>
-                           )}
-                           {patient.address && (
-                             <div className="flex items-start gap-3">
-                               <MapPin className="w-4 h-4 text-muted-foreground mt-1" />
-                               <div>
-                                 <p className="text-sm text-muted-foreground">Endereço</p>
-                                 <p className="font-medium text-sm">{patient.address}</p>
-                               </div>
-                             </div>
-                           )}
-                           {patient.cpf && (
-                             <div className="flex items-start gap-3">
-                               <User className="w-4 h-4 text-muted-foreground mt-1" />
-                               <div>
-                                 <p className="text-sm text-muted-foreground">CPF</p>
-                                 <p className="font-medium">{patient.cpf}</p>
-                               </div>
-                             </div>
-                           )}
+                       </div>
+                     )}
+                     {patient.address && (
+                       <div className="flex items-start gap-3">
+                         <MapPin className="w-4 h-4 text-muted-foreground mt-1" />
+                         <div>
+                           <p className="text-sm text-muted-foreground">Endereço</p>
+                           <p className="font-medium text-sm">{patient.address}</p>
                          </div>
-                       </>
-                     );
-                   }
-                   
-                   if (cardId === 'patient-clinical-complaint') {
-                     return renderFunctionalCard(
-                       'patient-clinical-complaint',
-                       <>
-                         <div className="flex items-center justify-between mb-4">
-                           <h3 className="font-semibold text-lg flex items-center gap-2">
-                             <FileText className="w-5 h-5 text-primary" />
-                             Queixa Clínica
-                           </h3>
-                           <Button 
-                             onClick={() => setIsComplaintDialogOpen(true)} 
-                             size="sm"
-                             variant="ghost"
+                       </div>
+                     )}
+                     {patient.cpf && (
+                       <div className="flex items-start gap-3">
+                         <User className="w-4 h-4 text-muted-foreground mt-1" />
+                         <div>
+                           <p className="text-sm text-muted-foreground">CPF</p>
+                           <p className="font-medium">{patient.cpf}</p>
+                         </div>
+                       </div>
+                     )}
+                   </div>
+                 </>
+               )}
+
+               {isCardVisible('patient-clinical-complaint') && renderFunctionalCard(
+                 'patient-clinical-complaint',
+                 <>
+                   <div className="flex items-center justify-between mb-4">
+                     <h3 className="font-semibold text-lg flex items-center gap-2">
+                       <FileText className="w-5 h-5 text-primary" />
+                       Queixa Clínica
+                     </h3>
+                     <Button 
+                       onClick={() => setIsComplaintDialogOpen(true)} 
+                       size="sm"
+                       variant="ghost"
+                     >
+                       <Edit className="w-4 h-4" />
+                     </Button>
+                   </div>
+                   {needsComplaintReview && (
+                     <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex items-start gap-2">
+                       <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5" />
+                       <div className="flex-1">
+                         <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                           Atualização necessária
+                         </p>
+                         <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                           Revisar queixa clínica
+                         </p>
+                       </div>
+                     </div>
+                   )}
+                   <div className="text-sm text-muted-foreground">
+                     {complaint?.complaint_text || 'Nenhuma queixa registrada'}
+                   </div>
+                  </>
+                  )}
+
+                   {isCardVisible('patient-clinical-info') && renderFunctionalCard(
+                 'patient-clinical-info',
+                 <>
+                   <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                     <Tag className="w-5 h-5 text-primary" />
+                     Informações Clínicas
+                   </h3>
+                   <div className="space-y-3">
+                     <div className="flex items-center justify-between py-2 border-b">
+                       <span className="text-muted-foreground">Profissional</span>
+                       <span className="font-medium">{userProfile?.full_name || 'Não definido'}</span>
+                     </div>
+                     <div className="flex items-center justify-between py-2 border-b">
+                       <span className="text-muted-foreground">Valor da Sessão</span>
+                       <span className="font-medium">{formatBrazilianCurrency(patient.session_value)}</span>
+                     </div>
+                     <div className="flex items-center justify-between py-2 border-b">
+                       <span className="text-muted-foreground">Modalidade</span>
+                       <Badge variant="outline">{patient.monthly_price ? 'Mensal' : 'Por Sessão'}</Badge>
+                     </div>
+                     <div className="flex items-center justify-between py-2">
+                       <span className="text-muted-foreground">Horário Padrão</span>
+                       <span className="font-medium">{patient.session_time || 'Não definido'}</span>
+                     </div>
+                   </div>
+                 </>,
+                 { width: 700, height: 280, className: 'lg:col-span-2' }
+                )}
+
+                  {isCardVisible('patient-history') && renderFunctionalCard(
+                   'patient-history',
+                   <>
+                     <div className="flex items-center justify-between mb-4">
+                       <h3 className="font-semibold text-lg">Histórico</h3>
+                     </div>
+                     <div className={cn("space-y-3", !showFullHistory && "max-h-[200px] overflow-hidden relative")}>
+                       {sessionHistory.length > 0 ? (
+                         sessionHistory.slice(0, showFullHistory ? undefined : 3).map((history) => (
+                           <div 
+                             key={history.id}
+                             className="p-3 rounded-lg border bg-card text-xs"
                            >
-                             <Edit className="w-4 h-4" />
-                           </Button>
-                         </div>
-                         {needsComplaintReview && (
-                           <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg flex items-start gap-2">
-                             <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5" />
-                             <div className="flex-1">
-                               <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                                 Atualização necessária
-                               </p>
-                               <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
-                                 Revisar queixa clínica
-                               </p>
-                             </div>
-                           </div>
-                         )}
-                         <div className="text-sm text-muted-foreground">
-                           {complaint?.complaint_text || 'Nenhuma queixa registrada'}
-                         </div>
-                       </>
-                     );
-                   }
-                   
-                   if (cardId === 'patient-clinical-info') {
-                     return renderFunctionalCard(
-                       'patient-clinical-info',
-                       <>
-                         <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                           <Tag className="w-5 h-5 text-primary" />
-                           Informações Clínicas
-                         </h3>
-                         <div className="space-y-3">
-                           <div className="flex items-center justify-between py-2 border-b">
-                             <span className="text-muted-foreground">Profissional</span>
-                             <span className="font-medium">{userProfile?.full_name || 'Não definido'}</span>
-                           </div>
-                           <div className="flex items-center justify-between py-2 border-b">
-                             <span className="text-muted-foreground">Valor da Sessão</span>
-                             <span className="font-medium">{formatBrazilianCurrency(patient.session_value)}</span>
-                           </div>
-                           <div className="flex items-center justify-between py-2 border-b">
-                             <span className="text-muted-foreground">Modalidade</span>
-                             <Badge variant="outline">{patient.monthly_price ? 'Mensal' : 'Por Sessão'}</Badge>
-                           </div>
-                           <div className="flex items-center justify-between py-2">
-                             <span className="text-muted-foreground">Horário Padrão</span>
-                             <span className="font-medium">{patient.session_time || 'Não definido'}</span>
-                           </div>
-                         </div>
-                       </>,
-                       { width: 700, height: 280, className: 'lg:col-span-2' }
-                     );
-                   }
-                   
-                   if (cardId === 'patient-history') {
-                     return renderFunctionalCard(
-                       'patient-history',
-                       <>
-                         <div className="flex items-center justify-between mb-4">
-                           <h3 className="font-semibold text-lg">Histórico</h3>
-                         </div>
-                         <div className={cn("space-y-3", !showFullHistory && "max-h-[200px] overflow-hidden relative")}>
-                           {sessionHistory.length > 0 ? (
-                             sessionHistory.slice(0, showFullHistory ? undefined : 3).map((history) => (
-                               <div 
-                                 key={history.id}
-                                 className="p-3 rounded-lg border bg-card text-xs"
-                               >
-                                 <p className="text-muted-foreground">
-                                   {format(new Date(history.changed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                                 </p>
-                                 <p className="mt-1">
-                                   <span className="line-through text-muted-foreground">
-                                     {history.old_day} {history.old_time}
-                                   </span>
-                                   {' → '}
-                                   <span className="font-medium">
-                                     {history.new_day} {history.new_time}
-                                   </span>
-                                 </p>
-                               </div>
-                             ))
-                           ) : (
-                             <p className="text-sm text-muted-foreground text-center py-4">
-                               Nenhuma alteração registrada
+                             <p className="text-muted-foreground">
+                               {format(new Date(history.changed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                              </p>
-                           )}
-                           {!showFullHistory && sessionHistory.length > 3 && (
-                             <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-card to-transparent" />
-                           )}
-                         </div>
-                         {sessionHistory.length > 3 && (
-                           <Button
-                             variant="ghost"
-                             size="sm"
-                             onClick={() => setShowFullHistory(!showFullHistory)}
-                             className="w-full mt-2 text-xs"
-                           >
-                             {showFullHistory ? (
-                               <>
-                                 <ChevronUp className="w-3 h-3 mr-1" />
-                                 Mostrar menos
-                               </>
-                             ) : (
-                               <>
-                                 <ChevronDown className="w-3 h-3 mr-1" />
-                                 Mostrar mais
-                               </>
-                             )}
-                           </Button>
-                         )}
-                       </>,
-                       { width: 350, height: 280 }
-                     );
-                   }
-                   
-                   if (cardId === 'recent-notes') {
-                     return renderFunctionalCard(
-                       'recent-notes',
-                       <>
-                         <h3 className="font-semibold text-lg mb-4">Últimas Notas</h3>
-                         <ScrollArea className="h-[200px]">
-                           <div className="space-y-3">
-                             {recentSessions.length > 0 ? (
-                               recentSessions.map((session) => (
-                                 <div key={session.id} className="p-3 rounded-lg border bg-card text-xs">
-                                   <p className="text-muted-foreground mb-1">
-                                     {format(parseISO(session.date), 'dd/MM/yyyy')}
-                                   </p>
-                                   <p className="text-sm">{session.notes}</p>
-                                 </div>
-                               ))
-                             ) : (
-                               <p className="text-sm text-muted-foreground text-center py-4">
-                                 Nenhuma nota registrada
-                               </p>
-                             )}
-                           </div>
-                         </ScrollArea>
-                       </>,
-                       { width: 350, height: 300 }
-                     );
-                   }
-                   
-                   if (cardId === 'quick-actions') {
-                     return renderFunctionalCard(
-                       'quick-actions',
-                       <>
-                         <h3 className="font-semibold text-lg mb-4">Ações Rápidas</h3>
-                         <div className="space-y-2">
-                           {/* 🔐 FASE 8: Desabilitar ações em modo somente leitura */}
-                           <Button 
-                             onClick={openNewSessionDialog} 
-                             className="w-full justify-start gap-2"
-                             variant="outline"
-                             disabled={isReadOnly}
-                             title={isReadOnly ? 'Ação não permitida em modo somente leitura' : undefined}
-                           >
-                             <Plus className="w-4 h-4" />
-                             Nova Sessão
-                           </Button>
-                           <Button 
-                             onClick={() => setIsNoteDialogOpen(true)} 
-                             className="w-full justify-start gap-2"
-                             variant="outline"
-                             disabled={isReadOnly}
-                             title={isReadOnly ? 'Ação não permitida em modo somente leitura' : undefined}
-                           >
-                             <StickyNote className="w-4 h-4" />
-                             Nova Nota
-                           </Button>
-                           <Button 
-                             onClick={generateInvoice} 
-                             className="w-full justify-start gap-2"
-                             variant="outline"
-                             disabled={isReadOnly}
-                             title={isReadOnly ? 'Ação não permitida em modo somente leitura' : undefined}
-                           >
-                             <DollarSign className="w-4 h-4" />
-                             Gerar Recibo
-                           </Button>
-                           <Button 
-                             onClick={handleExportPatientData} 
-                             className="w-full justify-start gap-2"
-                             variant="outline"
-                           >
-                             <Download className="w-4 h-4" />
-                             Exportar Dados
-                           </Button>
-                        </div>
-                      </>,
-                      { width: 350, height: 280 }
-                     );
-                   }
-                   
-                   if (cardId === 'payment-summary') {
-                     return renderFunctionalCard(
-                       'payment-summary',
-                       <>
-                         <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                           <CreditCard className="w-5 h-5 text-primary" />
-                           Resumo de Pagamentos
-                         </h3>
-                         <div className="space-y-3">
-                           <div className="flex justify-between items-center py-2 border-b">
-                             <span className="text-sm text-muted-foreground">Total Faturado</span>
-                             <span className="font-semibold text-green-600">
-                               {formatBrazilianCurrency(revenueMonth)}
-                             </span>
-                           </div>
-                           <div className="flex justify-between items-center py-2 border-b">
-                             <span className="text-sm text-muted-foreground">Já Recebido</span>
-                             <span className="font-semibold text-green-500">
-                               {formatBrazilianCurrency(paidMonth)}
-                             </span>
-                           </div>
-                           <div className="flex justify-between items-center py-2">
-                             <span className="text-sm text-muted-foreground">Pendente</span>
-                             <span className="font-semibold text-orange-500">
-                               {formatBrazilianCurrency(revenueMonth - paidMonth)}
-                             </span>
-                           </div>
-                           <div className="mt-4 pt-2 border-t">
-                             <p className="text-xs text-muted-foreground">
-                               {unpaidMonthSessions} sessão(ões) não paga(s)
-                             </p>
-                           </div>
-                         </div>
-                       </>,
-                       { width: 350, height: 250 }
-                     );
-                   }
-                   
-                   if (cardId === 'session-frequency') {
-                     return renderFunctionalCard(
-                       'session-frequency',
-                       <>
-                         <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
-                           <Activity className="w-5 h-5 text-primary" />
-                           Frequência de Sessões
-                         </h3>
-                         <div className="space-y-3">
-                           <div className="flex justify-between items-center">
-                             <span className="text-sm text-muted-foreground">Dia padrão</span>
-                             <Badge variant="outline">{patient.session_day || 'Não definido'}</Badge>
-                           </div>
-                           <div className="flex justify-between items-center">
-                             <span className="text-sm text-muted-foreground">Horário padrão</span>
-                             <Badge variant="outline">{patient.session_time || 'Não definido'}</Badge>
-                           </div>
-                           <div className="mt-4 pt-3 border-t">
-                             <div className="flex items-center gap-2 mb-2">
-                               {attendanceRate >= 80 ? (
-                                 <TrendingUp className="w-4 h-4 text-green-500" />
-                               ) : (
-                                 <TrendingDown className="w-4 h-4 text-orange-500" />
-                               )}
-                               <span className="text-sm font-medium">
-                                 {attendanceRate >= 80 ? 'Frequência excelente' : 'Atenção à frequência'}
+                             <p className="mt-1">
+                               <span className="line-through text-muted-foreground">
+                                 {history.old_day} {history.old_time}
                                </span>
-                             </div>
-                             <p className="text-xs text-muted-foreground">
-                               Taxa de {attendanceRate}% de comparecimento
+                               {' → '}
+                               <span className="font-medium">
+                                 {history.new_day} {history.new_time}
+                               </span>
                              </p>
                            </div>
+                         ))
+                       ) : (
+                         <p className="text-sm text-muted-foreground text-center py-4">
+                           Nenhuma alteração registrada
+                         </p>
+                       )}
+                       {!showFullHistory && sessionHistory.length > 3 && (
+                         <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-card to-transparent" />
+                       )}
+                     </div>
+                     {sessionHistory.length > 3 && (
+                       <Button
+                         variant="ghost"
+                         size="sm"
+                         onClick={() => setShowFullHistory(!showFullHistory)}
+                         className="w-full mt-2 text-xs"
+                       >
+                         {showFullHistory ? (
+                           <>
+                             <ChevronUp className="w-3 h-3 mr-1" />
+                             Mostrar menos
+                           </>
+                         ) : (
+                           <>
+                             <ChevronDown className="w-3 h-3 mr-1" />
+                             Mostrar mais
+                           </>
+                         )}
+                       </Button>
+                     )}
+                   </>,
+                   { width: 350, height: 280 }
+                 )}
+
+                 {/* Recent Notes Card */}
+                 {isCardVisible('recent-notes') && renderFunctionalCard(
+                   'recent-notes',
+                   <>
+                     <h3 className="font-semibold text-lg mb-4">Últimas Notas</h3>
+                     <ScrollArea className="h-[200px]">
+                       <div className="space-y-3">
+                         {recentSessions.length > 0 ? (
+                           recentSessions.map((session) => (
+                             <div key={session.id} className="p-3 rounded-lg border bg-card text-xs">
+                               <p className="text-muted-foreground mb-1">
+                                 {format(parseISO(session.date), 'dd/MM/yyyy')}
+                               </p>
+                               <p className="text-sm">{session.notes}</p>
+                             </div>
+                           ))
+                         ) : (
+                           <p className="text-sm text-muted-foreground text-center py-4">
+                             Nenhuma nota registrada
+                           </p>
+                         )}
+                       </div>
+                     </ScrollArea>
+                   </>,
+                   { width: 350, height: 300 }
+                 )}
+
+                  {/* Quick Actions Card */}
+                  {isCardVisible('quick-actions') && renderFunctionalCard(
+                    'quick-actions',
+                    <>
+                      <h3 className="font-semibold text-lg mb-4">Ações Rápidas</h3>
+                      <div className="space-y-2">
+                        {/* 🔐 FASE 8: Desabilitar ações em modo somente leitura */}
+                        <Button 
+                          onClick={openNewSessionDialog} 
+                          className="w-full justify-start gap-2"
+                          variant="outline"
+                          disabled={isReadOnly}
+                          title={isReadOnly ? 'Ação não permitida em modo somente leitura' : undefined}
+                        >
+                          <Plus className="w-4 h-4" />
+                          Nova Sessão
+                        </Button>
+                        <Button 
+                          onClick={() => setIsNoteDialogOpen(true)} 
+                          className="w-full justify-start gap-2"
+                          variant="outline"
+                          disabled={isReadOnly}
+                          title={isReadOnly ? 'Ação não permitida em modo somente leitura' : undefined}
+                        >
+                          <StickyNote className="w-4 h-4" />
+                          Nova Nota
+                        </Button>
+                        <Button 
+                          onClick={generateInvoice} 
+                          className="w-full justify-start gap-2"
+                          variant="outline"
+                          disabled={isReadOnly}
+                          title={isReadOnly ? 'Ação não permitida em modo somente leitura' : undefined}
+                        >
+                          <DollarSign className="w-4 h-4" />
+                          Gerar Recibo
+                        </Button>
+                        <Button 
+                          onClick={handleExportPatientData} 
+                          className="w-full justify-start gap-2"
+                          variant="outline"
+                        >
+                          <Download className="w-4 h-4" />
+                          Exportar Dados
+                        </Button>
+                     </div>
+                   </>,
+                   { width: 350, height: 280 }
+                 )}
+
+                 {/* Payment Summary Card */}
+                 {isCardVisible('payment-summary') && renderFunctionalCard(
+                   'payment-summary',
+                   <>
+                     <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                       <CreditCard className="w-5 h-5 text-primary" />
+                       Resumo de Pagamentos
+                     </h3>
+                     <div className="space-y-3">
+                       <div className="flex justify-between items-center py-2 border-b">
+                         <span className="text-sm text-muted-foreground">Total Faturado</span>
+                         <span className="font-semibold text-green-600">
+                           {formatBrazilianCurrency(revenueMonth)}
+                         </span>
+                       </div>
+                       <div className="flex justify-between items-center py-2 border-b">
+                         <span className="text-sm text-muted-foreground">Já Recebido</span>
+                         <span className="font-semibold text-green-500">
+                           {formatBrazilianCurrency(paidMonth)}
+                         </span>
+                       </div>
+                       <div className="flex justify-between items-center py-2">
+                         <span className="text-sm text-muted-foreground">Pendente</span>
+                         <span className="font-semibold text-orange-500">
+                           {formatBrazilianCurrency(revenueMonth - paidMonth)}
+                         </span>
+                       </div>
+                       <div className="mt-4 pt-2 border-t">
+                         <p className="text-xs text-muted-foreground">
+                           {unpaidMonthSessions} sessão(ões) não paga(s)
+                         </p>
+                       </div>
+                     </div>
+                   </>,
+                   { width: 350, height: 250 }
+                 )}
+
+                 {/* Session Frequency Card */}
+                 {isCardVisible('session-frequency') && renderFunctionalCard(
+                   'session-frequency',
+                   <>
+                     <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                       <Activity className="w-5 h-5 text-primary" />
+                       Frequência de Sessões
+                     </h3>
+                     <div className="space-y-3">
+                       <div className="flex justify-between items-center">
+                         <span className="text-sm text-muted-foreground">Dia padrão</span>
+                         <Badge variant="outline">{patient.session_day || 'Não definido'}</Badge>
+                       </div>
+                       <div className="flex justify-between items-center">
+                         <span className="text-sm text-muted-foreground">Horário padrão</span>
+                         <Badge variant="outline">{patient.session_time || 'Não definido'}</Badge>
+                       </div>
+                       <div className="mt-4 pt-3 border-t">
+                         <div className="flex items-center gap-2 mb-2">
+                           {attendanceRate >= 80 ? (
+                             <TrendingUp className="w-4 h-4 text-green-500" />
+                           ) : (
+                             <TrendingDown className="w-4 h-4 text-orange-500" />
+                           )}
+                           <span className="text-sm font-medium">
+                             {attendanceRate >= 80 ? 'Frequência excelente' : 'Atenção à frequência'}
+                           </span>
                          </div>
-                       </>,
+                         <p className="text-xs text-muted-foreground">
+                           Taxa de {attendanceRate}% de comparecimento
+                         </p>
+                       </div>
+                     </div>
+                     </>,
                        { width: 350, height: 250 }
-                     );
-                   }
-                   
-                   return null;
-                 })}
+                    )}
                 </div>
               </ResizableSection>
            </TabsContent>
@@ -2893,27 +2623,13 @@ Assinatura do Profissional`;
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Add Card Dialog - FASE C1.8: Connected to patient overview */}
+      {/* Add Card Dialog */}
       <AddCardDialog
         open={isAddCardDialogOpen}
         onOpenChange={setIsAddCardDialogOpen}
         onAddCard={handleAddCard}
         onRemoveCard={handleRemoveCard}
         existingCardIds={visibleCards}
-        mode="patient-overview"
-        availableOverviewCards={
-          // Only functional cards that user has permission to see
-          functionalCardIds
-            .filter(id => permittedOverviewCardIds.includes(id))
-            .map(id => {
-              const def = getPatientOverviewCardDefinition(id);
-              return {
-                id,
-                name: def?.title || id,
-                description: def?.description || '',
-              };
-            })
-        }
       />
     </div>
   );
