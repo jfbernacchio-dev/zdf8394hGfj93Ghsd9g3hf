@@ -41,7 +41,8 @@ Na aba **"Certificado Digital"**:
 1. **Tipo de Certificado**: Selecione "A1 (arquivo .pfx/.p12)"
 2. **Válido até**: 19/02/2026
 3. **Arquivo do Certificado**: Clique em "Escolher arquivo" e selecione o arquivo `.pfx` fornecido
-4. **Senha do Certificado**: 1607Mindware
+4. **Senha do Certificado**: [SENHA_DO_CERTIFICADO_A1]
+   ⚠️ **Nunca commit a senha real aqui.**
 
 Clique em **"Salvar Certificado"**.
 
@@ -119,8 +120,8 @@ Certifique-se de que os dados do paciente estão completos antes de emitir a not
 
 ### "Certificado inválido"
 - Verifique se o arquivo .pfx está correto
-- Confirme se a senha está correta (1607Mindware)
-- Verifique a data de validade (19/02/2026)
+- Confirme se a senha está correta (solicite ao administrador)
+- Verifique a data de validade do certificado
 
 ### "Erro ao emitir NFSe"
 - Verifique se todos os dados do paciente estão preenchidos (especialmente CPF e email)
