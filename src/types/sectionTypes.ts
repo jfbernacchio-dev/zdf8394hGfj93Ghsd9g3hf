@@ -83,6 +83,12 @@ export interface SectionConfig {
   startCollapsed?: boolean;
   
   /**
+   * Se true, a seção usa React Grid Layout (drag & drop, resize)
+   * FASE C1.1: Preparação para sistema de grid na Visão Geral
+   */
+  grid?: boolean;
+  
+  /**
    * Configurações de layout para cards dentro da seção (FASE 3A)
    */
   

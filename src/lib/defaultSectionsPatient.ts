@@ -20,19 +20,11 @@ export const PATIENT_SECTIONS: Record<string, SectionConfig> = {
       blockedFor: [],
       requiresOwnDataOnly: true,
     },
-    availableCardIds: [
-      'patient-stat-revenue-month',
-      'patient-stat-revenue-year',
-      'patient-stat-pending-sessions',
-      'patient-stat-nfse-count',
-      'patient-stat-session-value',
-      'patient-stat-total-debt',
-      'patient-chart-payment-history',
-      'patient-chart-revenue-trend',
-    ],
+    availableCardIds: [],
     defaultHeight: 400,
     collapsible: true,
     startCollapsed: false,
+    grid: true,
   },
 
   'patient-clinical': {
@@ -45,16 +37,11 @@ export const PATIENT_SECTIONS: Record<string, SectionConfig> = {
       blockedFor: [],
       requiresOwnDataOnly: true,
     },
-    availableCardIds: [
-      'patient-complaints-summary',
-      'patient-medications-list',
-      'patient-diagnoses-active',
-      'patient-clinical-notes',
-      'patient-vulnerabilities',
-    ],
+    availableCardIds: [],
     defaultHeight: 500,
     collapsible: true,
     startCollapsed: false,
+    grid: true,
   },
 
   'patient-sessions': {
@@ -67,16 +54,11 @@ export const PATIENT_SECTIONS: Record<string, SectionConfig> = {
       blockedFor: [],
       requiresOwnDataOnly: true,
     },
-    availableCardIds: [
-      'patient-sessions-timeline',
-      'patient-sessions-calendar',
-      'patient-sessions-stats',
-      'patient-attendance-rate',
-      'patient-session-frequency',
-    ],
+    availableCardIds: [],
     defaultHeight: 450,
     collapsible: true,
     startCollapsed: false,
+    grid: true,
   },
 
   'patient-contact': {
@@ -89,15 +71,11 @@ export const PATIENT_SECTIONS: Record<string, SectionConfig> = {
       blockedFor: [],
       requiresOwnDataOnly: true,
     },
-    availableCardIds: [
-      'patient-contact-info',
-      'patient-personal-data',
-      'patient-guardian-info',
-      'patient-consent-status',
-    ],
+    availableCardIds: [],
     defaultHeight: 300,
     collapsible: true,
     startCollapsed: false,
+    grid: true,
   },
 };
 
