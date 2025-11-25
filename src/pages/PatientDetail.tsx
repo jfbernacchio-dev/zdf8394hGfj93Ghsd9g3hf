@@ -157,6 +157,26 @@ const PatientDetailNew = () => {
   
   // FASE C1.6: Build permission context for card filtering
   const isOrgOwner = false; // TODO: Implementar verificação de owner quando necessário
+  // ============================================================================
+  // FASE C1.10: CONTEXTO DE PERMISSÕES PARA CARDS DA ABA "VISÃO GERAL"
+  // ============================================================================
+  //
+  // Este objeto alimenta canUserSeeOverviewCard() e é o ÚNICO LUGAR onde
+  // regras de permissão são centralizadas para os cards da Visão Geral.
+  //
+  // IMPORTANTE:
+  // - Montado UMA VEZ por renderização
+  // - Reutilizado para TODOS os cards (STAT e FUNCTIONAL)
+  // - NÃO deve ser duplicado em outros lugares do código
+  //
+  // Campos:
+  // - roleGlobal: Role do usuário na organização (admin, fulltherapist, etc.)
+  // - isClinicalProfessional: Se é um profissional clínico (psicólogo, etc.)
+  // - isAdminOrOwner: Se tem poderes administrativos totais
+  // - financialAccess: Nível de acesso financeiro (none, read, write, full)
+  // - canAccessClinical: Permissão geral para dados clínicos
+  // - patientAccessLevel: Acesso específico a ESTE paciente (none, read, write)
+  // ============================================================================
   const permissionCtx: PatientOverviewPermissionContext = {
     roleGlobal,
     isClinicalProfessional: effectiveIsClinicalProfessional,
@@ -166,20 +186,49 @@ const PatientDetailNew = () => {
     patientAccessLevel: accessLevel,
   };
   
-  // FASE C1.6: Filter all cards by permissions first
+  // ============================================================================
+  // FASE C1.10: FILTRO CENTRAL DE PERMISSÕES
+  // ============================================================================
+  //
+  // Este é o ÚNICO PONTO onde canUserSeeOverviewCard() é chamado.
+  // O resultado é reutilizado para STAT e FUNCTIONAL cards.
+  //
+  // Pipeline até aqui:
+  // 1. ✅ Catálogo completo (PATIENT_OVERVIEW_CARDS)
+  // 2. ✅ Contexto de permissões montado (permissionCtx)
+  // 3. → Filtrar TODOS os cards por permissão (aqui)
+  //
+  // Próximos passos (aplicados separadamente para STAT e FUNCTIONAL):
+  // 4. Separar por categoria (statistical vs functional)
+  // 5. Ordenar por layout
+  // 6. Aplicar preferências (visibleCards - apenas para FUNCTIONAL)
+  // ============================================================================
   const permittedOverviewCardIds = allOverviewCardIds.filter((cardId) => {
     const def = getPatientOverviewCardDefinition(cardId);
     if (!def) return false;
     return canUserSeeOverviewCard(permissionCtx, def);
   });
   
-  /**
-   * FASE C1.7: Helper function to order card IDs based on layout
-   * 
-   * @param layout - Current layout from usePatientOverviewLayout
-   * @param permittedIds - IDs that passed permission filter
-   * @returns Ordered array of card IDs
-   */
+  // ============================================================================
+  // FASE C1.10: HELPER DE ORDENAÇÃO POR LAYOUT
+  // ============================================================================
+  //
+  // Esta função aplica a ordenação definida pelo layout aos cards permitidos.
+  //
+  // Parâmetros:
+  // - layout: Array de PatientOverviewCardLayout (posições x, y, w, h)
+  // - permittedIds: IDs que passaram pelo filtro de permissão
+  //
+  // Retorno:
+  // - Array de IDs ordenados conforme o layout
+  //
+  // Fallback:
+  // - Se layout estiver vazio/corrompido → retorna permittedIds na ordem original
+  //
+  // IMPORTANTE:
+  // - Esta função é REUTILIZADA para STAT e FUNCTIONAL cards separadamente
+  // - A ordenação respeita a hierarquia y (linha) → x (coluna) do layout
+  // ============================================================================
   const layoutToOrderedCardIds = (
     layout: typeof overviewLayout,
     permittedIds: string[]
@@ -196,15 +245,43 @@ const PatientDetailNew = () => {
     return layoutCardIds.filter(id => permittedIds.includes(id));
   };
   
-  // FASE C1.7: Apply layout ordering to STAT CARDS
-  // Pipeline: catalog → filter by category → filter by permission → order by layout
+  // ============================================================================
+  // FASE C1.10: PIPELINE COMPLETO DE CARDS (STAT E FUNCTIONAL)
+  // ============================================================================
+  //
+  // Pipeline de 5 etapas (aplicado separadamente para STAT e FUNCTIONAL):
+  //
+  // ETAPA 1: ✅ Catálogo (allOverviewCardIds - já feito acima)
+  // ETAPA 2: ✅ Separação por categoria (statCardIds vs functionalCardIds)
+  // ETAPA 3: ✅ Filtro de permissões (permittedOverviewCardIds - já feito acima)
+  // ETAPA 4: ✅ Ordenação por layout (layoutToOrderedCardIds - aqui)
+  // ETAPA 5: Preferências do usuário (visibleCards - aplicado apenas a FUNCTIONAL)
+  //
+  // DIFERENÇAS ENTRE STAT E FUNCTIONAL:
+  //
+  // 📊 STAT CARDS:
+  //   - Sempre visíveis (se passarem por permissão)
+  //   - NÃO filtrados por visibleCards
+  //   - NÃO aparecem no AddCardDialog
+  //   - NÃO podem ser removidos via UI
+  //
+  // 🎯 FUNCTIONAL CARDS:
+  //   - Visibilidade controlada por visibleCards (ETAPA 5)
+  //   - Aparecem no AddCardDialog (mode="patient-overview")
+  //   - Podem ser adicionados/removidos via UI
+  //
+  // IMPORTANTE:
+  // - orderedStatCardIds → renderizado diretamente (sempre)
+  // - orderedFunctionalCardIds → renderizado apenas se isCardVisible(id) === true
+  // ============================================================================
+  
+  // STAT CARDS: Aplicar ETAPAS 3 e 4
   const permittedStatCardIds = statCardIds.filter((id) =>
     permittedOverviewCardIds.includes(id)
   );
   const orderedStatCardIds = layoutToOrderedCardIds(overviewLayout, permittedStatCardIds);
   
-  // FASE C1.9: Apply same pipeline to FUNCTIONAL CARDS
-  // Pipeline: catalog → filter by category → filter by permission → order by layout
+  // FUNCTIONAL CARDS: Aplicar ETAPAS 3 e 4 (ETAPA 5 aplicada na renderização)
   const permittedFunctionalCardIds = functionalCardIds.filter((id) =>
     permittedOverviewCardIds.includes(id)
   );
@@ -1583,24 +1660,73 @@ Assinatura do Profissional`;
             </Button>
           </div>
 
-         {/* Overview Tab */}
-         <TabsContent value="overview" className="space-y-6">
-           {/* FASE C1.8: Botão "Adicionar Card" somente em modo de edição e não em read-only */}
-           {isEditMode && !isReadOnly && (
-             <div className="flex justify-end mb-4">
-               <Button
-                 onClick={() => setIsAddCardDialogOpen(true)}
-                 size="sm"
-                 variant="outline"
-                 className="gap-2"
-               >
-                 <Plus className="w-4 h-4" />
-                 Adicionar Card
-               </Button>
-             </div>
-           )}
+          {/* ====================================================================
+              FASE C1.10: ABA "VISÃO GERAL" - SISTEMA DE CARDS
+              ====================================================================
+              
+              Esta aba contém o sistema de cards modular da Visão Geral,
+              implementado nas FASES C1.0 até C1.9 e documentado na C1.10.
+              
+              ESTRUTURA:
+              1. Botão "Adicionar Card" (apenas em isEditMode && !isReadOnly)
+              2. Seção de STAT CARDS (sempre no topo)
+              3. Seção de FUNCTIONAL CARDS (abaixo, controlada por visibleCards)
+              
+              INTEGRAÇÃO COM ADDCARDDIALOG:
+              - AddCardDialog opera em mode="patient-overview"
+              - Gerencia apenas FUNCTIONAL cards
+              - Lista de cards disponíveis = orderedFunctionalCardIds.filter(!visibleCards)
+              - Callbacks: handleAddCard() e handleRemoveCard()
+              
+              MODO DE EDIÇÃO:
+              - isEditMode=true: Permite editar layout, adicionar/remover cards
+              - isReadOnly=true: Bloqueia todas as edições (peer sharing)
+              
+              FUTURO (preparado mas não implementado):
+              - Templates por professionalRole
+              - Templates por clinicalApproach
+              - Grid com drag & drop (React Grid Layout)
+              - Sincronização via Supabase
+              ==================================================================== */}
+          <TabsContent value="overview" className="space-y-6">
+            {/* BOTÃO "ADICIONAR CARD" - Apenas em modo de edição */}
+            {isEditMode && !isReadOnly && (
+              <div className="flex justify-end mb-4">
+                <Button
+                  onClick={() => setIsAddCardDialogOpen(true)}
+                  size="sm"
+                  variant="outline"
+                  className="gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Adicionar Card
+                </Button>
+              </div>
+            )}
 
-              {/* Functional Cards Section */}
+              {/* ================================================================
+                  SEÇÃO DE FUNCTIONAL CARDS
+                  ================================================================
+                  
+                  Renderização dos cards funcionais (category='functional').
+                  
+                  PIPELINE APLICADO ATÉ AQUI:
+                  1. ✅ Catálogo (PATIENT_OVERVIEW_CARDS)
+                  2. ✅ Filtro por categoria (functionalCardIds)
+                  3. ✅ Filtro por permissões (permittedFunctionalCardIds)
+                  4. ✅ Ordenação por layout (orderedFunctionalCardIds)
+                  5. → Filtro por preferências (isCardVisible - aplicado abaixo)
+                  
+                  IMPORTANTE:
+                  - isCardVisible(cardId) implementa a ETAPA 5 do pipeline
+                  - Apenas cards em visibleCards são renderizados
+                  - STAT cards sempre passam por isCardVisible (não são filtrados)
+                  - FUNCTIONAL cards são filtrados por visibleCards
+                  
+                  GRID:
+                  - Responsivo: 1 coluna em mobile, 3 colunas em desktop
+                  - Preparado para substituição por React Grid Layout (futuro)
+                  ================================================================ */}
               <ResizableSection
                 id="patient-functional-section"
                 isEditMode={isEditMode}
@@ -1609,9 +1735,10 @@ Assinatura do Profissional`;
                 onTempHeightChange={handleTempSectionHeightChange}
               >
                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                 {/* FASE C1.9: Render functional cards in layout order, filtered by visibleCards */}
+                 {/* Loop através dos FUNCTIONAL cards ordenados por layout */}
                  {orderedFunctionalCardIds.map(cardId => {
-                   // Skip if not visible
+                   // ETAPA 5 DO PIPELINE: Filtrar por visibleCards
+                   // Se o card não estiver visível, pular renderização
                    if (!isCardVisible(cardId)) return null;
                    
                    // Render each card based on its ID
