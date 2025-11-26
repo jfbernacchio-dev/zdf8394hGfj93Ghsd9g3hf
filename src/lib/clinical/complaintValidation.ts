@@ -167,14 +167,45 @@ export function validateClinicalComplaintWithRelations(data: unknown) {
 }
 
 /**
- * Formata erros do Zod de forma amigável
+ * Formata erros do Zod de forma amigável para exibição clínica
  * 
  * @param errors Erros do Zod
- * @returns Array de mensagens legíveis
+ * @returns Mensagem legível humanizada (prioriza o erro mais relevante)
  */
-export function formatValidationErrors(errors: z.ZodError): string[] {
-  return errors.errors.map(err => {
-    const path = err.path.join('.');
-    return `${path}: ${err.message}`;
-  });
+export function formatValidationErrors(errors: z.ZodError): string {
+  // Priorizar erro de refinamento (regra customizada) se existir
+  const refinementError = errors.errors.find(err => err.code === 'custom');
+  if (refinementError) {
+    return refinementError.message;
+  }
+
+  // Caso contrário, pegar o primeiro erro e humanizá-lo
+  const firstError = errors.errors[0];
+  if (!firstError) return 'Erro de validação desconhecido.';
+
+  // Mapear mensagens técnicas para mensagens clínicas
+  const errorMessage = firstError.message;
+  
+  // Severity
+  if (errorMessage.includes('severity')) {
+    return 'Preencha o campo de gravidade clínica da queixa.';
+  }
+  
+  // CID/diagnosis
+  if (errorMessage.includes('cid') || errorMessage.includes('diagnosis')) {
+    return 'Informe um CID, marque "sem diagnóstico" ou adicione notas clínicas significativas (mínimo 20 caracteres).';
+  }
+
+  // Medicação
+  if (errorMessage.includes('Classe de medicação')) {
+    return 'Selecione uma classe válida para a medicação.';
+  }
+
+  // IDs inválidos
+  if (errorMessage.includes('inválido')) {
+    return 'Dados de identificação inválidos. Entre em contato com o suporte.';
+  }
+
+  // Fallback: retornar mensagem original se não houver mapeamento
+  return errorMessage;
 }

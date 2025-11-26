@@ -258,15 +258,34 @@ export function validateSessionEvaluation(data: any): EvaluationValidationResult
 /**
  * Formata erros de validação para exibição amigável ao usuário
  */
-export function formatValidationErrors(zodError: z.ZodError): string[] {
-  return zodError.errors.map(err => {
-    // Para erros de refinement (validação customizada), retornar a mensagem direta
-    if (err.code === 'custom') {
-      return err.message;
-    }
-    
-    // Para erros de campo específico, incluir o caminho
-    const fieldPath = err.path.join(' → ');
-    return fieldPath ? `${fieldPath}: ${err.message}` : err.message;
-  });
+export function formatValidationErrors(zodError: z.ZodError): string {
+  // Priorizar erro de refinement (mínimo 3 funções)
+  const refinementError = zodError.errors.find(err => err.code === 'custom');
+  if (refinementError) {
+    return refinementError.message;
+  }
+
+  // Caso contrário, humanizar o primeiro erro
+  const firstError = zodError.errors[0];
+  if (!firstError) return 'Erro de validação desconhecido.';
+
+  const message = firstError.message;
+  
+  // Range errors (valores fora do intervalo)
+  if (message.includes('min') || message.includes('max')) {
+    return 'Um dos valores numéricos está fora do intervalo permitido. Verifique os sliders.';
+  }
+
+  // UUID errors
+  if (message.includes('inválido')) {
+    return 'Dados de identificação inválidos. Entre em contato com o suporte.';
+  }
+
+  // Enum errors (valores de select inválidos)
+  if (message.includes('Invalid enum')) {
+    return 'Um dos campos de seleção possui valor inválido.';
+  }
+
+  // Fallback
+  return message;
 }
