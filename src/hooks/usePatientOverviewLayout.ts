@@ -215,7 +215,7 @@ export const usePatientOverviewLayout = (): UsePatientOverviewLayoutReturn => {
    * SAVE LAYOUT
    * 
    * FASE C1.1: Apenas salva no localStorage
-   * TODO: Integrar com Supabase em fases futuras
+   * Futura integração com Supabase será implementada quando necessário
    */
   const saveLayout = useCallback(async () => {
     setSaving(true);

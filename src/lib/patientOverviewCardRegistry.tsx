@@ -238,8 +238,8 @@ export const PatientNfseCountCard = ({ patient, nfseIssued = [] }: PatientOvervi
 export const PatientComplaintsSummaryCard = ({ complaints = [] }: PatientOverviewCardProps) => {
   // Pegar última queixa ativa
   const activeComplaints = complaints
-    .filter((c: any) => c.is_active !== false)
-    .sort((a: any, b: any) => {
+    .filter((c) => c.is_active !== false)
+    .sort((a, b) => {
       const dateA = new Date(a.created_at || 0);
       const dateB = new Date(b.created_at || 0);
       return dateB.getTime() - dateA.getTime();
@@ -292,12 +292,16 @@ export const PatientComplaintsSummaryCard = ({ complaints = [] }: PatientOvervie
 
 export const PatientMedicationsListCard = ({ complaints = [] }: PatientOverviewCardProps) => {
   // Buscar medicações nas queixas ativas
-  const medications: any[] = [];
+  const medications: Array<{
+    substance?: string;
+    class: string;
+    dosage?: string;
+  }> = [];
   complaints
-    .filter((c: any) => c.is_active !== false)
-    .forEach((complaint: any) => {
+    .filter((c) => c.is_active !== false)
+    .forEach((complaint) => {
       if (complaint.complaint_medications) {
-        medications.push(...complaint.complaint_medications.filter((m: any) => m.is_current));
+        medications.push(...complaint.complaint_medications.filter((m) => m.is_current));
       }
     });
 
@@ -310,7 +314,7 @@ export const PatientMedicationsListCard = ({ complaints = [] }: PatientOverviewC
       <CardContent>
         {medications.length > 0 ? (
           <ul className="space-y-2">
-            {medications.slice(0, 5).map((med: any, idx: number) => (
+            {medications.slice(0, 5).map((med, idx) => (
               <li key={idx} className="text-sm border-l-2 border-primary/20 pl-2">
                 <div className="font-medium">{med.substance || med.class}</div>
                 {med.dosage && (
@@ -339,8 +343,8 @@ export const PatientDiagnosesListCard = ({ complaints = [] }: PatientOverviewCar
   // Coletar diagnósticos únicos das queixas ativas
   const diagnoses = new Set<string>();
   complaints
-    .filter((c: any) => c.is_active !== false && c.cid_code)
-    .forEach((complaint: any) => {
+    .filter((c) => c.is_active !== false && c.cid_code)
+    .forEach((complaint) => {
       diagnoses.add(`${complaint.cid_code} - ${complaint.cid_title || 'Sem título'}`);
     });
 
