@@ -1,12 +1,14 @@
 import { useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffectivePermissions } from './useEffectivePermissions';
+import { useActiveClinicalTemplates } from './useActiveClinicalTemplates';
 import { supabase } from '@/integrations/supabase/client';
 import type { PermissionDomain, AccessLevel, UserRole } from '@/types/permissions';
 import { getUserIdsInOrganization } from '@/lib/organizationFilters';
 import type { SectionConfig } from '@/types/sectionTypes';
 import type { CardConfig } from '@/types/cardTypes';
 import { ALL_AVAILABLE_CARDS } from '@/types/cardTypes';
+import { PATIENT_OVERVIEW_AVAILABLE_CARDS } from '@/lib/patientOverviewCardRegistry';
 
 /**
  * ============================================================================
@@ -46,6 +48,9 @@ export function useCardPermissions() {
     canAccessMarketing,
     canAccessWhatsapp
   } = useEffectivePermissions();
+  
+  // FASE C2.7: Template awareness para Patient Overview cards
+  const { activeRoleTemplate, isLoading: templatesLoading } = useActiveClinicalTemplates();
   
   const loading = !rolesLoaded || permissionsLoading;
 
@@ -140,12 +145,45 @@ export function useCardPermissions() {
   };
 
   /**
+   * FASE C2.7: Verifica se card é compatível com o template ativo
+   * Com fallback permissivo: se requiredTemplates não existir, permite sempre
+   */
+  const isCardTemplateCompatible = (cardId: string): boolean => {
+    // Buscar card em Patient Overview cards (que têm requiredTemplates)
+    const patientCard = PATIENT_OVERVIEW_AVAILABLE_CARDS.find(c => c.id === cardId);
+    
+    // Se card não tem requiredTemplates, permitir (comportamento atual)
+    if (!patientCard?.requiredTemplates || patientCard.requiredTemplates.length === 0) {
+      return true;
+    }
+    
+    // Se templates ainda estão carregando, permitir temporariamente
+    if (templatesLoading) {
+      return true;
+    }
+    
+    // Se não há template ativo, permitir (fallback permissivo)
+    if (!activeRoleTemplate) {
+      return true;
+    }
+    
+    // Verificar se template ativo está na lista de requeridos
+    return patientCard.requiredTemplates.includes(activeRoleTemplate.id);
+  };
+
+  /**
    * Verifica se usuário pode ver um card específico por ID
    * Usa mapeamento interno de cards -> domínios
+   * FASE C2.7: Adiciona verificação de template
    */
   const canViewCard = (cardId: string): boolean => {
     // Admin, FullTherapist e Accountant veem tudo
     if (isAdmin || isFullTherapist || isAccountant) return true;
+
+    // FASE C2.7: Verificar compatibilidade de template
+    if (!isCardTemplateCompatible(cardId)) {
+      return false;
+    }
 
     // FASE 1: Usar permissionConfig dos cards
     const card = ALL_AVAILABLE_CARDS.find(c => c.id === cardId);
@@ -382,6 +420,9 @@ export function useCardPermissions() {
     // FASE 6: Peer sharing functions
     canViewPeerDomain,
     getPeerSharedDomains,
+    
+    // FASE C2.7: Template compatibility
+    isCardTemplateCompatible,
   };
 }
 
