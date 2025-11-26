@@ -32,6 +32,61 @@ const getStorageKey = (sectionId: string, cardId: string, userId?: string): stri
   return `grid-card-${sectionId}-${cardId}-user-${userId}`;
 };
 
+/**
+ * Migra chaves antigas do localStorage para o novo formato com userId.
+ * C1.10.3-F2: migração automática de dados legados.
+ * 
+ * Executa UMA VEZ por usuário (marca com flag).
+ */
+const migrateOldKeys = (userId: string): void => {
+  const migrationKey = `patient-overview-migrated-${userId}`;
+  
+  // Checar se já migrou para este usuário
+  if (localStorage.getItem(migrationKey)) {
+    console.log('[usePatientOverviewLayout] Migration já executada para user:', userId);
+    return;
+  }
+
+  console.log('[usePatientOverviewLayout] Migration start for user:', userId);
+  
+  const keysToMigrate: { oldKey: string; newKey: string; value: string }[] = [];
+  
+  // Varrer todas as chaves do localStorage
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!key) continue;
+    
+    // Procurar chaves antigas: começam com "grid-card-" mas NÃO contêm "-user-"
+    if (key.startsWith('grid-card-') && !key.includes('-user-')) {
+      const value = localStorage.getItem(key);
+      if (!value) continue;
+      
+      // Extrair sectionId e cardId da chave antiga
+      // Formato: grid-card-{sectionId}-{cardId}
+      const parts = key.replace('grid-card-', '').split('-');
+      if (parts.length >= 2) {
+        const sectionId = parts[0];
+        const cardId = parts.slice(1).join('-'); // caso cardId tenha hífen
+        
+        const newKey = getStorageKey(sectionId, cardId, userId);
+        keysToMigrate.push({ oldKey: key, newKey, value });
+      }
+    }
+  }
+  
+  // Executar migração
+  keysToMigrate.forEach(({ oldKey, newKey, value }) => {
+    console.log('[usePatientOverviewLayout] Migrando chave antiga:', oldKey, '→', newKey);
+    localStorage.setItem(newKey, value);
+    localStorage.removeItem(oldKey);
+  });
+  
+  // Marcar como migrado
+  localStorage.setItem(migrationKey, 'true');
+  
+  console.log('[usePatientOverviewLayout] Migração concluída. Total de chaves migradas:', keysToMigrate.length);
+};
+
 interface UsePatientOverviewLayoutReturn {
   layout: PatientOverviewGridLayout;
   loading: boolean;
@@ -97,18 +152,27 @@ export const usePatientOverviewLayout = (): UsePatientOverviewLayoutReturn => {
 
   /**
    * INITIALIZE LAYOUT
+   * C1.10.3-F2: Migra chaves antigas antes de carregar
    */
   useEffect(() => {
-    const initLayout = () => {
-      setLoading(true);
-      const finalLayout = loadLayoutFromLocalStorage();
-      setLayout(finalLayout);
-      setOriginalLayout(finalLayout);
+    if (!user?.id) {
+      // Fallback: sem usuário, usar layout padrão
+      console.log('[usePatientOverviewLayout] Sem user.id, usando layout padrão');
+      setLayout(DEFAULT_PATIENT_OVERVIEW_GRID_LAYOUT);
+      setOriginalLayout(DEFAULT_PATIENT_OVERVIEW_GRID_LAYOUT);
       setLoading(false);
-      console.log('[usePatientOverviewLayout] Layout inicializado');
-    };
+      return;
+    }
 
-    initLayout();
+    // Migrar chaves antigas para este usuário
+    migrateOldKeys(user.id);
+
+    // Carregar layout (já com as chaves migradas)
+    const finalLayout = loadLayoutFromLocalStorage();
+    setLayout(finalLayout);
+    setOriginalLayout(finalLayout);
+    setLoading(false);
+    console.log('[usePatientOverviewLayout] Layout inicializado para user:', user.id);
   }, [loadLayoutFromLocalStorage, user?.id]);
 
   /**
