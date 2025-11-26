@@ -110,15 +110,23 @@ const PatientDetailNew = () => {
   } = usePatientOverviewLayout();
 
   // 🔐 C1.8: Filtrar cards visíveis baseado em permissões
+  // 🔐 C1.10.2: Agora inclui verificação de ownership para cards sensíveis
   const visiblePatientOverviewCards = useMemo(
     () =>
       PATIENT_OVERVIEW_AVAILABLE_CARDS.filter((card) =>
-        canViewCardByDomain(card.domain, {
-          canAccessClinical,
-          financialAccess,
-        })
+        canViewCardByDomain(
+          card.domain,
+          {
+            canAccessClinical,
+            financialAccess,
+          },
+          card.requiresOwnership || false,
+          patient?.user_id, // Terapeuta responsável
+          user?.id, // Usuário atual
+          permissions?.isOrganizationOwner || false
+        )
       ),
-    [canAccessClinical, financialAccess]
+    [canAccessClinical, financialAccess, permissions?.isOrganizationOwner, patient?.user_id, user?.id]
   );
 
   // FASE 3.5: Derived permission flags
@@ -1679,19 +1687,21 @@ Assinatura do Profissional`;
                            <GripVertical className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
                          </div>
                        )}
-                        <CardContent className="p-4 flex-1 overflow-auto">
-                          {renderPatientOverviewCard(cardLayout.i, {
-                            isEditMode: isOverviewLayoutEditMode,
-                            patient,
-                            sessions,
-                            nfseIssued,
-                            complaints: complaint ? [complaint] : [],
-                            permissions: {
-                              canAccessClinical,
-                              financialAccess,
-                            },
-                          })}
-                        </CardContent>
+                         <CardContent className="p-4 flex-1 overflow-auto">
+                           {renderPatientOverviewCard(cardLayout.i, {
+                             isEditMode: isOverviewLayoutEditMode,
+                             patient,
+                             sessions,
+                             nfseIssued,
+                             complaints: complaint ? [complaint] : [],
+                             currentUserId: user?.id, // FASE C1.10.2: Para verificação de ownership
+                             permissions: {
+                               canAccessClinical,
+                               financialAccess,
+                               isOrganizationOwner: permissions?.isOrganizationOwner, // FASE C1.10.2: Para cards sensíveis
+                             },
+                           })}
+                         </CardContent>
                      </Card>
                    </div>
                  ))}
