@@ -1,179 +1,220 @@
 import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { GridCardLayout } from '@/types/cardTypes';
 import type { PatientOverviewGridLayout } from '@/lib/defaultLayoutPatientOverview';
 import { DEFAULT_PATIENT_OVERVIEW_GRID_LAYOUT } from '@/lib/defaultLayoutPatientOverview';
-import { findNextAvailablePosition } from '@/lib/gridLayoutUtils';
-import { useAuth } from '@/contexts/AuthContext';
 
 /**
- * HOOK: usePatientOverviewLayout - FASE C1.1
+ * HOOK: usePatientOverviewLayout - FASE C1.10.3-H2 (Supabase)
  * 
- * Gerencia persistência de layout da aba "Visão Geral" do PatientDetail com React Grid Layout.
+ * Gerencia persistência de layout da aba "Visão Geral" com Supabase:
+ * - Supabase (patient_overview_layouts) como fonte da verdade
+ * - localStorage apenas como cache de edição
  * 
- * NOTA IMPORTANTE:
- * - FASE C1.1 usa APENAS localStorage (sem Supabase)
- * - Estrutura preparada para futuras integrações com Supabase
- * - Baseado no hook useDashboardLayout.ts mas com escopo limitado
+ * ARQUITETURA (idêntica ao useDashboardLayout):
+ * - Carregar do DB ao montar (loadLayoutFromDatabase)
+ * - Auto-save com debounce (saveLayout)
+ * - Reset deleta do DB (resetLayout)
+ * - Merge com defaults para novos cards
+ * 
+ * RESOLVEU:
+ * - ✅ RESSALVA 1: Isolamento por user_id no DB
+ * - ✅ RESSALVA 2: DB é fonte única (não há chaves órfãs)
+ * - ✅ RESSALVA 3: Sem migração (sem flags permanentes)
  */
 
-const LAYOUT_TYPE = 'patient-overview-grid';
-const DEBOUNCE_SAVE_MS = 2000;
+const DEBOUNCE_SAVE_MS = 1500; // Mesmo debounce da Dashboard
 
-/**
- * Gera chave do localStorage isolada por userId.
- * C1.10.3-F1: infra básica de chaves com user.
- */
-const getStorageKey = (sectionId: string, cardId: string, userId?: string): string => {
-  if (!userId) {
-    // Fallback: comportamento antigo (mantém compatibilidade para fluxos sem user)
-    return `grid-card-${sectionId}-${cardId}`;
-  }
-  return `grid-card-${sectionId}-${cardId}-user-${userId}`;
-};
-
-/**
- * Migra chaves antigas do localStorage para o novo formato com userId.
- * C1.10.3-F2: migração automática de dados legados.
- * 
- * Executa UMA VEZ por usuário (marca com flag).
- */
-const migrateOldKeys = (userId: string): void => {
-  const migrationKey = `patient-overview-migrated-${userId}`;
-  
-  // Checar se já migrou para este usuário
-  if (localStorage.getItem(migrationKey)) {
-    console.log('[usePatientOverviewLayout] Migration já executada para user:', userId);
-    return;
-  }
-
-  console.log('[usePatientOverviewLayout] Migration start for user:', userId);
-  
-  const keysToMigrate: { oldKey: string; newKey: string; value: string }[] = [];
-  
-  // Varrer todas as chaves do localStorage
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (!key) continue;
-    
-    // Procurar chaves antigas: começam com "grid-card-" mas NÃO contêm "-user-"
-    if (key.startsWith('grid-card-') && !key.includes('-user-')) {
-      const value = localStorage.getItem(key);
-      if (!value) continue;
-      
-      // Extrair sectionId e cardId da chave antiga
-      // Formato: grid-card-{sectionId}-{cardId}
-      const parts = key.replace('grid-card-', '').split('-');
-      if (parts.length >= 2) {
-        const sectionId = parts[0];
-        const cardId = parts.slice(1).join('-'); // caso cardId tenha hífen
-        
-        const newKey = getStorageKey(sectionId, cardId, userId);
-        keysToMigrate.push({ oldKey: key, newKey, value });
-      }
-    }
-  }
-  
-  // Executar migração
-  keysToMigrate.forEach(({ oldKey, newKey, value }) => {
-    console.log('[usePatientOverviewLayout] Migrando chave antiga:', oldKey, '→', newKey);
-    localStorage.setItem(newKey, value);
-    localStorage.removeItem(oldKey);
-  });
-  
-  // Marcar como migrado
-  localStorage.setItem(migrationKey, 'true');
-  
-  console.log('[usePatientOverviewLayout] Migração concluída. Total de chaves migradas:', keysToMigrate.length);
-};
+// ============================================================================
+// INTERFACE DE RETORNO
+// ============================================================================
 
 interface UsePatientOverviewLayoutReturn {
   layout: PatientOverviewGridLayout;
   loading: boolean;
   saving: boolean;
   isModified: boolean;
+  hasUnsavedChanges: boolean;
   updateLayout: (sectionId: string, newLayout: GridCardLayout[]) => void;
   addCard: (sectionId: string, cardId: string) => void;
   removeCard: (sectionId: string, cardId: string) => void;
   saveLayout: () => Promise<void>;
   resetLayout: () => Promise<void>;
-  hasUnsavedChanges: boolean;
 }
 
-export const usePatientOverviewLayout = (): UsePatientOverviewLayoutReturn => {
-  const { user } = useAuth();
+// ============================================================================
+// HELPERS: localStorage (cache apenas)
+// ============================================================================
+
+/**
+ * Gera chave única para localStorage baseada em userId e patientId
+ */
+const getStorageKey = (userId: string, patientId?: string): string => {
+  return patientId 
+    ? `patient-overview-layout-${userId}-${patientId}`
+    : `patient-overview-layout-${userId}-general`;
+};
+
+/**
+ * Salva layout no localStorage como cache
+ */
+const saveLayoutToLocalStorage = (userId: string, layout: PatientOverviewGridLayout, patientId?: string): void => {
+  try {
+    const key = getStorageKey(userId, patientId);
+    localStorage.setItem(key, JSON.stringify(layout));
+    console.log('[usePatientOverviewLayout] 💾 Layout salvo no localStorage (cache):', key);
+  } catch (error) {
+    console.error('[usePatientOverviewLayout] ❌ Erro ao salvar no localStorage:', error);
+  }
+};
+
+/**
+ * Limpa layout do localStorage
+ */
+const clearLayoutFromLocalStorage = (userId?: string, patientId?: string): void => {
+  if (!userId) return;
+  
+  try {
+    const key = getStorageKey(userId, patientId);
+    localStorage.removeItem(key);
+    console.log('[usePatientOverviewLayout] 🗑️ Layout removido do localStorage:', key);
+  } catch (error) {
+    console.error('[usePatientOverviewLayout] ❌ Erro ao limpar localStorage:', error);
+  }
+};
+
+/**
+ * Merge layout do DB com defaults
+ * Garante que novos cards/sections apareçam mesmo em layouts antigos
+ */
+const mergeLayoutWithDefaults = (
+  dbLayout: PatientOverviewGridLayout, 
+  defaultLayout: PatientOverviewGridLayout
+): PatientOverviewGridLayout => {
+  const merged = { ...defaultLayout };
+  
+  Object.keys(dbLayout).forEach(sectionId => {
+    if (merged[sectionId]) {
+      // Section existe: merge cards (prioriza DB, adiciona novos do default)
+      const dbCards = dbLayout[sectionId].cardLayouts;
+      const defaultCards = defaultLayout[sectionId].cardLayouts;
+      
+      const dbCardIds = new Set(dbCards.map(c => c.i));
+      const newCards = defaultCards.filter(c => !dbCardIds.has(c.i));
+      
+      merged[sectionId] = {
+        cardLayouts: [...dbCards, ...newCards]
+      };
+    } else {
+      // Section não existe no default: adicionar completa
+      merged[sectionId] = dbLayout[sectionId];
+    }
+  });
+  
+  console.log('[usePatientOverviewLayout] 🔀 Layout merged com defaults:', {
+    dbSections: Object.keys(dbLayout),
+    defaultSections: Object.keys(defaultLayout),
+    mergedSections: Object.keys(merged)
+  });
+  
+  return merged;
+};
+
+// ============================================================================
+// HOOK
+// ============================================================================
+
+export const usePatientOverviewLayout = (patientId?: string): UsePatientOverviewLayoutReturn => {
   const [layout, setLayout] = useState<PatientOverviewGridLayout>(DEFAULT_PATIENT_OVERVIEW_GRID_LAYOUT);
   const [originalLayout, setOriginalLayout] = useState<PatientOverviewGridLayout>(DEFAULT_PATIENT_OVERVIEW_GRID_LAYOUT);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
 
   /**
-   * LOAD LAYOUT FROM LOCALSTORAGE
-   * 
-   * FASE C1.1: Apenas localStorage (sem Supabase)
+   * LOAD LAYOUT FROM SUPABASE
+   * CORREÇÃO H2: Usar .maybeSingle() em vez de .single()
    */
-  const loadLayoutFromLocalStorage = useCallback((): PatientOverviewGridLayout => {
-    // Começar com layout padrão
-    const merged = { ...DEFAULT_PATIENT_OVERVIEW_GRID_LAYOUT };
+  const loadLayoutFromDatabase = useCallback(async (userId: string, patientId?: string): Promise<PatientOverviewGridLayout | null> => {
+    try {
+      setLoading(true);
 
-    console.log('[usePatientOverviewLayout] Carregando customizações do localStorage', { userId: user?.id });
+      let query = supabase
+        .from('patient_overview_layouts')
+        .select('*')
+        .eq('user_id', userId);
 
-    // Aplicar customizações do localStorage em cada card de cada seção
-    Object.keys(merged).forEach(sectionId => {
-      const section = merged[sectionId];
-      
-      section.cardLayouts = section.cardLayouts.map(cardLayout => {
-        const key = getStorageKey(sectionId, cardLayout.i, user?.id);
-        const saved = localStorage.getItem(key);
-        
-        if (saved) {
-          try {
-            const parsed = JSON.parse(saved) as GridCardLayout;
-            console.log(`[usePatientOverviewLayout] Aplicando customização:`, {
-              sectionId,
-              cardId: cardLayout.i,
-              original: cardLayout,
-              customized: parsed,
-            });
-            return { ...cardLayout, ...parsed };
-          } catch (error) {
-            console.error(`[usePatientOverviewLayout] Erro ao parsear customização:`, error);
-          }
-        }
-        
-        return cardLayout;
-      });
-    });
+      if (patientId) {
+        query = query.eq('patient_id', patientId);
+      } else {
+        query = query.is('patient_id', null);
+      }
 
-    console.log('[usePatientOverviewLayout] Layout final carregado:', merged);
-    return merged;
-  }, [user?.id]);
+      // ✅ CORREÇÃO: Usar maybeSingle() - não lança erro se não encontrar
+      const { data, error } = await query.maybeSingle();
+
+      if (error) {
+        console.error('[usePatientOverviewLayout] ❌ Erro ao carregar layout do DB:', error);
+        return null;
+      }
+
+      if (data?.layout_json) {
+        console.log('[usePatientOverviewLayout] 📦 Layout carregado do Supabase:', data);
+        return data.layout_json as unknown as PatientOverviewGridLayout;
+      }
+
+      console.log('[usePatientOverviewLayout] ⚠️ Nenhum layout salvo, usando padrão');
+      return null;
+    } catch (err) {
+      console.error('[usePatientOverviewLayout] ❌ Exception ao carregar layout:', err);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   /**
    * INITIALIZE LAYOUT
-   * C1.10.3-F2: Migra chaves antigas antes de carregar
+   * Carrega do Supabase ao montar, merge com defaults, atualiza cache local
    */
   useEffect(() => {
-    if (!user?.id) {
-      // Fallback: sem usuário, usar layout padrão
-      console.log('[usePatientOverviewLayout] Sem user.id, usando layout padrão');
-      setLayout(DEFAULT_PATIENT_OVERVIEW_GRID_LAYOUT);
-      setOriginalLayout(DEFAULT_PATIENT_OVERVIEW_GRID_LAYOUT);
+    const initializeLayout = async () => {
+      setLoading(true);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        // Não logado: usar default local
+        console.log('[usePatientOverviewLayout] ⚠️ Usuário não autenticado, usando default');
+        setLayout(DEFAULT_PATIENT_OVERVIEW_GRID_LAYOUT);
+        setOriginalLayout(DEFAULT_PATIENT_OVERVIEW_GRID_LAYOUT);
+        setLoading(false);
+        return;
+      }
+
+      // Logado: carregar do DB
+      const dbLayout = await loadLayoutFromDatabase(user.id, patientId);
+
+      if (dbLayout) {
+        // Merge com defaults (garante novos cards apareçam)
+        const merged = mergeLayoutWithDefaults(dbLayout, DEFAULT_PATIENT_OVERVIEW_GRID_LAYOUT);
+        setLayout(merged);
+        setOriginalLayout(merged);
+        
+        // Atualizar cache local
+        saveLayoutToLocalStorage(user.id, merged, patientId);
+      } else {
+        // Primeira vez: usar default
+        console.log('[usePatientOverviewLayout] 🆕 Primeira vez, usando default');
+        setLayout(DEFAULT_PATIENT_OVERVIEW_GRID_LAYOUT);
+        setOriginalLayout(DEFAULT_PATIENT_OVERVIEW_GRID_LAYOUT);
+      }
+
       setLoading(false);
-      return;
-    }
+    };
 
-    // Migrar chaves antigas para este usuário
-    migrateOldKeys(user.id);
-
-    // Carregar layout (já com as chaves migradas)
-    const finalLayout = loadLayoutFromLocalStorage();
-    setLayout(finalLayout);
-    setOriginalLayout(finalLayout);
-    setLoading(false);
-    console.log('[usePatientOverviewLayout] Layout inicializado para user:', user.id);
-  }, [loadLayoutFromLocalStorage, user?.id]);
+    initializeLayout();
+  }, [patientId, loadLayoutFromDatabase]);
 
   /**
    * CHECK IF MODIFIED
@@ -183,12 +224,12 @@ export const usePatientOverviewLayout = (): UsePatientOverviewLayoutReturn => {
 
   /**
    * UPDATE LAYOUT
+   * Atualiza layout de uma seção e salva no cache local
    */
-  const updateLayout = useCallback((sectionId: string, newLayout: GridCardLayout[]) => {
+  const updateLayout = useCallback(async (sectionId: string, newLayout: GridCardLayout[]) => {
     console.log('[usePatientOverviewLayout] Atualizando layout da seção:', {
       sectionId,
       newLayout,
-      userId: user?.id,
     });
 
     setLayout((prev) => {
@@ -198,27 +239,30 @@ export const usePatientOverviewLayout = (): UsePatientOverviewLayoutReturn => {
         return prev;
       }
 
-      // Salvar cada card no localStorage
-      newLayout.forEach((cardLayout) => {
-        const key = getStorageKey(sectionId, cardLayout.i, user?.id);
-        localStorage.setItem(key, JSON.stringify(cardLayout));
-      });
-
-      return {
+      const updated = {
         ...prev,
         [sectionId]: {
           ...section,
           cardLayouts: newLayout,
         },
       };
+
+      // Atualizar cache local imediatamente
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user) {
+          saveLayoutToLocalStorage(user.id, updated, patientId);
+        }
+      });
+
+      return updated;
     });
-  }, [user?.id]);
+  }, [patientId]);
 
   /**
    * ADD CARD
    */
   const addCard = useCallback((sectionId: string, cardId: string) => {
-    console.log(`[usePatientOverviewLayout] Adicionando card ${cardId} à seção ${sectionId}`, { userId: user?.id });
+    console.log(`[usePatientOverviewLayout] Adicionando card ${cardId} à seção ${sectionId}`);
     
     setLayout((prev) => {
       const section = prev[sectionId];
@@ -232,39 +276,45 @@ export const usePatientOverviewLayout = (): UsePatientOverviewLayoutReturn => {
         return prev;
       }
 
-      const { x, y } = findNextAvailablePosition(section.cardLayouts, 3, 2);
+      // Encontrar próxima posição disponível
+      const maxY = section.cardLayouts.reduce((max, card) => Math.max(max, card.y + card.h), 0);
 
       const newCard: GridCardLayout = {
         i: cardId,
-        x,
-        y,
-        w: 3,
-        h: 2,
-        minW: 2,
-        minH: 1,
-        maxW: 12,
+        x: 0,
+        y: maxY,
+        w: 4,
+        h: 3,
+        minW: 3,
+        minH: 2,
       };
 
       console.log(`[usePatientOverviewLayout] Novo card grid criado:`, newCard);
 
-      const key = getStorageKey(sectionId, cardId, user?.id);
-      localStorage.setItem(key, JSON.stringify(newCard));
-
-      return {
+      const updated = {
         ...prev,
         [sectionId]: {
           ...section,
           cardLayouts: [...section.cardLayouts, newCard],
         },
       };
+
+      // Atualizar cache local
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user) {
+          saveLayoutToLocalStorage(user.id, updated, patientId);
+        }
+      });
+
+      return updated;
     });
-  }, [user?.id]);
+  }, [patientId]);
 
   /**
    * REMOVE CARD
    */
   const removeCard = useCallback((sectionId: string, cardId: string) => {
-    console.log(`[usePatientOverviewLayout] Removendo card ${cardId} da seção ${sectionId}`, { userId: user?.id });
+    console.log(`[usePatientOverviewLayout] Removendo card ${cardId} da seção ${sectionId}`);
     
     setLayout((prev) => {
       const section = prev[sectionId];
@@ -275,88 +325,128 @@ export const usePatientOverviewLayout = (): UsePatientOverviewLayoutReturn => {
 
       const filteredCards = section.cardLayouts.filter(cl => cl.i !== cardId);
 
-      const key = getStorageKey(sectionId, cardId, user?.id);
-      localStorage.removeItem(key);
-
       console.log(`[usePatientOverviewLayout] Cards restantes:`, filteredCards);
 
-      return {
+      const updated = {
         ...prev,
         [sectionId]: {
           ...section,
           cardLayouts: filteredCards,
         },
       };
+
+      // Atualizar cache local
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user) {
+          saveLayoutToLocalStorage(user.id, updated, patientId);
+        }
+      });
+
+      return updated;
     });
-  }, [user?.id]);
+  }, [patientId]);
 
   /**
-   * SAVE LAYOUT
-   * 
-   * FASE C1.1: Apenas salva no localStorage
-   * Futura integração com Supabase será implementada quando necessário
+   * SAVE LAYOUT TO SUPABASE
+   * UPSERT baseado em (user_id, patient_id)
    */
   const saveLayout = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user?.id) {
+      toast.error('Usuário não autenticado');
+      return;
+    }
+
     setSaving(true);
     try {
-      // Layout já está salvo no localStorage através de updateLayout
-      // Esta função existe para manter API compatível com dashboard
+      const { error } = await supabase
+        .from('patient_overview_layouts')
+        .upsert(
+          {
+            user_id: user.id,
+            patient_id: patientId || null,
+            layout_json: layout as any,
+            version: 1,
+          },
+          { 
+            onConflict: 'user_id,patient_id'
+          }
+        );
+
+      if (error) throw error;
+
       setOriginalLayout(layout);
+      saveLayoutToLocalStorage(user.id, layout, patientId);
+      
       toast.success('Layout salvo com sucesso!');
-      console.log('[usePatientOverviewLayout] Layout salvo (localStorage apenas)');
+      console.log('[usePatientOverviewLayout] ✅ Layout salvo no Supabase');
     } catch (error) {
-      console.error('[usePatientOverviewLayout] Erro ao salvar layout:', error);
+      console.error('[usePatientOverviewLayout] ❌ Erro ao salvar layout:', error);
       toast.error('Erro ao salvar layout');
     } finally {
       setSaving(false);
     }
-  }, [layout]);
+  }, [layout, patientId]);
 
   /**
    * RESET LAYOUT
+   * CORREÇÃO H2: Tratamento correto de patient_id null no DELETE
    */
   const resetLayout = useCallback(async () => {
-    try {
-      // Limpar localStorage
-      Object.keys(DEFAULT_PATIENT_OVERVIEW_GRID_LAYOUT).forEach(sectionId => {
-        const section = DEFAULT_PATIENT_OVERVIEW_GRID_LAYOUT[sectionId];
-        section.cardLayouts.forEach(card => {
-          const key = getStorageKey(sectionId, card.i, user?.id);
-          localStorage.removeItem(key);
-        });
-      });
+    const { data: { user } } = await supabase.auth.getUser();
 
+    if (!user?.id) {
+      toast.error('Usuário não autenticado');
+      return;
+    }
+
+    try {
+      // Deletar do Supabase
+      let deleteQuery = supabase
+        .from('patient_overview_layouts')
+        .delete()
+        .eq('user_id', user.id);
+      
+      // ✅ CORREÇÃO: Tratamento correto de patient_id null
+      if (patientId) {
+        deleteQuery = deleteQuery.eq('patient_id', patientId);
+      } else {
+        deleteQuery = deleteQuery.is('patient_id', null);
+      }
+      
+      const { error } = await deleteQuery;
+
+      if (error) throw error;
+
+      // Limpar cache local
+      clearLayoutFromLocalStorage(user.id, patientId);
+
+      // Voltar ao default
       setLayout(DEFAULT_PATIENT_OVERVIEW_GRID_LAYOUT);
       setOriginalLayout(DEFAULT_PATIENT_OVERVIEW_GRID_LAYOUT);
       
       toast.success('Layout resetado para o padrão!');
-      console.log('[usePatientOverviewLayout] Layout resetado', { userId: user?.id });
+      console.log('[usePatientOverviewLayout] ✅ Layout resetado');
     } catch (error) {
-      console.error('[usePatientOverviewLayout] Erro ao resetar layout:', error);
+      console.error('[usePatientOverviewLayout] ❌ Erro ao resetar layout:', error);
       toast.error('Erro ao resetar layout');
     }
-  }, [user?.id]);
+  }, [patientId]);
 
   /**
    * AUTO-SAVE com debounce
+   * Salva automaticamente no Supabase após 1.5s de inatividade
    */
   useEffect(() => {
     if (!isModified) return;
 
-    if (saveTimeout) {
-      clearTimeout(saveTimeout);
-    }
-
-    const timeout = setTimeout(() => {
-      console.log('[usePatientOverviewLayout] Auto-save triggered');
+    const timer = setTimeout(() => {
+      console.log('[usePatientOverviewLayout] ⏰ Auto-save triggered');
       saveLayout();
     }, DEBOUNCE_SAVE_MS);
 
-    setSaveTimeout(timeout);
-
-    return () => {
-      if (timeout) clearTimeout(timeout);
-    };
+    return () => clearTimeout(timer);
   }, [layout, isModified, saveLayout]);
 
   return {
