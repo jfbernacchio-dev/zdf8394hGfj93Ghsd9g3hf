@@ -1522,7 +1522,21 @@ Assinatura do Profissional`;
           </ResizableSection>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        {/* 🟦 C1.9: Tabs com bloqueio em modo de edição */}
+        <Tabs 
+          value={activeTab} 
+          onValueChange={(value) => {
+            // 🔒 C1.9: Bloquear troca de aba se estiver editando layout da Visão Geral
+            if (isOverviewLayoutEditMode && value !== 'overview') {
+              toast.error('Finalize a edição do layout', {
+                description: 'Salve, resete ou saia do modo de edição antes de trocar de aba.',
+              });
+              return;
+            }
+            setActiveTab(value);
+          }} 
+          className="w-full"
+        >
           {/* Tabs Menu and New Note Button aligned */}
           <div className="flex items-center justify-between mb-6">
             <TabsList>
@@ -1548,7 +1562,7 @@ Assinatura do Profissional`;
           </div>
 
            {/* Overview Tab */}
-           <TabsContent value="overview" className="space-y-6">
+           <TabsContent value="overview" className="space-y-4">
              {/* 🟦 C1.3: Wrapper silencioso - garante que hook está conectado (não altera UI) */}
              {false && (
                <div className="hidden">
@@ -1556,88 +1570,97 @@ Assinatura do Profissional`;
                </div>
              )}
              
-              {/* 🟦 C1.5 + C1.7: Controles de edição do layout */}
-              <div className="flex justify-end gap-2 mb-4">
-                {!isOverviewLayoutEditMode ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsOverviewLayoutEditMode(true)}
-                  >
-                    <Edit className="w-4 h-4 mr-2" />
-                    Editar Layout
-                  </Button>
-                ) : (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsOverviewLayoutEditMode(false)}
-                    >
-                      <X className="w-4 h-4 mr-2" />
-                      Sair do Modo de Edição
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsAddOverviewCardDialogOpen(true)}
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Adicionar/Remover Cards
-                    </Button>
-                    {/* 🟦 C1.7: Salvar Agora */}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={async () => {
-                        await saveOverviewLayout();
-                        toast.success('Layout salvo com sucesso');
-                      }}
-                      disabled={overviewLayoutSaving}
-                    >
-                      <Save className="w-4 h-4 mr-2" />
-                      Salvar Agora
-                    </Button>
-                    {/* 🟦 C1.7: Resetar Layout */}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={async () => {
-                        await resetOverviewLayout();
-                        toast.success('Layout resetado para o padrão');
-                      }}
-                      disabled={overviewLayoutSaving}
-                    >
-                      <RotateCcw className="w-4 h-4 mr-2" />
-                      Resetar Layout
-                    </Button>
-                  </>
-                )}
-              </div>
-              
-              {/* 🟦 C1.7: Feedback visual de estado do layout */}
-              {isOverviewLayoutEditMode && (
-                <div className="flex justify-end mb-2 text-xs text-muted-foreground">
-                  {overviewLayoutSaving ? (
-                    <span className="flex items-center gap-1">
-                      <Activity className="w-3 h-3 animate-pulse" />
-                      Salvando alterações...
-                    </span>
-                  ) : overviewLayoutModified ? (
-                    <span className="flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" />
-                      Alterações pendentes
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1">
-                      <Check className="w-3 h-3 text-green-600" />
-                      Layout salvo
-                    </span>
-                  )}
-                </div>
-              )}
+             {/* 🟦 C1.9: Controles refinados com melhor organização */}
+             <div className="space-y-3">
+               {/* Barra de botões principais */}
+               <div className="flex flex-wrap items-center justify-end gap-2">
+                 {!isOverviewLayoutEditMode ? (
+                   <Button
+                     variant="outline"
+                     size="sm"
+                     onClick={() => setIsOverviewLayoutEditMode(true)}
+                   >
+                     <Edit className="w-4 h-4 mr-2" />
+                     Editar Layout
+                   </Button>
+                 ) : (
+                   <>
+                     {/* Botão primário de saída */}
+                     <Button
+                       variant="default"
+                       size="sm"
+                       onClick={() => setIsOverviewLayoutEditMode(false)}
+                     >
+                       <Check className="w-4 h-4 mr-2" />
+                       Concluir Edição
+                     </Button>
+                     
+                     {/* Separador visual */}
+                     <div className="h-6 w-px bg-border" />
+                     
+                     {/* Ações secundárias */}
+                     <Button
+                       variant="outline"
+                       size="sm"
+                       onClick={() => setIsAddOverviewCardDialogOpen(true)}
+                     >
+                       <Plus className="w-4 h-4 mr-2" />
+                       Adicionar/Remover Cards
+                     </Button>
+                     <Button
+                       variant="outline"
+                       size="sm"
+                       onClick={async () => {
+                         await saveOverviewLayout();
+                         toast.success('Layout salvo com sucesso');
+                       }}
+                       disabled={overviewLayoutSaving}
+                     >
+                       <Save className="w-4 h-4 mr-2" />
+                       Salvar Agora
+                     </Button>
+                     <Button
+                       variant="outline"
+                       size="sm"
+                       onClick={async () => {
+                         await resetOverviewLayout();
+                         toast.success('Layout resetado para o padrão');
+                       }}
+                       disabled={overviewLayoutSaving}
+                     >
+                       <RotateCcw className="w-4 h-4 mr-2" />
+                       Resetar
+                     </Button>
+                   </>
+                 )}
+               </div>
+               
+               {/* 🟦 C1.9: Status refinado - só visível em modo de edição */}
+               {isOverviewLayoutEditMode && (
+                 <div className="flex items-center justify-end">
+                   <div className="text-xs text-muted-foreground flex items-center gap-1.5 bg-muted/50 px-3 py-1.5 rounded-md">
+                     {overviewLayoutSaving ? (
+                       <>
+                         <Activity className="w-3 h-3 animate-pulse" />
+                         <span>Salvando alterações...</span>
+                       </>
+                     ) : overviewLayoutModified ? (
+                       <>
+                         <AlertCircle className="w-3 h-3 text-amber-600" />
+                         <span>Alterações pendentes</span>
+                       </>
+                     ) : (
+                       <>
+                         <Check className="w-3 h-3 text-green-600" />
+                         <span>Layout salvo</span>
+                       </>
+                     )}
+                   </div>
+                 </div>
+               )}
+             </div>
              
-             {/* 🟦 C1.4: NOVO LAYOUT COM GRID (placeholders) */}
+             {/* 🟦 C1.4 + C1.9: Grid com melhor espaçamento */}
              <div className="mt-4">
                <GridCardContainer
                  sectionId="patient-overview-main"
