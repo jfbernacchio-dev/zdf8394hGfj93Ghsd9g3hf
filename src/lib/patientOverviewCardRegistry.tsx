@@ -656,11 +656,28 @@ export const PatientPersonalDataCard = ({ patient }: PatientOverviewCardProps) =
  * @returns Componente React do card ou null se não encontrado
  * 
  * FASE C1.6: Cards agora mostram dados reais do paciente.
+ * FASE C1.8: Adiciona proteção de permissões por domain.
  */
 export function renderPatientOverviewCard(
   cardId: string,
   props: PatientOverviewCardProps = {}
 ): React.ReactNode {
+  // 🔐 C1.8: Proteção dupla - verificar permissões antes de renderizar
+  const { permissions } = props;
+  
+  if (permissions) {
+    const cardMeta = PATIENT_OVERVIEW_AVAILABLE_CARDS.find((c) => c.id === cardId);
+    
+    if (cardMeta) {
+      // Verificar permissão por domain
+      const allowed = canViewCardByDomain(cardMeta.domain, permissions);
+      if (!allowed) {
+        console.warn(`[patientOverviewCardRegistry] Acesso negado ao card: ${cardId} (domain: ${cardMeta.domain})`);
+        return null;
+      }
+    }
+  }
+
   switch (cardId) {
     // Financial cards
     case 'patient-revenue-month':
@@ -698,5 +715,44 @@ export function renderPatientOverviewCard(
     default:
       console.warn(`[patientOverviewCardRegistry] Card não encontrado: ${cardId}`);
       return null;
+  }
+}
+
+// ============================================================================
+// PERMISSION HELPER (C1.8)
+// ============================================================================
+
+/**
+ * Verifica se um card pode ser visualizado baseado no seu domain e nas permissões do usuário.
+ * 
+ * @param domain - Domínio do card (clinical, financial, sessions, contact, administrative)
+ * @param permissions - Objeto de permissões simplificado
+ * @returns true se o card pode ser visualizado, false caso contrário
+ */
+export function canViewCardByDomain(
+  domain: 'clinical' | 'financial' | 'administrative' | 'sessions' | 'contact',
+  permissions: {
+    canAccessClinical?: boolean;
+    financialAccess?: string;
+  }
+): boolean {
+  switch (domain) {
+    case 'clinical':
+      // Apenas usuários com acesso clínico podem ver cards clínicos
+      return permissions.canAccessClinical === true;
+      
+    case 'financial':
+      // Usuários com acesso financeiro 'read' ou 'full' podem ver cards financeiros
+      return permissions.financialAccess === 'read' || permissions.financialAccess === 'full';
+      
+    case 'sessions':
+      // Sessões são visíveis para quem tem acesso clínico (geralmente quem vê o paciente)
+      return permissions.canAccessClinical === true;
+      
+    case 'contact':
+    case 'administrative':
+    default:
+      // Dados de contato e administrativos são acessíveis por padrão
+      return true;
   }
 }

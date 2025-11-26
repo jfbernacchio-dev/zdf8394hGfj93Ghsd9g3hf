@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,7 +7,7 @@ import { formatBrazilianDate, formatBrazilianCurrency } from '@/lib/brazilianFor
 import { getUserIdsInOrganization } from '@/lib/organizationFilters';
 import { Button } from '@/components/ui/button';
 import { usePatientOverviewLayout } from '@/hooks/usePatientOverviewLayout';
-import { renderPatientOverviewCard, PATIENT_OVERVIEW_AVAILABLE_CARDS } from '@/lib/patientOverviewCardRegistry';
+import { renderPatientOverviewCard, PATIENT_OVERVIEW_AVAILABLE_CARDS, canViewCardByDomain } from '@/lib/patientOverviewCardRegistry';
 import { GridCardContainer } from '@/components/GridCardContainer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -108,6 +108,18 @@ const PatientDetailNew = () => {
     saving: overviewLayoutSaving,
     isModified: overviewLayoutModified,
   } = usePatientOverviewLayout();
+
+  // 🔐 C1.8: Filtrar cards visíveis baseado em permissões
+  const visiblePatientOverviewCards = useMemo(
+    () =>
+      PATIENT_OVERVIEW_AVAILABLE_CARDS.filter((card) =>
+        canViewCardByDomain(card.domain, {
+          canAccessClinical,
+          financialAccess,
+        })
+      ),
+    [canAccessClinical, financialAccess]
+  );
 
   // FASE 3.5: Derived permission flags
   const isAccountant = roleGlobal === 'accountant';
@@ -1644,35 +1656,39 @@ Assinatura do Profissional`;
                            <GripVertical className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
                          </div>
                        )}
-                       <CardContent className="p-4 flex-1 overflow-auto">
-                         {renderPatientOverviewCard(cardLayout.i, {
-                           isEditMode: isOverviewLayoutEditMode,
-                           patient,
-                           sessions,
-                           nfseIssued,
-                           complaints: complaint ? [complaint] : [],
-                         })}
-                       </CardContent>
+                        <CardContent className="p-4 flex-1 overflow-auto">
+                          {renderPatientOverviewCard(cardLayout.i, {
+                            isEditMode: isOverviewLayoutEditMode,
+                            patient,
+                            sessions,
+                            nfseIssued,
+                            complaints: complaint ? [complaint] : [],
+                            permissions: {
+                              canAccessClinical,
+                              financialAccess,
+                            },
+                          })}
+                        </CardContent>
                      </Card>
                    </div>
                  ))}
                </GridCardContainer>
              </div>
              
-             {/* 🟦 C1.5: Dialog de adicionar/remover cards */}
-             <AddCardDialog
-               open={isAddOverviewCardDialogOpen}
-               onOpenChange={setIsAddOverviewCardDialogOpen}
-               onAddCard={(sectionId: string, cardId: string) => addOverviewCard(sectionId, cardId)}
-               onRemoveCard={(sectionId: string, cardId: string) => removeOverviewCard(sectionId, cardId)}
-               sectionCards={{
-                 'patient-overview-main': overviewLayout['patient-overview-main']?.cardLayouts?.map(l => l.i) || []
-               }}
-               availableCardsBySection={{
-                 'patient-overview-main': PATIENT_OVERVIEW_AVAILABLE_CARDS
-               }}
-               mode="patient-overview"
-             />
+              {/* 🟦 C1.5 + C1.8: Dialog de adicionar/remover cards */}
+              <AddCardDialog
+                open={isAddOverviewCardDialogOpen}
+                onOpenChange={setIsAddOverviewCardDialogOpen}
+                onAddCard={(sectionId: string, cardId: string) => addOverviewCard(sectionId, cardId)}
+                onRemoveCard={(sectionId: string, cardId: string) => removeOverviewCard(sectionId, cardId)}
+                sectionCards={{
+                  'patient-overview-main': overviewLayout['patient-overview-main']?.cardLayouts?.map(l => l.i) || []
+                }}
+                availableCardsBySection={{
+                  'patient-overview-main': visiblePatientOverviewCards
+                }}
+                mode="patient-overview"
+              />
 
              {/* 🟦 C1.4: LAYOUT ANTIGO COMENTADO (não apagar) */}
              {false && (
