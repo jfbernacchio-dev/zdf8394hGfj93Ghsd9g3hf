@@ -236,17 +236,9 @@ export const PatientNfseCountCard = ({ patient, nfseIssued = [] }: PatientOvervi
 // CLINICAL CARDS (3)
 // ============================================================================
 
-export const PatientComplaintsSummaryCard = ({ complaints = [] }: PatientOverviewCardProps) => {
-  // Pegar última queixa ativa
-  const activeComplaints = complaints
-    .filter((c) => c.is_active !== false)
-    .sort((a, b) => {
-      const dateA = new Date(a.created_at || 0);
-      const dateB = new Date(b.created_at || 0);
-      return dateB.getTime() - dateA.getTime();
-    });
-
-  const lastComplaint = activeComplaints[0];
+export const PatientComplaintsSummaryCard = ({ complaint }: PatientOverviewCardProps) => {
+  // FASE C1.10.3-D: Usar complaint única diretamente (não mais array)
+  const complaintToShow = complaint && complaint.is_active !== false ? complaint : null;
 
   return (
     <Card className="h-full">
@@ -255,27 +247,27 @@ export const PatientComplaintsSummaryCard = ({ complaints = [] }: PatientOvervie
         <Stethoscope className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent>
-        {lastComplaint ? (
+        {complaintToShow ? (
           <>
             <div className="space-y-2">
-              {lastComplaint.cid_code && (
+              {complaintToShow.cid_code && (
                 <Badge variant="outline">
-                  {lastComplaint.cid_code} - {lastComplaint.cid_title}
+                  {complaintToShow.cid_code} - {complaintToShow.cid_title}
                 </Badge>
               )}
-              {lastComplaint.severity && (
+              {complaintToShow.severity && (
                 <div className="text-sm">
-                  <span className="font-medium">Gravidade:</span> {lastComplaint.severity}
+                  <span className="font-medium">Gravidade:</span> {complaintToShow.severity}
                 </div>
               )}
-              {lastComplaint.clinical_notes && (
+              {complaintToShow.clinical_notes && (
                 <p className="text-sm text-muted-foreground line-clamp-3">
-                  {lastComplaint.clinical_notes}
+                  {complaintToShow.clinical_notes}
                 </p>
               )}
-              {lastComplaint.created_at && (
+              {complaintToShow.created_at && (
                 <p className="text-xs text-muted-foreground">
-                  Registrado em {format(parseISO(lastComplaint.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                  Registrado em {format(parseISO(complaintToShow.created_at), "dd/MM/yyyy", { locale: ptBR })}
                 </p>
               )}
             </div>
@@ -283,7 +275,7 @@ export const PatientComplaintsSummaryCard = ({ complaints = [] }: PatientOvervie
         ) : (
           <div className="flex items-center gap-2 text-muted-foreground">
             <AlertCircle className="h-4 w-4" />
-            <p className="text-sm">Nenhuma queixa registrada</p>
+            <p className="text-sm">Nenhuma queixa ativa registrada</p>
           </div>
         )}
       </CardContent>
@@ -291,20 +283,10 @@ export const PatientComplaintsSummaryCard = ({ complaints = [] }: PatientOvervie
   );
 };
 
-export const PatientMedicationsListCard = ({ complaints = [] }: PatientOverviewCardProps) => {
-  // Buscar medicações nas queixas ativas
-  const medications: Array<{
-    substance?: string;
-    class: string;
-    dosage?: string;
-  }> = [];
-  complaints
-    .filter((c) => c.is_active !== false)
-    .forEach((complaint) => {
-      if (complaint.complaint_medications) {
-        medications.push(...complaint.complaint_medications.filter((m) => m.is_current));
-      }
-    });
+export const PatientMedicationsListCard = ({ complaint }: PatientOverviewCardProps) => {
+  // FASE C1.10.3-D: Buscar medicações da complaint única
+  const complaintToShow = complaint && complaint.is_active !== false ? complaint : null;
+  const medications = complaintToShow?.complaint_medications?.filter((m: any) => m.is_current) ?? [];
 
   return (
     <Card className="h-full">
@@ -332,7 +314,7 @@ export const PatientMedicationsListCard = ({ complaints = [] }: PatientOverviewC
         ) : (
           <div className="flex items-center gap-2 text-muted-foreground">
             <AlertCircle className="h-4 w-4" />
-            <p className="text-sm">Nenhuma medicação registrada</p>
+            <p className="text-sm">Nenhuma medicação cadastrada para a queixa atual</p>
           </div>
         )}
       </CardContent>
@@ -340,16 +322,12 @@ export const PatientMedicationsListCard = ({ complaints = [] }: PatientOverviewC
   );
 };
 
-export const PatientDiagnosesListCard = ({ complaints = [] }: PatientOverviewCardProps) => {
-  // Coletar diagnósticos únicos das queixas ativas
-  const diagnoses = new Set<string>();
-  complaints
-    .filter((c) => c.is_active !== false && c.cid_code)
-    .forEach((complaint) => {
-      diagnoses.add(`${complaint.cid_code} - ${complaint.cid_title || 'Sem título'}`);
-    });
-
-  const diagnosesArray = Array.from(diagnoses);
+export const PatientDiagnosesListCard = ({ complaint }: PatientOverviewCardProps) => {
+  // FASE C1.10.3-D: Usar complaint única diretamente
+  const complaintToShow = complaint && complaint.is_active !== false && complaint.cid_code ? complaint : null;
+  const diagnosis = complaintToShow 
+    ? `${complaintToShow.cid_code} - ${complaintToShow.cid_title || 'Sem título'}`
+    : null;
 
   return (
     <Card className="h-full">
@@ -358,19 +336,15 @@ export const PatientDiagnosesListCard = ({ complaints = [] }: PatientOverviewCar
         <ClipboardList className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent>
-        {diagnosesArray.length > 0 ? (
-          <ul className="space-y-1.5">
-            {diagnosesArray.map((diagnosis, idx) => (
-              <li key={idx} className="text-sm flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                <span>{diagnosis}</span>
-              </li>
-            ))}
-          </ul>
+        {diagnosis ? (
+          <div className="flex items-start gap-2">
+            <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+            <span className="text-sm">{diagnosis}</span>
+          </div>
         ) : (
           <div className="flex items-center gap-2 text-muted-foreground">
             <AlertCircle className="h-4 w-4" />
-            <p className="text-sm">Nenhum diagnóstico registrado</p>
+            <p className="text-sm">Nenhum diagnóstico registrado na queixa atual</p>
           </div>
         )}
       </CardContent>

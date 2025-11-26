@@ -34,9 +34,10 @@ export interface PatientOverviewCardProps {
   nfseIssued?: any[];
   
   /**
-   * Queixas clínicas (para cards clínicos)
+   * Queixa clínica única (FASE C1.10.3-D: na clínica, sempre há no máximo 1 queixa ativa)
+   * Vem com relationships populados: complaint_medications, complaint_symptoms, complaint_specifiers
    */
-  complaints?: any[];
+  complaint?: any;
   
   /**
    * Data inicial do período (para filtros de cards)
