@@ -213,8 +213,6 @@ export const AddCardDialog = ({
       const domainLabels = {
         financial: 'Financeiro',
         clinical: 'Clínico',
-        sessions: 'Sessões',
-        contact: 'Contato',
         administrative: 'Administrativo',
       };
       badges.push(domainLabels[patientCard.domain] || patientCard.domain);
