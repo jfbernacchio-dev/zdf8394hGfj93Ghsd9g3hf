@@ -96,7 +96,7 @@ const PatientDetailNew = () => {
   } = useEffectivePermissions();
   const { canViewCard } = useCardPermissions();
 
-  // 🟦 C1.3: Hook de layout da Visão Geral (não conectado ainda à UI)
+  // 🟦 C1.10.3-H2: Hook de layout da Visão Geral (agora com Supabase)
   const {
     layout: overviewLayout,
     updateLayout: updateOverviewLayout,
@@ -107,7 +107,7 @@ const PatientDetailNew = () => {
     loading: overviewLayoutLoading,
     saving: overviewLayoutSaving,
     isModified: overviewLayoutModified,
-  } = usePatientOverviewLayout();
+  } = usePatientOverviewLayout(id); // ✅ Passando patientId
 
   // 🔐 C1.8: Filtrar cards visíveis baseado em permissões
   // 🔐 C1.10.2: Agora inclui verificação de ownership para cards sensíveis
