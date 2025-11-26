@@ -24,6 +24,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DEFAULT_EVOLUTION_LAYOUT, resetToDefaultEvolutionLayout } from '@/lib/defaultLayoutEvolution';
+import { useActiveClinicalTemplates } from '@/hooks/useActiveClinicalTemplates';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import type { Severity } from '@/lib/templates/psychopathologyBasic/evolutionInterpreter';
 
 interface ClinicalEvolutionProps {
   patientId: string;
@@ -58,10 +61,9 @@ interface SessionEvaluation {
   created_at: string;
 }
 
-type Severity = 'normal' | 'moderate' | 'severe';
-
 export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
   const navigate = useNavigate();
+  const { activeRoleTemplate, isLoading: templatesLoading } = useActiveClinicalTemplates();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
@@ -71,7 +73,6 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
   const [clinicalNotes, setClinicalNotes] = useState('');
   const [savingNotes, setSavingNotes] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState(() => {
-    // Check sessionStorage for sub-tab redirect after layout save/cancel
     const returnToSubTab = sessionStorage.getItem('returnToSubTab');
     if (returnToSubTab) {
       sessionStorage.removeItem('returnToSubTab');
@@ -80,6 +81,9 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
     return 'sessions';
   });
   const { toast } = useToast();
+
+  // Get interpreter from template
+  const interpreter = activeRoleTemplate?.evolutionInterpreter;
 
   useEffect(() => {
     loadSessions();
@@ -258,7 +262,13 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
     return 'bg-red-500';
   };
 
+  // Use template interpreter for summary generation
   const generateSummary = (evaluation: SessionEvaluation): string => {
+    if (!interpreter) {
+      return 'Template de interpretação não disponível.';
+    }
+    return interpreter.generateGlobalSummary(evaluation);
+    /* Legacy code - now handled by template interpreter
     const summaryParts: string[] = [];
 
     // ========== 1. CONSCIÊNCIA ==========
@@ -700,16 +710,18 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
 
     const connector = summaryParts.length > 8 ? '; ' : ', ';
     return `Paciente apresenta ${summaryParts.join(connector)}. ${summaryParts.length < 8 ? 'Demais funções psíquicas preservadas.' : ''}`;
+    */
   };
 
   const renderEvaluationCard = (
     title: string,
-    data: any,
-    getSummary: (data: any) => { text: string; severity: Severity; values?: { label: string; value: number; scale?: 'bipolar' | 'unipolar' }[] }
+    functionId: string,
+    data: any
   ) => {
-    if (!data) return null;
+    if (!data || !interpreter) return null;
 
-    const { text, severity, values } = getSummary(data);
+    const { text, severity, indicators } = interpreter.interpretFunction(functionId, data);
+    const values = indicators;
 
     return (
       <Card className={cn("h-full", getSeverityColor(severity))}>
@@ -1341,18 +1353,18 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
                   <Separator />
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {renderEvaluationCard('1. Consciência', evaluation.consciousness_data, getConsciousnessSummary)}
-                    {renderEvaluationCard('2. Orientação', evaluation.orientation_data, getOrientationSummary)}
-                    {renderEvaluationCard('3. Memória', evaluation.memory_data, getMemorySummary)}
-                    {renderEvaluationCard('4. Humor / Afeto', evaluation.mood_data, getMoodSummary)}
-                    {renderEvaluationCard('5. Pensamento', evaluation.thought_data, getThoughtSummary)}
-                    {renderEvaluationCard('6. Linguagem', evaluation.language_data, getLanguageSummary)}
-                    {renderEvaluationCard('7. Sensopercepção', evaluation.sensoperception_data, getSensoperceptionSummary)}
-                    {renderEvaluationCard('8. Inteligência', evaluation.intelligence_data, getIntelligenceSummary)}
-                    {renderEvaluationCard('9. Vontade', evaluation.will_data, getWillSummary)}
-                    {renderEvaluationCard('10. Psicomotricidade', evaluation.psychomotor_data, getPsychomotorSummary)}
-                    {renderEvaluationCard('11. Atenção', evaluation.attention_data, getAttentionSummary)}
-                    {renderEvaluationCard('12. Personalidade', evaluation.personality_data, getPersonalitySummary)}
+                    {renderEvaluationCard('1. Consciência', 'consciousness', evaluation.consciousness_data)}
+                    {renderEvaluationCard('2. Orientação', 'orientation', evaluation.orientation_data)}
+                    {renderEvaluationCard('3. Memória', 'memory', evaluation.memory_data)}
+                    {renderEvaluationCard('4. Humor / Afeto', 'mood', evaluation.mood_data)}
+                    {renderEvaluationCard('5. Pensamento', 'thought', evaluation.thought_data)}
+                    {renderEvaluationCard('6. Linguagem', 'language', evaluation.language_data)}
+                    {renderEvaluationCard('7. Sensopercepção', 'sensoperception', evaluation.sensoperception_data)}
+                    {renderEvaluationCard('8. Inteligência', 'intelligence', evaluation.intelligence_data)}
+                    {renderEvaluationCard('9. Vontade', 'will', evaluation.will_data)}
+                    {renderEvaluationCard('10. Psicomotricidade', 'psychomotor', evaluation.psychomotor_data)}
+                    {renderEvaluationCard('11. Atenção', 'attention', evaluation.attention_data)}
+                    {renderEvaluationCard('12. Personalidade', 'personality', evaluation.personality_data)}
                   </div>
                 </div>
               </ScrollArea>
