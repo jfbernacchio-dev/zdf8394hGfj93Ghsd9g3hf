@@ -87,11 +87,9 @@ export interface PatientOverviewCardMetadata {
    * Domínio de permissão do card
    * - 'clinical': Dados clínicos (queixas, diagnósticos, evoluções)
    * - 'financial': Dados financeiros (valores, NFSe, pagamentos)
-   * - 'administrative': Dados administrativos (sessões, agendamentos)
-   * - 'sessions': Histórico de sessões
-   * - 'contact': Informações de contato
+   * - 'administrative': Dados administrativos (sessões, agendamentos, contato, consentimento)
    */
-  domain: 'clinical' | 'financial' | 'administrative' | 'sessions' | 'contact';
+  domain: 'clinical' | 'financial' | 'administrative';
   
   /**
    * Tipos de usuário permitidos

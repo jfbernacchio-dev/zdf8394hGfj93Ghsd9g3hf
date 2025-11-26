@@ -89,44 +89,42 @@ export const PATIENT_OVERVIEW_AVAILABLE_CARDS: PatientOverviewCardMetadata[] = [
     domain: 'clinical',
   },
 
-  // ========== SESSIONS DOMAIN (3 cards) ==========
+  // ========== ADMINISTRATIVE DOMAIN (6 cards: sessions + contact) ==========
   {
     id: 'patient-sessions-timeline',
     label: 'Timeline de Sessões',
     description: 'Histórico recente de sessões',
-    domain: 'sessions',
+    domain: 'administrative',
   },
   {
     id: 'patient-session-frequency',
     label: 'Frequência',
     description: 'Padrão de frequência das sessões',
-    domain: 'sessions',
+    domain: 'administrative',
   },
   {
     id: 'patient-attendance-rate',
     label: 'Taxa de Comparecimento',
     description: 'Porcentagem de presença vs faltas',
-    domain: 'sessions',
+    domain: 'administrative',
   },
-
-  // ========== CONTACT DOMAIN (3 cards) ==========
   {
     id: 'patient-contact-info',
     label: 'Informações de Contato',
     description: 'Telefone, email, endereço',
-    domain: 'contact',
+    domain: 'administrative',
   },
   {
     id: 'patient-consent-status',
     label: 'Status de Consentimento',
     description: 'LGPD e termos aceitos',
-    domain: 'contact',
+    domain: 'administrative',
   },
   {
     id: 'patient-personal-data',
     label: 'Dados Pessoais',
     description: 'CPF, data de nascimento, responsáveis',
-    domain: 'contact',
+    domain: 'administrative',
   },
 ];
 
@@ -729,12 +727,12 @@ export function renderPatientOverviewCard(
 /**
  * Verifica se um card pode ser visualizado baseado no seu domain e nas permissões do usuário.
  * 
- * @param domain - Domínio do card (clinical, financial, sessions, contact, administrative)
+ * @param domain - Domínio do card (clinical, financial, administrative)
  * @param permissions - Objeto de permissões simplificado
  * @returns true se o card pode ser visualizado, false caso contrário
  */
 export function canViewCardByDomain(
-  domain: 'clinical' | 'financial' | 'administrative' | 'sessions' | 'contact',
+  domain: 'clinical' | 'financial' | 'administrative',
   permissions: {
     canAccessClinical?: boolean;
     financialAccess?: string;
@@ -749,14 +747,13 @@ export function canViewCardByDomain(
       // Usuários com acesso financeiro 'read' ou 'full' podem ver cards financeiros
       return permissions.financialAccess === 'read' || permissions.financialAccess === 'full';
       
-    case 'sessions':
-      // Sessões são visíveis para quem tem acesso clínico (geralmente quem vê o paciente)
-      return permissions.canAccessClinical === true;
-      
-    case 'contact':
     case 'administrative':
-    default:
-      // Dados de contato e administrativos são acessíveis por padrão
+      // Cards administrativos (sessões, contato, dados pessoais) são acessíveis por padrão
       return true;
+      
+    default:
+      // Qualquer outro domain desconhecido: negar por segurança
+      console.warn(`[canViewCardByDomain] Domain desconhecido: ${domain}`);
+      return false;
   }
 }
