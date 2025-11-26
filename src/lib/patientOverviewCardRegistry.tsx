@@ -54,18 +54,21 @@ export const PATIENT_OVERVIEW_AVAILABLE_CARDS: PatientOverviewCardMetadata[] = [
     label: 'Faturamento do Mês',
     description: 'Resumo financeiro mensal do paciente',
     domain: 'financial',
+    requiredTemplates: ['psychopathology_basic'], // FASE C2.7
   },
   {
     id: 'patient-pending-sessions',
     label: 'Sessões Pendentes',
     description: 'Sessões realizadas aguardando pagamento',
     domain: 'financial',
+    requiredTemplates: ['psychopathology_basic'], // FASE C2.7
   },
   {
     id: 'patient-nfse-count',
     label: 'NFSe Emitidas',
     description: 'Total de notas fiscais emitidas',
     domain: 'financial',
+    requiredTemplates: ['psychopathology_basic'], // FASE C2.7
   },
 
   // ========== CLINICAL DOMAIN (3 cards) ==========
@@ -74,18 +77,21 @@ export const PATIENT_OVERVIEW_AVAILABLE_CARDS: PatientOverviewCardMetadata[] = [
     label: 'Resumo de Queixas',
     description: 'Queixas clínicas ativas do paciente',
     domain: 'clinical',
+    requiredTemplates: ['psychopathology_basic'], // FASE C2.7: Cards clínicos dependem do template
   },
   {
     id: 'patient-medications-list',
     label: 'Medicações',
     description: 'Lista de medicações em uso',
     domain: 'clinical',
+    requiredTemplates: ['psychopathology_basic'], // FASE C2.7: Medicações são parte do modelo psicopatológico
   },
   {
     id: 'patient-diagnoses-list',
     label: 'Diagnósticos',
     description: 'Códigos CID e diagnósticos ativos',
     domain: 'clinical',
+    requiredTemplates: ['psychopathology_basic'], // FASE C2.7: CID é parte do modelo psicopatológico
   },
 
   // ========== ADMINISTRATIVE DOMAIN (6 cards: sessions + contact) ==========
@@ -94,18 +100,21 @@ export const PATIENT_OVERVIEW_AVAILABLE_CARDS: PatientOverviewCardMetadata[] = [
     label: 'Timeline de Sessões',
     description: 'Histórico recente de sessões',
     domain: 'administrative',
+    requiredTemplates: ['psychopathology_basic'], // FASE C2.7
   },
   {
     id: 'patient-session-frequency',
     label: 'Frequência',
     description: 'Padrão de frequência das sessões',
     domain: 'administrative',
+    requiredTemplates: ['psychopathology_basic'], // FASE C2.7
   },
   {
     id: 'patient-attendance-rate',
     label: 'Taxa de Comparecimento',
     description: 'Porcentagem de presença vs faltas',
     domain: 'administrative',
+    requiredTemplates: ['psychopathology_basic'], // FASE C2.7
   },
   {
     id: 'patient-contact-info',
@@ -113,6 +122,7 @@ export const PATIENT_OVERVIEW_AVAILABLE_CARDS: PatientOverviewCardMetadata[] = [
     description: 'Telefone, email, endereço',
     domain: 'administrative',
     requiresOwnership: true, // FASE C1.10.2: Dados de contato são sensíveis
+    requiredTemplates: ['psychopathology_basic'], // FASE C2.7
   },
   {
     id: 'patient-consent-status',
@@ -120,6 +130,7 @@ export const PATIENT_OVERVIEW_AVAILABLE_CARDS: PatientOverviewCardMetadata[] = [
     description: 'LGPD e termos aceitos',
     domain: 'administrative',
     requiresOwnership: true, // FASE C1.10.2: Dados de consentimento são sensíveis
+    requiredTemplates: ['psychopathology_basic'], // FASE C2.7
   },
   {
     id: 'patient-personal-data',
@@ -127,6 +138,7 @@ export const PATIENT_OVERVIEW_AVAILABLE_CARDS: PatientOverviewCardMetadata[] = [
     description: 'CPF, data de nascimento, responsáveis',
     domain: 'administrative',
     requiresOwnership: true, // FASE C1.10.2: Dados pessoais são altamente sensíveis
+    requiredTemplates: ['psychopathology_basic'], // FASE C2.7
   },
 ];
 

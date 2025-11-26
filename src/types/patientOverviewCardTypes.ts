@@ -117,4 +117,11 @@ export interface PatientOverviewCardMetadata {
    * Se undefined, permite todas as abordagens
    */
   approach?: string[];
+  
+  /**
+   * FASE C2.7: Templates clínicos requeridos para exibir este card
+   * Ex: ['psychopathology_basic', 'tcc_template']
+   * Se undefined, card é permitido para qualquer template (comportamento atual)
+   */
+  requiredTemplates?: string[];
 }
