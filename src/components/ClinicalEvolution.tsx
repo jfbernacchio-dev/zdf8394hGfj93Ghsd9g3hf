@@ -82,7 +82,7 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
   });
   const { toast } = useToast();
 
-  // Get interpreter from template
+  // Get interpreter from template with fallback
   const interpreter = activeRoleTemplate?.evolutionInterpreter;
 
   useEffect(() => {
@@ -1159,8 +1159,50 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
     setSavingNotes(false);
   };
 
+  // Template loading state
+  if (templatesLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="w-6 h-6 animate-spin mr-2" />
+        <span>Carregando template clínico...</span>
+      </div>
+    );
+  }
+
+  // Template does not support evolution
+  if (!activeRoleTemplate?.supportsEvolution) {
+    return (
+      <Alert>
+        <AlertTitle>Template não suporta evolução clínica</AlertTitle>
+        <AlertDescription>
+          O template clínico atual não define visualização de evolução clínica.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  // No interpreter available
+  if (!interpreter) {
+    return (
+      <Alert variant="destructive">
+        <AlertTitle>Interpretador não disponível</AlertTitle>
+        <AlertDescription>
+          O template não possui um interpretador de evolução clínica configurado.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
   return (
-    <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full">
+    <div className="space-y-4">
+      {/* Template badge */}
+      <div className="flex items-center gap-2">
+        <Badge variant="outline" className="text-xs">
+          Template: {activeRoleTemplate.label}
+        </Badge>
+      </div>
+
+      <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full">
       <TabsList className="mb-4">
         <TabsTrigger value="sessions">Avaliação de Sessões</TabsTrigger>
         <TabsTrigger value="evolution">Evolução do Paciente</TabsTrigger>
@@ -1377,6 +1419,7 @@ export function ClinicalEvolution({ patientId }: ClinicalEvolutionProps) {
         <PatientEvolutionMetrics patientId={patientId} period={period} setPeriod={setPeriod} />
       </TabsContent>
     </Tabs>
+    </div>
   );
 }
 

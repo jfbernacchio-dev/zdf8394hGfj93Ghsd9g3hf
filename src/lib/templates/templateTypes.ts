@@ -21,6 +21,23 @@
 export type ClinicalTemplateType = 'role' | 'approach';
 
 /**
+ * Interface para interpretação de evolução clínica
+ * (importada de evolutionInterpreter.ts)
+ */
+export interface ClinicalEvolutionInterpreter {
+  generateGlobalSummary: (evaluation: any) => string;
+  interpretFunction: (functionId: string, data: any) => {
+    text: string;
+    severity: 'normal' | 'moderate' | 'severe';
+    indicators?: Array<{
+      label: string;
+      value: number;
+      scale: 'bipolar' | 'unipolar';
+    }>;
+  };
+}
+
+/**
  * Interface principal de um template clínico
  */
 export interface ClinicalTemplate {
@@ -44,6 +61,9 @@ export interface ClinicalTemplate {
   
   /** Se este template suporta visualização de Evolução (gráficos/resumos) */
   supportsEvolution: boolean;
+  
+  /** Interpreter para evolução clínica (opcional) */
+  evolutionInterpreter?: ClinicalEvolutionInterpreter;
   
   /** Versão do template (para futuras migrações) */
   version?: string;

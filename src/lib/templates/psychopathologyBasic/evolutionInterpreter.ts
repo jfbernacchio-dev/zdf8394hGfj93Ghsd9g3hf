@@ -28,6 +28,32 @@ export interface FunctionInterpretation {
 }
 
 /**
+ * Interface for Clinical Evolution Interpreter
+ * Defines the contract for interpreting session evaluations
+ */
+export interface ClinicalEvolutionInterpreter {
+  /** Generate global clinical summary from a session evaluation */
+  generateGlobalSummary: (evaluation: any) => string;
+  
+  /** Interpret a specific psychic function */
+  interpretFunction: (functionId: string, data: any) => FunctionInterpretation;
+  
+  /** Individual function interpreters (optional, for advanced use) */
+  interpretConsciousness?: (data: any) => FunctionInterpretation;
+  interpretOrientation?: (data: any) => FunctionInterpretation;
+  interpretMemory?: (data: any) => FunctionInterpretation;
+  interpretMood?: (data: any) => FunctionInterpretation;
+  interpretThought?: (data: any) => FunctionInterpretation;
+  interpretLanguage?: (data: any) => FunctionInterpretation;
+  interpretSensoperception?: (data: any) => FunctionInterpretation;
+  interpretIntelligence?: (data: any) => FunctionInterpretation;
+  interpretWill?: (data: any) => FunctionInterpretation;
+  interpretPsychomotor?: (data: any) => FunctionInterpretation;
+  interpretAttention?: (data: any) => FunctionInterpretation;
+  interpretPersonality?: (data: any) => FunctionInterpretation;
+}
+
+/**
  * ============================================================================
  * GLOBAL SUMMARY (Resumo Clínico Geral)
  * ============================================================================
