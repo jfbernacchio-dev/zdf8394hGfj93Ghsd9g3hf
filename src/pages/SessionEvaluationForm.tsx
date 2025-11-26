@@ -1,23 +1,33 @@
 /**
  * ============================================================================
- * FASE C2.5A - SessionEvaluationForm (Refatorado)
+ * FASE C2.5B - SessionEvaluationForm (Template-aware + Validação Zod)
  * ============================================================================
  * 
  * Formulário de avaliação de sessão baseado nas 12 funções psíquicas
  * (modelo Dalgalarrondo).
  * 
- * REFATORAÇÃO C2.5A:
- * - Componentização de elementos reutilizáveis
- * - Uso de defaults centralizados
- * - Tipos TypeScript explícitos
- * - Redução de repetição de código
- * - Mantém comportamento 100% idêntico ao original
+ * HISTÓRICO:
+ * - C2.5A: Componentização e refatoração estrutural
+ * - C2.5B: Integração com sistema de templates + validação Zod robusta
+ * 
+ * TEMPLATE-AWARENESS:
+ * - Usa useActiveClinicalTemplates() para verificar template ativo
+ * - Verifica se template suporta avaliação de sessão
+ * - Exibe label do template na UI
+ * - Usa defaults e metadados do template psicopatológico básico
+ * 
+ * VALIDAÇÃO:
+ * - Zod schema robusto (SessionEvaluationSchema)
+ * - Validação de ranges numéricos
+ * - Validação de conteúdo mínimo (3 funções preenchidas)
+ * - Mensagens de erro amigáveis
  */
 
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -27,8 +37,9 @@ import { Loader2, Save, ArrowLeft, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { getUserIdsInOrganization } from '@/lib/organizationFilters';
-import { validateEvaluationMinimum } from '@/lib/clinical/validations';
 import { DEFAULT_EVALUATION_VALUES } from '@/lib/clinical/constants';
+import { validateSessionEvaluation, formatValidationErrors } from '@/lib/clinical/evaluationValidation';
+import { useActiveClinicalTemplates } from '@/hooks/useActiveClinicalTemplates';
 import type {
   ConsciousnessData,
   AttentionData,
@@ -66,6 +77,9 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  
+  // FASE C2.5B: Template awareness
+  const { activeRoleTemplate, isLoading: templatesLoading, error: templatesError } = useActiveClinicalTemplates();
 
   // Estados para cada grupo de funções psíquicas (usando defaults centralizados)
   const [consciousness, setConsciousness] = useState<ConsciousnessData>(DEFAULT_EVALUATION_VALUES.consciousness);
@@ -196,6 +210,7 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
         session_id: sessionId,
         patient_id: patientId,
         evaluated_by: user.id,
+        organization_id: organizationId || null,
         consciousness_data: consciousness as any,
         attention_data: attention as any,
         orientation_data: orientation as any,
@@ -210,13 +225,16 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
         personality_data: personality as any
       };
 
-      const validation = validateEvaluationMinimum(evaluationData);
+      // FASE C2.5B: Validação robusta com Zod
+      const validation = validateSessionEvaluation(evaluationData);
       if (!validation.isValid) {
+        const firstError = validation.errors[0];
         toast({
           title: 'Validação',
-          description: validation.errors[0],
+          description: firstError,
           variant: 'destructive'
         });
+        console.error('[SessionEvaluationForm] Erros de validação:', validation.errors);
         return;
       }
 
@@ -260,10 +278,39 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
     }
   };
 
-  if (loading) {
+  // FASE C2.5B: Loading state para templates
+  if (loading || templatesLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <span className="ml-3 text-muted-foreground">
+          {templatesLoading ? 'Carregando templates...' : 'Carregando avaliação...'}
+        </span>
+      </div>
+    );
+  }
+  
+  // FASE C2.5B: Verificar se template suporta avaliação de sessão
+  if (!activeRoleTemplate?.supportsSessionEvaluation) {
+    return (
+      <div className="container mx-auto py-8 px-4 max-w-4xl">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Template não suporta avaliação de sessão</AlertTitle>
+          <AlertDescription className="mt-2">
+            O template clínico atual ({activeRoleTemplate?.label || 'desconhecido'}) não define 
+            um modelo de avaliação de sessão. Entre em contato com o suporte para mais informações.
+          </AlertDescription>
+        </Alert>
+        <div className="mt-6">
+          <Button
+            variant="outline"
+            onClick={() => navigate(patientId ? `/patients/${patientId}` : '/patients')}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Voltar
+          </Button>
+        </div>
       </div>
     );
   }
@@ -301,9 +348,15 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
         >
           <ArrowLeft className="w-4 h-4" />
         </Button>
-        <div>
-          <h1 className="text-3xl font-bold">Avaliação de Sessão</h1>
-          <p className="text-muted-foreground">Funções Psíquicas - Dalgalarrondo</p>
+        <div className="flex-1">
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold">Avaliação de Sessão</h1>
+            {/* FASE C2.5B: Badge do template ativo */}
+            <Badge variant="secondary" className="text-xs">
+              {activeRoleTemplate?.label || 'Template Clínico'}
+            </Badge>
+          </div>
+          <p className="text-muted-foreground">Funções Psíquicas - Modelo Dalgalarrondo</p>
         </div>
       </div>
 
