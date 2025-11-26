@@ -37,6 +37,15 @@ export interface ChartConfig {
   
   /** Descrição do que o gráfico mostra */
   description?: string;
+  
+  /** Caminho dos valores no JSONB (ex: 'mood_data.polarity') */
+  valuePaths?: string[];
+  
+  /** Se os valores são bipolares (-100 a +100) */
+  bipolar?: boolean;
+  
+  /** Domínio do eixo Y (para gráficos de linha) */
+  yDomain?: [number, number];
 }
 
 /**
@@ -76,6 +85,9 @@ export const EVOLUTION_CHARTS: ChartConfig[] = [
     fields: ['level', 'field', 'self_consciousness'],
     chartType: 'line',
     description: 'Nível, campo e autoconsciência ao longo do tempo',
+    valuePaths: ['consciousness_data.level', 'consciousness_data.field', 'consciousness_data.self_consciousness'],
+    bipolar: true,
+    yDomain: [-100, 100],
   },
   {
     id: 'mood-chart',
@@ -84,6 +96,9 @@ export const EVOLUTION_CHARTS: ChartConfig[] = [
     fields: ['polarity', 'lability'],
     chartType: 'line',
     description: 'Polaridade e labilidade do humor',
+    valuePaths: ['mood_data.polarity', 'mood_data.lability'],
+    bipolar: false, // polarity é bipolar, lability é unipolar - mixed
+    yDomain: [-100, 100],
   },
   {
     id: 'attention-chart',
@@ -92,6 +107,9 @@ export const EVOLUTION_CHARTS: ChartConfig[] = [
     fields: ['range', 'concentration'],
     chartType: 'line',
     description: 'Amplitude e concentração da atenção',
+    valuePaths: ['attention_data.range', 'attention_data.concentration'],
+    bipolar: false,
+    yDomain: [0, 100],
   },
   {
     id: 'thought-chart',
@@ -100,6 +118,9 @@ export const EVOLUTION_CHARTS: ChartConfig[] = [
     fields: ['course'],
     chartType: 'line',
     description: 'Curso do pensamento',
+    valuePaths: ['thought_data.course'],
+    bipolar: true,
+    yDomain: [-100, 100],
   },
   {
     id: 'will-chart',
@@ -108,6 +129,9 @@ export const EVOLUTION_CHARTS: ChartConfig[] = [
     fields: ['volitional_energy', 'impulse_control'],
     chartType: 'line',
     description: 'Energia volitiva e controle de impulsos',
+    valuePaths: ['will_data.volitional_energy', 'will_data.impulse_control'],
+    bipolar: true,
+    yDomain: [-100, 100],
   },
   {
     id: 'psychomotor-chart',
@@ -116,6 +140,64 @@ export const EVOLUTION_CHARTS: ChartConfig[] = [
     fields: ['motor_activity', 'facial_expressiveness'],
     chartType: 'line',
     description: 'Atividade motora e expressividade',
+    valuePaths: ['psychomotor_data.motor_activity', 'psychomotor_data.facial_expressiveness'],
+    bipolar: false, // motor_activity é bipolar, facial_expressiveness é unipolar
+    yDomain: [-100, 100],
+  },
+  {
+    id: 'memory-chart',
+    label: 'Evolução da Memória',
+    functionId: 'memory',
+    fields: ['fixation', 'recall'],
+    chartType: 'line',
+    description: 'Fixação e evocação de memórias',
+    valuePaths: ['memory_data.fixation', 'memory_data.recall'],
+    bipolar: false,
+    yDomain: [0, 100],
+  },
+  {
+    id: 'orientation-chart',
+    label: 'Evolução da Orientação',
+    functionId: 'orientation',
+    fields: ['insight'],
+    chartType: 'line',
+    description: 'Insight do paciente',
+    valuePaths: ['orientation_data.insight'],
+    bipolar: false,
+    yDomain: [0, 100],
+  },
+  {
+    id: 'language-chart',
+    label: 'Evolução da Linguagem',
+    functionId: 'language',
+    fields: ['speech_rate'],
+    chartType: 'line',
+    description: 'Velocidade da fala',
+    valuePaths: ['language_data.speech_rate'],
+    bipolar: true,
+    yDomain: [-100, 100],
+  },
+  {
+    id: 'intelligence-chart',
+    label: 'Evolução da Inteligência',
+    functionId: 'intelligence',
+    fields: ['learning_capacity', 'abstract_reasoning'],
+    chartType: 'line',
+    description: 'Capacidade de aprendizagem e raciocínio abstrato',
+    valuePaths: ['intelligence_data.learning_capacity', 'intelligence_data.abstract_reasoning'],
+    bipolar: false,
+    yDomain: [0, 100],
+  },
+  {
+    id: 'personality-chart',
+    label: 'Evolução da Personalidade',
+    functionId: 'personality',
+    fields: ['self_coherence', 'affective_stability'],
+    chartType: 'line',
+    description: 'Coerência do self e estabilidade afetiva',
+    valuePaths: ['personality_data.self_coherence', 'personality_data.affective_stability'],
+    bipolar: false,
+    yDomain: [0, 100],
   },
 ];
 

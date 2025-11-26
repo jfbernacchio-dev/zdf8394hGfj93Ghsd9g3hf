@@ -19,6 +19,7 @@
 import { COMPLAINT_MODEL_CONFIG } from './complaintModel';
 import { SESSION_EVALUATION_MODEL_CONFIG } from './sessionEvaluationModel';
 import { EVOLUTION_MODEL_CONFIG } from './evolutionModel';
+import * as EvolutionInterpreter from './evolutionInterpreter';
 
 /**
  * ============================================================================
@@ -35,6 +36,9 @@ export interface PsychopathologyBasicTemplateConfig {
   
   /** Configuração do modelo de Evolução */
   evolutionModel: typeof EVOLUTION_MODEL_CONFIG;
+  
+  /** Interpreter para evolução clínica */
+  evolutionInterpreter: typeof EvolutionInterpreter;
   
   /** Metadados do template */
   metadata: {
@@ -57,6 +61,7 @@ export const PSYCHOPATHOLOGY_BASIC_TEMPLATE_CONFIG: PsychopathologyBasicTemplate
   complaintModel: COMPLAINT_MODEL_CONFIG,
   sessionEvaluationModel: SESSION_EVALUATION_MODEL_CONFIG,
   evolutionModel: EVOLUTION_MODEL_CONFIG,
+  evolutionInterpreter: EvolutionInterpreter,
   metadata: {
     version: '1.0.0',
     lastUpdated: '2025-01-26',
@@ -74,6 +79,7 @@ export const PSYCHOPATHOLOGY_BASIC_TEMPLATE_CONFIG: PsychopathologyBasicTemplate
 export * from './complaintModel';
 export * from './sessionEvaluationModel';
 export * from './evolutionModel';
+export * from './evolutionInterpreter';
 export * from './fieldTypes';
 
 // Export padrão
