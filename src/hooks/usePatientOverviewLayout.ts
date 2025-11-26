@@ -4,6 +4,7 @@ import type { GridCardLayout } from '@/types/cardTypes';
 import type { PatientOverviewGridLayout } from '@/lib/defaultLayoutPatientOverview';
 import { DEFAULT_PATIENT_OVERVIEW_GRID_LAYOUT } from '@/lib/defaultLayoutPatientOverview';
 import { findNextAvailablePosition } from '@/lib/gridLayoutUtils';
+import { useAuth } from '@/contexts/AuthContext';
 
 /**
  * HOOK: usePatientOverviewLayout - FASE C1.1
@@ -19,6 +20,18 @@ import { findNextAvailablePosition } from '@/lib/gridLayoutUtils';
 const LAYOUT_TYPE = 'patient-overview-grid';
 const DEBOUNCE_SAVE_MS = 2000;
 
+/**
+ * Gera chave do localStorage isolada por userId.
+ * C1.10.3-F1: infra básica de chaves com user.
+ */
+const getStorageKey = (sectionId: string, cardId: string, userId?: string): string => {
+  if (!userId) {
+    // Fallback: comportamento antigo (mantém compatibilidade para fluxos sem user)
+    return `grid-card-${sectionId}-${cardId}`;
+  }
+  return `grid-card-${sectionId}-${cardId}-user-${userId}`;
+};
+
 interface UsePatientOverviewLayoutReturn {
   layout: PatientOverviewGridLayout;
   loading: boolean;
@@ -33,6 +46,7 @@ interface UsePatientOverviewLayoutReturn {
 }
 
 export const usePatientOverviewLayout = (): UsePatientOverviewLayoutReturn => {
+  const { user } = useAuth();
   const [layout, setLayout] = useState<PatientOverviewGridLayout>(DEFAULT_PATIENT_OVERVIEW_GRID_LAYOUT);
   const [originalLayout, setOriginalLayout] = useState<PatientOverviewGridLayout>(DEFAULT_PATIENT_OVERVIEW_GRID_LAYOUT);
   const [loading, setLoading] = useState(true);
@@ -48,14 +62,14 @@ export const usePatientOverviewLayout = (): UsePatientOverviewLayoutReturn => {
     // Começar com layout padrão
     const merged = { ...DEFAULT_PATIENT_OVERVIEW_GRID_LAYOUT };
 
-    console.log('[usePatientOverviewLayout] Carregando customizações do localStorage');
+    console.log('[usePatientOverviewLayout] Carregando customizações do localStorage', { userId: user?.id });
 
     // Aplicar customizações do localStorage em cada card de cada seção
     Object.keys(merged).forEach(sectionId => {
       const section = merged[sectionId];
       
       section.cardLayouts = section.cardLayouts.map(cardLayout => {
-        const key = `grid-card-${sectionId}-${cardLayout.i}`;
+        const key = getStorageKey(sectionId, cardLayout.i, user?.id);
         const saved = localStorage.getItem(key);
         
         if (saved) {
@@ -79,7 +93,7 @@ export const usePatientOverviewLayout = (): UsePatientOverviewLayoutReturn => {
 
     console.log('[usePatientOverviewLayout] Layout final carregado:', merged);
     return merged;
-  }, []);
+  }, [user?.id]);
 
   /**
    * INITIALIZE LAYOUT
@@ -95,7 +109,7 @@ export const usePatientOverviewLayout = (): UsePatientOverviewLayoutReturn => {
     };
 
     initLayout();
-  }, [loadLayoutFromLocalStorage]);
+  }, [loadLayoutFromLocalStorage, user?.id]);
 
   /**
    * CHECK IF MODIFIED
@@ -110,6 +124,7 @@ export const usePatientOverviewLayout = (): UsePatientOverviewLayoutReturn => {
     console.log('[usePatientOverviewLayout] Atualizando layout da seção:', {
       sectionId,
       newLayout,
+      userId: user?.id,
     });
 
     setLayout((prev) => {
@@ -121,7 +136,7 @@ export const usePatientOverviewLayout = (): UsePatientOverviewLayoutReturn => {
 
       // Salvar cada card no localStorage
       newLayout.forEach((cardLayout) => {
-        const key = `grid-card-${sectionId}-${cardLayout.i}`;
+        const key = getStorageKey(sectionId, cardLayout.i, user?.id);
         localStorage.setItem(key, JSON.stringify(cardLayout));
       });
 
@@ -133,13 +148,13 @@ export const usePatientOverviewLayout = (): UsePatientOverviewLayoutReturn => {
         },
       };
     });
-  }, []);
+  }, [user?.id]);
 
   /**
    * ADD CARD
    */
   const addCard = useCallback((sectionId: string, cardId: string) => {
-    console.log(`[usePatientOverviewLayout] Adicionando card ${cardId} à seção ${sectionId}`);
+    console.log(`[usePatientOverviewLayout] Adicionando card ${cardId} à seção ${sectionId}`, { userId: user?.id });
     
     setLayout((prev) => {
       const section = prev[sectionId];
@@ -168,7 +183,7 @@ export const usePatientOverviewLayout = (): UsePatientOverviewLayoutReturn => {
 
       console.log(`[usePatientOverviewLayout] Novo card grid criado:`, newCard);
 
-      const key = `grid-card-${sectionId}-${cardId}`;
+      const key = getStorageKey(sectionId, cardId, user?.id);
       localStorage.setItem(key, JSON.stringify(newCard));
 
       return {
@@ -179,13 +194,13 @@ export const usePatientOverviewLayout = (): UsePatientOverviewLayoutReturn => {
         },
       };
     });
-  }, []);
+  }, [user?.id]);
 
   /**
    * REMOVE CARD
    */
   const removeCard = useCallback((sectionId: string, cardId: string) => {
-    console.log(`[usePatientOverviewLayout] Removendo card ${cardId} da seção ${sectionId}`);
+    console.log(`[usePatientOverviewLayout] Removendo card ${cardId} da seção ${sectionId}`, { userId: user?.id });
     
     setLayout((prev) => {
       const section = prev[sectionId];
@@ -196,7 +211,7 @@ export const usePatientOverviewLayout = (): UsePatientOverviewLayoutReturn => {
 
       const filteredCards = section.cardLayouts.filter(cl => cl.i !== cardId);
 
-      const key = `grid-card-${sectionId}-${cardId}`;
+      const key = getStorageKey(sectionId, cardId, user?.id);
       localStorage.removeItem(key);
 
       console.log(`[usePatientOverviewLayout] Cards restantes:`, filteredCards);
@@ -209,7 +224,7 @@ export const usePatientOverviewLayout = (): UsePatientOverviewLayoutReturn => {
         },
       };
     });
-  }, []);
+  }, [user?.id]);
 
   /**
    * SAVE LAYOUT
@@ -242,7 +257,7 @@ export const usePatientOverviewLayout = (): UsePatientOverviewLayoutReturn => {
       Object.keys(DEFAULT_PATIENT_OVERVIEW_GRID_LAYOUT).forEach(sectionId => {
         const section = DEFAULT_PATIENT_OVERVIEW_GRID_LAYOUT[sectionId];
         section.cardLayouts.forEach(card => {
-          const key = `grid-card-${sectionId}-${card.i}`;
+          const key = getStorageKey(sectionId, card.i, user?.id);
           localStorage.removeItem(key);
         });
       });
@@ -251,12 +266,12 @@ export const usePatientOverviewLayout = (): UsePatientOverviewLayoutReturn => {
       setOriginalLayout(DEFAULT_PATIENT_OVERVIEW_GRID_LAYOUT);
       
       toast.success('Layout resetado para o padrão!');
-      console.log('[usePatientOverviewLayout] Layout resetado');
+      console.log('[usePatientOverviewLayout] Layout resetado', { userId: user?.id });
     } catch (error) {
       console.error('[usePatientOverviewLayout] Erro ao resetar layout:', error);
       toast.error('Erro ao resetar layout');
     }
-  }, []);
+  }, [user?.id]);
 
   /**
    * AUTO-SAVE com debounce
