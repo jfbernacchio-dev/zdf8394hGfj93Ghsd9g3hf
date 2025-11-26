@@ -325,7 +325,21 @@ const PatientDetailNew = () => {
       return;
     }
     const { data: sessionsData } = await supabase.from('sessions').select('*').eq('patient_id', id).order('date', { ascending: false });
-    const { data: complaintData } = await supabase.from('patient_complaints').select('*').eq('patient_id', id).order('created_at', { ascending: false }).limit(1).maybeSingle();
+    
+    // FASE C1.10.3-D: Carregar complaint única com relationships populados
+    const { data: complaintData } = await supabase
+      .from('patient_complaints')
+      .select(`
+        *,
+        complaint_medications(*),
+        complaint_symptoms(*),
+        complaint_specifiers(*)
+      `)
+      .eq('patient_id', id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    
     const { data: historyData } = await supabase.from('session_history').select('*').eq('patient_id', id).order('changed_at', { ascending: false });
     
     // Load NFSes issued (processing or issued status)
@@ -1688,16 +1702,16 @@ Assinatura do Profissional`;
                          </div>
                        )}
                          <CardContent className="p-4 flex-1 overflow-auto">
-                           {renderPatientOverviewCard(cardLayout.i, {
-                             isEditMode: isOverviewLayoutEditMode,
-                             patient,
-                             sessions,
-                             nfseIssued,
-                             complaints: complaint ? [complaint] : [],
-                             currentUserId: user?.id, // FASE C1.10.2: Para verificação de ownership
-                             permissions: {
-                               canAccessClinical,
-                               financialAccess,
+                            {renderPatientOverviewCard(cardLayout.i, {
+                              isEditMode: isOverviewLayoutEditMode,
+                              patient,
+                              sessions,
+                              nfseIssued,
+                              complaint: complaint ?? null, // FASE C1.10.3-D: Complaint única, não array
+                              currentUserId: user?.id, // FASE C1.10.2: Para verificação de ownership
+                              permissions: {
+                                canAccessClinical,
+                                financialAccess,
                                isOrganizationOwner: permissions?.isOrganizationOwner, // FASE C1.10.2: Para cards sensíveis
                              },
                            })}
