@@ -113,18 +113,21 @@ export const PATIENT_OVERVIEW_AVAILABLE_CARDS: PatientOverviewCardMetadata[] = [
     label: 'Informações de Contato',
     description: 'Telefone, email, endereço',
     domain: 'administrative',
+    requiresOwnership: true, // FASE C1.10.2: Dados de contato são sensíveis
   },
   {
     id: 'patient-consent-status',
     label: 'Status de Consentimento',
     description: 'LGPD e termos aceitos',
     domain: 'administrative',
+    requiresOwnership: true, // FASE C1.10.2: Dados de consentimento são sensíveis
   },
   {
     id: 'patient-personal-data',
     label: 'Dados Pessoais',
     description: 'CPF, data de nascimento, responsáveis',
     domain: 'administrative',
+    requiresOwnership: true, // FASE C1.10.2: Dados pessoais são altamente sensíveis
   },
 ];
 
@@ -665,16 +668,28 @@ export function renderPatientOverviewCard(
   props: PatientOverviewCardProps = {}
 ): React.ReactNode {
   // 🔐 C1.8: Proteção dupla - verificar permissões antes de renderizar
-  const { permissions } = props;
+  // 🔐 C1.10.2: Agora inclui verificação de ownership para cards sensíveis
+  const { permissions, patient, currentUserId } = props;
   
   if (permissions) {
     const cardMeta = PATIENT_OVERVIEW_AVAILABLE_CARDS.find((c) => c.id === cardId);
     
     if (cardMeta) {
-      // Verificar permissão por domain
-      const allowed = canViewCardByDomain(cardMeta.domain, permissions);
+      // Verificar permissão por domain + ownership
+      const allowed = canViewCardByDomain(
+        cardMeta.domain,
+        permissions,
+        cardMeta.requiresOwnership || false,
+        patient?.user_id, // Terapeuta responsável pelo paciente
+        currentUserId, // Usuário atual
+        permissions.isOrganizationOwner || false
+      );
+      
       if (!allowed) {
-        console.warn(`[patientOverviewCardRegistry] Acesso negado ao card: ${cardId} (domain: ${cardMeta.domain})`);
+        console.warn(
+          `[patientOverviewCardRegistry] Acesso negado ao card: ${cardId} ` +
+          `(domain: ${cardMeta.domain}, requiresOwnership: ${cardMeta.requiresOwnership})`
+        );
         return null;
       }
     }
@@ -727,8 +742,14 @@ export function renderPatientOverviewCard(
 /**
  * Verifica se um card pode ser visualizado baseado no seu domain e nas permissões do usuário.
  * 
+ * FASE C1.10.2: Adicionada verificação de ownership para cards sensíveis
+ * 
  * @param domain - Domínio do card (clinical, financial, administrative)
  * @param permissions - Objeto de permissões simplificado
+ * @param requiresOwnership - Se true, card só visível para owner/responsável
+ * @param patientUserId - ID do terapeuta responsável pelo paciente
+ * @param currentUserId - ID do usuário atual
+ * @param isOrganizationOwner - Se o usuário atual é owner da organização
  * @returns true se o card pode ser visualizado, false caso contrário
  */
 export function canViewCardByDomain(
@@ -736,8 +757,29 @@ export function canViewCardByDomain(
   permissions: {
     canAccessClinical?: boolean;
     financialAccess?: string;
-  }
+  },
+  requiresOwnership: boolean = false,
+  patientUserId?: string,
+  currentUserId?: string,
+  isOrganizationOwner: boolean = false
 ): boolean {
+  // FASE C1.10.2: Se o card requer ownership, verificar primeiro
+  if (requiresOwnership) {
+    // Owner da organização sempre pode ver
+    if (isOrganizationOwner) {
+      return true;
+    }
+    
+    // Terapeuta responsável pelo paciente pode ver
+    if (patientUserId && currentUserId && patientUserId === currentUserId) {
+      return true;
+    }
+    
+    // Caso contrário, negar acesso (dados sensíveis)
+    return false;
+  }
+  
+  // Verificação normal de domain (quando não requer ownership)
   switch (domain) {
     case 'clinical':
       // Apenas usuários com acesso clínico podem ver cards clínicos
@@ -748,7 +790,7 @@ export function canViewCardByDomain(
       return permissions.financialAccess === 'read' || permissions.financialAccess === 'full';
       
     case 'administrative':
-      // Cards administrativos (sessões, contato, dados pessoais) são acessíveis por padrão
+      // Cards administrativos (sem requiresOwnership) são acessíveis por padrão
       return true;
       
     default:

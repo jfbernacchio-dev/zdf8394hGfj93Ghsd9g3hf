@@ -59,7 +59,13 @@ export interface PatientOverviewCardProps {
   permissions?: {
     canAccessClinical?: boolean;
     financialAccess?: string;
+    isOrganizationOwner?: boolean; // FASE C1.10.2: Para verificação de ownership
   };
+  
+  /**
+   * FASE C1.10.2: ID do usuário atual (para verificação de ownership)
+   */
+  currentUserId?: string;
 }
 
 /**
@@ -90,6 +96,12 @@ export interface PatientOverviewCardMetadata {
    * - 'administrative': Dados administrativos (sessões, agendamentos, contato, consentimento)
    */
   domain: 'clinical' | 'financial' | 'administrative';
+  
+  /**
+   * FASE C1.10.2: Se true, card só pode ser visto pelo owner da org ou terapeuta responsável
+   * Usado para proteger dados sensíveis (contato, CPF, dados pessoais)
+   */
+  requiresOwnership?: boolean;
   
   /**
    * Tipos de usuário permitidos
