@@ -12,6 +12,7 @@ import { GridCardContainer } from '@/components/GridCardContainer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useActiveClinicalTemplates } from '@/hooks/useActiveClinicalTemplates';
 import { 
   ArrowLeft, Calendar, Clock, FileText, Trash2, ChevronDown, ChevronUp, 
   PlusCircle, Settings, Check, X, Edit, RotateCcw, Plus, StickyNote, 
