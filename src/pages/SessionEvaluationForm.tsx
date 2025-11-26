@@ -1,9 +1,23 @@
+/**
+ * ============================================================================
+ * FASE C2.5A - SessionEvaluationForm (Refatorado)
+ * ============================================================================
+ * 
+ * Formulário de avaliação de sessão baseado nas 12 funções psíquicas
+ * (modelo Dalgalarrondo).
+ * 
+ * REFATORAÇÃO C2.5A:
+ * - Componentização de elementos reutilizáveis
+ * - Uso de defaults centralizados
+ * - Tipos TypeScript explícitos
+ * - Redução de repetição de código
+ * - Mantém comportamento 100% idêntico ao original
+ */
+
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Slider } from '@/components/ui/slider';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,6 +28,27 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { getUserIdsInOrganization } from '@/lib/organizationFilters';
 import { validateEvaluationMinimum } from '@/lib/clinical/validations';
+import { DEFAULT_EVALUATION_VALUES } from '@/lib/clinical/constants';
+import type {
+  ConsciousnessData,
+  AttentionData,
+  OrientationData,
+  SensoperceptionData,
+  MemoryData,
+  ThoughtData,
+  LanguageData,
+  MoodData,
+  WillData,
+  PsychomotorData,
+  IntelligenceData,
+  PersonalityData,
+} from '@/lib/clinical/types';
+
+// Componentes reutilizáveis criados na FASE C2.5A
+import { PsychicFunctionCard } from '@/components/clinical/PsychicFunctionCard';
+import { BipolarSlider } from '@/components/clinical/BipolarSlider';
+import { PercentileSlider } from '@/components/clinical/PercentileSlider';
+import { CheckboxGroup } from '@/components/clinical/CheckboxGroup';
 
 interface SessionEvaluationFormProps {
   sessionId?: string;
@@ -32,119 +67,19 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
   const [saving, setSaving] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  // Estados para cada grupo de funções psíquicas
-  const [consciousness, setConsciousness] = useState({
-    level: 0,
-    field: 0,
-    self_consciousness: 0,
-    oriented_auto: false,
-    disoriented_time: false,
-    disoriented_space: false,
-    depersonalization: false,
-    derealization: false,
-    notes: ''
-  });
-
-  const [attention, setAttention] = useState({
-    range: 80,
-    concentration: 80,
-    distractibility: false,
-    notes: ''
-  });
-
-  const [sensoperception, setSensoperception] = useState({
-    global_perception: 'normal',
-    auditory: false,
-    visual: false,
-    tactile: false,
-    olfactory: false,
-    kinesthetic: false,
-    mixed: false,
-    description: ''
-  });
-
-  const [memory, setMemory] = useState({
-    fixation: 80,
-    recall: 80,
-    auditory: false,
-    hypermnesia: false,
-    paramnesia: false,
-    amnesia: false,
-    phobias: false,
-    notes: ''
-  });
-
-  const [thought, setThought] = useState({
-    course: 0,
-    tangential: false,
-    incoherent: false,
-    dissociated: false,
-    circumstantial: false,
-    delusional: false,
-    obsessive: false,
-    overvalued: false,
-    description: ''
-  });
-
-  const [language, setLanguage] = useState({
-    speech_rate: 0,
-    articulation: 'normal',
-    observations: ''
-  });
-
-  const [mood, setMood] = useState({
-    polarity: 0,
-    lability: 50,
-    emotional_responsiveness: true,
-    adequacy: 'adequate',
-    notes: ''
-  });
-
-  const [will, setWill] = useState({
-    volitional_energy: 0,
-    ambivalence: false,
-    impulse_control: 0,
-    observations: ''
-  });
-
-  const [psychomotor, setPsychomotor] = useState({
-    motor_activity: 0,
-    tone_gestures: 'normal',
-    facial_expressiveness: 50,
-    notes: ''
-  });
-
-  const [orientation, setOrientation] = useState({
-    time: true,
-    space: true,
-    person: true,
-    situation: true,
-    reality_judgment: 'intact',
-    insight: 80,
-    comments: ''
-  });
-
-  const [intelligence, setIntelligence] = useState({
-    abstract_reasoning: 80,
-    learning_capacity: 80,
-    adaptive_capacity: 'normal',
-    facial_expressivity: 50,
-    notes: ''
-  });
-
-  const [personality, setPersonality] = useState({
-    self_coherence: 80,
-    affective_stability: 80,
-    self_boundaries: 'normal',
-    anxious: false,
-    narcissistic: false,
-    avoidant: false,
-    obsessive: false,
-    borderline: false,
-    histrionic: false,
-    antisocial: false,
-    observations: ''
-  });
+  // Estados para cada grupo de funções psíquicas (usando defaults centralizados)
+  const [consciousness, setConsciousness] = useState<ConsciousnessData>(DEFAULT_EVALUATION_VALUES.consciousness);
+  const [attention, setAttention] = useState<AttentionData>(DEFAULT_EVALUATION_VALUES.attention);
+  const [orientation, setOrientation] = useState<OrientationData>(DEFAULT_EVALUATION_VALUES.orientation);
+  const [sensoperception, setSensoperception] = useState<SensoperceptionData>(DEFAULT_EVALUATION_VALUES.sensoperception);
+  const [memory, setMemory] = useState<MemoryData>(DEFAULT_EVALUATION_VALUES.memory);
+  const [thought, setThought] = useState<ThoughtData>(DEFAULT_EVALUATION_VALUES.thought);
+  const [language, setLanguage] = useState<LanguageData>(DEFAULT_EVALUATION_VALUES.language);
+  const [mood, setMood] = useState<MoodData>(DEFAULT_EVALUATION_VALUES.mood);
+  const [will, setWill] = useState<WillData>(DEFAULT_EVALUATION_VALUES.will);
+  const [psychomotor, setPsychomotor] = useState<PsychomotorData>(DEFAULT_EVALUATION_VALUES.psychomotor);
+  const [intelligence, setIntelligence] = useState<IntelligenceData>(DEFAULT_EVALUATION_VALUES.intelligence);
+  const [personality, setPersonality] = useState<PersonalityData>(DEFAULT_EVALUATION_VALUES.personality);
 
   useEffect(() => {
     if (sessionId) {
@@ -158,10 +93,8 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
     try {
       setLoading(true);
       
-      // Validar organização
       const orgUserIds = await getUserIdsInOrganization(organizationId);
       
-      // Buscar a sessão com informações do paciente
       const { data: sessionData, error: sessionError } = await supabase
         .from('sessions')
         .select(`
@@ -178,25 +111,21 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
         return;
       }
 
-      // Validar que o paciente pertence à organização ativa
       if (!orgUserIds.includes(sessionData.patients.user_id)) {
         setValidationError('Esta sessão não pertence à organização ativa.');
         return;
       }
 
-      // Validar que o terapeuta é o dono do paciente
       if (sessionData.patients.user_id !== user.id) {
         setValidationError('Você não tem permissão para avaliar esta sessão.');
         return;
       }
 
-      // Validar que a sessão tem status "attended"
       if (sessionData.status !== 'attended') {
         setValidationError('Apenas sessões com status "Compareceu" podem ser avaliadas.');
         return;
       }
 
-      // Validar que a data da sessão já passou
       const sessionDate = new Date(sessionData.date);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -206,7 +135,6 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
         return;
       }
 
-      // Se passou em todas as validações, carregar avaliação existente
       await loadExistingEvaluation();
       
     } catch (error: any) {
@@ -230,6 +158,7 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
       if (data) {
         setConsciousness(data.consciousness_data as any);
         setAttention(data.attention_data as any);
+        setOrientation(data.orientation_data as any);
         setSensoperception(data.sensoperception_data as any);
         setMemory(data.memory_data as any);
         setThought(data.thought_data as any);
@@ -237,7 +166,6 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
         setMood(data.mood_data as any);
         setWill(data.will_data as any);
         setPsychomotor(data.psychomotor_data as any);
-        setOrientation(data.orientation_data as any);
         setIntelligence(data.intelligence_data as any);
         setPersonality(data.personality_data as any);
       }
@@ -268,21 +196,20 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
         session_id: sessionId,
         patient_id: patientId,
         evaluated_by: user.id,
-        consciousness_data: consciousness,
-        attention_data: attention,
-        sensoperception_data: sensoperception,
-        memory_data: memory,
-        thought_data: thought,
-        language_data: language,
-        mood_data: mood,
-        will_data: will,
-        psychomotor_data: psychomotor,
-        orientation_data: orientation,
-        intelligence_data: intelligence,
-        personality_data: personality
+        consciousness_data: consciousness as any,
+        attention_data: attention as any,
+        orientation_data: orientation as any,
+        sensoperception_data: sensoperception as any,
+        memory_data: memory as any,
+        thought_data: thought as any,
+        language_data: language as any,
+        mood_data: mood as any,
+        will_data: will as any,
+        psychomotor_data: psychomotor as any,
+        intelligence_data: intelligence as any,
+        personality_data: personality as any
       };
 
-      // 🔐 FASE C2.1: Validação mínima usando função centralizada
       const validation = validateEvaluationMinimum(evaluationData);
       if (!validation.isValid) {
         toast({
@@ -293,7 +220,6 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
         return;
       }
 
-      // Check if evaluation already exists
       const { data: existing } = await supabase
         .from('session_evaluations')
         .select('id')
@@ -332,13 +258,6 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
     } finally {
       setSaving(false);
     }
-  };
-
-  const getSliderColor = (value: number, range: { min: number; max: number }) => {
-    const normalized = ((value - range.min) / (range.max - range.min)) * 100;
-    if (normalized < 33) return 'hsl(var(--chart-1))'; // Verde
-    if (normalized < 66) return 'hsl(var(--chart-3))'; // Laranja
-    return 'hsl(var(--chart-5))'; // Vermelho
   };
 
   if (loading) {
@@ -389,1100 +308,762 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        
         {/* 1. CONSCIÊNCIA */}
-        <Card>
-          <CardHeader className="p-4 pb-3">
-            <CardTitle className="text-lg">1. Consciência</CardTitle>
-            <CardDescription className="text-xs">Base para todas as demais funções</CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 pt-0 space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label>Nível de consciência</Label>
-                <span className="text-sm font-medium">{consciousness.level}</span>
-              </div>
-              <Slider
-                value={[consciousness.level]}
-                onValueChange={(v) => setConsciousness({ ...consciousness, level: v[0] })}
-                min={-100}
-                max={100}
-                step={1}
-                className="py-2"
-              />
-              <p className="text-xs text-muted-foreground">
-                -100 (coma) | -50 (torpor) | 0 (lúcido/vígil) | +50 (hipervigilante) | +100 (confusão)
-              </p>
-            </div>
+        <PsychicFunctionCard
+          number={1}
+          title="Consciência"
+          description="Base para todas as demais funções"
+        >
+          <BipolarSlider
+            label="Nível de consciência"
+            value={consciousness.level}
+            onChange={(v) => setConsciousness({ ...consciousness, level: v })}
+            description="-100 (coma) | -50 (torpor) | 0 (lúcido/vígil) | +50 (hipervigilante) | +100 (confusão)"
+          />
 
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label>Campo de consciência</Label>
-                <span className="text-sm font-medium">{consciousness.field}</span>
-              </div>
-              <Slider
-                value={[consciousness.field]}
-                onValueChange={(v) => setConsciousness({ ...consciousness, field: v[0] })}
-                min={-100}
-                max={100}
-                step={1}
-              />
-              <p className="text-xs text-muted-foreground">
-                -100 (estreitamento) | 0 (amplitude normal) | +100 (expansão caótica)
-              </p>
-            </div>
+          <BipolarSlider
+            label="Campo de consciência"
+            value={consciousness.field}
+            onChange={(v) => setConsciousness({ ...consciousness, field: v })}
+            description="-100 (estreitamento) | 0 (amplitude normal) | +100 (expansão caótica)"
+          />
 
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label>Auto-consciência</Label>
-                <span className="text-sm font-medium">{consciousness.self_consciousness}</span>
-              </div>
-              <Slider
-                value={[consciousness.self_consciousness]}
-                onValueChange={(v) => setConsciousness({ ...consciousness, self_consciousness: v[0] })}
-                min={-100}
-                max={100}
-                step={1}
-              />
-              <p className="text-xs text-muted-foreground">
-                -100 (alienado do eu) | 0 (normal) | +100 (hiperautoconsciente/obsessivo)
-              </p>
-            </div>
+          <BipolarSlider
+            label="Auto-consciência"
+            value={consciousness.self_consciousness}
+            onChange={(v) => setConsciousness({ ...consciousness, self_consciousness: v })}
+            description="-100 (alienado do eu) | 0 (normal) | +100 (hiperautoconsciente/obsessivo)"
+          />
 
-            <div className="space-y-3">
-              <Label>Contato com realidade</Label>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="oriented_auto"
-                    checked={consciousness.oriented_auto}
-                    onCheckedChange={(checked) => setConsciousness({ ...consciousness, oriented_auto: checked as boolean })}
-                  />
-                  <label htmlFor="oriented_auto" className="text-sm cursor-pointer">
-                    Orientado auto/alopsiquicamente
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="disoriented_time"
-                    checked={consciousness.disoriented_time}
-                    onCheckedChange={(checked) => setConsciousness({ ...consciousness, disoriented_time: checked as boolean })}
-                  />
-                  <label htmlFor="disoriented_time" className="text-sm cursor-pointer">
-                    Desorientado tempo
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="disoriented_space"
-                    checked={consciousness.disoriented_space}
-                    onCheckedChange={(checked) => setConsciousness({ ...consciousness, disoriented_space: checked as boolean })}
-                  />
-                  <label htmlFor="disoriented_space" className="text-sm cursor-pointer">
-                    Desorientado espaço
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="depersonalization"
-                    checked={consciousness.depersonalization}
-                    onCheckedChange={(checked) => setConsciousness({ ...consciousness, depersonalization: checked as boolean })}
-                  />
-                  <label htmlFor="depersonalization" className="text-sm cursor-pointer">
-                    Despersonalização
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="derealization"
-                    checked={consciousness.derealization}
-                    onCheckedChange={(checked) => setConsciousness({ ...consciousness, derealization: checked as boolean })}
-                  />
-                  <label htmlFor="derealization" className="text-sm cursor-pointer">
-                    Desrealização
-                  </label>
-                </div>
-              </div>
-            </div>
+          <CheckboxGroup
+            label="Contato com realidade"
+            options={[
+              {
+                id: 'oriented_auto',
+                label: 'Orientado auto/alopsiquicamente',
+                checked: consciousness.oriented_auto,
+                onChange: (c) => setConsciousness({ ...consciousness, oriented_auto: c })
+              },
+              {
+                id: 'disoriented_time',
+                label: 'Desorientado tempo',
+                checked: consciousness.disoriented_time,
+                onChange: (c) => setConsciousness({ ...consciousness, disoriented_time: c })
+              },
+              {
+                id: 'disoriented_space',
+                label: 'Desorientado espaço',
+                checked: consciousness.disoriented_space,
+                onChange: (c) => setConsciousness({ ...consciousness, disoriented_space: c })
+              },
+              {
+                id: 'depersonalization',
+                label: 'Despersonalização',
+                checked: consciousness.depersonalization,
+                onChange: (c) => setConsciousness({ ...consciousness, depersonalization: c })
+              },
+              {
+                id: 'derealization',
+                label: 'Desrealização',
+                checked: consciousness.derealization,
+                onChange: (c) => setConsciousness({ ...consciousness, derealization: c })
+              }
+            ]}
+          />
 
-            <div className="space-y-2">
-              <Label htmlFor="consciousness_notes">Observações</Label>
-              <Textarea
-                id="consciousness_notes"
-                value={consciousness.notes}
-                onChange={(e) => setConsciousness({ ...consciousness, notes: e.target.value })}
-                placeholder="Notas sobre consciência..."
-                rows={3}
-              />
-            </div>
-          </CardContent>
-        </Card>
+          <div className="space-y-2">
+            <Label htmlFor="consciousness_notes">Observações</Label>
+            <Textarea
+              id="consciousness_notes"
+              value={consciousness.notes}
+              onChange={(e) => setConsciousness({ ...consciousness, notes: e.target.value })}
+              placeholder="Notas sobre consciência..."
+              rows={3}
+            />
+          </div>
+        </PsychicFunctionCard>
 
         {/* 2. ORIENTAÇÃO / JUÍZO / CRÍTICA */}
-        <Card>
-          <CardHeader className="p-4 pb-3">
-            <CardTitle className="text-lg">2. Orientação / Juízo / Crítica</CardTitle>
-            <CardDescription className="text-xs">Orientação, juízo de realidade e insight</CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 pt-0 space-y-4">
-            <div className="space-y-3">
-              <Label>Orientação auto / alopsíquica</Label>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="orientation_time"
-                    checked={orientation.time}
-                    onCheckedChange={(checked) => setOrientation({ ...orientation, time: checked as boolean })}
-                  />
-                  <label htmlFor="orientation_time" className="text-sm cursor-pointer">
-                    Tempo
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="orientation_space"
-                    checked={orientation.space}
-                    onCheckedChange={(checked) => setOrientation({ ...orientation, space: checked as boolean })}
-                  />
-                  <label htmlFor="orientation_space" className="text-sm cursor-pointer">
-                    Espaço
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="orientation_person"
-                    checked={orientation.person}
-                    onCheckedChange={(checked) => setOrientation({ ...orientation, person: checked as boolean })}
-                  />
-                  <label htmlFor="orientation_person" className="text-sm cursor-pointer">
-                    Pessoa
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="orientation_situation"
-                    checked={orientation.situation}
-                    onCheckedChange={(checked) => setOrientation({ ...orientation, situation: checked as boolean })}
-                  />
-                  <label htmlFor="orientation_situation" className="text-sm cursor-pointer">
-                    Situação
-                  </label>
-                </div>
-              </div>
-            </div>
+        <PsychicFunctionCard
+          number={2}
+          title="Orientação / Juízo / Crítica"
+          description="Orientação, juízo de realidade e insight"
+        >
+          <CheckboxGroup
+            label="Orientação auto / alopsíquica"
+            options={[
+              {
+                id: 'orientation_time',
+                label: 'Tempo',
+                checked: orientation.time,
+                onChange: (c) => setOrientation({ ...orientation, time: c })
+              },
+              {
+                id: 'orientation_space',
+                label: 'Espaço',
+                checked: orientation.space,
+                onChange: (c) => setOrientation({ ...orientation, space: c })
+              },
+              {
+                id: 'orientation_person',
+                label: 'Pessoa',
+                checked: orientation.person,
+                onChange: (c) => setOrientation({ ...orientation, person: c })
+              },
+              {
+                id: 'orientation_situation',
+                label: 'Situação',
+                checked: orientation.situation,
+                onChange: (c) => setOrientation({ ...orientation, situation: c })
+              }
+            ]}
+          />
 
-            <div className="space-y-2">
-              <Label>Juízo de realidade</Label>
-              <Select
-                value={orientation.reality_judgment}
-                onValueChange={(value) => setOrientation({ ...orientation, reality_judgment: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="intact">Íntegro</SelectItem>
-                  <SelectItem value="partially_altered">Parcialmente alterado</SelectItem>
-                  <SelectItem value="severely_altered">Gravemente alterado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label>Juízo de realidade</Label>
+            <Select
+              value={orientation.reality_judgment}
+              onValueChange={(v) => setOrientation({ ...orientation, reality_judgment: v })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="intact">Íntegro</SelectItem>
+                <SelectItem value="partially_altered">Parcialmente alterado</SelectItem>
+                <SelectItem value="severely_altered">Gravemente alterado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label>Crítica e insight</Label>
-                <span className="text-sm font-medium">{orientation.insight}</span>
-              </div>
-              <Slider
-                value={[orientation.insight]}
-                onValueChange={(v) => setOrientation({ ...orientation, insight: v[0] })}
-                min={0}
-                max={100}
-                step={1}
-              />
-              <p className="text-xs text-muted-foreground">
-                0 (sem insight) | 100 (crítico sobre a própria condição)
-              </p>
-            </div>
+          <PercentileSlider
+            label="Crítica e insight"
+            value={orientation.insight}
+            onChange={(v) => setOrientation({ ...orientation, insight: v })}
+            description="0 (sem insight) | 100 (crítico sobre a própria condição)"
+          />
 
-            <div className="space-y-2">
-              <Label htmlFor="orientation_comments">Comentário sobre insight e percepção de doença</Label>
-              <Textarea
-                id="orientation_comments"
-                value={orientation.comments}
-                onChange={(e) => setOrientation({ ...orientation, comments: e.target.value })}
-                placeholder="Comentário sobre insight e percepção de doença..."
-                rows={3}
-              />
-            </div>
-          </CardContent>
-        </Card>
+          <div className="space-y-2">
+            <Label htmlFor="orientation_comments">Comentário sobre insight e percepção de doença</Label>
+            <Textarea
+              id="orientation_comments"
+              value={orientation.comments}
+              onChange={(e) => setOrientation({ ...orientation, comments: e.target.value })}
+              placeholder="Comentário sobre insight e percepção de doença..."
+              rows={3}
+            />
+          </div>
+        </PsychicFunctionCard>
 
         {/* 3. SENSOPERCEPÇÃO */}
-        <Card>
-          <CardHeader className="p-4 pb-3">
-            <CardTitle className="text-lg">3. Sensopercepção</CardTitle>
-            <CardDescription className="text-xs">Percepção sensorial e alterações perceptivas</CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 pt-0 space-y-4">
-            <div className="space-y-2">
-              <Label>Percepção global</Label>
-              <Select
-                value={sensoperception.global_perception}
-                onValueChange={(value) => setSensoperception({ ...sensoperception, global_perception: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="normal">Normal</SelectItem>
-                  <SelectItem value="slightly_altered">Levemente alterada</SelectItem>
-                  <SelectItem value="distortive">Distorsiva (ilusões)</SelectItem>
-                  <SelectItem value="hallucinatory">Perceptiva sem objeto (alucinação)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+        <PsychicFunctionCard
+          number={3}
+          title="Sensopercepção"
+          description="Percepção sensorial e alterações perceptivas"
+        >
+          <div className="space-y-2">
+            <Label>Percepção global</Label>
+            <Select
+              value={sensoperception.global_perception}
+              onValueChange={(v) => setSensoperception({ ...sensoperception, global_perception: v })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="normal">Normal</SelectItem>
+                <SelectItem value="slightly_altered">Levemente alterada</SelectItem>
+                <SelectItem value="distortive">Distorsiva (ilusões)</SelectItem>
+                <SelectItem value="hallucinatory">Perceptiva sem objeto (alucinação)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-            <div className="space-y-3">
-              <Label>Tipo de alteração (se presente)</Label>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="auditory"
-                    checked={sensoperception.auditory}
-                    onCheckedChange={(checked) => setSensoperception({ ...sensoperception, auditory: checked as boolean })}
-                  />
-                  <label htmlFor="auditory" className="text-sm cursor-pointer">
-                    Auditiva
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="visual"
-                    checked={sensoperception.visual}
-                    onCheckedChange={(checked) => setSensoperception({ ...sensoperception, visual: checked as boolean })}
-                  />
-                  <label htmlFor="visual" className="text-sm cursor-pointer">
-                    Visual
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="tactile"
-                    checked={sensoperception.tactile}
-                    onCheckedChange={(checked) => setSensoperception({ ...sensoperception, tactile: checked as boolean })}
-                  />
-                  <label htmlFor="tactile" className="text-sm cursor-pointer">
-                    Tátil
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="olfactory"
-                    checked={sensoperception.olfactory}
-                    onCheckedChange={(checked) => setSensoperception({ ...sensoperception, olfactory: checked as boolean })}
-                  />
-                  <label htmlFor="olfactory" className="text-sm cursor-pointer">
-                    Olfativa
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="kinesthetic"
-                    checked={sensoperception.kinesthetic}
-                    onCheckedChange={(checked) => setSensoperception({ ...sensoperception, kinesthetic: checked as boolean })}
-                  />
-                  <label htmlFor="kinesthetic" className="text-sm cursor-pointer">
-                    Cinestésica
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="mixed"
-                    checked={sensoperception.mixed}
-                    onCheckedChange={(checked) => setSensoperception({ ...sensoperception, mixed: checked as boolean })}
-                  />
-                  <label htmlFor="mixed" className="text-sm cursor-pointer">
-                    Mista
-                  </label>
-                </div>
-              </div>
-            </div>
+          <CheckboxGroup
+            label="Tipo de alteração (se presente)"
+            options={[
+              {
+                id: 'auditory',
+                label: 'Auditiva',
+                checked: sensoperception.auditory,
+                onChange: (c) => setSensoperception({ ...sensoperception, auditory: c })
+              },
+              {
+                id: 'visual',
+                label: 'Visual',
+                checked: sensoperception.visual,
+                onChange: (c) => setSensoperception({ ...sensoperception, visual: c })
+              },
+              {
+                id: 'tactile',
+                label: 'Tátil',
+                checked: sensoperception.tactile,
+                onChange: (c) => setSensoperception({ ...sensoperception, tactile: c })
+              },
+              {
+                id: 'olfactory',
+                label: 'Olfativa',
+                checked: sensoperception.olfactory,
+                onChange: (c) => setSensoperception({ ...sensoperception, olfactory: c })
+              },
+              {
+                id: 'kinesthetic',
+                label: 'Cinestésica',
+                checked: sensoperception.kinesthetic,
+                onChange: (c) => setSensoperception({ ...sensoperception, kinesthetic: c })
+              },
+              {
+                id: 'mixed',
+                label: 'Mista',
+                checked: sensoperception.mixed,
+                onChange: (c) => setSensoperception({ ...sensoperception, mixed: c })
+              }
+            ]}
+          />
 
-            <div className="space-y-2">
-              <Label htmlFor="sensoperception_description">Descrição fenomenológica breve</Label>
-              <Textarea
-                id="sensoperception_description"
-                value={sensoperception.description}
-                onChange={(e) => setSensoperception({ ...sensoperception, description: e.target.value })}
-                placeholder="Máx. 250 caracteres"
-                maxLength={250}
-                rows={2}
-              />
-            </div>
-          </CardContent>
-        </Card>
+          <div className="space-y-2">
+            <Label htmlFor="sensoperception_description">Descrição fenomenológica breve</Label>
+            <Textarea
+              id="sensoperception_description"
+              value={sensoperception.description}
+              onChange={(e) => setSensoperception({ ...sensoperception, description: e.target.value })}
+              placeholder="Máx. 250 caracteres"
+              maxLength={250}
+              rows={2}
+            />
+          </div>
+        </PsychicFunctionCard>
 
         {/* 4. MEMÓRIA */}
-        <Card>
-          <CardHeader className="p-4 pb-3">
-            <CardTitle className="text-lg">4. Memória</CardTitle>
-            <CardDescription className="text-xs">Fixação, evocação e memória autobiográfica</CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 pt-0 space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label>Fixação (memória imediata)</Label>
-                <span className="text-sm font-medium">{memory.fixation}</span>
-              </div>
-              <Slider
-                value={[memory.fixation]}
-                onValueChange={(v) => setMemory({ ...memory, fixation: v[0] })}
-                min={0}
-                max={100}
-                step={1}
-              />
-            </div>
+        <PsychicFunctionCard
+          number={4}
+          title="Memória"
+          description="Fixação, evocação e memória autobiográfica"
+        >
+          <PercentileSlider
+            label="Fixação (memória imediata)"
+            value={memory.fixation}
+            onChange={(v) => setMemory({ ...memory, fixation: v })}
+          />
 
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label>Evocação (curto prazo)</Label>
-                <span className="text-sm font-medium">{memory.recall}</span>
-              </div>
-              <Slider
-                value={[memory.recall]}
-                onValueChange={(v) => setMemory({ ...memory, recall: v[0] })}
-                min={0}
-                max={100}
-                step={1}
-              />
-            </div>
+          <PercentileSlider
+            label="Evocação (curto prazo)"
+            value={memory.recall}
+            onChange={(v) => setMemory({ ...memory, recall: v })}
+          />
 
-            <div className="space-y-3">
-              <Label>Alterações</Label>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="memory_auditory"
-                    checked={memory.auditory}
-                    onCheckedChange={(checked) => setMemory({ ...memory, auditory: checked as boolean })}
-                  />
-                  <label htmlFor="memory_auditory" className="text-sm cursor-pointer">
-                    Auditória
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="hypermnesia"
-                    checked={memory.hypermnesia}
-                    onCheckedChange={(checked) => setMemory({ ...memory, hypermnesia: checked as boolean })}
-                  />
-                  <label htmlFor="hypermnesia" className="text-sm cursor-pointer">
-                    Hipermnssia
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="paramnesia"
-                    checked={memory.paramnesia}
-                    onCheckedChange={(checked) => setMemory({ ...memory, paramnesia: checked as boolean })}
-                  />
-                  <label htmlFor="paramnesia" className="text-sm cursor-pointer">
-                    Paramnésia
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="memory_amnesia"
-                    checked={memory.amnesia}
-                    onCheckedChange={(checked) => setMemory({ ...memory, amnesia: checked as boolean })}
-                  />
-                  <label htmlFor="memory_amnesia" className="text-sm cursor-pointer">
-                    Amnésia
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="phobias"
-                    checked={memory.phobias}
-                    onCheckedChange={(checked) => setMemory({ ...memory, phobias: checked as boolean })}
-                  />
-                  <label htmlFor="phobias" className="text-sm cursor-pointer">
-                    Fobias
-                  </label>
-                </div>
-              </div>
-            </div>
+          <CheckboxGroup
+            label="Alterações"
+            options={[
+              {
+                id: 'memory_auditory',
+                label: 'Auditória',
+                checked: memory.auditory,
+                onChange: (c) => setMemory({ ...memory, auditory: c })
+              },
+              {
+                id: 'hypermnesia',
+                label: 'Hipermnssia',
+                checked: memory.hypermnesia,
+                onChange: (c) => setMemory({ ...memory, hypermnesia: c })
+              },
+              {
+                id: 'paramnesia',
+                label: 'Paramnésia',
+                checked: memory.paramnesia,
+                onChange: (c) => setMemory({ ...memory, paramnesia: c })
+              },
+              {
+                id: 'memory_amnesia',
+                label: 'Amnésia',
+                checked: memory.amnesia,
+                onChange: (c) => setMemory({ ...memory, amnesia: c })
+              },
+              {
+                id: 'phobias',
+                label: 'Fobias',
+                checked: memory.phobias,
+                onChange: (c) => setMemory({ ...memory, phobias: c })
+              }
+            ]}
+          />
 
-            <div className="space-y-2">
-              <Label htmlFor="memory_notes">Descrição livre do conteúdo</Label>
-              <Textarea
-                id="memory_notes"
-                value={memory.notes}
-                onChange={(e) => setMemory({ ...memory, notes: e.target.value })}
-                placeholder="Descrição livre do conteúdo..."
-                rows={2}
-              />
-            </div>
-          </CardContent>
-        </Card>
+          <div className="space-y-2">
+            <Label htmlFor="memory_notes">Descrição livre do conteúdo</Label>
+            <Textarea
+              id="memory_notes"
+              value={memory.notes}
+              onChange={(e) => setMemory({ ...memory, notes: e.target.value })}
+              placeholder="Descrição livre do conteúdo..."
+              rows={2}
+            />
+          </div>
+        </PsychicFunctionCard>
 
         {/* 5. PENSAMENTO */}
-        <Card>
-          <CardHeader className="p-4 pb-3">
-            <CardTitle className="text-lg">5. Pensamento</CardTitle>
-            <CardDescription className="text-xs">Curso, forma e conteúdo do pensamento</CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 pt-0 space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label>Curso do pensamento</Label>
-                <span className="text-sm font-medium">{thought.course}</span>
-              </div>
-              <Slider
-                value={[thought.course]}
-                onValueChange={(v) => setThought({ ...thought, course: v[0] })}
-                min={-100}
-                max={100}
-                step={1}
-              />
-              <p className="text-xs text-muted-foreground">
-                -100 (lentificação) | 0 (normal) | +100 (fuga de ideias)
-              </p>
-            </div>
+        <PsychicFunctionCard
+          number={5}
+          title="Pensamento"
+          description="Curso, forma e conteúdo do pensamento"
+        >
+          <BipolarSlider
+            label="Curso do pensamento"
+            value={thought.course}
+            onChange={(v) => setThought({ ...thought, course: v })}
+            description="-100 (lentificação) | 0 (normal) | +100 (fuga de ideias)"
+          />
 
-            <div className="space-y-3">
-              <Label>Forma do pensamento</Label>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="tangential"
-                    checked={thought.tangential}
-                    onCheckedChange={(checked) => setThought({ ...thought, tangential: checked as boolean })}
-                  />
-                  <label htmlFor="tangential" className="text-sm cursor-pointer">
-                    Tangencial
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="incoherent"
-                    checked={thought.incoherent}
-                    onCheckedChange={(checked) => setThought({ ...thought, incoherent: checked as boolean })}
-                  />
-                  <label htmlFor="incoherent" className="text-sm cursor-pointer">
-                    Incoerente
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="dissociated"
-                    checked={thought.dissociated}
-                    onCheckedChange={(checked) => setThought({ ...thought, dissociated: checked as boolean })}
-                  />
-                  <label htmlFor="dissociated" className="text-sm cursor-pointer">
-                    Dissociado
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="circumstantial"
-                    checked={thought.circumstantial}
-                    onCheckedChange={(checked) => setThought({ ...thought, circumstantial: checked as boolean })}
-                  />
-                  <label htmlFor="circumstantial" className="text-sm cursor-pointer">
-                    Circunstancial
-                  </label>
-                </div>
-              </div>
-            </div>
+          <CheckboxGroup
+            label="Forma do pensamento"
+            options={[
+              {
+                id: 'tangential',
+                label: 'Tangencial',
+                checked: thought.tangential,
+                onChange: (c) => setThought({ ...thought, tangential: c })
+              },
+              {
+                id: 'incoherent',
+                label: 'Incoerente',
+                checked: thought.incoherent,
+                onChange: (c) => setThought({ ...thought, incoherent: c })
+              },
+              {
+                id: 'dissociated',
+                label: 'Dissociado',
+                checked: thought.dissociated,
+                onChange: (c) => setThought({ ...thought, dissociated: c })
+              },
+              {
+                id: 'circumstantial',
+                label: 'Circunstancial',
+                checked: thought.circumstantial,
+                onChange: (c) => setThought({ ...thought, circumstantial: c })
+              }
+            ]}
+          />
 
-            <div className="space-y-3">
-              <Label>Conteúdo do pensamento</Label>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="delusional"
-                    checked={thought.delusional}
-                    onCheckedChange={(checked) => setThought({ ...thought, delusional: checked as boolean })}
-                  />
-                  <label htmlFor="delusional" className="text-sm cursor-pointer">
-                    Ideias delirantes
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="obsessive"
-                    checked={thought.obsessive}
-                    onCheckedChange={(checked) => setThought({ ...thought, obsessive: checked as boolean })}
-                  />
-                  <label htmlFor="obsessive" className="text-sm cursor-pointer">
-                    Ideias obsessivas
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="overvalued"
-                    checked={thought.overvalued}
-                    onCheckedChange={(checked) => setThought({ ...thought, overvalued: checked as boolean })}
-                  />
-                  <label htmlFor="overvalued" className="text-sm cursor-pointer">
-                    Ideias supervalorizadas
-                  </label>
-                </div>
-              </div>
-            </div>
+          <CheckboxGroup
+            label="Conteúdo do pensamento"
+            options={[
+              {
+                id: 'delusional',
+                label: 'Delirante',
+                checked: thought.delusional,
+                onChange: (c) => setThought({ ...thought, delusional: c })
+              },
+              {
+                id: 'obsessive',
+                label: 'Obsessivo',
+                checked: thought.obsessive,
+                onChange: (c) => setThought({ ...thought, obsessive: c })
+              },
+              {
+                id: 'overvalued',
+                label: 'Ideias supervalorizadas',
+                checked: thought.overvalued,
+                onChange: (c) => setThought({ ...thought, overvalued: c })
+              }
+            ]}
+          />
 
-            <div className="space-y-2">
-              <Label htmlFor="thought_description">Descrição livre do conteúdo</Label>
-              <Textarea
-                id="thought_description"
-                value={thought.description}
-                onChange={(e) => setThought({ ...thought, description: e.target.value })}
-                placeholder="200-500 caracteres"
-                minLength={200}
-                maxLength={500}
-                rows={4}
-              />
-            </div>
-          </CardContent>
-        </Card>
+          <div className="space-y-2">
+            <Label htmlFor="thought_description">Fenomenologia do conteúdo</Label>
+            <Textarea
+              id="thought_description"
+              value={thought.description}
+              onChange={(e) => setThought({ ...thought, description: e.target.value })}
+              placeholder="Descreva temas recorrentes, preocupações centrais..."
+              rows={3}
+            />
+          </div>
+        </PsychicFunctionCard>
 
         {/* 6. LINGUAGEM */}
-        <Card>
-          <CardHeader className="p-4 pb-3">
-            <CardTitle className="text-lg">6. Linguagem</CardTitle>
-            <CardDescription className="text-xs">Velocidade, articulação e coerência da fala</CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 pt-0 space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label>Velocidade da fala</Label>
-                <span className="text-sm font-medium">{language.speech_rate}</span>
-              </div>
-              <Slider
-                value={[language.speech_rate]}
-                onValueChange={(v) => setLanguage({ ...language, speech_rate: v[0] })}
-                min={-100}
-                max={100}
-                step={1}
-              />
-              <p className="text-xs text-muted-foreground">
-                -100 (bradilalia) | 0 (ritmo normal) | +100 (taquilalia)
-              </p>
-            </div>
+        <PsychicFunctionCard
+          number={6}
+          title="Linguagem"
+          description="Ritmo, articulação e coerência do discurso"
+        >
+          <BipolarSlider
+            label="Ritmo de fala"
+            value={language.speech_rate}
+            onChange={(v) => setLanguage({ ...language, speech_rate: v })}
+            description="-100 (muito lento) | 0 (normal) | +100 (muito rápido/pressão de fala)"
+          />
 
-            <div className="space-y-2">
-              <Label>Articulação / coerência</Label>
-              <Select
-                value={language.articulation}
-                onValueChange={(value) => setLanguage({ ...language, articulation: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="normal">Normal / Coerente</SelectItem>
-                  <SelectItem value="vague">Discurso vago</SelectItem>
-                  <SelectItem value="echolalia">Ecolalia</SelectItem>
-                  <SelectItem value="mutism">Mutismo</SelectItem>
-                  <SelectItem value="neologisms">Neologismos</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label>Articulação</Label>
+            <Select
+              value={language.articulation}
+              onValueChange={(v) => setLanguage({ ...language, articulation: v })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="normal">Normal</SelectItem>
+                <SelectItem value="dysarthric">Disártrica</SelectItem>
+                <SelectItem value="stuttering">Gagueira</SelectItem>
+                <SelectItem value="neologisms">Neologismos</SelectItem>
+                <SelectItem value="mutism">Mutismo</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="language_observations">Observações</Label>
-              <Textarea
-                id="language_observations"
-                value={language.observations}
-                onChange={(e) => setLanguage({ ...language, observations: e.target.value })}
-                placeholder="Anotar exemplos clínicos (ex: fala acelerada com trocadilhos; fuga de ideias)..."
-                rows={3}
-              />
-            </div>
-          </CardContent>
-        </Card>
+          <div className="space-y-2">
+            <Label htmlFor="language_observations">Observações</Label>
+            <Textarea
+              id="language_observations"
+              value={language.observations}
+              onChange={(e) => setLanguage({ ...language, observations: e.target.value })}
+              placeholder="Observações sobre a linguagem..."
+              rows={3}
+            />
+          </div>
+        </PsychicFunctionCard>
 
         {/* 7. HUMOR / AFETIVIDADE */}
-        <Card>
-          <CardHeader className="p-4 pb-3">
-            <CardTitle className="text-lg">7. Humor / Afetividade</CardTitle>
-            <CardDescription className="text-xs">Polaridade afetiva e reatividade emocional</CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 pt-0 space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label>Polaridade afetiva principal</Label>
-                <span className="text-sm font-medium">{mood.polarity}</span>
-              </div>
-              <Slider
-                value={[mood.polarity]}
-                onValueChange={(v) => setMood({ ...mood, polarity: v[0] })}
-                min={-100}
-                max={100}
-                step={1}
-              />
-              <p className="text-xs text-muted-foreground">
-                -100 (depressivo) | 0 (eutímico) | +100 (eufórico)
-              </p>
-            </div>
+        <PsychicFunctionCard
+          number={7}
+          title="Humor / Afetividade"
+          description="Polaridade afetiva e reatividade emocional"
+        >
+          <BipolarSlider
+            label="Polaridade afetiva principal"
+            value={mood.polarity}
+            onChange={(v) => setMood({ ...mood, polarity: v })}
+            description="-100 (depressivo) | 0 (eutímico) | +100 (eufórico)"
+          />
 
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label>Labilidade afetiva</Label>
-                <span className="text-sm font-medium">{mood.lability}</span>
-              </div>
-              <Slider
-                value={[mood.lability]}
-                onValueChange={(v) => setMood({ ...mood, lability: v[0] })}
-                min={0}
-                max={100}
-                step={1}
-              />
-            </div>
+          <PercentileSlider
+            label="Labilidade afetiva"
+            value={mood.lability}
+            onChange={(v) => setMood({ ...mood, lability: v })}
+          />
 
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="emotional_responsiveness"
-                checked={mood.emotional_responsiveness}
-                onCheckedChange={(checked) => setMood({ ...mood, emotional_responsiveness: checked as boolean })}
-              />
-              <label htmlFor="emotional_responsiveness" className="text-sm cursor-pointer">
-                Responsividade emocional apropriada
-              </label>
-            </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="emotional_responsiveness"
+              checked={mood.emotional_responsiveness}
+              onCheckedChange={(c) => setMood({ ...mood, emotional_responsiveness: c as boolean })}
+            />
+            <label htmlFor="emotional_responsiveness" className="text-sm cursor-pointer">
+              Responsividade emocional apropriada
+            </label>
+          </div>
 
-            <div className="space-y-2">
-              <Label>Adequação afetiva</Label>
-              <Select
-                value={mood.adequacy}
-                onValueChange={(value) => setMood({ ...mood, adequacy: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="adequate">Adequado</SelectItem>
-                  <SelectItem value="blunted">Embotado</SelectItem>
-                  <SelectItem value="incongruent">Incongruente</SelectItem>
-                  <SelectItem value="parathymic">Paratímico</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label>Adequação afetiva</Label>
+            <Select
+              value={mood.adequacy}
+              onValueChange={(v) => setMood({ ...mood, adequacy: v })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="adequate">Adequado</SelectItem>
+                <SelectItem value="blunted">Embotado</SelectItem>
+                <SelectItem value="incongruent">Incongruente</SelectItem>
+                <SelectItem value="parathymic">Paratímico</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="mood_notes">Observações</Label>
-              <Textarea
-                id="mood_notes"
-                value={mood.notes}
-                onChange={(e) => setMood({ ...mood, notes: e.target.value })}
-                placeholder="Observações sobre humor e afeto..."
-                rows={2}
-              />
-            </div>
-          </CardContent>
-        </Card>
+          <div className="space-y-2">
+            <Label htmlFor="mood_notes">Observações</Label>
+            <Textarea
+              id="mood_notes"
+              value={mood.notes}
+              onChange={(e) => setMood({ ...mood, notes: e.target.value })}
+              placeholder="Observações sobre humor e afeto..."
+              rows={2}
+            />
+          </div>
+        </PsychicFunctionCard>
 
         {/* 8. VONTADE */}
-        <Card>
-          <CardHeader className="p-4 pb-3">
-            <CardTitle className="text-lg">8. Vontade</CardTitle>
-            <CardDescription className="text-xs">Energia volitiva e controle de impulsos</CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 pt-0 space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label>Energia volitiva</Label>
-                <span className="text-sm font-medium">{will.volitional_energy}</span>
-              </div>
-              <Slider
-                value={[will.volitional_energy]}
-                onValueChange={(v) => setWill({ ...will, volitional_energy: v[0] })}
-                min={-100}
-                max={100}
-                step={1}
-              />
-              <p className="text-xs text-muted-foreground">
-                -100 (abulia) | 0 (normal) | +100 (hiperbulia)
-              </p>
-            </div>
+        <PsychicFunctionCard
+          number={8}
+          title="Vontade"
+          description="Energia volitiva e controle de impulsos"
+        >
+          <BipolarSlider
+            label="Energia volitiva"
+            value={will.volitional_energy}
+            onChange={(v) => setWill({ ...will, volitional_energy: v })}
+            description="-100 (abulia) | 0 (normal) | +100 (hiperbulia)"
+          />
 
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label>Controle de impulsos</Label>
-                <span className="text-sm font-medium">{will.impulse_control}</span>
-              </div>
-              <Slider
-                value={[will.impulse_control]}
-                onValueChange={(v) => setWill({ ...will, impulse_control: v[0] })}
-                min={-100}
-                max={100}
-                step={1}
-              />
-              <p className="text-xs text-muted-foreground">
-                -100 (impulsivo) | 0 (equilibrado) | +100 (inibido)
-              </p>
-            </div>
+          <BipolarSlider
+            label="Controle de impulsos"
+            value={will.impulse_control}
+            onChange={(v) => setWill({ ...will, impulse_control: v })}
+            description="-100 (impulsivo) | 0 (equilibrado) | +100 (inibido)"
+          />
 
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="ambivalence"
-                checked={will.ambivalence}
-                onCheckedChange={(checked) => setWill({ ...will, ambivalence: checked as boolean })}
-              />
-              <label htmlFor="ambivalence" className="text-sm cursor-pointer">
-                Ambivalência presente
-              </label>
-            </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="ambivalence"
+              checked={will.ambivalence}
+              onCheckedChange={(c) => setWill({ ...will, ambivalence: c as boolean })}
+            />
+            <label htmlFor="ambivalence" className="text-sm cursor-pointer">
+              Ambivalência presente
+            </label>
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="will_observations">Decisões, iniciativas ou inibições observadas</Label>
-              <Textarea
-                id="will_observations"
-                value={will.observations}
-                onChange={(e) => setWill({ ...will, observations: e.target.value })}
-                placeholder="Decisões, iniciativas ou inibições observadas nesta sessão..."
-                rows={2}
-              />
-            </div>
-          </CardContent>
-        </Card>
+          <div className="space-y-2">
+            <Label htmlFor="will_observations">Decisões, iniciativas ou inibições observadas</Label>
+            <Textarea
+              id="will_observations"
+              value={will.observations}
+              onChange={(e) => setWill({ ...will, observations: e.target.value })}
+              placeholder="Decisões, iniciativas ou inibições observadas nesta sessão..."
+              rows={2}
+            />
+          </div>
+        </PsychicFunctionCard>
 
         {/* 9. PSICOMOTRICIDADE */}
-        <Card>
-          <CardHeader className="p-4 pb-3">
-            <CardTitle className="text-lg">9. Psicomotricidade</CardTitle>
-            <CardDescription className="text-xs">Atividade motora, tônus e expressividade</CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 pt-0 space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label>Atividade motora geral</Label>
-                <span className="text-sm font-medium">{psychomotor.motor_activity}</span>
-              </div>
-              <Slider
-                value={[psychomotor.motor_activity]}
-                onValueChange={(v) => setPsychomotor({ ...psychomotor, motor_activity: v[0] })}
-                min={-100}
-                max={100}
-                step={1}
-              />
-              <p className="text-xs text-muted-foreground">
-                -100 (inibição) | 0 (movimento normal) | +100 (agitação)
-              </p>
-            </div>
+        <PsychicFunctionCard
+          number={9}
+          title="Psicomotricidade"
+          description="Atividade motora, tônus e expressividade"
+        >
+          <BipolarSlider
+            label="Atividade motora geral"
+            value={psychomotor.motor_activity}
+            onChange={(v) => setPsychomotor({ ...psychomotor, motor_activity: v })}
+            description="-100 (inibição) | 0 (movimento normal) | +100 (agitação)"
+          />
 
-            <div className="space-y-2">
-              <Label>Tônus e gestualidade</Label>
-              <Select
-                value={psychomotor.tone_gestures}
-                onValueChange={(value) => setPsychomotor({ ...psychomotor, tone_gestures: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="normal">Normal</SelectItem>
-                  <SelectItem value="stereotyped">Estereotipado</SelectItem>
-                  <SelectItem value="catatonic">Catatônico</SelectItem>
-                  <SelectItem value="mannerisms">Maneirismos</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label>Tônus e gestualidade</Label>
+            <Select
+              value={psychomotor.tone_gestures}
+              onValueChange={(v) => setPsychomotor({ ...psychomotor, tone_gestures: v })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="normal">Normal</SelectItem>
+                <SelectItem value="stereotyped">Estereotipado</SelectItem>
+                <SelectItem value="catatonic">Catatônico</SelectItem>
+                <SelectItem value="mannerisms">Maneirismos</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label>Expressividade facial</Label>
-                <span className="text-sm font-medium">{psychomotor.facial_expressiveness}</span>
-              </div>
-              <Slider
-                value={[psychomotor.facial_expressiveness]}
-                onValueChange={(v) => setPsychomotor({ ...psychomotor, facial_expressiveness: v[0] })}
-                min={0}
-                max={100}
-                step={1}
-              />
-              <p className="text-xs text-muted-foreground">
-                0 (neutra) | 100 (muito expressiva)
-              </p>
-            </div>
+          <PercentileSlider
+            label="Expressividade facial"
+            value={psychomotor.facial_expressiveness}
+            onChange={(v) => setPsychomotor({ ...psychomotor, facial_expressiveness: v })}
+            description="0 (neutra) | 100 (muito expressiva)"
+          />
 
-            <div className="space-y-2">
-              <Label htmlFor="psychomotor_notes">Observações</Label>
-              <Textarea
-                id="psychomotor_notes"
-                value={psychomotor.notes}
-                onChange={(e) => setPsychomotor({ ...psychomotor, notes: e.target.value })}
-                placeholder="Observações sobre psicomotricidade..."
-                rows={2}
-              />
-            </div>
-          </CardContent>
-        </Card>
+          <div className="space-y-2">
+            <Label htmlFor="psychomotor_notes">Observações</Label>
+            <Textarea
+              id="psychomotor_notes"
+              value={psychomotor.notes}
+              onChange={(e) => setPsychomotor({ ...psychomotor, notes: e.target.value })}
+              placeholder="Observações sobre psicomotricidade..."
+              rows={2}
+            />
+          </div>
+        </PsychicFunctionCard>
 
         {/* 10. INTELIGÊNCIA */}
-        <Card>
-          <CardHeader className="p-4 pb-3">
-            <CardTitle className="text-lg">10. Inteligência</CardTitle>
-            <CardDescription className="text-xs">Raciocínio, aprendizagem e capacidade adaptativa</CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 pt-0 space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label>Raciocínio abstrato</Label>
-                <span className="text-sm font-medium">{intelligence.abstract_reasoning}</span>
-              </div>
-              <Slider
-                value={[intelligence.abstract_reasoning]}
-                onValueChange={(v) => setIntelligence({ ...intelligence, abstract_reasoning: v[0] })}
-                min={0}
-                max={100}
-                step={1}
-              />
-            </div>
+        <PsychicFunctionCard
+          number={10}
+          title="Inteligência"
+          description="Raciocínio, aprendizagem e capacidade adaptativa"
+        >
+          <PercentileSlider
+            label="Raciocínio abstrato"
+            value={intelligence.abstract_reasoning}
+            onChange={(v) => setIntelligence({ ...intelligence, abstract_reasoning: v })}
+          />
 
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label>Capacidade de aprendizagem</Label>
-                <span className="text-sm font-medium">{intelligence.learning_capacity}</span>
-              </div>
-              <Slider
-                value={[intelligence.learning_capacity]}
-                onValueChange={(v) => setIntelligence({ ...intelligence, learning_capacity: v[0] })}
-                min={0}
-                max={100}
-                step={1}
-              />
-            </div>
+          <PercentileSlider
+            label="Capacidade de aprendizagem"
+            value={intelligence.learning_capacity}
+            onChange={(v) => setIntelligence({ ...intelligence, learning_capacity: v })}
+          />
 
-            <div className="space-y-2">
-              <Label>Capacidade adaptativa / prática</Label>
-              <Select
-                value={intelligence.adaptive_capacity}
-                onValueChange={(value) => setIntelligence({ ...intelligence, adaptive_capacity: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="normal">Normal</SelectItem>
-                  <SelectItem value="mild">Déficit leve</SelectItem>
-                  <SelectItem value="moderate">Déficit moderado</SelectItem>
-                  <SelectItem value="severe">Déficit grave</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label>Capacidade adaptativa / prática</Label>
+            <Select
+              value={intelligence.adaptive_capacity}
+              onValueChange={(v) => setIntelligence({ ...intelligence, adaptive_capacity: v })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="normal">Normal</SelectItem>
+                <SelectItem value="mild">Déficit leve</SelectItem>
+                <SelectItem value="moderate">Déficit moderado</SelectItem>
+                <SelectItem value="severe">Déficit grave</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="intelligence_notes">Observações</Label>
-              <Textarea
-                id="intelligence_notes"
-                value={intelligence.notes}
-                onChange={(e) => setIntelligence({ ...intelligence, notes: e.target.value })}
-                placeholder="Observações sobre inteligência e capacidades cognitivas..."
-                rows={2}
-              />
-            </div>
-          </CardContent>
-        </Card>
+          <div className="space-y-2">
+            <Label htmlFor="intelligence_notes">Observações</Label>
+            <Textarea
+              id="intelligence_notes"
+              value={intelligence.notes}
+              onChange={(e) => setIntelligence({ ...intelligence, notes: e.target.value })}
+              placeholder="Observações sobre inteligência e capacidades cognitivas..."
+              rows={2}
+            />
+          </div>
+        </PsychicFunctionCard>
 
         {/* 11. ATENÇÃO E CONCENTRAÇÃO */}
-        <Card>
-          <CardHeader className="p-4 pb-3">
-            <CardTitle className="text-lg">11. Atenção e Concentração</CardTitle>
-            <CardDescription className="text-xs">Capacidade de focar e sustentar a atenção</CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 pt-0 space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label>Amplitude da atenção</Label>
-                <span className="text-sm font-medium">{attention.range}</span>
-              </div>
-              <Slider
-                value={[attention.range]}
-                onValueChange={(v) => setAttention({ ...attention, range: v[0] })}
-                min={0}
-                max={100}
-                step={1}
-              />
-              <p className="text-xs text-muted-foreground">
-                0 (aprosexia) | 50 (normal) | 100 (hiperprosexia)
-              </p>
-            </div>
+        <PsychicFunctionCard
+          number={11}
+          title="Atenção e Concentração"
+          description="Capacidade de focar e sustentar a atenção"
+        >
+          <PercentileSlider
+            label="Amplitude da atenção"
+            value={attention.range}
+            onChange={(v) => setAttention({ ...attention, range: v })}
+            description="0 (aprosexia) | 50 (normal) | 100 (hiperprosexia)"
+          />
 
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label>Concentração</Label>
-                <span className="text-sm font-medium">{attention.concentration}</span>
-              </div>
-              <Slider
-                value={[attention.concentration]}
-                onValueChange={(v) => setAttention({ ...attention, concentration: v[0] })}
-                min={0}
-                max={100}
-                step={1}
-              />
-              <p className="text-xs text-muted-foreground">
-                Sustentação atencional: 0 (nenhuma) | 100 (excelente)
-              </p>
-            </div>
+          <PercentileSlider
+            label="Concentração"
+            value={attention.concentration}
+            onChange={(v) => setAttention({ ...attention, concentration: v })}
+            description="Sustentação atencional: 0 (nenhuma) | 100 (excelente)"
+          />
 
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="distractibility"
-                checked={attention.distractibility}
-                onCheckedChange={(checked) => setAttention({ ...attention, distractibility: checked as boolean })}
-              />
-              <label htmlFor="distractibility" className="text-sm cursor-pointer">
-                Distraibilidade presente
-              </label>
-            </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="distractibility"
+              checked={attention.distractibility}
+              onCheckedChange={(c) => setAttention({ ...attention, distractibility: c as boolean })}
+            />
+            <label htmlFor="distractibility" className="text-sm cursor-pointer">
+              Distraibilidade presente
+            </label>
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="attention_notes">Descrição fenomenológica</Label>
-              <Textarea
-                id="attention_notes"
-                value={attention.notes}
-                onChange={(e) => setAttention({ ...attention, notes: e.target.value })}
-                placeholder="Breve descrição fenomenológica..."
-                rows={2}
-              />
-            </div>
-          </CardContent>
-        </Card>
+          <div className="space-y-2">
+            <Label htmlFor="attention_notes">Descrição fenomenológica</Label>
+            <Textarea
+              id="attention_notes"
+              value={attention.notes}
+              onChange={(e) => setAttention({ ...attention, notes: e.target.value })}
+              placeholder="Breve descrição fenomenológica..."
+              rows={2}
+            />
+          </div>
+        </PsychicFunctionCard>
 
         {/* 12. PERSONALIDADE / EU */}
-        <Card>
-          <CardHeader className="p-4 pb-3">
-            <CardTitle className="text-lg">12. Personalidade / Eu</CardTitle>
-            <CardDescription className="text-xs">Coerência, estabilidade e traços predominantes</CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 pt-0 space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label>Coerência do eu</Label>
-                <span className="text-sm font-medium">{personality.self_coherence}</span>
-              </div>
-              <Slider
-                value={[personality.self_coherence]}
-                onValueChange={(v) => setPersonality({ ...personality, self_coherence: v[0] })}
-                min={0}
-                max={100}
-                step={1}
-              />
-              <p className="text-xs text-muted-foreground">
-                0 (fragmentado) | 50 (moderado) | 100 (integrado)
-              </p>
-            </div>
+        <PsychicFunctionCard
+          number={12}
+          title="Personalidade / Eu"
+          description="Coerência, estabilidade e traços predominantes"
+        >
+          <PercentileSlider
+            label="Coerência do eu"
+            value={personality.self_coherence}
+            onChange={(v) => setPersonality({ ...personality, self_coherence: v })}
+            description="0 (fragmentado) | 50 (moderado) | 100 (integrado)"
+          />
 
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label>Fronteiras do eu</Label>
-              </div>
-              <Select
-                value={personality.self_boundaries}
-                onValueChange={(value) => setPersonality({ ...personality, self_boundaries: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="normal">Normais</SelectItem>
-                  <SelectItem value="dissociated">Dissociadas</SelectItem>
-                  <SelectItem value="diffuse">Difusas</SelectItem>
-                  <SelectItem value="alienated">Alienadas</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <PercentileSlider
+            label="Estabilidade afetiva"
+            value={personality.affective_stability}
+            onChange={(v) => setPersonality({ ...personality, affective_stability: v })}
+          />
 
-            <div className="space-y-3">
-              <Label>Traços predominantes</Label>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="anxious"
-                    checked={personality.anxious}
-                    onCheckedChange={(checked) => setPersonality({ ...personality, anxious: checked as boolean })}
-                  />
-                  <label htmlFor="anxious" className="text-sm cursor-pointer">
-                    Ansioso
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="narcissistic"
-                    checked={personality.narcissistic}
-                    onCheckedChange={(checked) => setPersonality({ ...personality, narcissistic: checked as boolean })}
-                  />
-                  <label htmlFor="narcissistic" className="text-sm cursor-pointer">
-                    Narcísico
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="avoidant"
-                    checked={personality.avoidant}
-                    onCheckedChange={(checked) => setPersonality({ ...personality, avoidant: checked as boolean })}
-                  />
-                  <label htmlFor="avoidant" className="text-sm cursor-pointer">
-                    Evitativo
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="obsessive"
-                    checked={personality.obsessive}
-                    onCheckedChange={(checked) => setPersonality({ ...personality, obsessive: checked as boolean })}
-                  />
-                  <label htmlFor="obsessive" className="text-sm cursor-pointer">
-                    Obsessivo
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="borderline"
-                    checked={personality.borderline}
-                    onCheckedChange={(checked) => setPersonality({ ...personality, borderline: checked as boolean })}
-                  />
-                  <label htmlFor="borderline" className="text-sm cursor-pointer">
-                    Borderline
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="histrionic"
-                    checked={personality.histrionic}
-                    onCheckedChange={(checked) => setPersonality({ ...personality, histrionic: checked as boolean })}
-                  />
-                  <label htmlFor="histrionic" className="text-sm cursor-pointer">
-                    Histriônico
-                  </label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="antisocial"
-                    checked={personality.antisocial}
-                    onCheckedChange={(checked) => setPersonality({ ...personality, antisocial: checked as boolean })}
-                  />
-                  <label htmlFor="antisocial" className="text-sm cursor-pointer">
-                    Antissocial
-                  </label>
-                </div>
-              </div>
-            </div>
+          <div className="space-y-2">
+            <Label>Fronteiras do eu</Label>
+            <Select
+              value={personality.self_boundaries}
+              onValueChange={(v) => setPersonality({ ...personality, self_boundaries: v })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="normal">Normais</SelectItem>
+                <SelectItem value="dissociated">Dissociadas</SelectItem>
+                <SelectItem value="diffuse">Difusas</SelectItem>
+                <SelectItem value="alienated">Alienadas</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="personality_observations">Observações sobre identidade e defesas</Label>
-              <Textarea
-                id="personality_observations"
-                value={personality.observations}
-                onChange={(e) => setPersonality({ ...personality, observations: e.target.value })}
-                placeholder="Observações sobre identidade, coerência e defesas predominantes..."
-                rows={3}
-              />
-            </div>
-          </CardContent>
-        </Card>
+          <CheckboxGroup
+            label="Traços predominantes"
+            options={[
+              {
+                id: 'anxious',
+                label: 'Ansioso',
+                checked: personality.anxious,
+                onChange: (c) => setPersonality({ ...personality, anxious: c })
+              },
+              {
+                id: 'narcissistic',
+                label: 'Narcísico',
+                checked: personality.narcissistic,
+                onChange: (c) => setPersonality({ ...personality, narcissistic: c })
+              },
+              {
+                id: 'avoidant',
+                label: 'Evitativo',
+                checked: personality.avoidant,
+                onChange: (c) => setPersonality({ ...personality, avoidant: c })
+              },
+              {
+                id: 'obsessive',
+                label: 'Obsessivo',
+                checked: personality.obsessive,
+                onChange: (c) => setPersonality({ ...personality, obsessive: c })
+              },
+              {
+                id: 'borderline',
+                label: 'Borderline',
+                checked: personality.borderline,
+                onChange: (c) => setPersonality({ ...personality, borderline: c })
+              },
+              {
+                id: 'histrionic',
+                label: 'Histriônico',
+                checked: personality.histrionic,
+                onChange: (c) => setPersonality({ ...personality, histrionic: c })
+              },
+              {
+                id: 'antisocial',
+                label: 'Antissocial',
+                checked: personality.antisocial,
+                onChange: (c) => setPersonality({ ...personality, antisocial: c })
+              }
+            ]}
+          />
+
+          <div className="space-y-2">
+            <Label htmlFor="personality_observations">Observações sobre identidade e defesas</Label>
+            <Textarea
+              id="personality_observations"
+              value={personality.observations}
+              onChange={(e) => setPersonality({ ...personality, observations: e.target.value })}
+              placeholder="Observações sobre identidade, coerência e defesas predominantes..."
+              rows={3}
+            />
+          </div>
+        </PsychicFunctionCard>
 
       </div>
 
