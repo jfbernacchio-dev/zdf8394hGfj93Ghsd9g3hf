@@ -28,17 +28,22 @@ import type { ClinicalTemplate, RoleTemplateMapping, ApproachTemplateMapping } f
  * - Queixa clínica com CID-10, sintomas, medicações
  * - Avaliação de sessão com 12 funções psíquicas
  * - Evolução com gráficos temporais e resumo interpretativo
+ * 
+ * FASE C2.3: Agora possui definição declarativa completa em:
+ * - src/lib/templates/psychopathologyBasic/complaintModel.ts
+ * - src/lib/templates/psychopathologyBasic/sessionEvaluationModel.ts
+ * - src/lib/templates/psychopathologyBasic/evolutionModel.ts
  */
 export const PSYCHOLOGY_BASIC_TEMPLATE: ClinicalTemplate = {
   id: 'psychology_basic',
   type: 'role',
   label: 'Psicopatológico Básico',
-  description: 'Template padrão para avaliação psicopatológica com 12 funções psíquicas',
+  description: 'Template padrão para avaliação psicopatológica com 12 funções psíquicas de Dalgalarrondo',
   supportsComplaint: true,
   supportsSessionEvaluation: true,
   supportsEvolution: true,
   version: '1.0.0',
-  tags: ['psychology', 'psychiatry', 'psychopathology']
+  tags: ['psychology', 'psychiatry', 'psychopathology', 'dalgalarrondo']
 };
 
 /**
