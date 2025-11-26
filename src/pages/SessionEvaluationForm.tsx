@@ -13,6 +13,7 @@ import { Loader2, Save, ArrowLeft, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { getUserIdsInOrganization } from '@/lib/organizationFilters';
+import { validateEvaluationMinimum } from '@/lib/clinical/validations';
 
 interface SessionEvaluationFormProps {
   sessionId?: string;
@@ -280,6 +281,17 @@ export default function SessionEvaluationForm({ sessionId: propSessionId, patien
         intelligence_data: intelligence,
         personality_data: personality
       };
+
+      // 🔐 FASE C2.1: Validação mínima usando função centralizada
+      const validation = validateEvaluationMinimum(evaluationData);
+      if (!validation.isValid) {
+        toast({
+          title: 'Validação',
+          description: validation.errors[0],
+          variant: 'destructive'
+        });
+        return;
+      }
 
       // Check if evaluation already exists
       const { data: existing } = await supabase

@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
 import { getUserIdsInOrganization } from "@/lib/organizationFilters";
+import { validateComplaintMinimum } from "@/lib/clinical/validations";
 
 interface CIDOption {
   code: string;
@@ -277,8 +278,29 @@ export default function ClinicalComplaintForm() {
   };
 
   const handleSubmit = async () => {
-    if (!hasNoDiagnosis && !selectedCID) {
-      toast.error("Selecione um diagnóstico CID-10 ou marque 'Sem diagnóstico'");
+    // 🔐 FASE C2.1: Validação mínima usando função centralizada
+    const complaintData = {
+      patient_id: patientId,
+      cid_code: hasNoDiagnosis ? null : selectedCID?.code,
+      cid_title: hasNoDiagnosis ? null : selectedCID?.title,
+      cid_group: hasNoDiagnosis ? null : selectedCID?.group_code,
+      has_no_diagnosis: hasNoDiagnosis,
+      onset_type: onsetType || null,
+      onset_duration_weeks: onsetDurationWeeks ? parseInt(onsetDurationWeeks) : null,
+      course: course || null,
+      severity: severity || null,
+      functional_impairment: functionalImpairment || null,
+      suicidality: suicidality || null,
+      aggressiveness: aggressiveness || null,
+      vulnerabilities: vulnerabilities.length > 0 ? vulnerabilities : null,
+      clinical_notes: clinicalNotes || null,
+      is_active: true,
+      created_by: '', // Será preenchido abaixo
+    };
+
+    const validation = validateComplaintMinimum(complaintData);
+    if (!validation.isValid) {
+      toast.error(validation.errors[0]);
       return;
     }
 
@@ -288,27 +310,24 @@ export default function ClinicalComplaintForm() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      // Insert or update complaint
-      const complaintData = {
-        patient_id: patientId,
-        cid_code: hasNoDiagnosis ? null : selectedCID?.code,
-        cid_title: hasNoDiagnosis ? null : selectedCID?.title,
-        cid_group: hasNoDiagnosis ? null : selectedCID?.group_code,
-        has_no_diagnosis: hasNoDiagnosis,
-        onset_type: onsetType || null,
-        onset_duration_weeks: onsetDurationWeeks ? parseInt(onsetDurationWeeks) : null,
-        course: course || null,
-        severity: severity || null,
-        functional_impairment: functionalImpairment || null,
-        suicidality: suicidality || null,
-        aggressiveness: aggressiveness || null,
-        vulnerabilities: vulnerabilities.length > 0 ? vulnerabilities : null,
-        clinical_notes: clinicalNotes || null,
-        is_active: true,
-        created_by: user.id,
-      };
+      complaintData.created_by = user.id;
 
       let savedComplaintId = complaintId;
+
+      // 🐛 FASE C2.1 - CORREÇÃO BUG-01: Desativar queixas antigas ANTES de salvar
+      if (!complaintId) {
+        // Apenas ao CRIAR nova queixa (não ao editar)
+        const { error: deactivateError } = await supabase
+          .from("clinical_complaints")
+          .update({ is_active: false })
+          .eq("patient_id", patientId)
+          .eq("is_active", true);
+
+        if (deactivateError) {
+          console.error("Erro ao desativar queixas antigas:", deactivateError);
+          // Não bloquear salvamento, mas logar
+        }
+      }
 
       if (complaintId) {
         await supabase
