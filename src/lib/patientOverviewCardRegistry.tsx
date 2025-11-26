@@ -45,8 +45,7 @@ import type { PatientOverviewCardProps, PatientOverviewCardMetadata } from '@/ty
  * Organizados por domínio:
  * - Financial: 3 cards
  * - Clinical: 3 cards
- * - Sessions: 3 cards
- * - Contact: 3 cards
+ * - Administrative: 6 cards (sessions + contact)
  */
 export const PATIENT_OVERVIEW_AVAILABLE_CARDS: PatientOverviewCardMetadata[] = [
   // ========== FINANCIAL DOMAIN (3 cards) ==========

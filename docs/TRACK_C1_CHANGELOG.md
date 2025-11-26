@@ -34,7 +34,7 @@ A **TRACK C1** implementou um sistema completo de visualização customizável p
 - `src/types/patientOverviewCardTypes.ts` (109 linhas)
   - `PatientOverviewCardProps`: props comuns dos cards
   - `PatientOverviewCardMetadata`: metadados de configuração
-  - Definição de domains: clinical, financial, sessions, contact, administrative
+  - Definição de domains: **clinical, financial, administrative**
 
 ### Libraries
 - `src/lib/patientOverviewCardRegistry.tsx` (758 linhas)
@@ -89,12 +89,10 @@ A **TRACK C1** implementou um sistema completo de visualização customizável p
 5. **`patient-medications-list`**: Lista de medicações atuais (até 5 + "X mais...")
 6. **`patient-diagnoses-list`**: Diagnósticos únicos (CID-10)
 
-### Sessions Domain (3 cards)
+### Administrative Domain (6 cards: sessions + contact)
 7. **`patient-sessions-timeline`**: Últimas 8 sessões com status (badges coloridos)
 8. **`patient-session-frequency`**: Frequência média (semanal/quinzenal/mensal)
 9. **`patient-attendance-rate`**: Taxa de comparecimento (últimos 3 meses)
-
-### Contact Domain (3 cards)
 10. **`patient-contact-info`**: Telefone, email, endereço
 11. **`patient-consent-status`**: Status LGPD com check/alerta
 12. **`patient-personal-data`**: CPF, idade, responsável se menor
@@ -111,9 +109,7 @@ canViewCardByDomain(domain, permissions)
 ### Regras Implementadas
 - **`clinical`**: requer `canAccessClinical === true`
 - **`financial`**: requer `financialAccess === 'read' | 'full'`
-- **`sessions`**: vinculado a acesso clínico
-- **`contact`**: sempre visível
-- **`administrative`**: sempre visível
+- **`administrative`**: sempre visível (inclui dados de sessões e contato)
 
 ### Dupla Proteção
 1. **Filtro preventivo**: `visiblePatientOverviewCards` (antes do render)
@@ -199,7 +195,7 @@ canViewCardByDomain(domain, permissions)
 | **Arquivos Modificados** | 2 |
 | **Linhas de Código** | ~1.200 LOC |
 | **Cards MVP** | 12 |
-| **Domínios Cobertos** | 4 (financial, clinical, sessions, contact) |
+| **Domínios Cobertos** | 3 (financial, clinical, administrative) |
 | **Fases Executadas** | 11 (C1.1 até C1.11) |
 | **Duração Estimada** | ~10 horas de desenvolvimento |
 
