@@ -52,6 +52,14 @@ export interface PatientOverviewCardProps {
    * Classes CSS adicionais
    */
   className?: string;
+  
+  /**
+   * FASE C1.8: Permissões simplificadas para controle de visibilidade
+   */
+  permissions?: {
+    canAccessClinical?: boolean;
+    financialAccess?: string;
+  };
 }
 
 /**
