@@ -6,7 +6,7 @@ A **TRACK C1** implementou um sistema completo de visualização customizável p
 
 **Data de Início**: Janeiro 2025  
 **Data de Conclusão**: Janeiro 2025  
-**Status**: ✅ **CONCLUÍDA**
+**Status**: ✅ **CONCLUÍDA (incluindo FASE H - Persistência Supabase)**
 
 ---
 
@@ -144,10 +144,12 @@ canViewCardByDomain(domain, permissions)
 - ✅ Verificação via `onValueChange` do componente `Tabs`
 
 ### Persistência
-- ✅ localStorage: chave `grid-card-{sectionId}-{cardId}`
-- ✅ Carregamento automático ao abrir paciente
-- ✅ Merge com layout padrão (customizações sobrescrevem defaults)
-- ✅ Preparado para integração Supabase futura
+- ✅ **Supabase**: Fonte da verdade via tabela `patient_overview_layouts`
+- ✅ **localStorage**: Usado apenas como cache para performance
+- ✅ Carregamento automático do DB ao abrir paciente
+- ✅ Merge inteligente com layout padrão (novos cards aparecem automaticamente)
+- ✅ Auto-save com debounce de 1.5s
+- ✅ Isolamento por `user_id` + `patient_id` (layouts independentes por usuário e paciente)
 
 ---
 
@@ -206,9 +208,9 @@ canViewCardByDomain(domain, permissions)
 ## 🔮 Melhorias Futuras (Fora do Escopo C1)
 
 ### Persistência Avançada
-- [ ] Salvar layouts por paciente no Supabase (`patient_overview_layouts` table)
-- [ ] Sincronizar layouts entre dispositivos
-- [ ] Histórico de versões de layout
+- [x] ~~Salvar layouts por paciente no Supabase~~ ✅ **CONCLUÍDO NA FASE H**
+- [x] ~~Sincronizar layouts entre dispositivos~~ ✅ **CONCLUÍDO NA FASE H**
+- [ ] Histórico de versões de layout (rollback para versões anteriores)
 
 ### UX Aprimorada
 - [ ] Tooltips explicativos em cada card
@@ -233,10 +235,13 @@ canViewCardByDomain(domain, permissions)
 
 ## 📝 Decisões Técnicas
 
-### localStorage vs Supabase
-- **Fase C1**: localStorage para prototipagem rápida
-- **Preparação**: Hook estruturado para migração futura
-- **Formato**: Compatível com estrutura de tabela DB
+### Persistência via Supabase (FASE H - Janeiro 2025)
+- **Tabela**: `patient_overview_layouts` com RLS por `user_id` + `organization_id`
+- **UNIQUE Constraint**: `(user_id, patient_id)` para evitar duplicatas
+- **Hook**: Refatorado para usar `.maybeSingle()` e tratamento correto de `patient_id` null
+- **Auto-save**: Debounce de 1.5s com upsert automático
+- **localStorage**: Mantido apenas como cache para performance inicial
+- **Migração**: Não foi implementada (usuários reconfiguram manualmente se necessário)
 
 ### Permissões
 - **Reutilização**: Sistema existente (`useEffectivePermissions`)
@@ -250,9 +255,10 @@ canViewCardByDomain(domain, permissions)
 - **Compactação**: Vertical automática habilitada
 
 ### Auto-save
-- **Debounce**: 2 segundos
-- **Storage**: localStorage individual por card
-- **Performance**: Não bloqueia UI
+- **Debounce**: 1.5 segundos (alinhado com Dashboard)
+- **Storage Primário**: Supabase via upsert
+- **Storage Secundário**: localStorage como cache
+- **Performance**: Não bloqueia UI, salva em background
 
 ---
 
