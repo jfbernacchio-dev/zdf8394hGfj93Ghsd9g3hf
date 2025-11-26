@@ -1486,6 +1486,39 @@ export type Database = {
           },
         ]
       }
+      patient_overview_layouts: {
+        Row: {
+          created_at: string
+          id: string
+          layout_json: Json
+          organization_id: string | null
+          patient_id: string | null
+          updated_at: string
+          user_id: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          layout_json?: Json
+          organization_id?: string | null
+          patient_id?: string | null
+          updated_at?: string
+          user_id: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          layout_json?: Json
+          organization_id?: string | null
+          patient_id?: string | null
+          updated_at?: string
+          user_id?: string
+          version?: number
+        }
+        Relationships: []
+      }
       patients: {
         Row: {
           birth_date: string | null
