@@ -59,6 +59,7 @@ import WebsiteMetrics from "./pages/WebsiteMetrics";
 import ClinicalComplaintForm from "./pages/ClinicalComplaintForm";
 import SessionEvaluationForm from "./pages/SessionEvaluationForm";
 import SetupOrganization from "./pages/SetupOrganization";
+import Metrics from "./pages/Metrics";
 
 const queryClient = new QueryClient();
 
@@ -158,6 +159,7 @@ const App = () => (
             <Route path="/setup-organization" element={<ProtectedRoute requiresOrg={false}><SetupOrganization /></ProtectedRoute>} />
             
             <Route path="/financial" element={<ProtectedRoute><PermissionRoute path="/financial"><Layout><Financial /></Layout></PermissionRoute></ProtectedRoute>} />
+            <Route path="/metrics" element={<ProtectedRoute><PermissionRoute path="/metrics"><Layout><Metrics /></Layout></PermissionRoute></ProtectedRoute>} />
             <Route path="/schedule" element={<ProtectedRoute><PermissionRoute path="/schedule"><Layout><Schedule /></Layout></PermissionRoute></ProtectedRoute>} />
             <Route path="/patients" element={<ProtectedRoute><PermissionRoute path="/patients"><Layout><Patients /></Layout></PermissionRoute></ProtectedRoute>} />
             <Route path="/patients/new" element={<ProtectedRoute><PermissionRoute path="/patients/new"><Layout><NewPatient /></Layout></PermissionRoute></ProtectedRoute>} />
