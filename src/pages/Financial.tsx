@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -20,7 +20,37 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffectivePermissions } from '@/hooks/useEffectivePermissions';
 import { useCardPermissions } from '@/hooks/useCardPermissions';
 
+// 🧪 FASE C3.2 - Imports do systemMetricsUtils
+import {
+  type MetricsPatient,
+  type MetricsSession,
+  type DateRange,
+  getMonthlyRevenue as getMonthlyRevenueNEW,
+  getPatientDistribution as getPatientDistributionNEW,
+  getMissedRate as getMissedRateNEW,
+  getAvgRevenuePerPatient as getAvgRevenuePerPatientNEW,
+  calculateTotalRevenue,
+  calculateTotalSessions,
+  calculateMissedRatePercentage,
+  calculateAvgPerSession,
+  calculateActivePatients,
+  getMissedByPatient as getMissedByPatientNEW,
+  getMissedDistribution as getMissedDistributionNEW,
+  calculateLostRevenue,
+  calculateAvgRevenuePerActivePatient,
+  getForecastRevenue as getForecastRevenueNEW,
+  calculateOccupationRate as calculateOccupationRateNEW,
+  getTicketComparison as getTicketComparisonNEW,
+  getGrowthTrend as getGrowthTrendNEW,
+  getNewVsInactive as getNewVsInactiveNEW,
+  getRetentionRate as getRetentionRateNEW,
+  getLostRevenueByMonth as getLostRevenueByMonthNEW,
+} from '@/lib/systemMetricsUtils';
+
 const COLORS = ['hsl(100, 20%, 55%)', 'hsl(100, 25%, 65%)', 'hsl(100, 30%, 75%)', 'hsl(100, 15%, 45%)', 'hsl(100, 35%, 85%)', 'hsl(40, 35%, 75%)'];
+
+// 🚩 FEATURE FLAG - Controle de rollback
+const USE_NEW_METRICS = import.meta.env.VITE_USE_NEW_METRICS === 'true';
 
 const Financial = () => {
   const { user, isAdmin, roleGlobal, organizationId } = useAuth();
@@ -212,8 +242,36 @@ const Financial = () => {
   // Only visible sessions (for operational metrics - excludes hidden sessions)
   const visiblePeriodSessions = periodSessions.filter(session => session.show_in_schedule !== false);
 
-  // Receita por mês
-  const getMonthlyRevenue = () => {
+  // 🔄 ADAPTADORES DE TIPO - Patient/Session → Metrics*
+  const mapPatientsToMetricsPatients = (patientsData: any[]): MetricsPatient[] => {
+    return patientsData.map((p) => ({
+      id: p.id,
+      name: p.name,
+      session_value: p.session_value,
+      frequency: p.frequency,
+      monthly_price: p.monthly_price,
+      status: p.status,
+      user_id: p.user_id,
+      start_date: p.start_date,
+      created_at: p.created_at,
+      updated_at: p.updated_at,
+    }));
+  };
+
+  const mapSessionsToMetricsSessions = (sessionsData: any[]): MetricsSession[] => {
+    return sessionsData.map((s) => ({
+      id: s.id,
+      patient_id: s.patient_id,
+      date: s.date,
+      status: s.status === 'scheduled' ? 'rescheduled' : s.status as 'attended' | 'missed' | 'rescheduled' | 'cancelled',
+      value: s.value,
+      show_in_schedule: s.show_in_schedule,
+      patients: s.patients,
+    }));
+  };
+
+  // Receita por mês - VERSÃO ANTIGA
+  const getMonthlyRevenueOLD = () => {
     const months = eachMonthOfInterval({ start, end });
     
     return months.map(month => {
@@ -262,8 +320,8 @@ const Financial = () => {
     });
   };
 
-  // Distribuição por paciente
-  const getPatientDistribution = () => {
+  // Distribuição por paciente - VERSÃO ANTIGA
+  const getPatientDistributionOLD = () => {
     const patientRevenue = new Map<string, number>();
     const monthlyPatients = new Map<string, Set<string>>();
     
@@ -295,8 +353,8 @@ const Financial = () => {
       .sort((a, b) => b.value - a.value);
   };
 
-  // Taxa de faltas por mês (only visible sessions)
-  const getMissedRate = () => {
+  // Taxa de faltas por mês (only visible sessions) - VERSÃO ANTIGA
+  const getMissedRateOLD = () => {
     const months = eachMonthOfInterval({ start, end });
     
     return months.map(month => {
@@ -321,8 +379,8 @@ const Financial = () => {
     });
   };
 
-  // Faturamento médio por paciente
-  const getAvgRevenuePerPatient = () => {
+  // Faturamento médio por paciente - VERSÃO ANTIGA
+  const getAvgRevenuePerPatientOLD = () => {
     const patientRevenue = new Map<string, { revenue: number; sessions: number; monthly: boolean }>();
     const monthlyPatients = new Map<string, Set<string>>();
     
@@ -373,38 +431,50 @@ const Financial = () => {
       .slice(0, 10); // Limit to top 10 patients
   };
 
-  // Calculate total revenue considering monthly patients
-  const monthlyPatientsTracked = new Map<string, Set<string>>();
-  const totalRevenue = periodSessions
-    .filter(s => s.status === 'attended')
-    .reduce((sum, s) => {
-      const patient = patients.find(p => p.id === s.patient_id);
-      if (patient?.monthly_price) {
-        const monthKey = format(parseISO(s.date), 'yyyy-MM');
-        if (!monthlyPatientsTracked.has(s.patient_id)) {
-          monthlyPatientsTracked.set(s.patient_id, new Set());
+  // Calculate total revenue considering monthly patients - VERSÃO ANTIGA
+  const calculateTotalRevenueOLD = (): number => {
+    const monthlyPatientsTracked = new Map<string, Set<string>>();
+    return periodSessions
+      .filter(s => s.status === 'attended')
+      .reduce((sum, s) => {
+        const patient = patients.find(p => p.id === s.patient_id);
+        if (patient?.monthly_price) {
+          const monthKey = format(parseISO(s.date), 'yyyy-MM');
+          if (!monthlyPatientsTracked.has(s.patient_id)) {
+            monthlyPatientsTracked.set(s.patient_id, new Set());
+          }
+          const months = monthlyPatientsTracked.get(s.patient_id)!;
+          if (!months.has(monthKey)) {
+            months.add(monthKey);
+            return sum + Number(s.value);
+          }
+          return sum;
         }
-        const months = monthlyPatientsTracked.get(s.patient_id)!;
-        if (!months.has(monthKey)) {
-          months.add(monthKey);
-          return sum + Number(s.value);
-        }
-        return sum;
-      }
-      return sum + Number(s.value);
-    }, 0);
+        return sum + Number(s.value);
+      }, 0);
+  };
 
-  const totalSessions = periodSessions.filter(s => s.status === 'attended').length;
-  const missedSessions = visiblePeriodSessions.filter(s => s.status === 'missed').length;
-  const missedRate = visiblePeriodSessions.length > 0 
-    ? ((missedSessions / visiblePeriodSessions.length) * 100).toFixed(1) 
-    : 0;
+  const calculateTotalSessionsOLD = (): number => {
+    return periodSessions.filter(s => s.status === 'attended').length;
+  };
 
-  const avgPerSession = totalSessions > 0 ? totalRevenue / totalSessions : 0;
-  const activePatients = patients.filter(p => p.status === 'active').length;
+  const calculateMissedRateOLD = (): string | number => {
+    const missedSessions = visiblePeriodSessions.filter(s => s.status === 'missed').length;
+    return visiblePeriodSessions.length > 0 
+      ? ((missedSessions / visiblePeriodSessions.length) * 100).toFixed(1) 
+      : 0;
+  };
 
-  // Faltas por paciente (only visible sessions)
-  const getMissedByPatient = () => {
+  const calculateAvgPerSessionOLD = (totalRev: number, totalSess: number): number => {
+    return totalSess > 0 ? totalRev / totalSess : 0;
+  };
+
+  const calculateActivePatientsOLD = (): number => {
+    return patients.filter(p => p.status === 'active').length;
+  };
+
+  // Faltas por paciente (only visible sessions) - VERSÃO ANTIGA
+  const getMissedByPatientOLD = () => {
     const patientMissed = new Map<string, number>();
     
     visiblePeriodSessions.forEach(session => {
@@ -420,8 +490,8 @@ const Financial = () => {
       .sort((a, b) => b.faltas - a.faltas);
   };
 
-  // Distribuição de faltas por paciente (only visible sessions)
-  const getMissedDistribution = () => {
+  // Distribuição de faltas por paciente (only visible sessions) - VERSÃO ANTIGA
+  const getMissedDistributionOLD = () => {
     const patientMissed = new Map<string, number>();
     
     visiblePeriodSessions.forEach(session => {
@@ -437,24 +507,15 @@ const Financial = () => {
       .sort((a, b) => b.value - a.value);
   };
 
-  const monthlyData = getMonthlyRevenue();
-  const patientDistribution = getPatientDistribution();
-  const missedRateData = getMissedRate();
-  const avgRevenueData = getAvgRevenuePerPatient();
-  const missedByPatient = getMissedByPatient();
-  const missedDistribution = getMissedDistribution();
-  const totalMissed = missedDistribution.reduce((sum, p) => sum + p.value, 0);
+  // Valor perdido por faltas (only visible sessions) - VERSÃO ANTIGA
+  const calculateLostRevenueOLD = (): number => {
+    return visiblePeriodSessions
+      .filter(s => s.status === 'missed')
+      .reduce((sum, s) => sum + Number(s.value), 0);
+  };
 
-  // Valor perdido por faltas (only visible sessions)
-  const lostRevenue = visiblePeriodSessions
-    .filter(s => s.status === 'missed')
-    .reduce((sum, s) => sum + Number(s.value), 0);
-
-  // Receita média por paciente ativo
-  const avgRevenuePerActivePatient = activePatients > 0 ? totalRevenue / activePatients : 0;
-
-  // Previsão de receita mensal
-  const getForecastRevenue = () => {
+  // Previsão de receita mensal - VERSÃO ANTIGA
+  const getForecastRevenueOLD = () => {
     const monthlyTotal = patients
       .filter(p => p.status === 'active' && p.monthly_price)
       .reduce((sum, p) => sum + Number(p.session_value), 0);
@@ -468,12 +529,10 @@ const Financial = () => {
     return monthlyTotal + weeklyTotal;
   };
 
-  const forecastRevenue = getForecastRevenue();
-
-  // Taxa de ocupação da agenda baseada nos horários de trabalho configurados
+  // Taxa de ocupação da agenda baseada nos horários de trabalho configurados - VERSÃO ANTIGA
   // NOTA: Sessões fora do horário de trabalho são contabilizadas mas não aumentam o total de slots disponíveis,
   // permitindo que a taxa de ocupação ultrapasse 100%
-  const calculateOccupationRate = () => {
+  const calculateOccupationRateOLD = () => {
     if (!profile) return 0;
     
     const workDays = profile.work_days || [1, 2, 3, 4, 5];
@@ -530,10 +589,8 @@ const Financial = () => {
     return effectiveAvailableSlots > 0 ? (usedSlots / effectiveAvailableSlots) * 100 : 0;
   };
 
-  const occupationRate = calculateOccupationRate();
-
-  // Ticket médio mensal vs semanal
-  const getTicketComparison = () => {
+  // Ticket médio mensal vs semanal - VERSÃO ANTIGA
+  const getTicketComparisonOLD = () => {
     const monthlyPatientRevenue = new Map<string, number>();
     const weeklyPatientRevenue = new Map<string, number>();
     const monthlyPatientsSet = new Map<string, Set<string>>();
@@ -574,8 +631,8 @@ const Financial = () => {
     ];
   };
 
-  // Tendência de crescimento mês a mês
-  const getGrowthTrend = () => {
+  // Tendência de crescimento mês a mês - VERSÃO ANTIGA
+  const getGrowthTrendOLD = () => {
     const months = eachMonthOfInterval({ start, end });
     
     return months.map((month, index) => {
@@ -635,8 +692,8 @@ const Financial = () => {
     });
   };
 
-  // Pacientes novos vs encerrados
-  const getNewVsInactive = () => {
+  // Pacientes novos vs encerrados - VERSÃO ANTIGA
+  const getNewVsInactiveOLD = () => {
     const months = eachMonthOfInterval({ start, end });
     
     return months.map(month => {
@@ -663,8 +720,8 @@ const Financial = () => {
     });
   };
 
-  // Taxa de retenção
-  const getRetentionRate = () => {
+  // Taxa de retenção - VERSÃO ANTIGA
+  const getRetentionRateOLD = () => {
     const now = new Date();
     const threeMonthsAgo = subMonths(now, 3);
     const sixMonthsAgo = subMonths(now, 6);
@@ -691,8 +748,8 @@ const Financial = () => {
     ];
   };
 
-  // Valor perdido por faltas por mês (only visible sessions)
-  const getLostRevenueByMonth = () => {
+  // Valor perdido por faltas por mês (only visible sessions) - VERSÃO ANTIGA
+  const getLostRevenueByMonthOLD = () => {
     const months = eachMonthOfInterval({ start, end });
     
     return months.map(month => {
@@ -713,11 +770,293 @@ const Financial = () => {
     });
   };
 
-  const ticketComparison = getTicketComparison();
-  const growthTrend = getGrowthTrend();
-  const newVsInactive = getNewVsInactive();
-  const retentionRate = getRetentionRate();
-  const lostRevenueByMonth = getLostRevenueByMonth();
+  const monthlyData = useMemo(() => {
+    if (!sessions.length || !patients.length) return [];
+    
+    if (USE_NEW_METRICS) {
+      const metricsSessions = mapSessionsToMetricsSessions(periodSessions);
+      const metricsPatients = mapPatientsToMetricsPatients(patients);
+      return getMonthlyRevenueNEW({
+        sessions: metricsSessions,
+        patients: metricsPatients,
+        start,
+        end,
+      });
+    }
+    
+    return getMonthlyRevenueOLD();
+  }, [sessions, patients, periodSessions, start, end]);
+
+  const patientDistribution = useMemo(() => {
+    if (!sessions.length || !patients.length) return [];
+    
+    if (USE_NEW_METRICS) {
+      const metricsSessions = mapSessionsToMetricsSessions(periodSessions);
+      const metricsPatients = mapPatientsToMetricsPatients(patients);
+      return getPatientDistributionNEW({
+        sessions: metricsSessions,
+        patients: metricsPatients,
+      });
+    }
+    
+    return getPatientDistributionOLD();
+  }, [sessions, patients, periodSessions]);
+
+  const missedRateData = useMemo(() => {
+    if (!sessions.length || !patients.length) return [];
+    
+    if (USE_NEW_METRICS) {
+      const metricsSessions = mapSessionsToMetricsSessions(visiblePeriodSessions);
+      return getMissedRateNEW({
+        sessions: metricsSessions,
+        start,
+        end,
+      });
+    }
+    
+    return getMissedRateOLD();
+  }, [sessions, visiblePeriodSessions, start, end]);
+
+  const avgRevenueData = useMemo(() => {
+    if (!sessions.length || !patients.length) return [];
+    
+    if (USE_NEW_METRICS) {
+      const metricsSessions = mapSessionsToMetricsSessions(periodSessions);
+      const metricsPatients = mapPatientsToMetricsPatients(patients);
+      return getAvgRevenuePerPatientNEW({
+        sessions: metricsSessions,
+        patients: metricsPatients,
+      });
+    }
+    
+    return getAvgRevenuePerPatientOLD();
+  }, [sessions, patients, periodSessions]);
+
+  const totalRevenue = useMemo(() => {
+    if (!sessions.length || !patients.length) return 0;
+    
+    if (USE_NEW_METRICS) {
+      const metricsSessions = mapSessionsToMetricsSessions(periodSessions);
+      const metricsPatients = mapPatientsToMetricsPatients(patients);
+      return calculateTotalRevenue({
+        sessions: metricsSessions,
+        patients: metricsPatients,
+      });
+    }
+    
+    return calculateTotalRevenueOLD();
+  }, [sessions, patients, periodSessions]);
+
+  const totalSessions = useMemo(() => {
+    if (!sessions.length) return 0;
+    
+    if (USE_NEW_METRICS) {
+      const metricsSessions = mapSessionsToMetricsSessions(periodSessions);
+      return calculateTotalSessions({
+        sessions: metricsSessions,
+      });
+    }
+    
+    return calculateTotalSessionsOLD();
+  }, [sessions, periodSessions]);
+
+  const missedRate = useMemo(() => {
+    if (!sessions.length) return 0;
+    
+    if (USE_NEW_METRICS) {
+      const metricsSessions = mapSessionsToMetricsSessions(visiblePeriodSessions);
+      return calculateMissedRatePercentage({
+        sessions: metricsSessions,
+      });
+    }
+    
+    return calculateMissedRateOLD();
+  }, [sessions, visiblePeriodSessions]);
+
+  const avgPerSession = useMemo(() => {
+    if (!totalRevenue || !totalSessions) return 0;
+    
+    if (USE_NEW_METRICS) {
+      return calculateAvgPerSession({
+        totalRevenue,
+        totalSessions,
+      });
+    }
+    
+    return calculateAvgPerSessionOLD(totalRevenue, totalSessions);
+  }, [totalRevenue, totalSessions]);
+
+  const activePatients = useMemo(() => {
+    if (!patients.length) return 0;
+    
+    if (USE_NEW_METRICS) {
+      const metricsPatients = mapPatientsToMetricsPatients(patients);
+      return calculateActivePatients({
+        patients: metricsPatients,
+      });
+    }
+    
+    return calculateActivePatientsOLD();
+  }, [patients]);
+
+  const missedByPatient = useMemo(() => {
+    if (!sessions.length) return [];
+    
+    if (USE_NEW_METRICS) {
+      const metricsSessions = mapSessionsToMetricsSessions(visiblePeriodSessions);
+      return getMissedByPatientNEW({
+        sessions: metricsSessions,
+      });
+    }
+    
+    return getMissedByPatientOLD();
+  }, [sessions, visiblePeriodSessions]);
+
+  const missedDistribution = useMemo(() => {
+    if (!sessions.length) return [];
+    
+    if (USE_NEW_METRICS) {
+      const metricsSessions = mapSessionsToMetricsSessions(visiblePeriodSessions);
+      return getMissedDistributionNEW({
+        sessions: metricsSessions,
+      });
+    }
+    
+    return getMissedDistributionOLD();
+  }, [sessions, visiblePeriodSessions]);
+
+  const totalMissed = missedDistribution.reduce((sum, p) => sum + p.value, 0);
+
+  const lostRevenue = useMemo(() => {
+    if (!sessions.length) return 0;
+    
+    if (USE_NEW_METRICS) {
+      const metricsSessions = mapSessionsToMetricsSessions(visiblePeriodSessions);
+      return calculateLostRevenue({
+        sessions: metricsSessions,
+      });
+    }
+    
+    return calculateLostRevenueOLD();
+  }, [sessions, visiblePeriodSessions]);
+
+  const avgRevenuePerActivePatient = useMemo(() => {
+    if (!totalRevenue || !activePatients) return 0;
+    
+    if (USE_NEW_METRICS) {
+      return calculateAvgRevenuePerActivePatient({
+        totalRevenue,
+        activePatients,
+      });
+    }
+    
+    return activePatients > 0 ? totalRevenue / activePatients : 0;
+  }, [totalRevenue, activePatients]);
+
+  const forecastRevenue = useMemo(() => {
+    if (!patients.length) return 0;
+    
+    if (USE_NEW_METRICS) {
+      const metricsPatients = mapPatientsToMetricsPatients(patients);
+      return getForecastRevenueNEW({
+        patients: metricsPatients,
+      });
+    }
+    
+    return getForecastRevenueOLD();
+  }, [patients]);
+
+  const occupationRate = useMemo(() => {
+    if (!sessions.length || !profile) return 0;
+    
+    if (USE_NEW_METRICS) {
+      const metricsSessions = mapSessionsToMetricsSessions(visiblePeriodSessions);
+      return calculateOccupationRateNEW({
+        sessions: metricsSessions,
+        profile,
+        scheduleBlocks,
+        start,
+        end,
+      });
+    }
+    
+    return calculateOccupationRateOLD();
+  }, [sessions, visiblePeriodSessions, profile, scheduleBlocks, start, end]);
+
+  const ticketComparison = useMemo(() => {
+    if (!sessions.length || !patients.length) return [];
+    
+    if (USE_NEW_METRICS) {
+      const metricsSessions = mapSessionsToMetricsSessions(periodSessions);
+      const metricsPatients = mapPatientsToMetricsPatients(patients);
+      return getTicketComparisonNEW({
+        sessions: metricsSessions,
+        patients: metricsPatients,
+      });
+    }
+    
+    return getTicketComparisonOLD();
+  }, [sessions, patients, periodSessions]);
+
+  const growthTrend = useMemo(() => {
+    if (!sessions.length || !patients.length) return [];
+    
+    if (USE_NEW_METRICS) {
+      const metricsSessions = mapSessionsToMetricsSessions(periodSessions);
+      const metricsPatients = mapPatientsToMetricsPatients(patients);
+      return getGrowthTrendNEW({
+        sessions: metricsSessions,
+        patients: metricsPatients,
+        start,
+        end,
+      });
+    }
+    
+    return getGrowthTrendOLD();
+  }, [sessions, patients, periodSessions, start, end]);
+
+  const newVsInactive = useMemo(() => {
+    if (!patients.length) return [];
+    
+    if (USE_NEW_METRICS) {
+      const metricsPatients = mapPatientsToMetricsPatients(patients);
+      return getNewVsInactiveNEW({
+        patients: metricsPatients,
+        start,
+        end,
+      });
+    }
+    
+    return getNewVsInactiveOLD();
+  }, [patients, start, end]);
+
+  const retentionRate = useMemo(() => {
+    if (!patients.length) return [];
+    
+    if (USE_NEW_METRICS) {
+      const metricsPatients = mapPatientsToMetricsPatients(patients);
+      return getRetentionRateNEW({
+        patients: metricsPatients,
+      });
+    }
+    
+    return getRetentionRateOLD();
+  }, [patients]);
+
+  const lostRevenueByMonth = useMemo(() => {
+    if (!sessions.length) return [];
+    
+    if (USE_NEW_METRICS) {
+      const metricsSessions = mapSessionsToMetricsSessions(visiblePeriodSessions);
+      return getLostRevenueByMonthNEW({
+        sessions: metricsSessions,
+        start,
+        end,
+      });
+    }
+    
+    return getLostRevenueByMonthOLD();
+  }, [sessions, visiblePeriodSessions, start, end]);
 
   return (
     <div className="container mx-auto px-4 py-8">
