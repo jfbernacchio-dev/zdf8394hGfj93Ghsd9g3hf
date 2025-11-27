@@ -85,6 +85,50 @@ export interface DateRange {
 }
 
 // ============================================================
+// TIPOS DE FACHADA PÚBLICA (FASE C3.3)
+// ============================================================
+
+/**
+ * Sumário financeiro do período selecionado
+ * Agrega as principais métricas financeiras em um único objeto
+ */
+export interface FinancialSummary {
+  totalRevenue: number;                // receita total no período
+  totalSessions: number;               // total de sessões realizadas
+  missedRate: number;                  // taxa de falta 0–100 (%)
+  avgPerSession: number;               // ticket médio por sessão
+  activePatients: number;              // pacientes ativos no período
+  lostRevenue: number;                 // receita perdida por faltas
+  avgRevenuePerActivePatient: number;  // ticket médio por paciente ativo
+  forecastRevenue: number;             // previsão de receita mensal
+}
+
+/**
+ * Ponto de tendência financeira para séries temporais (gráficos)
+ * Representa métricas em um ponto específico no tempo
+ */
+export interface FinancialTrendPoint {
+  label: string;       // "Jan/25", "01/2025", etc.
+  date: string;        // ISO "2025-01-01"
+  revenue: number;     // receita no período
+  sessions: number;    // sessões realizadas no período
+  missedRate: number;  // taxa de falta 0–100 (%)
+  growth: number;      // crescimento percentual vs período anterior
+}
+
+/**
+ * Sumário de retenção e churn de pacientes
+ */
+export interface RetentionSummary {
+  newPatients: number;      // novos pacientes no período
+  inactivePatients: number; // pacientes que ficaram inativos no período
+  retentionRate3m: number;  // taxa de retenção em 3 meses (0–100)
+  retentionRate6m: number;  // taxa de retenção em 6 meses (0–100)
+  retentionRate12m: number; // taxa de retenção em 12 meses (0–100)
+  churnRate: number;        // taxa de churn geral (0–100)
+}
+
+// ============================================================
 // HELPER: getDateRange (usado internamente)
 // ============================================================
 
@@ -859,3 +903,180 @@ export const getLostRevenueByMonth = (params: {
     };
   });
 };
+
+// ============================================================
+// PUBLIC FACADE API (FASE C3.3)
+// ============================================================
+
+/**
+ * 🎯 FACHADA PÚBLICA: Sumário Financeiro Completo
+ * 
+ * Agrega todas as principais métricas financeiras em um único objeto.
+ * Esta função é a porta de entrada principal para obter dados financeiros
+ * agregados do período selecionado.
+ * 
+ * @param params Parâmetros com sessões, pacientes e período
+ * @returns FinancialSummary com todas as métricas calculadas
+ * 
+ * @example
+ * ```ts
+ * const summary = getFinancialSummary({
+ *   sessions: metricsSessions,
+ *   patients: metricsPatients,
+ *   start: new Date('2025-01-01'),
+ *   end: new Date('2025-12-31')
+ * });
+ * 
+ * console.log(summary.totalRevenue); // 45000
+ * console.log(summary.missedRate);   // 8.5
+ * ```
+ */
+export function getFinancialSummary(params: {
+  sessions: MetricsSession[];
+  patients: MetricsPatient[];
+  start: Date;
+  end: Date;
+}): FinancialSummary {
+  const { sessions, patients } = params;
+
+  // Calcular métricas base
+  const totalRevenue = calculateTotalRevenue({ sessions, patients });
+  const totalSessions = calculateTotalSessions({ sessions });
+  const activePatients = calculateActivePatients({ patients });
+  const lostRevenue = calculateLostRevenue({ sessions });
+  const forecastRevenue = getForecastRevenue({ patients });
+
+  // Taxa de falta como número (0-100)
+  const missedRateStr = calculateMissedRatePercentage({ sessions });
+  const missedRate = parseFloat(missedRateStr);
+
+  // Médias calculadas
+  const avgPerSession = calculateAvgPerSession({ totalRevenue, totalSessions });
+  const avgRevenuePerActivePatient = calculateAvgRevenuePerActivePatient({
+    totalRevenue,
+    activePatients
+  });
+
+  return {
+    totalRevenue,
+    totalSessions,
+    missedRate,
+    avgPerSession,
+    activePatients,
+    lostRevenue,
+    avgRevenuePerActivePatient,
+    forecastRevenue
+  };
+}
+
+/**
+ * 🎯 FACHADA PÚBLICA: Tendências Financeiras ao Longo do Tempo
+ * 
+ * Gera uma série temporal de pontos de métricas financeiras para visualização
+ * em gráficos. Cada ponto representa um intervalo de tempo (dia, semana ou mês)
+ * com suas respectivas métricas.
+ * 
+ * @param params Parâmetros com sessões, pacientes, período e escala de tempo
+ * @returns Array de FinancialTrendPoint para cada intervalo
+ * 
+ * @example
+ * ```ts
+ * const trends = getFinancialTrends({
+ *   sessions: metricsSessions,
+ *   patients: metricsPatients,
+ *   start: new Date('2025-01-01'),
+ *   end: new Date('2025-12-31'),
+ *   timeScale: 'monthly'
+ * });
+ * 
+ * trends.forEach(point => {
+ *   console.log(`${point.label}: R$ ${point.revenue}`);
+ * });
+ * ```
+ */
+export function getFinancialTrends(params: {
+  sessions: MetricsSession[];
+  patients: MetricsPatient[];
+  start: Date;
+  end: Date;
+  timeScale: 'monthly'; // Para esta fase, suportamos apenas monthly (usa funções existentes)
+}): FinancialTrendPoint[] {
+  const { sessions, patients, start, end } = params;
+
+  // Usar as funções existentes que já calculam por mês
+  const monthlyRevenue = getMonthlyRevenue({ sessions, patients, start, end });
+  const growthTrend = getGrowthTrend({ sessions, patients, start, end });
+  const missedRateData = getMissedRate({ sessions, start, end });
+
+  // Combinar os dados em FinancialTrendPoint
+  return monthlyRevenue.map((monthData, index) => {
+    const growth = growthTrend[index]?.crescimento || 0;
+    const missed = missedRateData[index]?.taxa || 0;
+
+    // Tentar extrair a data do label (ex: "Jan/25" -> "2025-01-01")
+    // Para simplificar, vamos usar o índice para gerar a data
+    const monthDate = eachMonthOfInterval({ start, end })[index];
+    const isoDate = monthDate ? format(monthDate, 'yyyy-MM-dd') : '';
+
+    return {
+      label: monthData.month,
+      date: isoDate,
+      revenue: monthData.receita,
+      sessions: monthData.sessoes,
+      missedRate: missed,
+      growth: growth
+    };
+  });
+}
+
+/**
+ * 🎯 FACHADA PÚBLICA: Sumário de Retenção e Churn
+ * 
+ * Calcula métricas de retenção de pacientes ao longo de diferentes períodos,
+ * bem como o número de novos pacientes e inativos no período selecionado.
+ * 
+ * @param params Parâmetros com pacientes e período
+ * @returns RetentionSummary com métricas de retenção
+ * 
+ * @example
+ * ```ts
+ * const retention = getRetentionAndChurn({
+ *   patients: metricsPatients,
+ *   start: new Date('2025-01-01'),
+ *   end: new Date('2025-12-31')
+ * });
+ * 
+ * console.log(`Taxa de retenção 3m: ${retention.retentionRate3m}%`);
+ * console.log(`Taxa de churn: ${retention.churnRate}%`);
+ * ```
+ */
+export function getRetentionAndChurn(params: {
+  patients: MetricsPatient[];
+  start: Date;
+  end: Date;
+}): RetentionSummary {
+  const { patients, start, end } = params;
+
+  // Calcular novos e inativos no período
+  const newVsInactiveData = getNewVsInactive({ patients, start, end });
+  const totalNew = newVsInactiveData.reduce((sum, d) => sum + d.novos, 0);
+  const totalInactive = newVsInactiveData.reduce((sum, d) => sum + d.encerrados, 0);
+
+  // Calcular taxas de retenção
+  const retentionRates = getRetentionRate({ patients });
+  const retention3m = retentionRates.find(r => r.periodo === '3 meses')?.taxa || 0;
+  const retention6m = retentionRates.find(r => r.periodo === '6 meses')?.taxa || 0;
+  const retention12m = retentionRates.find(r => r.periodo === '12 meses')?.taxa || 0;
+
+  // Churn é o inverso da retenção (usando a retenção de 3 meses como base)
+  const churnRate = 100 - retention3m;
+
+  return {
+    newPatients: totalNew,
+    inactivePatients: totalInactive,
+    retentionRate3m: retention3m,
+    retentionRate6m: retention6m,
+    retentionRate12m: retention12m,
+    churnRate: churnRate
+  };
+}
