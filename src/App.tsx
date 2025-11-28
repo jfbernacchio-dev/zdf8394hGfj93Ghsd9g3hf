@@ -15,6 +15,7 @@ import DashboardOLD from "./pages/DashboardOLD";
 import AccountantDashboard from "./pages/AccountantDashboard";
 import Financial from "./pages/Financial";
 import { FinancialLegacyWrapper } from "./pages/FinancialLegacyWrapper";
+import { MetricsWebsiteLegacyWrapper } from "./pages/MetricsWebsiteLegacyWrapper";
 import Index from "./pages/Index";
 import TerapiaCognitivaComportamental from "./pages/TerapiaCognitivaComportamental";
 import TerapiaJunguiana from "./pages/TerapiaJunguiana";
@@ -191,7 +192,7 @@ const App = () => (
             <Route path="/admin/backup-tests" element={<ProtectedRoute><PermissionRoute path="/backup-tests"><Layout><BackupTests /></Layout></PermissionRoute></ProtectedRoute>} />
             <Route path="/profile/edit" element={<ProtectedRoute><PermissionRoute path="/profile-edit"><Layout><ProfileEdit /></Layout></PermissionRoute></ProtectedRoute>} />
             <Route path="/whatsapp" element={<ProtectedRoute><PermissionRoute path="/whatsapp"><Layout><WhatsAppChat /></Layout></PermissionRoute></ProtectedRoute>} />
-            <Route path="/metrics/website" element={<ProtectedRoute><PermissionRoute path="/website-metrics"><Layout><WebsiteMetrics /></Layout></PermissionRoute></ProtectedRoute>} />
+            <Route path="/metrics/website" element={<ProtectedRoute><PermissionRoute path="/website-metrics"><Layout><MetricsWebsiteLegacyWrapper /></Layout></PermissionRoute></ProtectedRoute>} />
             <Route path="/level-permissions" element={<ProtectedRoute><Layout><LevelPermissionsManagement /></Layout></ProtectedRoute>} />
             <Route path="/peer-sharing" element={<ProtectedRoute><Layout><PeerSharingManagement /></Layout></ProtectedRoute>} />
             <Route path="/migration-wizard" element={<ProtectedRoute><Layout><MigrationWizard /></Layout></ProtectedRoute>} />
