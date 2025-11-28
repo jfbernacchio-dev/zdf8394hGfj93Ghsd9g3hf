@@ -528,6 +528,154 @@ export const AVAILABLE_DASHBOARD_CARDS: CardConfig[] = [
 
 /**
  * ============================================================================
+ * METRICS CARDS - /metrics Page (FASE C3.6)
+ * ============================================================================
+ */
+export const AVAILABLE_METRICS_CARDS: CardConfig[] = [
+  // FINANCIAL
+  {
+    id: 'metrics-revenue-total',
+    name: 'Receita Total',
+    description: 'Receita total no período',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+    permissionConfig: {
+      domain: 'financial',
+      requiresFinancialAccess: true,
+    },
+  },
+  {
+    id: 'metrics-avg-per-session',
+    name: 'Média por Sessão',
+    description: 'Ticket médio por sessão',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+    permissionConfig: {
+      domain: 'financial',
+      requiresFinancialAccess: true,
+    },
+  },
+  {
+    id: 'metrics-forecast-revenue',
+    name: 'Previsão Mensal',
+    description: 'Projeção de receita mensal',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+    permissionConfig: {
+      domain: 'financial',
+      requiresFinancialAccess: true,
+    },
+  },
+  {
+    id: 'metrics-avg-per-active-patient',
+    name: 'Média por Paciente Ativo',
+    description: 'Receita média por paciente ativo',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+    permissionConfig: {
+      domain: 'financial',
+      requiresFinancialAccess: true,
+    },
+  },
+  {
+    id: 'metrics-lost-revenue',
+    name: 'Perdido com Faltas',
+    description: 'Receita estimada perdida por faltas',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+    permissionConfig: {
+      domain: 'financial',
+      requiresFinancialAccess: true,
+    },
+  },
+  // ADMINISTRATIVE
+  {
+    id: 'metrics-missed-rate',
+    name: 'Taxa de Faltas',
+    description: 'Percentual de faltas',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+    permissionConfig: {
+      domain: 'administrative',
+    },
+  },
+  {
+    id: 'metrics-active-patients',
+    name: 'Pacientes Ativos',
+    description: 'Número de pacientes ativos',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+    permissionConfig: {
+      domain: 'administrative',
+    },
+  },
+  {
+    id: 'metrics-occupation-rate',
+    name: 'Taxa de Ocupação',
+    description: 'Ocupação da agenda',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+    permissionConfig: {
+      domain: 'administrative',
+    },
+  },
+  // MARKETING (mockados)
+  {
+    id: 'metrics-website-views',
+    name: 'Visualizações (exemplo)',
+    description: 'Visualizações do website',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+    permissionConfig: {
+      domain: 'marketing',
+    },
+  },
+  {
+    id: 'metrics-website-visitors',
+    name: 'Visitantes (exemplo)',
+    description: 'Visitantes únicos',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+    permissionConfig: {
+      domain: 'marketing',
+    },
+  },
+  {
+    id: 'metrics-website-conversion',
+    name: 'Taxa de Conversão (exemplo)',
+    description: 'Taxa de conversão do website',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+    permissionConfig: {
+      domain: 'marketing',
+    },
+  },
+  {
+    id: 'metrics-website-ctr',
+    name: 'CTR (exemplo)',
+    description: 'Taxa de cliques',
+    category: 'dashboard-cards',
+    defaultWidth: 280,
+    defaultHeight: 160,
+    permissionConfig: {
+      domain: 'marketing',
+    },
+  },
+];
+
+/**
+ * ============================================================================
  * DASHBOARD CHARTS - Visualization Section
  * ============================================================================
  */

@@ -1978,6 +1978,20 @@ export const DASHBOARD_CARD_COMPONENTS: Record<string, React.ComponentType<CardP
   'dashboard-total-patients-team': DashboardTotalPatientsTeam,
   'dashboard-attended-sessions-team': DashboardAttendedSessionsTeam,
   'dashboard-active-therapists-team': DashboardActiveTherapistsTeam,
+
+  // Metrics Cards (FASE C3.6)
+  'metrics-revenue-total': () => null, // placeholder - será renderizado diretamente em Metrics.tsx
+  'metrics-avg-per-session': () => null,
+  'metrics-forecast-revenue': () => null,
+  'metrics-avg-per-active-patient': () => null,
+  'metrics-lost-revenue': () => null,
+  'metrics-missed-rate': () => null,
+  'metrics-active-patients': () => null,
+  'metrics-occupation-rate': () => null,
+  'metrics-website-views': () => null,
+  'metrics-website-visitors': () => null,
+  'metrics-website-conversion': () => null,
+  'metrics-website-ctr': () => null,
 };
 
 /**
