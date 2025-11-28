@@ -42,6 +42,23 @@ import {
   type MetricsDomain,
 } from '@/lib/metricsSectionsConfig';
 
+// Import metric card types (FASE C3.6)
+import type { MetricsPeriodFilter } from '@/types/metricsCardTypes';
+
+// Import metric card components (FASE C3.6)
+import { MetricsRevenueTotalCard } from '@/components/cards/metrics/financial/MetricsRevenueTotalCard';
+import { MetricsAvgPerSessionCard } from '@/components/cards/metrics/financial/MetricsAvgPerSessionCard';
+import { MetricsForecastRevenueCard } from '@/components/cards/metrics/financial/MetricsForecastRevenueCard';
+import { MetricsAvgPerActivePatientCard } from '@/components/cards/metrics/financial/MetricsAvgPerActivePatientCard';
+import { MetricsLostRevenueCard } from '@/components/cards/metrics/financial/MetricsLostRevenueCard';
+import { MetricsMissedRateCard } from '@/components/cards/metrics/administrative/MetricsMissedRateCard';
+import { MetricsActivePatientsCard } from '@/components/cards/metrics/administrative/MetricsActivePatientsCard';
+import { MetricsOccupationRateCard } from '@/components/cards/metrics/administrative/MetricsOccupationRateCard';
+import { MetricsWebsiteViewsCard } from '@/components/cards/metrics/marketing/MetricsWebsiteViewsCard';
+import { MetricsWebsiteVisitorsCard } from '@/components/cards/metrics/marketing/MetricsWebsiteVisitorsCard';
+import { MetricsWebsiteConversionCard } from '@/components/cards/metrics/marketing/MetricsWebsiteConversionCard';
+import { MetricsWebsiteCTRCard } from '@/components/cards/metrics/marketing/MetricsWebsiteCTRCard';
+
 type Period = 'week' | 'month' | 'year' | 'custom';
 
 const Metrics = () => {
@@ -374,7 +391,97 @@ const Metrics = () => {
   const hasAnyMetricsAccess = visibleDomains.length > 0;
 
   if (!hasAnyMetricsAccess && !permissionsLoading) {
-    return (
+  // Prepare props for metric cards
+  const periodFilter: MetricsPeriodFilter = {
+    type: period,
+    startDate: dateRange.start,
+    endDate: dateRange.end,
+  };
+
+  const cardsLoading = patientsLoading || sessionsLoading || profileLoading || blocksLoading;
+  const summary = aggregatedData?.summary ?? null;
+
+  // Render metric cards based on current domain
+  const renderMetricCards = () => {
+    if (currentDomain === 'financial') {
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+          <MetricsRevenueTotalCard 
+            periodFilter={periodFilter} 
+            summary={summary} 
+            isLoading={cardsLoading} 
+          />
+          <MetricsAvgPerSessionCard 
+            periodFilter={periodFilter} 
+            summary={summary} 
+            isLoading={cardsLoading} 
+          />
+          <MetricsForecastRevenueCard 
+            periodFilter={periodFilter} 
+            summary={summary} 
+            isLoading={cardsLoading} 
+          />
+          <MetricsAvgPerActivePatientCard 
+            periodFilter={periodFilter} 
+            summary={summary} 
+            isLoading={cardsLoading} 
+          />
+          <MetricsLostRevenueCard 
+            periodFilter={periodFilter} 
+            summary={summary} 
+            isLoading={cardsLoading} 
+          />
+        </div>
+      );
+    }
+
+    if (currentDomain === 'administrative') {
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          <MetricsMissedRateCard 
+            periodFilter={periodFilter} 
+            summary={summary} 
+            isLoading={cardsLoading} 
+          />
+          <MetricsActivePatientsCard 
+            periodFilter={periodFilter} 
+            summary={summary} 
+            isLoading={cardsLoading} 
+          />
+          <MetricsOccupationRateCard 
+            periodFilter={periodFilter} 
+            summary={summary} 
+            isLoading={cardsLoading} 
+          />
+        </div>
+      );
+    }
+
+    if (currentDomain === 'marketing') {
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <MetricsWebsiteViewsCard isLoading={cardsLoading} />
+          <MetricsWebsiteVisitorsCard isLoading={cardsLoading} />
+          <MetricsWebsiteConversionCard isLoading={cardsLoading} />
+          <MetricsWebsiteCTRCard isLoading={cardsLoading} />
+        </div>
+      );
+    }
+
+    if (currentDomain === 'team') {
+      return (
+        <Alert className="mb-6">
+          <AlertDescription>
+            Métricas da equipe serão implementadas em breve.
+          </AlertDescription>
+        </Alert>
+      );
+    }
+
+    return null;
+  };
+
+  return (
       <div className="p-6">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
