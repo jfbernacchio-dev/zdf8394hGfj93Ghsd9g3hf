@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -22,7 +22,6 @@ import { findNextAvailablePosition } from '@/lib/gridLayoutUtils';
  * - updateCardWidth + updateCardOrder → updateLayout (aceita GridCardLayout[])
  */
 
-const LAYOUT_TYPE = 'dashboard-example-grid'; // v2 para evitar conflito com v1
 const DEBOUNCE_SAVE_MS = 2000;
 
 interface UseDashboardLayoutReturn {
@@ -38,10 +37,29 @@ interface UseDashboardLayoutReturn {
   hasUnsavedChanges: boolean;
 }
 
-export const useDashboardLayout = (): UseDashboardLayoutReturn => {
+/**
+ * Hook para gerenciar layout de dashboard com React Grid Layout
+ * 
+ * @param layoutType - Tipo do layout ('dashboard-example-grid' ou 'metrics-grid')
+ */
+export const useDashboardLayout = (layoutType: string = 'dashboard-example-grid'): UseDashboardLayoutReturn => {
   const { user } = useAuth();
-  const [layout, setLayout] = useState<DashboardGridLayout>(DEFAULT_DASHBOARD_GRID_LAYOUT);
-  const [originalLayout, setOriginalLayout] = useState<DashboardGridLayout>(DEFAULT_DASHBOARD_GRID_LAYOUT);
+  
+  // Determinar default layout baseado no layoutType
+  const getDefaultLayout = useCallback((): DashboardGridLayout => {
+    if (layoutType === 'metrics-grid') {
+      // Importar dinamicamente o layout de métricas
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { DEFAULT_METRICS_LAYOUT } = require('@/lib/defaultLayoutMetrics');
+      return DEFAULT_METRICS_LAYOUT;
+    }
+    return DEFAULT_DASHBOARD_GRID_LAYOUT;
+  }, [layoutType]);
+
+  const defaultLayout = useMemo(() => getDefaultLayout(), [getDefaultLayout]);
+  
+  const [layout, setLayout] = useState<DashboardGridLayout>(defaultLayout);
+  const [originalLayout, setOriginalLayout] = useState<DashboardGridLayout>(defaultLayout);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
@@ -60,7 +78,7 @@ export const useDashboardLayout = (): UseDashboardLayoutReturn => {
         .from('user_layout_preferences')
         .select('*')
         .eq('user_id', user.id)
-        .eq('layout_type', LAYOUT_TYPE)
+        .eq('layout_type', layoutType)
         .maybeSingle();
 
       if (error) throw error;
@@ -75,22 +93,22 @@ export const useDashboardLayout = (): UseDashboardLayoutReturn => {
         return dbLayout;
       }
 
-      console.log('[DB_LAYOUT] ⚠️ Nenhum layout salvo, usando padrão grid');
-      return DEFAULT_DASHBOARD_GRID_LAYOUT;
+      console.log('[DB_LAYOUT] ⚠️ Nenhum layout salvo, usando padrão');
+      return defaultLayout;
     } catch (error) {
       console.error('[useDashboardLayout] Erro ao carregar layout:', error);
       toast.error('Erro ao carregar preferências de layout');
-      return DEFAULT_DASHBOARD_GRID_LAYOUT;
+      return defaultLayout;
     }
-  }, [user?.id]);
+  }, [user?.id, defaultLayout, layoutType]);
 
   /**
    * LOAD LAYOUT FROM LOCALSTORAGE
    */
   const loadLayoutFromLocalStorage = useCallback((baseLayout: DashboardGridLayout): DashboardGridLayout => {
     // ✅ MERGE: DEFAULT primeiro, depois baseLayout sobrescreve
-    // Isso garante que novas sections (como dashboard-team) apareçam mesmo em layouts antigos
-    const merged = { ...DEFAULT_DASHBOARD_GRID_LAYOUT, ...baseLayout };
+    // Isso garante que novas sections apareçam mesmo em layouts antigos
+    const merged = { ...defaultLayout, ...baseLayout };
 
     console.log('[LAYOUT_AFTER_MERGE] 🔀 Resultado do spread operator:', merged);
     console.log('[MERGED_KEYS] 🔑 Keys no merged:', Object.keys(merged));
@@ -127,7 +145,7 @@ export const useDashboardLayout = (): UseDashboardLayoutReturn => {
     console.log('[FINAL_LAYOUT] 👥 dashboard-team final:', merged['dashboard-team']);
     console.log('[FINAL_LAYOUT] 📊 dashboard-team cardLayouts final:', merged['dashboard-team']?.cardLayouts);
     return merged;
-  }, []);
+  }, [defaultLayout]);
 
   /**
    * INITIALIZE LAYOUT
@@ -275,7 +293,7 @@ export const useDashboardLayout = (): UseDashboardLayoutReturn => {
         .from('user_layout_preferences')
         .select('id, version')
         .eq('user_id', user.id)
-        .eq('layout_type', LAYOUT_TYPE)
+        .eq('layout_type', layoutType)
         .maybeSingle();
 
       if (existing) {
@@ -294,7 +312,7 @@ export const useDashboardLayout = (): UseDashboardLayoutReturn => {
           .from('user_layout_preferences')
           .insert({
             user_id: user.id,
-            layout_type: LAYOUT_TYPE,
+            layout_type: layoutType,
             layout_config: layout as any,
             version: 1,
           });
@@ -311,7 +329,7 @@ export const useDashboardLayout = (): UseDashboardLayoutReturn => {
     } finally {
       setSaving(false);
     }
-  }, [user?.id, layout]);
+  }, [user?.id, layout, layoutType]);
 
   /**
    * RESET LAYOUT
@@ -324,8 +342,8 @@ export const useDashboardLayout = (): UseDashboardLayoutReturn => {
 
     try {
       // Limpar localStorage
-      Object.keys(DEFAULT_DASHBOARD_GRID_LAYOUT).forEach(sectionId => {
-        const section = DEFAULT_DASHBOARD_GRID_LAYOUT[sectionId];
+      Object.keys(defaultLayout).forEach(sectionId => {
+        const section = defaultLayout[sectionId];
         section.cardLayouts.forEach(card => {
           const key = `grid-card-${sectionId}-${card.i}`;
           localStorage.removeItem(key);
@@ -337,12 +355,12 @@ export const useDashboardLayout = (): UseDashboardLayoutReturn => {
         .from('user_layout_preferences')
         .delete()
         .eq('user_id', user.id)
-        .eq('layout_type', LAYOUT_TYPE);
+        .eq('layout_type', layoutType);
 
       if (error) throw error;
 
-      setLayout(DEFAULT_DASHBOARD_GRID_LAYOUT);
-      setOriginalLayout(DEFAULT_DASHBOARD_GRID_LAYOUT);
+      setLayout(defaultLayout);
+      setOriginalLayout(defaultLayout);
       
       toast.success('Layout resetado para o padrão!');
       console.log('[useDashboardLayout] Layout resetado');
@@ -350,7 +368,7 @@ export const useDashboardLayout = (): UseDashboardLayoutReturn => {
       console.error('[useDashboardLayout] Erro ao resetar layout:', error);
       toast.error('Erro ao resetar layout');
     }
-  }, [user?.id]);
+  }, [user?.id, defaultLayout, layoutType]);
 
   /**
    * AUTO-SAVE com debounce
