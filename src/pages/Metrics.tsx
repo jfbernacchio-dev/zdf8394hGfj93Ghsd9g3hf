@@ -59,6 +59,15 @@ import { MetricsWebsiteVisitorsCard } from '@/components/cards/metrics/marketing
 import { MetricsWebsiteConversionCard } from '@/components/cards/metrics/marketing/MetricsWebsiteConversionCard';
 import { MetricsWebsiteCTRCard } from '@/components/cards/metrics/marketing/MetricsWebsiteCTRCard';
 
+// Import chart components (FASE C3.7)
+import { FinancialTrendsChart } from '@/components/charts/metrics/financial/FinancialTrendsChart';
+import { FinancialPerformanceChart } from '@/components/charts/metrics/financial/FinancialPerformanceChart';
+import { FinancialDistributionsChart } from '@/components/charts/metrics/financial/FinancialDistributionsChart';
+import { AdminRetentionChart } from '@/components/charts/metrics/administrative/AdminRetentionChart';
+import { AdminPerformanceChart } from '@/components/charts/metrics/administrative/AdminPerformanceChart';
+import { AdminDistributionsChart } from '@/components/charts/metrics/administrative/AdminDistributionsChart';
+import { MarketingWebsiteOverviewChart } from '@/components/charts/metrics/marketing/MarketingWebsiteOverviewChart';
+
 type Period = 'week' | 'month' | 'year' | 'custom';
 
 const Metrics = () => {
@@ -390,7 +399,6 @@ const Metrics = () => {
   // Permission check
   const hasAnyMetricsAccess = visibleDomains.length > 0;
 
-  if (!hasAnyMetricsAccess && !permissionsLoading) {
   // Prepare props for metric cards
   const periodFilter: MetricsPeriodFilter = {
     type: period,
@@ -400,6 +408,8 @@ const Metrics = () => {
 
   const cardsLoading = patientsLoading || sessionsLoading || profileLoading || blocksLoading;
   const summary = aggregatedData?.summary ?? null;
+  const trends = aggregatedData?.trends ?? [];
+  const retention = aggregatedData?.retention ?? null;
 
   // Render metric cards based on current domain
   const renderMetricCards = () => {
@@ -481,7 +491,116 @@ const Metrics = () => {
     return null;
   };
 
-  return (
+  // Render chart content based on current domain and sub-tab (FASE C3.7)
+  const renderChartContent = (subTabId: string) => {
+    const timeScale = getScale(`metrics-${currentDomain}-${subTabId}`);
+    
+    // Financial domain
+    if (currentDomain === 'financial') {
+      if (subTabId === 'tendencias') {
+        return (
+          <FinancialTrendsChart
+            trends={trends}
+            isLoading={cardsLoading}
+            periodFilter={periodFilter}
+            timeScale={timeScale}
+          />
+        );
+      }
+      
+      if (subTabId === 'desempenho') {
+        return (
+          <FinancialPerformanceChart
+            trends={trends}
+            isLoading={cardsLoading}
+            periodFilter={periodFilter}
+            timeScale={timeScale}
+          />
+        );
+      }
+      
+      if (subTabId === 'distribuicoes') {
+        return (
+          <FinancialDistributionsChart
+            summary={summary}
+            isLoading={cardsLoading}
+            periodFilter={periodFilter}
+            timeScale={timeScale}
+          />
+        );
+      }
+    }
+
+    // Administrative domain
+    if (currentDomain === 'administrative') {
+      if (subTabId === 'retencao') {
+        return (
+          <AdminRetentionChart
+            retention={retention}
+            isLoading={cardsLoading}
+            periodFilter={periodFilter}
+            timeScale={timeScale}
+          />
+        );
+      }
+      
+      if (subTabId === 'desempenho') {
+        return (
+          <AdminPerformanceChart
+            trends={trends}
+            isLoading={cardsLoading}
+            periodFilter={periodFilter}
+            timeScale={timeScale}
+          />
+        );
+      }
+      
+      if (subTabId === 'distribuicoes') {
+        return (
+          <AdminDistributionsChart
+            summary={summary}
+            isLoading={cardsLoading}
+            periodFilter={periodFilter}
+            timeScale={timeScale}
+          />
+        );
+      }
+    }
+
+    // Marketing domain
+    if (currentDomain === 'marketing') {
+      if (subTabId === 'website') {
+        return (
+          <MarketingWebsiteOverviewChart
+            isLoading={cardsLoading}
+          />
+        );
+      }
+    }
+
+    // Team domain - placeholder
+    if (currentDomain === 'team') {
+      return (
+        <Alert>
+          <AlertDescription>
+            <strong>Em breve:</strong> Gráficos de equipe serão implementados em fases futuras.
+          </AlertDescription>
+        </Alert>
+      );
+    }
+
+    // Fallback
+    return (
+      <Alert>
+        <AlertDescription>
+          <strong>Em breve:</strong> Gráfico de {subTabId} para {METRICS_SECTIONS.find(s => s.domain === currentDomain)?.title}.
+        </AlertDescription>
+      </Alert>
+    );
+  };
+
+  if (!hasAnyMetricsAccess && !permissionsLoading) {
+    return (
       <div className="p-6">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
@@ -725,24 +844,11 @@ const Metrics = () => {
                   </TabsList>
                   {availableSubTabs.map((subTab) => (
                     <TabsContent key={subTab.id} value={subTab.id} className="space-y-4">
-                      <Alert>
-                        <AlertDescription>
-                          <strong>Em breve:</strong> Cards de {subTab.label.toLowerCase()} para {METRICS_SECTIONS.find(s => s.domain === currentDomain)?.title}.
-                        </AlertDescription>
-                      </Alert>
+                      {renderChartContent(subTab.id)}
                     </TabsContent>
                   ))}
                 </Tabs>
               </div>
-            )}
-
-            {/* Other domains - placeholder */}
-            {currentDomain !== 'financial' && (
-              <Alert>
-                <AlertDescription>
-                  <strong>Em breve:</strong> Cards de métricas desta seção serão implementados nas próximas fases.
-                </AlertDescription>
-              </Alert>
             )}
           </CardContent>
         </Card>
