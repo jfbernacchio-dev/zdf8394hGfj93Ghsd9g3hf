@@ -11,6 +11,7 @@ import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, subMonths, st
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { useEffectivePermissions } from '@/hooks/useEffectivePermissions';
@@ -144,9 +145,10 @@ const Metrics = () => {
   });
 
   // Load sessions from organization for date range
-  const { data: rawSessions, isLoading: sessionsLoading } = useQuery({
+  type SessionRow = Database['public']['Tables']['sessions']['Row'];
+  const { data: rawSessions, isLoading: sessionsLoading } = useQuery<SessionRow[]>({
     queryKey: ['metrics-sessions', organizationId, dateRange.start.toISOString(), dateRange.end.toISOString()],
-    queryFn: async () => {
+    queryFn: async (): Promise<SessionRow[]> => {
       if (!organizationId) return [];
 
       const { getUserIdsInOrganization } = await import('@/lib/organizationFilters');
@@ -154,7 +156,7 @@ const Metrics = () => {
 
       if (orgUserIds.length === 0) return [];
 
-      const { data, error } = await supabase
+      const result = await (supabase as any)
         .from('sessions')
         .select('*')
         .in('user_id', orgUserIds)
@@ -162,8 +164,8 @@ const Metrics = () => {
         .gte('date', dateRange.start.toISOString().split('T')[0])
         .lte('date', dateRange.end.toISOString().split('T')[0]);
 
-      if (error) throw error;
-      return (data || []) as any[];
+      if (result.error) throw result.error;
+      return (result.data || []) as SessionRow[];
     },
     enabled: !!organizationId && !!user,
   });
