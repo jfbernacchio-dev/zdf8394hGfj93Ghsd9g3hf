@@ -8,7 +8,7 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Calendar, AlertCircle, TrendingUp, Users, DollarSign, BarChart3 } from 'lucide-react';
+import { Calendar, AlertCircle, TrendingUp, Users, DollarSign, BarChart3, Pencil, Save, RotateCcw, X } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, subMonths, startOfYear, endOfYear } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -21,6 +21,8 @@ import { useDashboardPermissions } from '@/hooks/useDashboardPermissions';
 import { useDashboardLayout } from '@/hooks/useDashboardLayout';
 import { useChartTimeScale } from '@/hooks/useChartTimeScale';
 import { ResizableSection } from '@/components/ResizableSection';
+import { GridCardContainer } from '@/components/GridCardContainer';
+import type { GridCardLayout } from '@/types/cardTypes';
 
 // Import metrics utils and types
 import {
@@ -75,6 +77,19 @@ const Metrics = () => {
   const { permissions, loading: permissionsLoading } = useEffectivePermissions();
   const { permissionContext } = useDashboardPermissions();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  // Layout management (FASE C3-R.1)
+  const {
+    layout: metricsLayout,
+    updateLayout,
+    saveLayout,
+    resetLayout,
+    hasUnsavedChanges,
+    loading: layoutLoading,
+    saving: layoutSaving,
+  } = useDashboardLayout('metrics-grid');
+  
+  const [isEditMode, setIsEditMode] = useState(false);
 
   // Period state
   const [period, setPeriod] = useState<Period>('month');
@@ -195,16 +210,6 @@ const Metrics = () => {
 
     return { start, end };
   }, [period, customStartDate, customEndDate]);
-
-  // Layout integration
-  const {
-    layout,
-    loading: layoutLoading,
-    updateLayout,
-    saveLayout,
-    resetLayout,
-    isModified,
-  } = useDashboardLayout();
 
   // Chart time scale integration
   const {
@@ -411,73 +416,50 @@ const Metrics = () => {
   const trends = aggregatedData?.trends ?? [];
   const retention = aggregatedData?.retention ?? null;
 
-  // Render metric cards based on current domain
+  // Get current section layout for GridCardContainer (FASE C3-R.1)
+  const currentSectionId = `metrics-${currentDomain}`;
+  const currentSectionLayout = useMemo(() => {
+    if (!metricsLayout || !metricsLayout[currentSectionId]) return [];
+    return metricsLayout[currentSectionId].cardLayouts || [];
+  }, [metricsLayout, currentSectionId]);
+
+  // Helper: Map card ID to component (FASE C3-R.1)
+  const getCardComponent = (cardId: string) => {
+    const cardMap: Record<string, React.ReactNode> = {
+      'metrics-revenue-total': <MetricsRevenueTotalCard periodFilter={periodFilter} summary={summary} isLoading={cardsLoading} />,
+      'metrics-avg-per-session': <MetricsAvgPerSessionCard periodFilter={periodFilter} summary={summary} isLoading={cardsLoading} />,
+      'metrics-forecast-revenue': <MetricsForecastRevenueCard periodFilter={periodFilter} summary={summary} isLoading={cardsLoading} />,
+      'metrics-avg-per-active-patient': <MetricsAvgPerActivePatientCard periodFilter={periodFilter} summary={summary} isLoading={cardsLoading} />,
+      'metrics-lost-revenue': <MetricsLostRevenueCard periodFilter={periodFilter} summary={summary} isLoading={cardsLoading} />,
+      'metrics-missed-rate': <MetricsMissedRateCard periodFilter={periodFilter} summary={summary} isLoading={cardsLoading} />,
+      'metrics-active-patients': <MetricsActivePatientsCard periodFilter={periodFilter} summary={summary} isLoading={cardsLoading} />,
+      'metrics-occupation-rate': <MetricsOccupationRateCard periodFilter={periodFilter} summary={summary} isLoading={cardsLoading} />,
+      'metrics-website-views': <MetricsWebsiteViewsCard isLoading={cardsLoading} />,
+      'metrics-website-visitors': <MetricsWebsiteVisitorsCard isLoading={cardsLoading} />,
+      'metrics-website-conversion': <MetricsWebsiteConversionCard isLoading={cardsLoading} />,
+      'metrics-website-ctr': <MetricsWebsiteCTRCard isLoading={cardsLoading} />,
+    };
+    return cardMap[cardId] || null;
+  };
+
+  // Layout control handlers (FASE C3-R.1)
+  const handleSaveLayout = async () => {
+    await saveLayout();
+  };
+
+  const handleResetLayout = async () => {
+    if (confirm('Tem certeza que deseja resetar o layout para o padrão? Esta ação não pode ser desfeita.')) {
+      await resetLayout();
+      setIsEditMode(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditMode(false);
+  };
+
+  // Render metric cards based on current domain (FASE C3-R.1 - Refatorado)
   const renderMetricCards = () => {
-    if (currentDomain === 'financial') {
-      return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-          <MetricsRevenueTotalCard 
-            periodFilter={periodFilter} 
-            summary={summary} 
-            isLoading={cardsLoading} 
-          />
-          <MetricsAvgPerSessionCard 
-            periodFilter={periodFilter} 
-            summary={summary} 
-            isLoading={cardsLoading} 
-          />
-          <MetricsForecastRevenueCard 
-            periodFilter={periodFilter} 
-            summary={summary} 
-            isLoading={cardsLoading} 
-          />
-          <MetricsAvgPerActivePatientCard 
-            periodFilter={periodFilter} 
-            summary={summary} 
-            isLoading={cardsLoading} 
-          />
-          <MetricsLostRevenueCard 
-            periodFilter={periodFilter} 
-            summary={summary} 
-            isLoading={cardsLoading} 
-          />
-        </div>
-      );
-    }
-
-    if (currentDomain === 'administrative') {
-      return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-          <MetricsMissedRateCard 
-            periodFilter={periodFilter} 
-            summary={summary} 
-            isLoading={cardsLoading} 
-          />
-          <MetricsActivePatientsCard 
-            periodFilter={periodFilter} 
-            summary={summary} 
-            isLoading={cardsLoading} 
-          />
-          <MetricsOccupationRateCard 
-            periodFilter={periodFilter} 
-            summary={summary} 
-            isLoading={cardsLoading} 
-          />
-        </div>
-      );
-    }
-
-    if (currentDomain === 'marketing') {
-      return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <MetricsWebsiteViewsCard isLoading={cardsLoading} />
-          <MetricsWebsiteVisitorsCard isLoading={cardsLoading} />
-          <MetricsWebsiteConversionCard isLoading={cardsLoading} />
-          <MetricsWebsiteCTRCard isLoading={cardsLoading} />
-        </div>
-      );
-    }
-
     if (currentDomain === 'team') {
       return (
         <Alert className="mb-6">
@@ -488,7 +470,35 @@ const Metrics = () => {
       );
     }
 
-    return null;
+    if (currentSectionLayout.length === 0) {
+      return (
+        <Alert className="mb-6">
+          <AlertDescription>
+            Nenhum card configurado para este domínio ainda.
+          </AlertDescription>
+        </Alert>
+      );
+    }
+
+    return (
+      <div className="mb-6">
+        <GridCardContainer
+          sectionId={currentSectionId}
+          layout={currentSectionLayout}
+          onLayoutChange={(newLayout) => updateLayout(currentSectionId, newLayout)}
+          isEditMode={isEditMode}
+        >
+          {currentSectionLayout.map((cardLayout) => {
+            const CardComponent = getCardComponent(cardLayout.i);
+            return (
+              <div key={cardLayout.i} data-grid={cardLayout} className="drag-handle cursor-move">
+                {CardComponent}
+              </div>
+            );
+          })}
+        </GridCardContainer>
+      </div>
+    );
   };
 
   // Render chart content based on current domain and sub-tab (FASE C3.7)
@@ -616,10 +626,63 @@ const Metrics = () => {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Métricas</h1>
-        <p className="text-muted-foreground">
-          Visão geral financeira e administrativa do consultório
-        </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Métricas</h1>
+            <p className="text-muted-foreground">
+              Visão geral financeira e administrativa do consultório
+            </p>
+          </div>
+          
+          {/* Layout Edit Controls (FASE C3-R.1) */}
+          {!layoutLoading && (
+            <div className="flex items-center gap-2">
+              {!isEditMode ? (
+                <Button 
+                  onClick={() => setIsEditMode(true)} 
+                  variant="outline"
+                  size="sm"
+                >
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Editar Layout
+                </Button>
+              ) : (
+                <>
+                  <Button 
+                    onClick={handleSaveLayout} 
+                    disabled={!hasUnsavedChanges || layoutSaving}
+                    size="sm"
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    {layoutSaving ? 'Salvando...' : 'Salvar'}
+                  </Button>
+                  <Button 
+                    onClick={handleResetLayout} 
+                    variant="destructive"
+                    size="sm"
+                    disabled={layoutSaving}
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Resetar
+                  </Button>
+                  <Button 
+                    onClick={handleCancelEdit} 
+                    variant="ghost"
+                    size="sm"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Cancelar
+                  </Button>
+                </>
+              )}
+              {hasUnsavedChanges && !isEditMode && (
+                <span className="text-xs text-muted-foreground ml-2">
+                  • Alterações não salvas
+                </span>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Domain Selector */}
@@ -800,35 +863,8 @@ const Metrics = () => {
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Summary Metrics (top part) */}
-            {currentDomain === 'financial' && aggregatedData.summary && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Resumo do Período</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="p-4 bg-muted/50 rounded-lg">
-                    <p className="text-sm text-muted-foreground">Receita Total</p>
-                    <p className="text-2xl font-bold">
-                      {new Intl.NumberFormat('pt-BR', {
-                        style: 'currency',
-                        currency: 'BRL',
-                      }).format(aggregatedData.summary.totalRevenue)}
-                    </p>
-                  </div>
-                  <div className="p-4 bg-muted/50 rounded-lg">
-                    <p className="text-sm text-muted-foreground">Total de Sessões</p>
-                    <p className="text-2xl font-bold">{aggregatedData.summary.totalSessions}</p>
-                  </div>
-                  <div className="p-4 bg-muted/50 rounded-lg">
-                    <p className="text-sm text-muted-foreground">Taxa de Faltas</p>
-                    <p className="text-2xl font-bold">{aggregatedData.summary.missedRate.toFixed(1)}%</p>
-                  </div>
-                  <div className="p-4 bg-muted/50 rounded-lg">
-                    <p className="text-sm text-muted-foreground">Pacientes Ativos</p>
-                    <p className="text-2xl font-bold">{aggregatedData.summary.activePatients}</p>
-                  </div>
-                </div>
-              </div>
-            )}
+            {/* Numeric Cards Section (FASE C3-R.1 - Com GridCardContainer) */}
+            {renderMetricCards()}
 
             {/* Sub-tabs for charts (bottom part) */}
             {availableSubTabs.length > 0 && (
