@@ -1,12 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Calendar, AlertCircle, TrendingUp, Users, DollarSign } from 'lucide-react';
+import { Calendar, AlertCircle, TrendingUp, Users, DollarSign, BarChart3 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, subMonths, startOfYear, endOfYear } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -31,24 +33,14 @@ import {
   getRetentionAndChurn,
 } from '@/lib/systemMetricsUtils';
 
-// Local sections configuration (not in global registry yet)
-const METRICS_SECTIONS = [
-  {
-    id: 'metrics-financial',
-    title: 'Financeiro',
-    description: 'Receita, faltas, ticket médio e indicadores financeiros.',
-  },
-  {
-    id: 'metrics-administrative',
-    title: 'Administrativo',
-    description: 'Volume de pacientes, status e fluxo administrativo.',
-  },
-  {
-    id: 'metrics-team',
-    title: 'Equipe',
-    description: 'Distribuição de carga e métricas por terapeuta.',
-  },
-];
+// Import sections configuration (FASE C3.5)
+import {
+  METRICS_SECTIONS,
+  METRICS_SUBTABS,
+  getSubTabsForDomain,
+  getDefaultSubTabForDomain,
+  type MetricsDomain,
+} from '@/lib/metricsSectionsConfig';
 
 type Period = 'week' | 'month' | 'year' | 'custom';
 
@@ -56,11 +48,90 @@ const Metrics = () => {
   const { user, organizationId } = useAuth();
   const { permissions, loading: permissionsLoading } = useEffectivePermissions();
   const { permissionContext } = useDashboardPermissions();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Period state
   const [period, setPeriod] = useState<Period>('month');
   const [customStartDate, setCustomStartDate] = useState<Date | undefined>(undefined);
   const [customEndDate, setCustomEndDate] = useState<Date | undefined>(undefined);
+
+  // Determine visible domains based on permissions
+  const visibleDomains = useMemo<MetricsDomain[]>(() => {
+    const domains: MetricsDomain[] = [];
+
+    // Financial access
+    if (permissionContext?.canAccessFinancial) {
+      domains.push('financial');
+    }
+
+    // Administrative access
+    if (permissionContext?.canAccessAdministrative) {
+      domains.push('administrative');
+    }
+
+    // Marketing access
+    if (permissionContext?.canAccessMarketing) {
+      domains.push('marketing');
+    }
+
+    // Team access
+    if (permissionContext?.canAccessTeam) {
+      domains.push('team');
+    }
+
+    // Fallback: if no organization and no specific restrictions, assume full access
+    if (!organizationId && domains.length === 0) {
+      return ['financial', 'administrative', 'marketing', 'team'];
+    }
+
+    return domains;
+  }, [
+    permissionContext?.canAccessFinancial,
+    permissionContext?.canAccessAdministrative,
+    permissionContext?.canAccessMarketing,
+    permissionContext?.canAccessTeam,
+    organizationId,
+  ]);
+
+  // Current domain from URL or default to first visible
+  const currentDomain = useMemo<MetricsDomain>(() => {
+    const domainParam = searchParams.get('domain') as MetricsDomain | null;
+    if (domainParam && visibleDomains.includes(domainParam)) {
+      return domainParam;
+    }
+    return visibleDomains[0] || 'financial';
+  }, [searchParams, visibleDomains]);
+
+  // Available sub-tabs for current domain
+  const availableSubTabs = useMemo(() => {
+    return getSubTabsForDomain(currentDomain);
+  }, [currentDomain]);
+
+  // Current sub-tab from URL or default
+  const currentSubTab = useMemo(() => {
+    const subTabParam = searchParams.get('subTab');
+    if (subTabParam && availableSubTabs.some(st => st.id === subTabParam)) {
+      return subTabParam;
+    }
+    return getDefaultSubTabForDomain(currentDomain) || availableSubTabs[0]?.id || 'distribuicoes';
+  }, [searchParams, currentDomain, availableSubTabs]);
+
+  // Handler to change domain
+  const handleDomainChange = (newDomain: MetricsDomain) => {
+    const defaultSubTab = getDefaultSubTabForDomain(newDomain);
+    setSearchParams({
+      domain: newDomain,
+      ...(defaultSubTab && { subTab: defaultSubTab }),
+    });
+  };
+
+  // Handler to change sub-tab
+  const handleSubTabChange = (newSubTab: string) => {
+    setSearchParams({
+      domain: currentDomain,
+      subTab: newSubTab,
+    });
+  };
 
   // Calculate date range based on period
   const dateRange = useMemo(() => {
@@ -300,10 +371,9 @@ const Metrics = () => {
   const isLoading = patientsLoading || sessionsLoading || layoutLoading || permissionsLoading;
 
   // Permission check
-  const canViewFinancial = permissionContext?.canAccessFinancial || false;
-  const canViewMetrics = permissionContext?.canAccessAdministrative || canViewFinancial;
+  const hasAnyMetricsAccess = visibleDomains.length > 0;
 
-  if (!canViewMetrics && !permissionsLoading) {
+  if (!hasAnyMetricsAccess && !permissionsLoading) {
     return (
       <div className="p-6">
         <Alert variant="destructive">
@@ -325,6 +395,40 @@ const Metrics = () => {
           Visão geral financeira e administrativa do consultório
         </p>
       </div>
+
+      {/* Domain Selector */}
+      {visibleDomains.length > 1 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Domínio</CardTitle>
+            <CardDescription>Selecione o tipo de métricas a visualizar</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {visibleDomains.map((domain) => {
+                const section = METRICS_SECTIONS.find(s => s.domain === domain);
+                if (!section) return null;
+                
+                const isActive = currentDomain === domain;
+                return (
+                  <Button
+                    key={domain}
+                    variant={isActive ? 'default' : 'outline'}
+                    onClick={() => handleDomainChange(domain)}
+                    className="flex items-center gap-2"
+                  >
+                    {domain === 'financial' && <DollarSign className="h-4 w-4" />}
+                    {domain === 'administrative' && <Users className="h-4 w-4" />}
+                    {domain === 'team' && <TrendingUp className="h-4 w-4" />}
+                    {domain === 'marketing' && <BarChart3 className="h-4 w-4" />}
+                    {section.title}
+                  </Button>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Period Filters */}
       <Card>
@@ -450,73 +554,91 @@ const Metrics = () => {
         </div>
       )}
 
-      {/* Sections with data */}
+      {/* Current Domain Section */}
       {!isLoading && aggregatedData && (
-        <div className="space-y-6">
-          {METRICS_SECTIONS.map((section) => (
-            <Card key={section.id} className="overflow-hidden">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      {section.id === 'metrics-financial' && <DollarSign className="h-5 w-5" />}
-                      {section.id === 'metrics-administrative' && <Users className="h-5 w-5" />}
-                      {section.id === 'metrics-team' && <TrendingUp className="h-5 w-5" />}
-                      {section.title}
-                    </CardTitle>
-                    <CardDescription className="mt-1">
-                      {section.description}
-                    </CardDescription>
+        <Card className="overflow-hidden">
+          <CardHeader>
+            <div className="flex items-start justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  {currentDomain === 'financial' && <DollarSign className="h-5 w-5" />}
+                  {currentDomain === 'administrative' && <Users className="h-5 w-5" />}
+                  {currentDomain === 'team' && <TrendingUp className="h-5 w-5" />}
+                  {currentDomain === 'marketing' && <BarChart3 className="h-5 w-5" />}
+                  {METRICS_SECTIONS.find(s => s.domain === currentDomain)?.title}
+                </CardTitle>
+                <CardDescription className="mt-1">
+                  {METRICS_SECTIONS.find(s => s.domain === currentDomain)?.description}
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Summary Metrics (top part) */}
+            {currentDomain === 'financial' && aggregatedData.summary && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Resumo do Período</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="p-4 bg-muted/50 rounded-lg">
+                    <p className="text-sm text-muted-foreground">Receita Total</p>
+                    <p className="text-2xl font-bold">
+                      {new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                      }).format(aggregatedData.summary.totalRevenue)}
+                    </p>
+                  </div>
+                  <div className="p-4 bg-muted/50 rounded-lg">
+                    <p className="text-sm text-muted-foreground">Total de Sessões</p>
+                    <p className="text-2xl font-bold">{aggregatedData.summary.totalSessions}</p>
+                  </div>
+                  <div className="p-4 bg-muted/50 rounded-lg">
+                    <p className="text-sm text-muted-foreground">Taxa de Faltas</p>
+                    <p className="text-2xl font-bold">{aggregatedData.summary.missedRate.toFixed(1)}%</p>
+                  </div>
+                  <div className="p-4 bg-muted/50 rounded-lg">
+                    <p className="text-sm text-muted-foreground">Pacientes Ativos</p>
+                    <p className="text-2xl font-bold">{aggregatedData.summary.activePatients}</p>
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent>
-                {/* Financial section - show some debug data */}
-                {section.id === 'metrics-financial' && aggregatedData.summary && (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      <div className="p-4 bg-muted/50 rounded-lg">
-                        <p className="text-sm text-muted-foreground">Receita Total</p>
-                        <p className="text-2xl font-bold">
-                          {new Intl.NumberFormat('pt-BR', {
-                            style: 'currency',
-                            currency: 'BRL',
-                          }).format(aggregatedData.summary.totalRevenue)}
-                        </p>
-                      </div>
-                      <div className="p-4 bg-muted/50 rounded-lg">
-                        <p className="text-sm text-muted-foreground">Total de Sessões</p>
-                        <p className="text-2xl font-bold">{aggregatedData.summary.totalSessions}</p>
-                      </div>
-                      <div className="p-4 bg-muted/50 rounded-lg">
-                        <p className="text-sm text-muted-foreground">Taxa de Faltas</p>
-                        <p className="text-2xl font-bold">{aggregatedData.summary.missedRate.toFixed(1)}%</p>
-                      </div>
-                      <div className="p-4 bg-muted/50 rounded-lg">
-                        <p className="text-sm text-muted-foreground">Pacientes Ativos</p>
-                        <p className="text-2xl font-bold">{aggregatedData.summary.activePatients}</p>
-                      </div>
-                    </div>
-                    <Alert>
-                      <AlertDescription>
-                        <strong>Em breve:</strong> Cards de métricas interativos com gráficos e análises detalhadas.
-                      </AlertDescription>
-                    </Alert>
-                  </div>
-                )}
+              </div>
+            )}
 
-                {/* Other sections - placeholders */}
-                {section.id !== 'metrics-financial' && (
-                  <Alert>
-                    <AlertDescription>
-                      <strong>Em breve:</strong> Cards de métricas desta seção.
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+            {/* Sub-tabs for charts (bottom part) */}
+            {availableSubTabs.length > 0 && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Visualizações Detalhadas</h3>
+                <Tabs value={currentSubTab} onValueChange={handleSubTabChange}>
+                  <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${availableSubTabs.length}, 1fr)` }}>
+                    {availableSubTabs.map((subTab) => (
+                      <TabsTrigger key={subTab.id} value={subTab.id}>
+                        {subTab.label}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                  {availableSubTabs.map((subTab) => (
+                    <TabsContent key={subTab.id} value={subTab.id} className="space-y-4">
+                      <Alert>
+                        <AlertDescription>
+                          <strong>Em breve:</strong> Cards de {subTab.label.toLowerCase()} para {METRICS_SECTIONS.find(s => s.domain === currentDomain)?.title}.
+                        </AlertDescription>
+                      </Alert>
+                    </TabsContent>
+                  ))}
+                </Tabs>
+              </div>
+            )}
+
+            {/* Other domains - placeholder */}
+            {currentDomain !== 'financial' && (
+              <Alert>
+                <AlertDescription>
+                  <strong>Em breve:</strong> Cards de métricas desta seção serão implementados nas próximas fases.
+                </AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       {/* Debug data (optional - can be removed later) */}
