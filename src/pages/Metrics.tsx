@@ -211,7 +211,10 @@ const Metrics = () => {
     return { start, end };
   }, [period, customStartDate, customEndDate]);
 
-  // Chart time scale integration
+  // Chart time scale integration (FASE C3-R.2)
+  // Calculate chartId for current domain/subTab
+  const currentChartId = `metrics-${currentDomain}-${currentSubTab}`;
+  
   const {
     automaticScale,
     getScale,
@@ -222,6 +225,9 @@ const Metrics = () => {
     startDate: dateRange.start,
     endDate: dateRange.end,
   });
+
+  // Get current time scale for charts (moved here from renderChartContent)
+  const currentTimeScale = getScale(currentChartId);
 
   // Load patients from organization
   const { data: rawPatients, isLoading: patientsLoading } = useQuery({
@@ -374,12 +380,13 @@ const Metrics = () => {
         end: dateRange.end,
       });
 
+      // FASE C3-R.2: Use automatic time scale from useChartTimeScale
       const trends = getFinancialTrends({
         sessions: metricsSessions,
         patients: metricsPatients,
         start: dateRange.start,
         end: dateRange.end,
-        timeScale: 'monthly', // Only monthly for now
+        timeScale: automaticScale, // Use automatic scale based on date range
       });
 
       const retention = getRetentionAndChurn({
@@ -501,9 +508,11 @@ const Metrics = () => {
     );
   };
 
-  // Render chart content based on current domain and sub-tab (FASE C3.7)
+  // Render chart content based on current domain and sub-tab (FASE C3-R.2)
+  // CRITICAL: timeScale is now computed at component level (currentTimeScale)
   const renderChartContent = (subTabId: string) => {
-    const timeScale = getScale(`metrics-${currentDomain}-${subTabId}`);
+    // Get the specific timeScale for this chart
+    const chartTimeScale = getScale(`metrics-${currentDomain}-${subTabId}`);
     
     // Financial domain
     if (currentDomain === 'financial') {
@@ -513,7 +522,7 @@ const Metrics = () => {
             trends={trends}
             isLoading={cardsLoading}
             periodFilter={periodFilter}
-            timeScale={timeScale}
+            timeScale={chartTimeScale}
           />
         );
       }
@@ -524,7 +533,7 @@ const Metrics = () => {
             trends={trends}
             isLoading={cardsLoading}
             periodFilter={periodFilter}
-            timeScale={timeScale}
+            timeScale={chartTimeScale}
           />
         );
       }
@@ -535,7 +544,7 @@ const Metrics = () => {
             summary={summary}
             isLoading={cardsLoading}
             periodFilter={periodFilter}
-            timeScale={timeScale}
+            timeScale={chartTimeScale}
           />
         );
       }
@@ -549,7 +558,7 @@ const Metrics = () => {
             retention={retention}
             isLoading={cardsLoading}
             periodFilter={periodFilter}
-            timeScale={timeScale}
+            timeScale={chartTimeScale}
           />
         );
       }
@@ -560,7 +569,7 @@ const Metrics = () => {
             trends={trends}
             isLoading={cardsLoading}
             periodFilter={periodFilter}
-            timeScale={timeScale}
+            timeScale={chartTimeScale}
           />
         );
       }
@@ -571,7 +580,7 @@ const Metrics = () => {
             summary={summary}
             isLoading={cardsLoading}
             periodFilter={periodFilter}
-            timeScale={timeScale}
+            timeScale={chartTimeScale}
           />
         );
       }

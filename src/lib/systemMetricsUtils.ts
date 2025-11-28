@@ -13,6 +13,7 @@
 
 import { parseISO, format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import type { TimeScale } from '@/hooks/useChartTimeScale';
 
 // ============================================================
 // TIPOS
@@ -999,9 +1000,15 @@ export function getFinancialTrends(params: {
   patients: MetricsPatient[];
   start: Date;
   end: Date;
-  timeScale: 'monthly'; // Para esta fase, suportamos apenas monthly (usa funções existentes)
+  timeScale: TimeScale; // FASE C3-R.2: Aceita 'daily' | 'weekly' | 'monthly'
 }): FinancialTrendPoint[] {
-  const { sessions, patients, start, end } = params;
+  const { sessions, patients, start, end, timeScale } = params;
+
+  // FASE C3-R.2: Por enquanto, apenas 'monthly' está implementado
+  // TODO: Implementar suporte a 'daily' e 'weekly' em fases futuras
+  if (timeScale !== 'monthly') {
+    console.warn(`[getFinancialTrends] timeScale '${timeScale}' não implementado ainda. Usando 'monthly' como fallback.`);
+  }
 
   // Usar as funções existentes que já calculam por mês
   const monthlyRevenue = getMonthlyRevenue({ sessions, patients, start, end });
