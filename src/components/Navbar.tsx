@@ -131,14 +131,19 @@ const Navbar = () => {
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="bg-popover z-50">
-                        <DropdownMenuItem onClick={() => navigate('/financial')}>
+                        <DropdownMenuItem onClick={() => navigate('/metrics?domain=financial')}>
                           <TrendingUp className="w-4 h-4 mr-2" />
-                          Análise Financeira
+                          Métricas Financeiras
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => navigate('/metrics/website')}>
+                        <DropdownMenuItem onClick={() => navigate('/metrics?domain=administrative')}>
+                          <Users className="w-4 h-4 mr-2" />
+                          Métricas Administrativas
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => navigate('/metrics?domain=marketing')}>
                           <FileText className="w-4 h-4 mr-2" />
-                          Website
+                          Métricas de Marketing
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
