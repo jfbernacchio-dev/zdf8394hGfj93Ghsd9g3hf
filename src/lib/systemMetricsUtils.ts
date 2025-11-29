@@ -938,17 +938,23 @@ export function getFinancialSummary(params: {
   start: Date;
   end: Date;
 }): FinancialSummary {
-  const { sessions, patients } = params;
+  const { sessions, patients, start, end } = params;
 
-  // Calcular métricas base
-  const totalRevenue = calculateTotalRevenue({ sessions, patients });
-  const totalSessions = calculateTotalSessions({ sessions });
+  // ✅ FASE 2.1 - CORREÇÃO A.1: Filtrar sessões pelo período
+  const filteredSessions = sessions.filter(session => {
+    const sessionDate = parseISO(session.date);
+    return sessionDate >= start && sessionDate <= end;
+  });
+
+  // Calcular métricas base usando sessões filtradas
+  const totalRevenue = calculateTotalRevenue({ sessions: filteredSessions, patients });
+  const totalSessions = calculateTotalSessions({ sessions: filteredSessions });
   const activePatients = calculateActivePatients({ patients });
-  const lostRevenue = calculateLostRevenue({ sessions });
+  const lostRevenue = calculateLostRevenue({ sessions: filteredSessions });
   const forecastRevenue = getForecastRevenue({ patients });
 
-  // Taxa de falta como número (0-100)
-  const missedRateStr = calculateMissedRatePercentage({ sessions });
+  // Taxa de falta como número (0-100) - usando sessões filtradas
+  const missedRateStr = calculateMissedRatePercentage({ sessions: filteredSessions });
   const missedRate = parseFloat(missedRateStr);
 
   // Médias calculadas
@@ -1010,30 +1016,69 @@ export function getFinancialTrends(params: {
     console.warn(`[getFinancialTrends] timeScale '${timeScale}' não implementado ainda. Usando 'monthly' como fallback.`);
   }
 
-  // Usar as funções existentes que já calculam por mês
-  const monthlyRevenue = getMonthlyRevenue({ sessions, patients, start, end });
-  const growthTrend = getGrowthTrend({ sessions, patients, start, end });
-  const missedRateData = getMissedRate({ sessions, start, end });
+  // ✅ FASE 2.1 - CORREÇÃO A.2 e A.4: Usar eachMonthOfInterval corretamente e calcular crescimento
+  const months = eachMonthOfInterval({ start, end });
+  const trends: FinancialTrendPoint[] = [];
+  let previousRevenue = 0;
 
-  // Combinar os dados em FinancialTrendPoint
-  return monthlyRevenue.map((monthData, index) => {
-    const growth = growthTrend[index]?.crescimento || 0;
-    const missed = missedRateData[index]?.taxa || 0;
+  months.forEach((month, index) => {
+    const monthStart = startOfMonth(month);
+    const monthEnd = endOfMonth(month);
+    
+    // Filtrar sessões do mês
+    const monthSessions = sessions.filter(s => {
+      const date = parseISO(s.date);
+      return date >= monthStart && date <= monthEnd;
+    });
 
-    // Tentar extrair a data do label (ex: "Jan/25" -> "2025-01-01")
-    // Para simplificar, vamos usar o índice para gerar a data
-    const monthDate = eachMonthOfInterval({ start, end })[index];
-    const isoDate = monthDate ? format(monthDate, 'yyyy-MM-dd') : '';
+    // Calcular receita do mês (considerando mensalistas)
+    const monthlyPatientsTracked = new Map<string, Set<string>>();
+    const revenue = monthSessions
+      .filter(s => s.status === 'attended')
+      .reduce((sum, s) => {
+        const patient = patients.find(p => p.id === s.patient_id);
+        if (patient?.monthly_price) {
+          const monthKey = format(monthStart, 'yyyy-MM');
+          if (!monthlyPatientsTracked.has(s.patient_id)) {
+            monthlyPatientsTracked.set(s.patient_id, new Set());
+          }
+          const months = monthlyPatientsTracked.get(s.patient_id)!;
+          if (!months.has(monthKey)) {
+            months.add(monthKey);
+            return sum + Number(s.value);
+          }
+          return sum;
+        }
+        return sum + Number(s.value);
+      }, 0);
 
-    return {
-      label: monthData.month,
-      date: isoDate,
-      revenue: monthData.receita,
-      sessions: monthData.sessoes,
-      missedRate: missed,
-      growth: growth
-    };
+    // ✅ FASE 2.2 - CORREÇÃO A.3: Calcular taxa de falta do mês corretamente
+    const visibleSessions = monthSessions.filter(s => s.show_in_schedule !== false);
+    const missedCount = visibleSessions.filter(s => s.status === 'missed').length;
+    const totalVisible = visibleSessions.length;
+    const missedRate = totalVisible > 0 ? (missedCount / totalVisible) * 100 : 0;
+
+    // Sessões atendidas
+    const attendedSessions = monthSessions.filter(s => s.status === 'attended').length;
+
+    // ✅ FASE 2.2 - CORREÇÃO A.4: Calcular crescimento real
+    const growth = index === 0 || previousRevenue === 0
+      ? 0
+      : ((revenue - previousRevenue) / previousRevenue) * 100;
+
+    trends.push({
+      label: format(month, 'MMM/yy', { locale: ptBR }),
+      date: format(month, 'yyyy-MM-dd'),
+      revenue: revenue,
+      sessions: attendedSessions,
+      missedRate: Number(missedRate.toFixed(1)),
+      growth: Number(growth.toFixed(1))
+    });
+
+    previousRevenue = revenue;
   });
+
+  return trends;
 }
 
 /**

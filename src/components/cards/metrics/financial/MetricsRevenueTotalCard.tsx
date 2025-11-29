@@ -20,7 +20,8 @@ export function MetricsRevenueTotalCard({ periodFilter, summary, isLoading, clas
     );
   }
 
-  const value = summary.totalRevenue || 0;
+  // ✅ FASE 2.3 - CORREÇÃO C.1: Proteger contra valores negativos
+  const value = Math.max(summary.totalRevenue || 0, 0);
 
   return (
     <Card className={className}>
