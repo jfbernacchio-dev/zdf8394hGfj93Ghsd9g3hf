@@ -88,7 +88,7 @@ describe('useChartTimeScale - automaticScale', () => {
     const { result } = renderHook(() => 
       useChartTimeScale({
         startDate: new Date('2025-01-01'),
-        endDate: new Date('2025-04-01') // 91 dias
+        endDate: new Date('2025-04-02') // 91 dias (corrigido)
       })
     );
     
@@ -233,9 +233,10 @@ describe('generateTimeIntervals', () => {
       'daily'
     );
     
-    // Último intervalo não deve ser maior que o momento de captura
+    // Último intervalo normalizado (startOfDay) não deve ultrapassar o dia atual
     const lastInterval = intervals[intervals.length - 1];
-    expect(lastInterval.getTime()).toBeLessThanOrEqual(now.getTime());
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    expect(lastInterval.getTime()).toBeLessThanOrEqual(todayStart.getTime());
   });
 });
 
