@@ -25,19 +25,21 @@ import {
 } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import type { MetricsChartBaseProps } from '@/types/metricsChartTypes';
-import type { MetricsSession, MetricsPatient } from '@/lib/systemMetricsUtils';
+import type { MetricsSession, MetricsPatient, MetricsProfile } from '@/lib/systemMetricsUtils';
 import { parseISO, startOfWeek, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface TeamAttendanceByTherapistChartProps extends MetricsChartBaseProps {
   sessions: MetricsSession[];
   patients: MetricsPatient[];
+  profiles: Record<string, MetricsProfile>;
   isLoading: boolean;
 }
 
 export function TeamAttendanceByTherapistChart({ 
   sessions,
   patients,
+  profiles,
   isLoading, 
   periodFilter,
   timeScale
@@ -96,8 +98,7 @@ export function TeamAttendanceByTherapistChart({
     const therapistNames: Record<string, string> = {};
     
     therapistIds.forEach(userId => {
-      const therapistPatients = patients.filter(p => p.user_id === userId);
-      therapistNames[userId] = therapistPatients[0]?.name?.split(' ')[0] || `Terapeuta ${userId.substring(0, 8)}`;
+      therapistNames[userId] = profiles[userId]?.full_name?.split(' ')[0] || `Terapeuta ${userId.substring(0, 8)}`;
     });
 
     // Build result array
@@ -121,7 +122,7 @@ export function TeamAttendanceByTherapistChart({
       .sort((a, b) => a.weekKey.localeCompare(b.weekKey));
 
     return { data: result, therapistIds, therapistNames };
-  }, [sessions, patients]);
+  }, [sessions, patients, profiles]);
 
   if (attendanceData.data.length === 0) {
     return (

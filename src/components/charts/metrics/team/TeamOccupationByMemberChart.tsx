@@ -93,8 +93,7 @@ export function TeamOccupationByMemberChart({
     const therapistNames: Record<string, string> = {};
     
     therapistIds.forEach(userId => {
-      const therapistPatients = patients.filter(p => p.user_id === userId);
-      therapistNames[userId] = therapistPatients[0]?.name?.split(' ')[0] || `Terapeuta ${userId.substring(0, 8)}`;
+      therapistNames[userId] = profiles[userId]?.full_name?.split(' ')[0] || `Terapeuta ${userId.substring(0, 8)}`;
     });
 
     // Calculate capacity for each therapist

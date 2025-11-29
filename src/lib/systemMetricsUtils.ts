@@ -79,6 +79,7 @@ export interface MetricsScheduleBlock {
  * Perfil do profissional (para cálculo de ocupação)
  */
 export interface MetricsProfile {
+  full_name?: string;
   work_days?: number[];
   work_start_time?: string;
   work_end_time?: string;

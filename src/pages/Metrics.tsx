@@ -704,6 +704,7 @@ const Metrics = () => {
             <TeamIndividualPerformanceChart
               sessions={metricsSessions}
               patients={metricsPatients}
+              profiles={{}} // TODO: Fetch team profiles in future
               isLoading={cardsLoading}
               periodFilter={periodFilter}
               timeScale={chartTimeScale}
@@ -711,6 +712,7 @@ const Metrics = () => {
             <TeamRevenueComparisonChart
               sessions={metricsSessions}
               patients={metricsPatients}
+              profiles={{}} // TODO: Fetch team profiles in future
               isLoading={cardsLoading}
               periodFilter={periodFilter}
               timeScale={chartTimeScale}
@@ -724,6 +726,7 @@ const Metrics = () => {
           <div className="grid gap-6">
             <TeamPatientDistributionChart
               patients={metricsPatients}
+              profiles={{}} // TODO: Fetch team profiles in future
               isLoading={cardsLoading}
               periodFilter={periodFilter}
               timeScale={chartTimeScale}
@@ -761,6 +764,7 @@ const Metrics = () => {
             <TeamAttendanceByTherapistChart
               sessions={metricsSessions}
               patients={metricsPatients}
+              profiles={{}} // TODO: Fetch team profiles in future
               isLoading={cardsLoading}
               periodFilter={periodFilter}
               timeScale={chartTimeScale}
