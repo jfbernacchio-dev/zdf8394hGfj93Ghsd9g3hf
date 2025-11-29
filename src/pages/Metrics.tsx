@@ -104,7 +104,7 @@ import { TeamMonthlyEvolutionChart } from '@/components/charts/metrics/team/Team
 import { TeamOccupationByMemberChart } from '@/components/charts/metrics/team/TeamOccupationByMemberChart';
 import { TeamAttendanceByTherapistChart } from '@/components/charts/metrics/team/TeamAttendanceByTherapistChart';
 import { RegisterPaymentDialog } from '@/components/RegisterPaymentDialog';
-import { AddCardDialog } from '@/components/AddCardDialog';
+import { MetricsAddCardDialog } from '@/components/MetricsAddCardDialog';
 import { Plus } from 'lucide-react';
 
 type Period = 'week' | 'month' | 'year' | 'custom';
@@ -1370,16 +1370,14 @@ const Metrics = () => {
         }}
       />
 
-      {/* Add Card Dialog (FASE 1.3) */}
-      <AddCardDialog
+      {/* Add Card Dialog (FASE 1 - MetricsAddCardDialog) */}
+      <MetricsAddCardDialog
         open={showAddCardDialog}
         onOpenChange={setShowAddCardDialog}
-        onAddCard={(sectionId: string, cardId: string) => handleAddCard(cardId)}
-        onRemoveCard={(sectionId: string, cardId: string) => handleRemoveCard(cardId)}
-        sectionCards={{
-          [currentSectionId]: getMetricsCardsByDomain(currentDomain).map(card => card.id)
-        }}
+        domainKey={currentDomain}
         existingCardIds={getExistingCardIds()}
+        onAddCard={(domainKey: string, cardId: string) => handleAddCard(cardId)}
+        onRemoveCard={(domainKey: string, cardId: string) => handleRemoveCard(cardId)}
       />
     </div>
   );
