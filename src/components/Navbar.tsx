@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Users, Calendar, LogOut, FileText, ChevronDown, Shield, Menu, TrendingUp, User, AlertTriangle, Database, ClipboardCheck, MessageCircle } from 'lucide-react';
+import { Users, Calendar, LogOut, FileText, ChevronDown, Shield, TrendingUp, User, AlertTriangle, Database, ClipboardCheck, MessageCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffectivePermissions } from '@/hooks/useEffectivePermissions';
@@ -116,37 +116,17 @@ const Navbar = () => {
                     </Link>
                   )}
                   {!isAccountant && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button
-                          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                            location.pathname.startsWith('/financial') || location.pathname.startsWith('/metrics')
-                              ? 'bg-primary text-primary-foreground'
-                              : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-                          }`}
-                        >
-                          <TrendingUp className="w-4 h-4" />
-                          <span className="font-medium">Métricas</span>
-                          <ChevronDown className="w-3 h-3" />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-popover z-50">
-                        <DropdownMenuItem onClick={() => navigate('/metrics?domain=financial')}>
-                          <TrendingUp className="w-4 h-4 mr-2" />
-                          Métricas Financeiras
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => navigate('/metrics?domain=administrative')}>
-                          <Users className="w-4 h-4 mr-2" />
-                          Métricas Administrativas
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => navigate('/metrics?domain=marketing')}>
-                          <FileText className="w-4 h-4 mr-2" />
-                          Métricas de Marketing
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <Link
+                      to="/metrics"
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                        location.pathname.startsWith('/metrics')
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                      }`}
+                    >
+                      <TrendingUp className="w-4 h-4" />
+                      <span className="font-medium">Métricas</span>
+                    </Link>
                   )}
                 </>
               )}
