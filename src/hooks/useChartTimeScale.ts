@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfDay } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 import { ptBR } from 'date-fns/locale';
 
 export type TimeScale = 'daily' | 'weekly' | 'monthly';
@@ -23,10 +24,10 @@ export const useChartTimeScale = ({ startDate, endDate }: UseChartTimeScaleProps
   const automaticScale = useMemo(() => {
     const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     
-    // ✅ FASE 2.3 - CORREÇÃO B.1: Ajustar lógica para 90 dias
+    // ✅ FASE 2.4 - CORREÇÃO A.1: Ajustar lógica para < 91 dias
     if (daysDiff < 15) {
       return 'daily' as TimeScale;
-    } else if (daysDiff <= 90) {
+    } else if (daysDiff < 91) {
       return 'weekly' as TimeScale;
     } else {
       return 'monthly' as TimeScale;
@@ -78,9 +79,12 @@ export const generateTimeIntervals = (
   const now = new Date();
   const effectiveEndDate = endDate > now ? now : endDate;
   
-  // Normalizar datas para evitar problemas de timezone
-  const normalizedStart = startOfDay(startDate);
-  const normalizedEnd = startOfDay(effectiveEndDate);
+  // ✅ FASE 2.4 - CORREÇÃO A.2 e A.4: Forçar interpretação UTC
+  const utcStart = toZonedTime(startDate, 'UTC');
+  const utcEnd = toZonedTime(effectiveEndDate, 'UTC');
+  
+  const normalizedStart = startOfDay(utcStart);
+  const normalizedEnd = startOfDay(utcEnd);
   
   let intervals: Date[];
   
@@ -92,7 +96,10 @@ export const generateTimeIntervals = (
       intervals = eachWeekOfInterval({ start: normalizedStart, end: normalizedEnd }, { weekStartsOn: 0 });
       break;
     case 'monthly':
-      intervals = eachMonthOfInterval({ start: normalizedStart, end: normalizedEnd });
+      // Para mensal, garantir início do mês em UTC
+      const monthStart = startOfMonth(utcStart);
+      const monthEnd = startOfMonth(utcEnd);
+      intervals = eachMonthOfInterval({ start: monthStart, end: monthEnd });
       break;
   }
   
@@ -104,8 +111,9 @@ export const generateTimeIntervals = (
  * ✅ FASE 2.3 - CORREÇÃO B.3: Normalizar data antes de formatar
  */
 export const formatTimeLabel = (date: Date, scale: TimeScale): string => {
-  // Normalizar data para evitar problemas de timezone
-  const normalized = startOfDay(date);
+  // ✅ FASE 2.4 - CORREÇÃO A.3: Forçar UTC antes de normalizar
+  const utcDate = toZonedTime(date, 'UTC');
+  const normalized = startOfDay(utcDate);
   
   switch (scale) {
     case 'daily':
