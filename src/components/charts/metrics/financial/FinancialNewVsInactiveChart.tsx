@@ -59,7 +59,7 @@ export function FinancialNewVsInactiveChart({
     const end = periodFilter.endDate;
     
     return getNewVsInactive({ patients, start, end });
-  }, [patients, periodFilter]);
+  }, [patients, periodFilter.startDate, periodFilter.endDate]);
 
   if (comparisonData.length === 0) {
     return (

@@ -55,7 +55,7 @@ export function FinancialRetentionRateChart({
   const retentionData = useMemo(() => {
     if (!patients || patients.length === 0) return [];
     return getRetentionRate({ patients });
-  }, [patients]);
+  }, [patients, periodFilter]);
 
   if (retentionData.length === 0) {
     return (
