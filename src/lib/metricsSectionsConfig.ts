@@ -78,6 +78,12 @@ export const METRICS_SUBTABS: MetricsSubTabConfig[] = [
     label: 'Tendências', 
     chartCategory: 'tendencias' 
   },
+  { 
+    id: 'retencao', 
+    domain: 'financial', 
+    label: 'Retenção', 
+    chartCategory: 'retencao' 
+  },
 
   // ADMINISTRATIVE
   { 
