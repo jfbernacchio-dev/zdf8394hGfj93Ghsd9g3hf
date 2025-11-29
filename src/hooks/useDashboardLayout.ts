@@ -11,6 +11,46 @@ import { DEFAULT_METRICS_LAYOUT } from '@/lib/defaultLayoutMetrics';
 import { findNextAvailablePosition } from '@/lib/gridLayoutUtils';
 
 /**
+ * SANITIZAÇÃO DE LAYOUT
+ * Remove propriedades extras adicionadas pelo react-grid-layout
+ * para garantir que apenas dados essenciais sejam salvos no Supabase
+ */
+type RawLayoutItem = any;
+
+function sanitizeLayoutItem(item: RawLayoutItem): GridCardLayout {
+  return {
+    i: String(item.i),
+    x: Number(item.x),
+    y: Number(item.y),
+    w: Number(item.w),
+    h: Number(item.h),
+    minW: item.minW != null ? Number(item.minW) : undefined,
+    minH: item.minH != null ? Number(item.minH) : undefined,
+    maxW: item.maxW != null ? Number(item.maxW) : undefined,
+    maxH: item.maxH != null ? Number(item.maxH) : undefined,
+  };
+}
+
+function sanitizeLayout(layout: RawLayoutItem[]): GridCardLayout[] {
+  if (!Array.isArray(layout)) return [];
+  return layout.map(sanitizeLayoutItem);
+}
+
+function sanitizeDashboardLayout(dashboardLayout: DashboardGridLayout): DashboardGridLayout {
+  const sanitized: DashboardGridLayout = {} as DashboardGridLayout;
+  
+  Object.keys(dashboardLayout).forEach((sectionId) => {
+    const section = dashboardLayout[sectionId];
+    sanitized[sectionId] = {
+      ...section,
+      cardLayouts: sanitizeLayout(section.cardLayouts),
+    };
+  });
+  
+  return sanitized;
+}
+
+/**
  * HOOK: useDashboardLayout - FASE 3 (React Grid Layout)
  * 
  * Gerencia persistência de layout do Dashboard Example com React Grid Layout:
@@ -295,10 +335,13 @@ export const useDashboardLayout = (layoutType: string = 'dashboard-example-grid'
         .maybeSingle();
 
       if (existing) {
+        // Sanitizar layout antes de salvar (remove propriedades extras do react-grid-layout)
+        const sanitizedLayout = sanitizeDashboardLayout(layout);
+        
         const { error } = await supabase
           .from('user_layout_preferences')
           .update({
-            layout_config: layout as any,
+            layout_config: sanitizedLayout as any,
             version: existing.version + 1,
             updated_at: new Date().toISOString(),
           })
@@ -306,12 +349,15 @@ export const useDashboardLayout = (layoutType: string = 'dashboard-example-grid'
 
         if (error) throw error;
       } else {
+        // Sanitizar layout antes de salvar (remove propriedades extras do react-grid-layout)
+        const sanitizedLayout = sanitizeDashboardLayout(layout);
+        
         const { error } = await supabase
           .from('user_layout_preferences')
           .insert({
             user_id: user.id,
             layout_type: layoutType,
-            layout_config: layout as any,
+            layout_config: sanitizedLayout as any,
             version: 1,
           });
 
