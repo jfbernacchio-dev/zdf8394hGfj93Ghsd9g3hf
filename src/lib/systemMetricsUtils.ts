@@ -12,8 +12,17 @@
  */
 
 import { parseISO, format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
 import { ptBR } from 'date-fns/locale';
 import type { TimeScale } from '@/hooks/useChartTimeScale';
+
+/**
+ * Normaliza datas para UTC para evitar problemas de timezone
+ * em cálculos de intervalos mensais
+ */
+const normalizeToUTC = (date: Date): Date => {
+  return toZonedTime(date, 'UTC');
+};
 
 // ============================================================
 // TIPOS
@@ -186,7 +195,11 @@ export const getMonthlyRevenue = (params: {
   encerrados: number;
 }> => {
   const { sessions, patients, start, end } = params;
-  const months = eachMonthOfInterval({ start, end });
+  // ✅ FASE 2.4 - CORREÇÃO B.5: Normalizar para UTC
+  const months = eachMonthOfInterval({ 
+    start: startOfMonth(normalizeToUTC(start)), 
+    end: startOfMonth(normalizeToUTC(end)) 
+  });
   
   return months.map(month => {
     const monthStart = startOfMonth(month);
@@ -297,7 +310,11 @@ export const getMissedRate = (params: {
   // Only visible sessions
   const visibleSessions = sessions.filter(s => s.show_in_schedule !== false);
   
-  const months = eachMonthOfInterval({ start, end });
+  // ✅ FASE 2.4 - CORREÇÃO B.6: Normalizar para UTC
+  const months = eachMonthOfInterval({ 
+    start: startOfMonth(normalizeToUTC(start)), 
+    end: startOfMonth(normalizeToUTC(end)) 
+  });
   
   return months.map(month => {
     const monthStart = startOfMonth(month);
@@ -736,7 +753,11 @@ export const getGrowthTrend = (params: {
   crescimento: number;
 }> => {
   const { sessions, patients, start, end } = params;
-  const months = eachMonthOfInterval({ start, end });
+  // ✅ FASE 2.4 - CORREÇÃO: Normalizar para UTC
+  const months = eachMonthOfInterval({ 
+    start: startOfMonth(normalizeToUTC(start)), 
+    end: startOfMonth(normalizeToUTC(end)) 
+  });
   
   return months.map((month, index) => {
     const monthStart = startOfMonth(month);
@@ -810,7 +831,11 @@ export const getNewVsInactive = (params: {
   encerrados: number;
 }> => {
   const { patients, start, end } = params;
-  const months = eachMonthOfInterval({ start, end });
+  // ✅ FASE 2.4 - CORREÇÃO B.7: Normalizar para UTC
+  const months = eachMonthOfInterval({ 
+    start: startOfMonth(normalizeToUTC(start)), 
+    end: startOfMonth(normalizeToUTC(end)) 
+  });
   
   return months.map(month => {
     const monthStart = startOfMonth(month);
@@ -885,7 +910,11 @@ export const getLostRevenueByMonth = (params: {
 }): Array<{ month: string; perdido: number }> => {
   const { sessions, start, end } = params;
   const visibleSessions = sessions.filter(s => s.show_in_schedule !== false);
-  const months = eachMonthOfInterval({ start, end });
+  // ✅ FASE 2.4 - CORREÇÃO B.6: Normalizar para UTC
+  const months = eachMonthOfInterval({ 
+    start: startOfMonth(normalizeToUTC(start)), 
+    end: startOfMonth(normalizeToUTC(end)) 
+  });
   
   return months.map(month => {
     const monthStart = startOfMonth(month);
@@ -1016,8 +1045,11 @@ export function getFinancialTrends(params: {
     console.warn(`[getFinancialTrends] timeScale '${timeScale}' não implementado ainda. Usando 'monthly' como fallback.`);
   }
 
-  // ✅ FASE 2.1 - CORREÇÃO A.2 e A.4: Usar eachMonthOfInterval corretamente e calcular crescimento
-  const months = eachMonthOfInterval({ start, end });
+  // ✅ FASE 2.4 - CORREÇÃO B.1, B.2, B.3, B.4: Normalizar para UTC
+  const months = eachMonthOfInterval({ 
+    start: startOfMonth(normalizeToUTC(start)), 
+    end: startOfMonth(normalizeToUTC(end)) 
+  });
   const trends: FinancialTrendPoint[] = [];
   let previousRevenue = 0;
 
