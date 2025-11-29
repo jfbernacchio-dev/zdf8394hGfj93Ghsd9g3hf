@@ -12,8 +12,9 @@ export default defineConfig(({ mode }) => ({
   },
   test: {
     globals: true,
-    environment: 'node',
+    environment: 'jsdom', // ← Mudado de 'node' para 'jsdom' para suportar testes de componentes React
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+    setupFiles: ['./src/test/setup.ts'],
   },
   plugins: [
     react(), 
