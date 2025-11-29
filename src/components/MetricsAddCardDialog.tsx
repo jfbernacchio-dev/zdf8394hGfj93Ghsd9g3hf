@@ -27,7 +27,12 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { getMetricsCardsByDomain } from '@/lib/metricsCardRegistry';
 import type { MetricsCardDefinition } from '@/lib/metricsCardRegistry';
-import { getMetricsChartsByDomain } from '@/lib/metricsChartsRegistry';
+import { 
+  getMetricsChartsByDomain,
+  getMetricsChartCategoriesForDomain,
+  CATEGORY_LABELS,
+  type MetricsChartCategory,
+} from '@/lib/metricsChartsRegistry';
 import type { MetricsChartDefinition } from '@/lib/metricsChartsRegistry';
 
 /**
@@ -81,6 +86,8 @@ export const MetricsAddCardDialog = ({
   const [mainTab, setMainTab] = useState<'metrics' | 'charts'>('metrics');
   // Estado: qual sub-tab está selecionada (disponível ou adicionados)
   const [viewMode, setViewMode] = useState<'available' | 'added'>('available');
+  // FASE 3: Estado para categoria selecionada na aba de gráficos
+  const [selectedCategory, setSelectedCategory] = useState<MetricsChartCategory | null>(null);
 
   // ============================================================
   // CARDS MÉTRICOS
@@ -100,17 +107,32 @@ export const MetricsAddCardDialog = ({
   const sortedAddedCards = [...addedCards].sort((a, b) => a.title.localeCompare(b.title));
 
   // ============================================================
-  // GRÁFICOS (FASE 2)
+  // GRÁFICOS (FASE 3: Com categorias)
   // ============================================================
   
+  // Obter categorias disponíveis para o domínio atual
+  const availableCategories = getMetricsChartCategoriesForDomain(
+    domainKey as 'financial' | 'administrative' | 'marketing' | 'team'
+  );
+
+  // Inicializar categoria selecionada se ainda não foi
+  if (selectedCategory === null && availableCategories.length > 0) {
+    setSelectedCategory(availableCategories[0]);
+  }
+
   // Obter todos os gráficos do domínio atual
   const allDomainCharts = getMetricsChartsByDomain(
     domainKey as 'financial' | 'administrative' | 'marketing' | 'team'
   );
 
-  // Separar em disponíveis vs adicionados
-  const availableCharts = allDomainCharts.filter(chart => !selectedChartIds.includes(chart.id));
-  const addedCharts = allDomainCharts.filter(chart => selectedChartIds.includes(chart.id));
+  // Filtrar gráficos pela categoria selecionada
+  const chartsInCategory = selectedCategory
+    ? allDomainCharts.filter(chart => chart.category === selectedCategory)
+    : [];
+
+  // Separar em disponíveis vs adicionados (dentro da categoria)
+  const availableCharts = chartsInCategory.filter(chart => !selectedChartIds.includes(chart.id));
+  const addedCharts = chartsInCategory.filter(chart => selectedChartIds.includes(chart.id));
 
   // Ordenar por título
   const sortedAvailableCharts = [...availableCharts].sort((a, b) => a.title.localeCompare(b.title));
@@ -307,55 +329,84 @@ export const MetricsAddCardDialog = ({
           </TabsContent>
 
           {/* ============================================================ */}
-          {/* TAB: CARDS GRÁFICOS (FASE 2) */}
+          {/* TAB: CARDS GRÁFICOS (FASE 3: Com categorias) */}
           {/* ============================================================ */}
           <TabsContent value="charts">
-            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'available' | 'added')}>
-              <TabsList className="grid w-full grid-cols-2 mb-4">
-                <TabsTrigger value="available">
-                  Disponíveis ({sortedAvailableCharts.length})
-                </TabsTrigger>
-                <TabsTrigger value="added">
-                  Adicionados ({sortedAddedCharts.length})
-                </TabsTrigger>
-              </TabsList>
+            {availableCategories.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>Nenhuma categoria de gráficos disponível para este domínio</p>
+              </div>
+            ) : (
+              <Tabs 
+                value={selectedCategory || availableCategories[0]} 
+                onValueChange={(v) => {
+                  setSelectedCategory(v as MetricsChartCategory);
+                  setViewMode('available'); // Reset para "Disponíveis" ao mudar categoria
+                }}
+              >
+                {/* Navegação de categorias */}
+                <TabsList className="grid w-full mb-4" style={{ gridTemplateColumns: `repeat(${availableCategories.length}, 1fr)` }}>
+                  {availableCategories.map((category) => (
+                    <TabsTrigger key={category} value={category}>
+                      {CATEGORY_LABELS[category]}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
 
-              {/* Gráficos disponíveis para adicionar */}
-              <TabsContent value="available">
-                <ScrollArea className="h-[400px] pr-4">
-                  {sortedAvailableCharts.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <p>Nenhum gráfico disponível para adicionar</p>
-                      <p className="text-xs mt-2">
-                        Todos os gráficos já foram adicionados
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3 pb-4">
-                      {sortedAvailableCharts.map(chart => renderChartItem(chart, 'add'))}
-                    </div>
-                  )}
-                </ScrollArea>
-              </TabsContent>
+                {/* Conteúdo de cada categoria */}
+                {availableCategories.map((category) => (
+                  <TabsContent key={category} value={category}>
+                    {/* Sub-abas: Disponíveis / Adicionados */}
+                    <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'available' | 'added')}>
+                      <TabsList className="grid w-full grid-cols-2 mb-4">
+                        <TabsTrigger value="available">
+                          Disponíveis ({sortedAvailableCharts.length})
+                        </TabsTrigger>
+                        <TabsTrigger value="added">
+                          Adicionados ({sortedAddedCharts.length})
+                        </TabsTrigger>
+                      </TabsList>
 
-              {/* Gráficos adicionados para remover */}
-              <TabsContent value="added">
-                <ScrollArea className="h-[400px] pr-4">
-                  {sortedAddedCharts.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <p>Nenhum gráfico adicionado</p>
-                      <p className="text-xs mt-2">
-                        Vá para a aba "Disponíveis" para adicionar gráficos
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3 pb-4">
-                      {sortedAddedCharts.map(chart => renderChartItem(chart, 'remove'))}
-                    </div>
-                  )}
-                </ScrollArea>
-              </TabsContent>
-            </Tabs>
+                      {/* Gráficos disponíveis */}
+                      <TabsContent value="available">
+                        <ScrollArea className="h-[400px] pr-4">
+                          {sortedAvailableCharts.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground">
+                              <p>Nenhum gráfico disponível nesta categoria</p>
+                              <p className="text-xs mt-2">
+                                Todos os gráficos desta categoria já foram adicionados
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="space-y-3 pb-4">
+                              {sortedAvailableCharts.map(chart => renderChartItem(chart, 'add'))}
+                            </div>
+                          )}
+                        </ScrollArea>
+                      </TabsContent>
+
+                      {/* Gráficos adicionados */}
+                      <TabsContent value="added">
+                        <ScrollArea className="h-[400px] pr-4">
+                          {sortedAddedCharts.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground">
+                              <p>Nenhum gráfico adicionado nesta categoria</p>
+                              <p className="text-xs mt-2">
+                                Vá para a aba "Disponíveis" para adicionar gráficos
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="space-y-3 pb-4">
+                              {sortedAddedCharts.map(chart => renderChartItem(chart, 'remove'))}
+                            </div>
+                          )}
+                        </ScrollArea>
+                      </TabsContent>
+                    </Tabs>
+                  </TabsContent>
+                ))}
+              </Tabs>
+            )}
           </TabsContent>
         </Tabs>
       </DialogContent>
