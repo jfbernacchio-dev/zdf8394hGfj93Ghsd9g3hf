@@ -212,15 +212,16 @@ export const useDashboardLayout = (layoutType: string = 'dashboard-example-grid'
    * UPDATE LAYOUT (FASE 3 - Nova função)
    */
   const updateLayout = useCallback((sectionId: string, newLayout: GridCardLayout[]) => {
-    console.log('[useDashboardLayout] Atualizando layout da seção:', {
+    console.log('[METRICS-LAYOUT] 🔄 updateLayout called:', {
       sectionId,
-      newLayout,
+      cardCount: newLayout.length,
+      cardIds: newLayout.map(c => c.i),
     });
 
     setLayout((prev) => {
       const section = prev[sectionId];
       if (!section) {
-        console.warn(`[useDashboardLayout] Seção ${sectionId} não encontrada`);
+        console.warn(`[METRICS-LAYOUT] ⚠️ Seção ${sectionId} não encontrada`);
         return prev;
       }
 
@@ -230,13 +231,16 @@ export const useDashboardLayout = (layoutType: string = 'dashboard-example-grid'
         localStorage.setItem(key, JSON.stringify(cardLayout));
       });
 
-      return {
+      const updated = {
         ...prev,
         [sectionId]: {
           ...section,
           cardLayouts: newLayout,
         },
       };
+
+      console.log('[METRICS-LAYOUT] ✅ Layout atualizado no estado React');
+      return updated;
     });
   }, []);
 
@@ -321,9 +325,16 @@ export const useDashboardLayout = (layoutType: string = 'dashboard-example-grid'
    */
   const saveLayout = useCallback(async () => {
     if (!user?.id) {
+      console.error('[METRICS-LAYOUT] ❌ Tentou salvar sem usuário autenticado');
       toast.error('Usuário não autenticado');
       return;
     }
+
+    console.log('[METRICS-LAYOUT] 💾 Iniciando salvamento...', {
+      userId: user.id,
+      layoutType,
+      sectionsCount: Object.keys(layout).length,
+    });
 
     setSaving(true);
     try {
@@ -334,11 +345,26 @@ export const useDashboardLayout = (layoutType: string = 'dashboard-example-grid'
         .eq('layout_type', layoutType)
         .maybeSingle();
 
+      // ✅ CORREÇÃO CRÍTICA: Sanitizar ANTES de qualquer operação
+      const sanitizedLayout = sanitizeDashboardLayout(layout);
+      
+      console.log('[METRICS-LAYOUT] 🧹 Layout sanitizado:', {
+        before: Object.keys(layout).map(k => ({
+          section: k,
+          cardCount: layout[k].cardLayouts.length,
+          sampleCard: layout[k].cardLayouts[0],
+        })),
+        after: Object.keys(sanitizedLayout).map(k => ({
+          section: k,
+          cardCount: sanitizedLayout[k].cardLayouts.length,
+          sampleCard: sanitizedLayout[k].cardLayouts[0],
+        })),
+      });
+
       if (existing) {
-        // Sanitizar layout antes de salvar (remove propriedades extras do react-grid-layout)
-        const sanitizedLayout = sanitizeDashboardLayout(layout);
+        console.log('[METRICS-LAYOUT] 🔄 Atualizando registro existente:', existing.id);
         
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('user_layout_preferences')
           .update({
             layout_config: sanitizedLayout as any,
@@ -347,12 +373,16 @@ export const useDashboardLayout = (layoutType: string = 'dashboard-example-grid'
           })
           .eq('id', existing.id);
 
-        if (error) throw error;
+        if (error) {
+          console.error('[METRICS-LAYOUT] ❌ Erro do Supabase no UPDATE:', error);
+          throw error;
+        }
+
+        console.log('[METRICS-LAYOUT] ✅ UPDATE bem-sucedido, data:', data);
       } else {
-        // Sanitizar layout antes de salvar (remove propriedades extras do react-grid-layout)
-        const sanitizedLayout = sanitizeDashboardLayout(layout);
+        console.log('[METRICS-LAYOUT] ➕ Criando novo registro');
         
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('user_layout_preferences')
           .insert({
             user_id: user.id,
@@ -361,17 +391,28 @@ export const useDashboardLayout = (layoutType: string = 'dashboard-example-grid'
             version: 1,
           });
 
-        if (error) throw error;
+        if (error) {
+          console.error('[METRICS-LAYOUT] ❌ Erro do Supabase no INSERT:', error);
+          throw error;
+        }
+
+        console.log('[METRICS-LAYOUT] ✅ INSERT bem-sucedido, data:', data);
       }
 
-      setOriginalLayout(layout);
+      // ✅ CORREÇÃO CRÍTICA: Atualizar originalLayout com layout SANITIZADO
+      // Isso garante que isModified não retorne falso positivo
+      setOriginalLayout(sanitizedLayout);
+      
       toast.success('Layout salvo com sucesso!');
-      console.log('[useDashboardLayout] Layout salvo no Supabase');
+      console.log('[METRICS-LAYOUT] ✅ originalLayout atualizado com versão sanitizada');
+      console.log('[METRICS-LAYOUT] ✅ Salvamento concluído com sucesso!');
     } catch (error) {
-      console.error('[useDashboardLayout] Erro ao salvar layout:', error);
+      // ✅ CORREÇÃO: Só exibir toast de erro se houver erro REAL
+      console.error('[METRICS-LAYOUT] ❌ ERRO CAPTURADO - Disparando toast de erro:', error);
       toast.error('Erro ao salvar layout');
     } finally {
       setSaving(false);
+      console.log('[METRICS-LAYOUT] 🏁 Finalizando saveLayout (saving=false)');
     }
   }, [user?.id, layout, layoutType]);
 
@@ -380,12 +421,16 @@ export const useDashboardLayout = (layoutType: string = 'dashboard-example-grid'
    */
   const resetLayout = useCallback(async () => {
     if (!user?.id) {
+      console.error('[METRICS-LAYOUT] ❌ Tentou resetar sem usuário autenticado');
       toast.error('Usuário não autenticado');
       return;
     }
 
+    console.log('[METRICS-LAYOUT] 🔄 Iniciando reset do layout...');
+
     try {
       // Limpar localStorage
+      console.log('[METRICS-LAYOUT] 🗑️ Limpando localStorage...');
       Object.keys(defaultLayout).forEach(sectionId => {
         const section = defaultLayout[sectionId];
         section.cardLayouts.forEach(card => {
@@ -395,21 +440,30 @@ export const useDashboardLayout = (layoutType: string = 'dashboard-example-grid'
       });
 
       // Deletar do Supabase
+      console.log('[METRICS-LAYOUT] 🗑️ Deletando do Supabase...');
       const { error } = await supabase
         .from('user_layout_preferences')
         .delete()
         .eq('user_id', user.id)
         .eq('layout_type', layoutType);
 
-      if (error) throw error;
+      if (error) {
+        console.error('[METRICS-LAYOUT] ❌ Erro do Supabase no DELETE:', error);
+        throw error;
+      }
 
-      setLayout(defaultLayout);
-      setOriginalLayout(defaultLayout);
+      console.log('[METRICS-LAYOUT] ✅ Deletado do Supabase com sucesso');
+
+      // ✅ CORREÇÃO: Sanitizar o defaultLayout antes de setar como originalLayout
+      const sanitizedDefault = sanitizeDashboardLayout(defaultLayout);
+      
+      setLayout(sanitizedDefault);
+      setOriginalLayout(sanitizedDefault);
       
       toast.success('Layout resetado para o padrão!');
-      console.log('[useDashboardLayout] Layout resetado');
+      console.log('[METRICS-LAYOUT] ✅ Reset concluído com sucesso');
     } catch (error) {
-      console.error('[useDashboardLayout] Erro ao resetar layout:', error);
+      console.error('[METRICS-LAYOUT] ❌ ERRO ao resetar layout:', error);
       toast.error('Erro ao resetar layout');
     }
   }, [user?.id, defaultLayout, layoutType]);
@@ -418,21 +472,32 @@ export const useDashboardLayout = (layoutType: string = 'dashboard-example-grid'
    * AUTO-SAVE com debounce
    */
   useEffect(() => {
-    if (!isModified) return;
+    if (!isModified) {
+      console.log('[METRICS-LAYOUT] ⏭️ Auto-save ignorado (isModified=false)');
+      return;
+    }
+
+    console.log('[METRICS-LAYOUT] ⏰ Auto-save agendado (debounce 2s)...', {
+      isModified,
+      sectionsCount: Object.keys(layout).length,
+    });
 
     if (saveTimeout) {
       clearTimeout(saveTimeout);
     }
 
     const timeout = setTimeout(() => {
-      console.log('[useDashboardLayout] Auto-save triggered');
+      console.log('[METRICS-LAYOUT] 🚀 Auto-save DISPARADO após debounce');
       saveLayout();
     }, DEBOUNCE_SAVE_MS);
 
     setSaveTimeout(timeout);
 
     return () => {
-      if (timeout) clearTimeout(timeout);
+      if (timeout) {
+        console.log('[METRICS-LAYOUT] 🧹 Auto-save cancelado (novo layout incoming)');
+        clearTimeout(timeout);
+      }
     };
   }, [layout, isModified]);
 
