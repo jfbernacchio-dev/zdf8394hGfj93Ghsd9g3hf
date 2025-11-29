@@ -59,21 +59,15 @@ vi.mock("sonner", () => ({
   },
 }));
 
-// Mock do localStorage
-const localStorageMock: { [key: string]: string } = {};
-global.localStorage = {
-  getItem: vi.fn((key: string) => localStorageMock[key] || null),
-  setItem: vi.fn((key: string, value: string) => {
-    localStorageMock[key] = value;
-  }),
-  removeItem: vi.fn((key: string) => {
-    delete localStorageMock[key];
-  }),
-  clear: vi.fn(() => {
-    Object.keys(localStorageMock).forEach(key => delete localStorageMock[key]);
-  }),
-  key: vi.fn(),
-  length: 0,
+// LocalStorage já está mockado globalmente em setupTests.ts
+// Apenas criamos uma referência local para limpeza nos testes
+const getLocalStorageKeys = () => {
+  const keys: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key) keys.push(key);
+  }
+  return keys;
 };
 
 describe("useDashboardLayout - Inicialização", () => {

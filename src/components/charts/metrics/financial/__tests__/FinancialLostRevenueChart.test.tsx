@@ -8,6 +8,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/react';
 import { FinancialLostRevenueChart } from '../FinancialLostRevenueChart';
 import { mockRecharts } from '@/test-utils/mockRecharts';
+import { getLostRevenueByMonth } from '@/lib/systemMetricsUtils';
 
 // Mock Recharts
 mockRecharts();
@@ -63,9 +64,8 @@ describe('FinancialLostRevenueChart', () => {
   });
 
   it('exibe mensagem de "sem dados" quando sessions está vazio', () => {
-    // Forçar retorno vazio do mock
-    const { getLostRevenueByMonth } = require('@/lib/systemMetricsUtils');
-    getLostRevenueByMonth.mockReturnValueOnce([]);
+    // Mock retorna array vazio
+    vi.mocked(getLostRevenueByMonth).mockReturnValueOnce([]);
 
     const { getByText } = render(
       <FinancialLostRevenueChart

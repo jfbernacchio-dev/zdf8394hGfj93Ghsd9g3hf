@@ -12,9 +12,12 @@ export default defineConfig(({ mode }) => ({
   },
   test: {
     globals: true,
-    environment: 'jsdom', // ← Mudado de 'node' para 'jsdom' para suportar testes de componentes React
+    environment: 'jsdom',
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
-    setupFiles: ['./src/test/setup.ts'],
+    setupFiles: ['./src/test-utils/setupTests.ts'],
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
   },
   plugins: [
     react(), 
