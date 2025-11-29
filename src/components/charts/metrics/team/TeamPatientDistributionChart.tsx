@@ -22,15 +22,17 @@ import {
 } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import type { MetricsChartBaseProps } from '@/types/metricsChartTypes';
-import type { MetricsPatient } from '@/lib/systemMetricsUtils';
+import type { MetricsPatient, MetricsProfile } from '@/lib/systemMetricsUtils';
 
 interface TeamPatientDistributionChartProps extends MetricsChartBaseProps {
   patients: MetricsPatient[];
+  profiles: Record<string, MetricsProfile>;
   isLoading: boolean;
 }
 
 export function TeamPatientDistributionChart({ 
   patients,
+  profiles,
   isLoading, 
   periodFilter,
   timeScale
@@ -62,7 +64,7 @@ export function TeamPatientDistributionChart({
     // Calculate patient count for each therapist
     const data = therapistIds.map(userId => {
       const therapistPatients = activePatients.filter(p => p.user_id === userId);
-      const therapistName = therapistPatients[0]?.name?.split(' ')[0] || `Terapeuta ${userId.substring(0, 8)}`;
+      const therapistName = profiles[userId]?.full_name?.split(' ')[0] || `Terapeuta ${userId.substring(0, 8)}`;
 
       return {
         name: therapistName,
@@ -74,7 +76,7 @@ export function TeamPatientDistributionChart({
     .sort((a, b) => b.value - a.value);
 
     return data;
-  }, [patients]);
+  }, [patients, profiles]);
 
   if (distributionData.length === 0) {
     return (

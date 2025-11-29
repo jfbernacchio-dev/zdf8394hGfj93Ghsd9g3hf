@@ -25,17 +25,19 @@ import {
 } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import type { MetricsChartBaseProps } from '@/types/metricsChartTypes';
-import type { MetricsSession, MetricsPatient } from '@/lib/systemMetricsUtils';
+import type { MetricsSession, MetricsPatient, MetricsProfile } from '@/lib/systemMetricsUtils';
 
 interface TeamIndividualPerformanceChartProps extends MetricsChartBaseProps {
   sessions: MetricsSession[];
   patients: MetricsPatient[];
+  profiles: Record<string, MetricsProfile>;
   isLoading: boolean;
 }
 
 export function TeamIndividualPerformanceChart({ 
   sessions, 
   patients,
+  profiles,
   isLoading, 
   periodFilter,
   timeScale
@@ -63,9 +65,9 @@ export function TeamIndividualPerformanceChart({
 
     // Calculate metrics for each therapist
     const data = therapistIds.map(userId => {
-      // Get therapist name from first patient
+      // Get therapist name from profiles
       const therapistPatients = patients.filter(p => p.user_id === userId && p.status === 'active');
-      const therapistName = therapistPatients[0]?.name?.split(' ')[0] || `Terapeuta ${userId.substring(0, 8)}`;
+      const therapistName = profiles[userId]?.full_name?.split(' ')[0] || `Terapeuta ${userId.substring(0, 8)}`;
 
       // Calculate revenue and session count
       const therapistSessions = sessions.filter(s => {
@@ -91,7 +93,7 @@ export function TeamIndividualPerformanceChart({
     .sort((a, b) => b.revenue - a.revenue); // Sort by revenue descending
 
     return data;
-  }, [sessions, patients]);
+  }, [sessions, patients, profiles]);
 
   if (performanceData.length === 0) {
     return (

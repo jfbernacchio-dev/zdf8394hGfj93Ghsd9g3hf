@@ -25,17 +25,19 @@ import {
 } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import type { MetricsChartBaseProps } from '@/types/metricsChartTypes';
-import type { MetricsSession, MetricsPatient } from '@/lib/systemMetricsUtils';
+import type { MetricsSession, MetricsPatient, MetricsProfile } from '@/lib/systemMetricsUtils';
 
 interface TeamRevenueComparisonChartProps extends MetricsChartBaseProps {
   sessions: MetricsSession[];
   patients: MetricsPatient[];
+  profiles: Record<string, MetricsProfile>;
   isLoading: boolean;
 }
 
 export function TeamRevenueComparisonChart({ 
   sessions, 
   patients,
+  profiles,
   isLoading, 
   periodFilter,
   timeScale
@@ -64,7 +66,7 @@ export function TeamRevenueComparisonChart({
     // Calculate revenue for each therapist
     const data = therapistIds.map(userId => {
       const therapistPatients = patients.filter(p => p.user_id === userId && p.status === 'active');
-      const therapistName = therapistPatients[0]?.name?.split(' ')[0] || `Terapeuta ${userId.substring(0, 8)}`;
+      const therapistName = profiles[userId]?.full_name?.split(' ')[0] || `Terapeuta ${userId.substring(0, 8)}`;
 
       const therapistSessions = sessions.filter(s => {
         const patient = patients.find(p => p.id === s.patient_id);
@@ -90,7 +92,7 @@ export function TeamRevenueComparisonChart({
     .sort((a, b) => b.revenue - a.revenue);
 
     return data;
-  }, [sessions, patients]);
+  }, [sessions, patients, profiles]);
 
   if (revenueData.length === 0) {
     return (

@@ -66,7 +66,7 @@ export function TeamWorkloadChart({
     // Calculate weekly hours for each therapist
     const data = therapistIds.map(userId => {
       const therapistPatients = patients.filter(p => p.user_id === userId && p.status === 'active');
-      const therapistName = therapistPatients[0]?.name?.split(' ')[0] || `Terapeuta ${userId.substring(0, 8)}`;
+      const therapistName = profiles[userId]?.full_name?.split(' ')[0] || `Terapeuta ${userId.substring(0, 8)}`;
 
       // Calculate weekly hours from schedule blocks
       const therapistBlocks = scheduleBlocks.filter(b => b.user_id === userId);
