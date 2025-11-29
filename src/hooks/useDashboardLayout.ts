@@ -7,6 +7,7 @@ import type { DashboardGridLayout } from '@/lib/defaultLayoutDashboardExample';
 import { 
   DEFAULT_DASHBOARD_GRID_LAYOUT,
 } from '@/lib/defaultLayoutDashboardExample';
+import { DEFAULT_METRICS_LAYOUT } from '@/lib/defaultLayoutMetrics';
 import { findNextAvailablePosition } from '@/lib/gridLayoutUtils';
 
 /**
@@ -48,9 +49,6 @@ export const useDashboardLayout = (layoutType: string = 'dashboard-example-grid'
   // Determinar default layout baseado no layoutType
   const getDefaultLayout = useCallback((): DashboardGridLayout => {
     if (layoutType === 'metrics-grid') {
-      // Importar dinamicamente o layout de métricas
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const { DEFAULT_METRICS_LAYOUT } = require('@/lib/defaultLayoutMetrics');
       return DEFAULT_METRICS_LAYOUT;
     }
     return DEFAULT_DASHBOARD_GRID_LAYOUT;
