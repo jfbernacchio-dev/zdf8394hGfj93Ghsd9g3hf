@@ -92,6 +92,12 @@ export const routePermissions: RoutePermissionsConfig = {
     minimumAccess: 'read',
   },
   
+  '/metrics': {
+    blockedFor: ['accountant'],
+    requiresDomain: 'financial',
+    minimumAccess: 'read',
+  },
+  
   '/nfse/config': {
     blockedFor: ['accountant'],
     requiresDomain: 'financial',
