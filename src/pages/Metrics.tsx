@@ -72,6 +72,12 @@ import { FinancialWeeklyComparisonChart } from '@/components/charts/metrics/fina
 import { FinancialRevenueTrendChart } from '@/components/charts/metrics/financial/FinancialRevenueTrendChart';
 import { FinancialForecastVsActualChart } from '@/components/charts/metrics/financial/FinancialForecastVsActualChart';
 import { FinancialConversionRateChart } from '@/components/charts/metrics/financial/FinancialConversionRateChart';
+import { FinancialTicketComparisonChart } from '@/components/charts/metrics/financial/FinancialTicketComparisonChart';
+import { FinancialInactiveByMonthChart } from '@/components/charts/metrics/financial/FinancialInactiveByMonthChart';
+import { FinancialMissedByPatientChart } from '@/components/charts/metrics/financial/FinancialMissedByPatientChart';
+import { FinancialLostRevenueChart } from '@/components/charts/metrics/financial/FinancialLostRevenueChart';
+import { FinancialRetentionRateChart } from '@/components/charts/metrics/financial/FinancialRetentionRateChart';
+import { FinancialNewVsInactiveChart } from '@/components/charts/metrics/financial/FinancialNewVsInactiveChart';
 import { AdminRetentionChart } from '@/components/charts/metrics/administrative/AdminRetentionChart';
 import { AdminPerformanceChart } from '@/components/charts/metrics/administrative/AdminPerformanceChart';
 import { AdminDistributionsChart } from '@/components/charts/metrics/administrative/AdminDistributionsChart';
@@ -555,6 +561,13 @@ const Metrics = () => {
               periodFilter={periodFilter}
               timeScale={chartTimeScale}
             />
+            <FinancialTicketComparisonChart
+              sessions={metricsSessions}
+              patients={metricsPatients}
+              isLoading={cardsLoading}
+              periodFilter={periodFilter}
+              timeScale={chartTimeScale}
+            />
           </div>
         );
       }
@@ -576,6 +589,24 @@ const Metrics = () => {
             />
             <FinancialWeeklyComparisonChart
               trends={trends}
+              isLoading={cardsLoading}
+              periodFilter={periodFilter}
+              timeScale={chartTimeScale}
+            />
+            <FinancialInactiveByMonthChart
+              trends={trends}
+              isLoading={cardsLoading}
+              periodFilter={periodFilter}
+              timeScale={chartTimeScale}
+            />
+            <FinancialMissedByPatientChart
+              sessions={metricsSessions}
+              isLoading={cardsLoading}
+              periodFilter={periodFilter}
+              timeScale={chartTimeScale}
+            />
+            <FinancialLostRevenueChart
+              sessions={metricsSessions}
               isLoading={cardsLoading}
               periodFilter={periodFilter}
               timeScale={chartTimeScale}
@@ -608,6 +639,25 @@ const Metrics = () => {
             />
             <FinancialConversionRateChart
               trends={trends}
+              isLoading={cardsLoading}
+              periodFilter={periodFilter}
+              timeScale={chartTimeScale}
+            />
+          </div>
+        );
+      }
+      
+      if (subTabId === 'retencao') {
+        return (
+          <div className="grid gap-6">
+            <FinancialRetentionRateChart
+              patients={metricsPatients}
+              isLoading={cardsLoading}
+              periodFilter={periodFilter}
+              timeScale={chartTimeScale}
+            />
+            <FinancialNewVsInactiveChart
+              patients={metricsPatients}
               isLoading={cardsLoading}
               periodFilter={periodFilter}
               timeScale={chartTimeScale}
