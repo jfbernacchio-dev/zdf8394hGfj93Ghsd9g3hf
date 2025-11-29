@@ -61,10 +61,17 @@ import { MetricsWebsiteVisitorsCard } from '@/components/cards/metrics/marketing
 import { MetricsWebsiteConversionCard } from '@/components/cards/metrics/marketing/MetricsWebsiteConversionCard';
 import { MetricsWebsiteCTRCard } from '@/components/cards/metrics/marketing/MetricsWebsiteCTRCard';
 
-// Import chart components (FASE C3.7)
+// Import chart components (FASE C3.7 + C3-R.4)
 import { FinancialTrendsChart } from '@/components/charts/metrics/financial/FinancialTrendsChart';
 import { FinancialPerformanceChart } from '@/components/charts/metrics/financial/FinancialPerformanceChart';
 import { FinancialDistributionsChart } from '@/components/charts/metrics/financial/FinancialDistributionsChart';
+import { FinancialRevenueDistributionChart } from '@/components/charts/metrics/financial/FinancialRevenueDistributionChart';
+import { FinancialSessionStatusChart } from '@/components/charts/metrics/financial/FinancialSessionStatusChart';
+import { FinancialMonthlyPerformanceChart } from '@/components/charts/metrics/financial/FinancialMonthlyPerformanceChart';
+import { FinancialWeeklyComparisonChart } from '@/components/charts/metrics/financial/FinancialWeeklyComparisonChart';
+import { FinancialRevenueTrendChart } from '@/components/charts/metrics/financial/FinancialRevenueTrendChart';
+import { FinancialForecastVsActualChart } from '@/components/charts/metrics/financial/FinancialForecastVsActualChart';
+import { FinancialConversionRateChart } from '@/components/charts/metrics/financial/FinancialConversionRateChart';
 import { AdminRetentionChart } from '@/components/charts/metrics/administrative/AdminRetentionChart';
 import { AdminPerformanceChart } from '@/components/charts/metrics/administrative/AdminPerformanceChart';
 import { AdminDistributionsChart } from '@/components/charts/metrics/administrative/AdminDistributionsChart';
@@ -508,7 +515,7 @@ const Metrics = () => {
     );
   };
 
-  // Render chart content based on current domain and sub-tab (FASE C3-R.2)
+  // Render chart content based on current domain and sub-tab (FASE C3-R.2 + C3-R.4)
   // CRITICAL: timeScale is now computed at component level (currentTimeScale)
   const renderChartContent = (subTabId: string) => {
     // Get the specific timeScale for this chart
@@ -516,36 +523,85 @@ const Metrics = () => {
     
     // Financial domain
     if (currentDomain === 'financial') {
-      if (subTabId === 'tendencias') {
+      if (subTabId === 'distribuicoes') {
         return (
-          <FinancialTrendsChart
-            trends={trends}
-            isLoading={cardsLoading}
-            periodFilter={periodFilter}
-            timeScale={chartTimeScale}
-          />
+          <div className="grid gap-6">
+            <FinancialDistributionsChart
+              summary={summary}
+              isLoading={cardsLoading}
+              periodFilter={periodFilter}
+              timeScale={chartTimeScale}
+            />
+            <FinancialRevenueDistributionChart
+              summary={summary}
+              isLoading={cardsLoading}
+              periodFilter={periodFilter}
+              timeScale={chartTimeScale}
+            />
+            <FinancialSessionStatusChart
+              summary={summary}
+              isLoading={cardsLoading}
+              periodFilter={periodFilter}
+              timeScale={chartTimeScale}
+            />
+          </div>
         );
       }
       
       if (subTabId === 'desempenho') {
         return (
-          <FinancialPerformanceChart
-            trends={trends}
-            isLoading={cardsLoading}
-            periodFilter={periodFilter}
-            timeScale={chartTimeScale}
-          />
+          <div className="grid gap-6">
+            <FinancialPerformanceChart
+              trends={trends}
+              isLoading={cardsLoading}
+              periodFilter={periodFilter}
+              timeScale={chartTimeScale}
+            />
+            <FinancialMonthlyPerformanceChart
+              trends={trends}
+              isLoading={cardsLoading}
+              periodFilter={periodFilter}
+              timeScale={chartTimeScale}
+            />
+            <FinancialWeeklyComparisonChart
+              trends={trends}
+              isLoading={cardsLoading}
+              periodFilter={periodFilter}
+              timeScale={chartTimeScale}
+            />
+          </div>
         );
       }
       
-      if (subTabId === 'distribuicoes') {
+      if (subTabId === 'tendencias') {
         return (
-          <FinancialDistributionsChart
-            summary={summary}
-            isLoading={cardsLoading}
-            periodFilter={periodFilter}
-            timeScale={chartTimeScale}
-          />
+          <div className="grid gap-6">
+            <FinancialTrendsChart
+              trends={trends}
+              isLoading={cardsLoading}
+              periodFilter={periodFilter}
+              timeScale={chartTimeScale}
+            />
+            <FinancialRevenueTrendChart
+              trends={trends}
+              isLoading={cardsLoading}
+              periodFilter={periodFilter}
+              timeScale={chartTimeScale}
+            />
+            <FinancialForecastVsActualChart
+              trends={trends}
+              summary={summary}
+              isLoading={cardsLoading}
+              periodFilter={periodFilter}
+              timeScale={chartTimeScale}
+            />
+            <FinancialConversionRateChart
+              trends={trends}
+              isLoading={cardsLoading}
+              periodFilter={periodFilter}
+              timeScale={chartTimeScale}
+            />
+          </div>
         );
       }
     }
