@@ -223,18 +223,19 @@ describe('generateTimeIntervals', () => {
   });
 
   it('não gera intervalos futuros', () => {
+    const now = new Date();
     const futureDate = new Date();
     futureDate.setFullYear(futureDate.getFullYear() + 1);
     
     const intervals = generateTimeIntervals(
-      new Date(),
+      now,
       futureDate,
       'daily'
     );
     
-    // Último intervalo não deve ser maior que hoje
+    // Último intervalo não deve ser maior que o momento de captura
     const lastInterval = intervals[intervals.length - 1];
-    expect(lastInterval.getTime()).toBeLessThanOrEqual(new Date().getTime());
+    expect(lastInterval.getTime()).toBeLessThanOrEqual(now.getTime());
   });
 });
 

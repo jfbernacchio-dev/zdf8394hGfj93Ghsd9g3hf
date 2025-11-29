@@ -24,10 +24,10 @@ export const useChartTimeScale = ({ startDate, endDate }: UseChartTimeScaleProps
   const automaticScale = useMemo(() => {
     const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     
-    // ✅ FASE 2.4 - CORREÇÃO A.1: Ajustar lógica para < 91 dias
+    // ✅ FASE 2.4 - CORREÇÃO A.1: Ajustar lógica para <= 90 dias (≤ 3 meses)
     if (daysDiff < 15) {
       return 'daily' as TimeScale;
-    } else if (daysDiff < 91) {
+    } else if (daysDiff <= 90) {
       return 'weekly' as TimeScale;
     } else {
       return 'monthly' as TimeScale;
