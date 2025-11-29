@@ -75,6 +75,10 @@ import { FinancialConversionRateChart } from '@/components/charts/metrics/financ
 import { AdminRetentionChart } from '@/components/charts/metrics/administrative/AdminRetentionChart';
 import { AdminPerformanceChart } from '@/components/charts/metrics/administrative/AdminPerformanceChart';
 import { AdminDistributionsChart } from '@/components/charts/metrics/administrative/AdminDistributionsChart';
+import { AdminFrequencyDistributionChart } from '@/components/charts/metrics/administrative/AdminFrequencyDistributionChart';
+import { AdminAttendanceRateChart } from '@/components/charts/metrics/administrative/AdminAttendanceRateChart';
+import { AdminWeeklyOccupationChart } from '@/components/charts/metrics/administrative/AdminWeeklyOccupationChart';
+import { AdminChurnRetentionChart } from '@/components/charts/metrics/administrative/AdminChurnRetentionChart';
 import { MarketingWebsiteOverviewChart } from '@/components/charts/metrics/marketing/MarketingWebsiteOverviewChart';
 
 type Period = 'week' | 'month' | 'year' | 'custom';
@@ -606,38 +610,70 @@ const Metrics = () => {
       }
     }
 
-    // Administrative domain
+    // Administrative domain (FASE C3-R.5)
     if (currentDomain === 'administrative') {
-      if (subTabId === 'retencao') {
+      if (subTabId === 'distribuicoes') {
         return (
-          <AdminRetentionChart
-            retention={retention}
-            isLoading={cardsLoading}
-            periodFilter={periodFilter}
-            timeScale={chartTimeScale}
-          />
+          <div className="grid gap-6">
+            <AdminDistributionsChart
+              summary={summary}
+              isLoading={cardsLoading}
+              periodFilter={periodFilter}
+              timeScale={chartTimeScale}
+            />
+            <AdminFrequencyDistributionChart
+              patients={metricsPatients}
+              isLoading={cardsLoading}
+              periodFilter={periodFilter}
+              timeScale={chartTimeScale}
+            />
+          </div>
         );
       }
       
       if (subTabId === 'desempenho') {
         return (
-          <AdminPerformanceChart
-            trends={trends}
-            isLoading={cardsLoading}
-            periodFilter={periodFilter}
-            timeScale={chartTimeScale}
-          />
+          <div className="grid gap-6">
+            <AdminPerformanceChart
+              trends={trends}
+              isLoading={cardsLoading}
+              periodFilter={periodFilter}
+              timeScale={chartTimeScale}
+            />
+            <AdminAttendanceRateChart
+              trends={trends}
+              isLoading={cardsLoading}
+              periodFilter={periodFilter}
+              timeScale={chartTimeScale}
+            />
+            <AdminWeeklyOccupationChart
+              trends={trends}
+              profile={metricsProfile}
+              scheduleBlocks={metricsScheduleBlocks}
+              isLoading={cardsLoading}
+              periodFilter={periodFilter}
+              timeScale={chartTimeScale}
+            />
+          </div>
         );
       }
       
-      if (subTabId === 'distribuicoes') {
+      if (subTabId === 'retencao') {
         return (
-          <AdminDistributionsChart
-            summary={summary}
-            isLoading={cardsLoading}
-            periodFilter={periodFilter}
-            timeScale={chartTimeScale}
-          />
+          <div className="grid gap-6">
+            <AdminRetentionChart
+              retention={retention}
+              isLoading={cardsLoading}
+              periodFilter={periodFilter}
+              timeScale={chartTimeScale}
+            />
+            <AdminChurnRetentionChart
+              retention={retention}
+              isLoading={cardsLoading}
+              periodFilter={periodFilter}
+              timeScale={chartTimeScale}
+            />
+          </div>
         );
       }
     }
