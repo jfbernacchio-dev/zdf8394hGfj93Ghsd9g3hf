@@ -9,13 +9,14 @@ import { getUserIdsInOrganization } from '@/lib/organizationFilters';
  * HOOK: useTeamData
  * ============================================================================
  * 
- * Hook para gerenciar dados dos subordinados (equipe).
- * Filtra pacientes e sessões baseado nos IDs dos subordinados.
+ * Hook para obter IDs dos subordinados (equipe).
+ * NÃO faz queries de pacientes/sessões - apenas retorna subordinateIds.
+ * 
+ * Os dados de equipe devem ser derivados em memória filtrando
+ * os dados globais por subordinateIds (padrão Financial.tsx).
  * 
  * RETORNA:
- * - teamPatients: Pacientes dos subordinados
- * - teamSessions: Sessões dos subordinados
- * - subordinateIds: IDs dos subordinados
+ * - subordinateIds: IDs dos subordinados (excluindo user.id)
  * - loading: Estado de carregamento
  * 
  * ============================================================================
@@ -24,8 +25,6 @@ import { getUserIdsInOrganization } from '@/lib/organizationFilters';
 export function useTeamData() {
   const { user, organizationId } = useAuth();
   const [subordinateIds, setSubordinateIds] = useState<string[]>([]);
-  const [teamPatients, setTeamPatients] = useState<any[]>([]);
-  const [teamSessions, setTeamSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -49,51 +48,12 @@ export function useTeamData() {
           domain: 'team',
         });
 
-        setSubordinateIds(visibleUserIds.filter(id => id !== user.id));
-
-        if (visibleUserIds.length <= 1) {
-          setTeamPatients([]);
-          setTeamSessions([]);
-          setLoading(false);
-          return;
-        }
-
-        // Buscar pacientes dos usuários visíveis
-        const { data: patientsData, error: patientsError } = await supabase
-          .from('patients')
-          .select('*')
-          .in('user_id', visibleUserIds)
-          .eq('organization_id', organizationId);
-
-        if (patientsError) {
-          console.error('[useTeamData] Erro ao buscar pacientes:', patientsError);
-          throw patientsError;
-        }
-
-        setTeamPatients(patientsData || []);
-
-        // Buscar sessões desses pacientes
-        if (patientsData && patientsData.length > 0) {
-          const patientIds = patientsData.map((p: any) => p.id);
-          
-          const { data: sessionsData, error: sessionsError } = await supabase
-            .from('sessions')
-            .select('*')
-            .in('patient_id', patientIds)
-            .eq('organization_id', organizationId);
-
-          if (sessionsError) {
-            console.error('[useTeamData] Erro ao buscar sessões:', sessionsError);
-            throw sessionsError;
-          }
-
-          setTeamSessions(sessionsData || []);
-        } else {
-          setTeamSessions([]);
-        }
+        // 🔥 CORREÇÃO 1: Filtrar user.id ANTES (não fazer query)
+        const subordinateIdsOnly = visibleUserIds.filter(id => id !== user.id);
+        setSubordinateIds(subordinateIdsOnly);
 
       } catch (error) {
-        console.error('[useTeamData] Erro ao carregar dados da equipe:', error);
+        console.error('[useTeamData] Erro ao carregar subordinateIds:', error);
       } finally {
         setLoading(false);
       }
@@ -103,8 +63,6 @@ export function useTeamData() {
   }, [user, organizationId]);
 
   return {
-    teamPatients,
-    teamSessions,
     subordinateIds,
     loading,
   };
