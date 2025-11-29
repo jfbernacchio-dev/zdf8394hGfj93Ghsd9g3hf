@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import { eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export type TimeScale = 'daily' | 'weekly' | 'monthly';
@@ -23,7 +23,8 @@ export const useChartTimeScale = ({ startDate, endDate }: UseChartTimeScaleProps
   const automaticScale = useMemo(() => {
     const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     
-    if (daysDiff <= 14) {
+    // ✅ FASE 2.3 - CORREÇÃO B.1: Ajustar lógica para 90 dias
+    if (daysDiff < 15) {
       return 'daily' as TimeScale;
     } else if (daysDiff <= 90) {
       return 'weekly' as TimeScale;
@@ -67,6 +68,7 @@ export const useChartTimeScale = ({ startDate, endDate }: UseChartTimeScaleProps
 
 /**
  * Gera intervalos de tempo baseado na escala, filtrando períodos sem dados e futuros
+ * ✅ FASE 2.2 - CORREÇÃO B.2 e B.4: Normalizar datas e corrigir geração de intervalos
  */
 export const generateTimeIntervals = (
   startDate: Date,
@@ -76,17 +78,21 @@ export const generateTimeIntervals = (
   const now = new Date();
   const effectiveEndDate = endDate > now ? now : endDate;
   
+  // Normalizar datas para evitar problemas de timezone
+  const normalizedStart = startOfDay(startDate);
+  const normalizedEnd = startOfDay(effectiveEndDate);
+  
   let intervals: Date[];
   
   switch (scale) {
     case 'daily':
-      intervals = eachDayOfInterval({ start: startDate, end: effectiveEndDate });
+      intervals = eachDayOfInterval({ start: normalizedStart, end: normalizedEnd });
       break;
     case 'weekly':
-      intervals = eachWeekOfInterval({ start: startDate, end: effectiveEndDate }, { weekStartsOn: 0 });
+      intervals = eachWeekOfInterval({ start: normalizedStart, end: normalizedEnd }, { weekStartsOn: 0 });
       break;
     case 'monthly':
-      intervals = eachMonthOfInterval({ start: startDate, end: effectiveEndDate });
+      intervals = eachMonthOfInterval({ start: normalizedStart, end: normalizedEnd });
       break;
   }
   
@@ -95,20 +101,24 @@ export const generateTimeIntervals = (
 
 /**
  * Formata a label do eixo X baseado na escala
+ * ✅ FASE 2.3 - CORREÇÃO B.3: Normalizar data antes de formatar
  */
 export const formatTimeLabel = (date: Date, scale: TimeScale): string => {
+  // Normalizar data para evitar problemas de timezone
+  const normalized = startOfDay(date);
+  
   switch (scale) {
     case 'daily':
-      return format(date, 'dd/MM', { locale: ptBR });
+      return format(normalized, 'dd/MM', { locale: ptBR });
     case 'weekly': {
       // Calcula a semana do mês (1ª, 2ª, 3ª, etc)
-      const dayOfMonth = date.getDate();
+      const dayOfMonth = normalized.getDate();
       const weekOfMonth = Math.ceil(dayOfMonth / 7);
-      const monthAbbr = format(date, 'MMM', { locale: ptBR });
+      const monthAbbr = format(normalized, 'MMM', { locale: ptBR });
       return `${weekOfMonth}ª/${monthAbbr}`;
     }
     case 'monthly':
-      return format(date, 'MMM/yy', { locale: ptBR });
+      return format(normalized, 'MMM/yy', { locale: ptBR });
   }
 };
 
