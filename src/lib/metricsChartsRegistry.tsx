@@ -1,12 +1,12 @@
 /**
  * ============================================================================
- * METRICS CHARTS REGISTRY - FASE 2
+ * METRICS CHARTS REGISTRY - FASE 3
  * ============================================================================
  * 
  * Registry centralizado de todos os gráficos disponíveis na página /metrics
  * Permite gerenciar quais gráficos aparecem na visão detalhada, por domínio
  * 
- * FASE 2: Sem categorias intermediárias ainda (isso é FASE 3)
+ * FASE 3: Com categorias intermediárias para melhor organização
  * ============================================================================
  */
 
@@ -53,17 +53,27 @@ import { TeamAttendanceByTherapistChart } from '@/components/charts/metrics/team
 export type MetricsChartDomain = 'financial' | 'administrative' | 'marketing' | 'team';
 
 /**
- * Definição de um gráfico de métricas
+ * Categorias de gráficos (FASE 3)
+ */
+export type MetricsChartCategory =
+  | 'distribution'   // Distribuições: histogramas, percentuais, distribuição de valores
+  | 'performance'    // Desempenho: produtividade, métricas de performance
+  | 'trend'          // Tendências: séries temporais, evolução ao longo do tempo
+  | 'retention'      // Retenção: churn, retorno de pacientes
+  | 'website';       // Website: tráfego, conversão, CTR
+
+/**
+ * Definição de um gráfico de métricas (FASE 3: category agora obrigatória)
  */
 export interface MetricsChartDefinition {
   id: string;
   domain: MetricsChartDomain;
   subTab: string; // qual sub-aba este chart pertence (ex: 'distribuicoes', 'desempenho', 'tendencias', etc)
+  category: MetricsChartCategory; // FASE 3: categoria para organização no dialog
   title: string;
   description: string;
   component: ComponentType<any>;
   defaultEnabled: boolean; // Se deve aparecer por padrão
-  // category será adicionado na FASE 3
 }
 
 // ============================================================
@@ -80,6 +90,7 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     id: 'financial-distributions-chart',
     domain: 'financial',
     subTab: 'distribuicoes',
+    category: 'distribution',
     title: 'Distribuição de Sessões',
     description: 'Visão geral da distribuição de sessões por status',
     component: FinancialDistributionsChart,
@@ -89,6 +100,7 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     id: 'financial-revenue-distribution-chart',
     domain: 'financial',
     subTab: 'distribuicoes',
+    category: 'distribution',
     title: 'Distribuição de Receita',
     description: 'Como a receita está distribuída entre diferentes categorias',
     component: FinancialRevenueDistributionChart,
@@ -98,6 +110,7 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     id: 'financial-session-status-chart',
     domain: 'financial',
     subTab: 'distribuicoes',
+    category: 'distribution',
     title: 'Status de Sessões',
     description: 'Quantidade de sessões por status (realizadas, faltadas, etc)',
     component: FinancialSessionStatusChart,
@@ -107,6 +120,7 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     id: 'financial-ticket-comparison-chart',
     domain: 'financial',
     subTab: 'distribuicoes',
+    category: 'distribution',
     title: 'Comparação de Ticket Médio',
     description: 'Compara o valor do ticket médio ao longo do período',
     component: FinancialTicketComparisonChart,
@@ -118,6 +132,7 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     id: 'financial-performance-chart',
     domain: 'financial',
     subTab: 'desempenho',
+    category: 'performance',
     title: 'Desempenho Financeiro',
     description: 'Métricas principais de desempenho financeiro',
     component: FinancialPerformanceChart,
@@ -127,6 +142,7 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     id: 'financial-monthly-performance-chart',
     domain: 'financial',
     subTab: 'desempenho',
+    category: 'performance',
     title: 'Desempenho Mensal',
     description: 'Performance financeira agregada por mês',
     component: FinancialMonthlyPerformanceChart,
@@ -136,6 +152,7 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     id: 'financial-weekly-comparison-chart',
     domain: 'financial',
     subTab: 'desempenho',
+    category: 'performance',
     title: 'Comparação Semanal',
     description: 'Compara o desempenho entre semanas',
     component: FinancialWeeklyComparisonChart,
@@ -145,6 +162,7 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     id: 'financial-inactive-by-month-chart',
     domain: 'financial',
     subTab: 'desempenho',
+    category: 'performance',
     title: 'Inativos por Mês',
     description: 'Quantidade de pacientes inativos ao longo dos meses',
     component: FinancialInactiveByMonthChart,
@@ -154,6 +172,7 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     id: 'financial-missed-by-patient-chart',
     domain: 'financial',
     subTab: 'desempenho',
+    category: 'performance',
     title: 'Faltas por Paciente',
     description: 'Ranking de pacientes com mais faltas',
     component: FinancialMissedByPatientChart,
@@ -163,6 +182,7 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     id: 'financial-lost-revenue-chart',
     domain: 'financial',
     subTab: 'desempenho',
+    category: 'performance',
     title: 'Receita Perdida',
     description: 'Valor de receita perdida por faltas e cancelamentos',
     component: FinancialLostRevenueChart,
@@ -174,6 +194,7 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     id: 'financial-trends-chart',
     domain: 'financial',
     subTab: 'tendencias',
+    category: 'trend',
     title: 'Tendências Financeiras',
     description: 'Evolução das principais métricas financeiras ao longo do tempo',
     component: FinancialTrendsChart,
@@ -183,6 +204,7 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     id: 'financial-revenue-trend-chart',
     domain: 'financial',
     subTab: 'tendencias',
+    category: 'trend',
     title: 'Tendência de Receita',
     description: 'Evolução da receita no período selecionado',
     component: FinancialRevenueTrendChart,
@@ -192,6 +214,7 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     id: 'financial-forecast-vs-actual-chart',
     domain: 'financial',
     subTab: 'tendencias',
+    category: 'trend',
     title: 'Previsto vs Realizado',
     description: 'Comparação entre receita prevista e receita realizada',
     component: FinancialForecastVsActualChart,
@@ -201,6 +224,7 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     id: 'financial-conversion-rate-chart',
     domain: 'financial',
     subTab: 'tendencias',
+    category: 'trend',
     title: 'Taxa de Conversão',
     description: 'Evolução da taxa de conversão de pacientes',
     component: FinancialConversionRateChart,
@@ -210,6 +234,7 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     id: 'financial-top-patients-chart',
     domain: 'financial',
     subTab: 'tendencias',
+    category: 'trend',
     title: 'Top Pacientes',
     description: 'Pacientes que mais contribuem para a receita',
     component: FinancialTopPatientsChart,
@@ -221,6 +246,7 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     id: 'financial-retention-rate-chart',
     domain: 'financial',
     subTab: 'retencao',
+    category: 'retention',
     title: 'Taxa de Retenção',
     description: 'Porcentagem de pacientes retidos ao longo do tempo',
     component: FinancialRetentionRateChart,
@@ -230,6 +256,7 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     id: 'financial-new-vs-inactive-chart',
     domain: 'financial',
     subTab: 'retencao',
+    category: 'retention',
     title: 'Novos vs Inativos',
     description: 'Comparação entre pacientes novos e inativos',
     component: FinancialNewVsInactiveChart,
@@ -245,6 +272,7 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     id: 'admin-distributions-chart',
     domain: 'administrative',
     subTab: 'distribuicoes',
+    category: 'distribution',
     title: 'Distribuição de Sessões',
     description: 'Visão geral da distribuição de sessões administrativas',
     component: AdminDistributionsChart,
@@ -254,6 +282,7 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     id: 'admin-frequency-distribution-chart',
     domain: 'administrative',
     subTab: 'distribuicoes',
+    category: 'distribution',
     title: 'Distribuição de Frequência',
     description: 'Como os pacientes estão distribuídos por frequência de sessões',
     component: AdminFrequencyDistributionChart,
@@ -265,6 +294,7 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     id: 'admin-performance-chart',
     domain: 'administrative',
     subTab: 'desempenho',
+    category: 'performance',
     title: 'Desempenho Administrativo',
     description: 'Métricas principais de desempenho administrativo',
     component: AdminPerformanceChart,
@@ -274,6 +304,7 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     id: 'admin-attendance-rate-chart',
     domain: 'administrative',
     subTab: 'desempenho',
+    category: 'performance',
     title: 'Taxa de Comparecimento',
     description: 'Porcentagem de sessões com comparecimento',
     component: AdminAttendanceRateChart,
@@ -283,6 +314,7 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     id: 'admin-weekly-occupation-chart',
     domain: 'administrative',
     subTab: 'desempenho',
+    category: 'performance',
     title: 'Ocupação Semanal',
     description: 'Taxa de ocupação da agenda ao longo da semana',
     component: AdminWeeklyOccupationChart,
@@ -294,6 +326,7 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     id: 'admin-retention-chart',
     domain: 'administrative',
     subTab: 'retencao',
+    category: 'retention',
     title: 'Retenção de Pacientes',
     description: 'Análise de retenção e churn de pacientes',
     component: AdminRetentionChart,
@@ -303,6 +336,7 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     id: 'admin-churn-retention-chart',
     domain: 'administrative',
     subTab: 'retencao',
+    category: 'retention',
     title: 'Churn vs Retenção',
     description: 'Comparação detalhada entre churn e retenção',
     component: AdminChurnRetentionChart,
@@ -318,6 +352,7 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     id: 'marketing-website-overview-chart',
     domain: 'marketing',
     subTab: 'website',
+    category: 'website',
     title: 'Visão Geral do Website',
     description: 'Métricas principais do website e conversão',
     component: MarketingWebsiteOverviewChart,
@@ -333,6 +368,7 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     id: 'team-individual-performance-chart',
     domain: 'team',
     subTab: 'desempenho',
+    category: 'performance',
     title: 'Desempenho Individual',
     description: 'Métricas de desempenho de cada membro da equipe',
     component: TeamIndividualPerformanceChart,
@@ -342,6 +378,7 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     id: 'team-revenue-comparison-chart',
     domain: 'team',
     subTab: 'desempenho',
+    category: 'performance',
     title: 'Comparação de Receita',
     description: 'Compara a receita gerada por cada membro',
     component: TeamRevenueComparisonChart,
@@ -353,6 +390,7 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     id: 'team-patient-distribution-chart',
     domain: 'team',
     subTab: 'distribuicoes',
+    category: 'distribution',
     title: 'Distribuição de Pacientes',
     description: 'Como os pacientes estão distribuídos entre os membros',
     component: TeamPatientDistributionChart,
@@ -362,6 +400,7 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     id: 'team-workload-chart',
     domain: 'team',
     subTab: 'distribuicoes',
+    category: 'distribution',
     title: 'Carga de Trabalho',
     description: 'Distribuição da carga de trabalho entre os membros',
     component: TeamWorkloadChart,
@@ -373,6 +412,7 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     id: 'team-monthly-evolution-chart',
     domain: 'team',
     subTab: 'retencao',
+    category: 'retention',
     title: 'Evolução Mensal',
     description: 'Evolução das métricas da equipe ao longo dos meses',
     component: TeamMonthlyEvolutionChart,
@@ -382,6 +422,7 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     id: 'team-occupation-by-member-chart',
     domain: 'team',
     subTab: 'retencao',
+    category: 'retention',
     title: 'Ocupação por Membro',
     description: 'Taxa de ocupação individual de cada membro',
     component: TeamOccupationByMemberChart,
@@ -391,6 +432,7 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     id: 'team-attendance-by-therapist-chart',
     domain: 'team',
     subTab: 'retencao',
+    category: 'retention',
     title: 'Comparecimento por Terapeuta',
     description: 'Taxa de comparecimento de cada terapeuta',
     component: TeamAttendanceByTherapistChart,
@@ -449,4 +491,51 @@ export function getDefaultEnabledChartIds(domain: MetricsChartDomain): string[] 
  */
 export function isValidChartId(chartId: string): boolean {
   return chartId in METRICS_CHART_REGISTRY;
+}
+
+// ============================================================
+// FASE 3: CATEGORIAS
+// ============================================================
+
+/**
+ * Labels em português para as categorias de gráficos
+ */
+export const CATEGORY_LABELS: Record<MetricsChartCategory, string> = {
+  distribution: 'Distribuições',
+  performance: 'Desempenho',
+  trend: 'Tendências',
+  retention: 'Retenção',
+  website: 'Website',
+};
+
+/**
+ * Retorna as categorias disponíveis para um domínio
+ * (FASE 3)
+ */
+export function getMetricsChartCategoriesForDomain(domain: MetricsChartDomain): MetricsChartCategory[] {
+  switch (domain) {
+    case 'financial':
+      return ['distribution', 'performance', 'trend', 'retention'];
+    case 'administrative':
+      return ['distribution', 'performance', 'retention'];
+    case 'marketing':
+      return ['website'];
+    case 'team':
+      return ['performance', 'distribution', 'retention'];
+    default:
+      return [];
+  }
+}
+
+/**
+ * Retorna gráficos filtrados por domínio e categoria
+ * (FASE 3)
+ */
+export function getMetricsChartsByDomainAndCategory(
+  domain: MetricsChartDomain,
+  category: MetricsChartCategory
+): MetricsChartDefinition[] {
+  return Object.values(METRICS_CHART_REGISTRY).filter(
+    (chart) => chart.domain === domain && chart.category === category
+  );
 }
