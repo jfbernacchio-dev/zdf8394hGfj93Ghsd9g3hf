@@ -1,4 +1,4 @@
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Users } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -7,7 +7,7 @@ import type { MockMetricsCardProps } from '@/types/metricsCardTypes';
 export function MetricsWebsiteVisitorsCard({ isLoading, className }: MockMetricsCardProps) {
   if (isLoading) {
     return (
-      <Card className={className}>
+      <>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <Skeleton className="h-4 w-24" />
           <Skeleton className="h-4 w-4 rounded-full" />
@@ -16,14 +16,14 @@ export function MetricsWebsiteVisitorsCard({ isLoading, className }: MockMetrics
           <Skeleton className="h-8 w-32" />
           <Skeleton className="h-3 w-24 mt-2" />
         </CardContent>
-      </Card>
+      </>
     );
   }
 
   const mockValue = 542;
 
   return (
-    <Card className={className}>
+    <>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">Visitantes (exemplo)</CardTitle>
         <Users className="h-4 w-4 text-muted-foreground" />
@@ -36,6 +36,6 @@ export function MetricsWebsiteVisitorsCard({ isLoading, className }: MockMetrics
           </AlertDescription>
         </Alert>
       </CardContent>
-    </Card>
+    </>
   );
 }
