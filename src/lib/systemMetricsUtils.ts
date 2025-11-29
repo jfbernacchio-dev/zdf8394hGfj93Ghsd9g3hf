@@ -25,6 +25,67 @@ const normalizeToUTC = (date: Date): Date => {
 };
 
 // ============================================================
+// HELPER FUNCTIONS (FIXED C3-FINANCE)
+// ============================================================
+
+/**
+ * Divisão segura que retorna fallback em caso de divisor zero
+ * FIXED C3-FINANCE: Proteção contra NaN
+ */
+const safeDivide = (numerator: number, denominator: number, fallback: number = 0): number => {
+  if (denominator === 0 || !isFinite(denominator) || !isFinite(numerator)) {
+    return fallback;
+  }
+  const result = numerator / denominator;
+  return isFinite(result) ? result : fallback;
+};
+
+/**
+ * Formata número como percentual com uma casa decimal
+ * FIXED C3-FINANCE: Padronização de formato de percentuais
+ */
+const formatPercent = (value: number): string => {
+  if (!isFinite(value) || isNaN(value)) {
+    return '0.0%';
+  }
+  return `${value.toFixed(1)}%`;
+};
+
+/**
+ * Filtra sessões visíveis (não ocultas da agenda)
+ * FIXED C3-FINANCE: Garantir que sessões ocultas nunca entram nos cálculos
+ */
+const filterVisibleSessions = (sessions: MetricsSession[]): MetricsSession[] => {
+  return sessions.filter(s => s.show_in_schedule !== false);
+};
+
+/**
+ * Soma receita de sessões, ignorando sessões ocultas
+ * FIXED C3-FINANCE: Garantir que hidden sessions não impactam receita
+ */
+const sumRevenue = (sessions: MetricsSession[], patients: MetricsPatient[]): number => {
+  const visibleSessions = filterVisibleSessions(sessions).filter(s => s.status === 'attended');
+  const monthlyPatientsTracked = new Map<string, Set<string>>();
+  
+  return visibleSessions.reduce((sum, s) => {
+    const patient = patients.find(p => p.id === s.patient_id);
+    if (patient?.monthly_price) {
+      const monthKey = format(parseISO(s.date), 'yyyy-MM');
+      if (!monthlyPatientsTracked.has(s.patient_id)) {
+        monthlyPatientsTracked.set(s.patient_id, new Set());
+      }
+      const months = monthlyPatientsTracked.get(s.patient_id)!;
+      if (!months.has(monthKey)) {
+        months.add(monthKey);
+        return sum + Number(s.value);
+      }
+      return sum;
+    }
+    return sum + Number(s.value);
+  }, 0);
+};
+
+// ============================================================
 // TIPOS
 // ============================================================
 
@@ -308,8 +369,8 @@ export const getMissedRate = (params: {
 }> => {
   const { sessions, start, end } = params;
   
-  // Only visible sessions
-  const visibleSessions = sessions.filter(s => s.show_in_schedule !== false);
+  // FIXED C3-FINANCE: Usar helper para filtrar sessões visíveis
+  const visibleSessions = filterVisibleSessions(sessions);
   
   // ✅ FASE 2.4 - CORREÇÃO B.6: Normalizar para UTC
   const months = eachMonthOfInterval({ 
@@ -328,7 +389,8 @@ export const getMissedRate = (params: {
 
     const missed = monthSessions.filter(s => s.status === 'missed').length;
     const total = monthSessions.length;
-    const rate = total > 0 ? (missed / total) * 100 : 0;
+    // FIXED C3-FINANCE: Usar safeDivide
+    const rate = safeDivide(missed, total, 0) * 100;
 
     return {
       month: format(month, 'MMM/yy', { locale: ptBR }),
@@ -398,7 +460,8 @@ export const getAvgRevenuePerPatient = (params: {
     .map(([name, data]) => ({
       name,
       faturamento: data.revenue,
-      media: data.sessions > 0 ? data.revenue / data.sessions : 0,
+      // FIXED C3-FINANCE: Usar safeDivide
+      media: safeDivide(data.revenue, data.sessions, 0),
       sessoes: data.sessions,
     }))
     .sort((a, b) => b.faturamento - a.faturamento)
@@ -416,26 +479,8 @@ export const calculateTotalRevenue = (params: {
   patients: MetricsPatient[];
 }): number => {
   const { sessions, patients } = params;
-  const monthlyPatientsTracked = new Map<string, Set<string>>();
-  
-  return sessions
-    .filter(s => s.status === 'attended')
-    .reduce((sum, s) => {
-      const patient = patients.find(p => p.id === s.patient_id);
-      if (patient?.monthly_price) {
-        const monthKey = format(parseISO(s.date), 'yyyy-MM');
-        if (!monthlyPatientsTracked.has(s.patient_id)) {
-          monthlyPatientsTracked.set(s.patient_id, new Set());
-        }
-        const months = monthlyPatientsTracked.get(s.patient_id)!;
-        if (!months.has(monthKey)) {
-          months.add(monthKey);
-          return sum + Number(s.value);
-        }
-        return sum;
-      }
-      return sum + Number(s.value);
-    }, 0);
+  // FIXED C3-FINANCE: Usar helper que já filtra sessões visíveis
+  return sumRevenue(sessions, patients);
 };
 
 /**
@@ -460,7 +505,8 @@ export const calculateMissedSessions = (params: {
   sessions: MetricsSession[];
 }): number => {
   const { sessions } = params;
-  const visibleSessions = sessions.filter(s => s.show_in_schedule !== false);
+  // FIXED C3-FINANCE: Usar helper para filtrar sessões visíveis
+  const visibleSessions = filterVisibleSessions(sessions);
   return visibleSessions.filter(s => s.status === 'missed').length;
 };
 
@@ -474,12 +520,13 @@ export const calculateMissedRatePercentage = (params: {
   sessions: MetricsSession[];
 }): string => {
   const { sessions } = params;
-  const visibleSessions = sessions.filter(s => s.show_in_schedule !== false);
+  // FIXED C3-FINANCE: Usar helper para filtrar sessões visíveis
+  const visibleSessions = filterVisibleSessions(sessions);
   const missedSessions = visibleSessions.filter(s => s.status === 'missed').length;
   
-  return visibleSessions.length > 0 
-    ? ((missedSessions / visibleSessions.length) * 100).toFixed(1) 
-    : '0.0';
+  // FIXED C3-FINANCE: Retornar string formatada com "%"
+  const rate = safeDivide(missedSessions, visibleSessions.length, 0) * 100;
+  return formatPercent(rate);
 };
 
 /**
@@ -492,7 +539,8 @@ export const calculateAvgPerSession = (params: {
   totalSessions: number;
 }): number => {
   const { totalRevenue, totalSessions } = params;
-  return totalSessions > 0 ? totalRevenue / totalSessions : 0;
+  // FIXED C3-FINANCE: Usar safeDivide
+  return safeDivide(totalRevenue, totalSessions, 0);
 };
 
 /**
@@ -517,7 +565,8 @@ export const getMissedByPatient = (params: {
   sessions: MetricsSession[];
 }): Array<{ name: string; faltas: number }> => {
   const { sessions } = params;
-  const visibleSessions = sessions.filter(s => s.show_in_schedule !== false);
+  // FIXED C3-FINANCE: Usar helper para filtrar sessões visíveis
+  const visibleSessions = filterVisibleSessions(sessions);
   const patientMissed = new Map<string, number>();
   
   visibleSessions.forEach(session => {
@@ -543,7 +592,8 @@ export const getMissedDistribution = (params: {
   sessions: MetricsSession[];
 }): Array<{ name: string; value: number }> => {
   const { sessions } = params;
-  const visibleSessions = sessions.filter(s => s.show_in_schedule !== false);
+  // FIXED C3-FINANCE: Usar helper para filtrar sessões visíveis
+  const visibleSessions = filterVisibleSessions(sessions);
   const patientMissed = new Map<string, number>();
   
   visibleSessions.forEach(session => {
@@ -569,7 +619,8 @@ export const calculateLostRevenue = (params: {
   sessions: MetricsSession[];
 }): number => {
   const { sessions } = params;
-  const visibleSessions = sessions.filter(s => s.show_in_schedule !== false);
+  // FIXED C3-FINANCE: Usar helper para filtrar sessões visíveis
+  const visibleSessions = filterVisibleSessions(sessions);
   
   return visibleSessions
     .filter(s => s.status === 'missed')
@@ -586,7 +637,8 @@ export const calculateAvgRevenuePerActivePatient = (params: {
   activePatients: number;
 }): number => {
   const { totalRevenue, activePatients } = params;
-  return activePatients > 0 ? totalRevenue / activePatients : 0;
+  // FIXED C3-FINANCE: Usar safeDivide
+  return safeDivide(totalRevenue, activePatients, 0);
 };
 
 /**
@@ -600,17 +652,34 @@ export const getForecastRevenue = (params: {
 }): number => {
   const { patients } = params;
   
+  // FIXED C3-FINANCE: Calcular forecast de mensalistas corretamente
+  // Mensalistas: 1 sessão por mês (já está no session_value)
   const monthlyTotal = patients
     .filter(p => p.status === 'active' && p.monthly_price)
     .reduce((sum, p) => sum + Number(p.session_value), 0);
   
+  // FIXED C3-FINANCE: Usar média real de sessões por mês
+  // Weekly: 4.33 sessões/mês (52 semanas / 12 meses)
+  // Biweekly: 2.165 sessões/mês (26 sessões / 12 meses)
   const weeklyPatients = patients.filter(p => p.status === 'active' && !p.monthly_price);
   const weeklyTotal = weeklyPatients.reduce((sum, p) => {
-    const frequency = p.frequency === 'weekly' ? 4 : p.frequency === 'biweekly' ? 2 : 0;
-    return sum + (Number(p.session_value) * frequency);
+    let frequency = 0;
+    if (p.frequency === 'weekly') {
+      frequency = 4.33; // Média real de semanas por mês
+    } else if (p.frequency === 'biweekly') {
+      frequency = 2.165; // Média real de quinzenas por mês
+    }
+    // FIXED C3-FINANCE: Proteger contra valores inválidos
+    const sessionValue = Number(p.session_value);
+    if (isFinite(sessionValue) && sessionValue > 0) {
+      return sum + (sessionValue * frequency);
+    }
+    return sum;
   }, 0);
 
-  return monthlyTotal + weeklyTotal;
+  // FIXED C3-FINANCE: Garantir retorno válido
+  const total = monthlyTotal + weeklyTotal;
+  return isFinite(total) ? total : 0;
 };
 
 /**
@@ -683,8 +752,8 @@ export const calculateOccupationRate = (params: {
   // Available slots minus blocked slots (denominador fixo baseado no horário de trabalho)
   const effectiveAvailableSlots = Math.max(totalAvailableSlots - blockedSlots, 0);
   
-  // Pode ultrapassar 100% se houver sessões fora do horário de trabalho
-  return effectiveAvailableSlots > 0 ? (usedSlots / effectiveAvailableSlots) * 100 : 0;
+  // FIXED C3-FINANCE: Usar safeDivide - Pode ultrapassar 100% se houver sessões fora do horário
+  return safeDivide(usedSlots, effectiveAvailableSlots, 0) * 100;
 };
 
 /**
@@ -697,11 +766,14 @@ export const getTicketComparison = (params: {
   patients: MetricsPatient[];
 }): Array<{ tipo: string; ticket: number; quantidade: number }> => {
   const { sessions, patients } = params;
+  // FIXED C3-FINANCE: Filtrar apenas sessões visíveis
+  const visibleSessions = filterVisibleSessions(sessions);
+  
   const monthlyPatientRevenue = new Map<string, number>();
   const weeklyPatientRevenue = new Map<string, number>();
   const monthlyPatientsSet = new Map<string, Set<string>>();
 
-  sessions.forEach(session => {
+  visibleSessions.forEach(session => {
     if (session.status === 'attended') {
       const patient = patients.find(p => p.id === session.patient_id);
       if (patient) {
@@ -731,9 +803,10 @@ export const getTicketComparison = (params: {
   const monthlyTotal = Array.from(monthlyPatientRevenue.values()).reduce((a, b) => a + b, 0);
   const weeklyTotal = Array.from(weeklyPatientRevenue.values()).reduce((a, b) => a + b, 0);
 
+  // FIXED C3-FINANCE: Usar safeDivide para proteção contra divisor zero
   return [
-    { tipo: 'Mensais', ticket: monthlyCount > 0 ? monthlyTotal / monthlyCount : 0, quantidade: monthlyCount },
-    { tipo: 'Semanais', ticket: weeklyCount > 0 ? weeklyTotal / weeklyCount : 0, quantidade: weeklyCount },
+    { tipo: 'Mensais', ticket: safeDivide(monthlyTotal, monthlyCount, 0), quantidade: monthlyCount },
+    { tipo: 'Semanais', ticket: safeDivide(weeklyTotal, weeklyCount, 0), quantidade: weeklyCount },
   ];
 };
 
@@ -806,7 +879,9 @@ export const getGrowthTrend = (params: {
         return sum + Number(s.value);
       }, 0);
 
-      growth = prevRevenue > 0 ? ((revenue - prevRevenue) / prevRevenue) * 100 : 0;
+      // FIXED C3-FINANCE: Usar safeDivide para crescimento
+      const diff = revenue - prevRevenue;
+      growth = safeDivide(diff, prevRevenue, 0) * 100;
     }
 
     return {
@@ -886,9 +961,8 @@ export const getRetentionRate = (params: {
 
     const stillActive = patientsAtStart.filter(p => p.status === 'active');
     
-    return patientsAtStart.length > 0 
-      ? (stillActive.length / patientsAtStart.length) * 100 
-      : 0;
+    // FIXED C3-FINANCE: Usar safeDivide
+    return safeDivide(stillActive.length, patientsAtStart.length, 0) * 100;
   };
 
   return [
@@ -910,7 +984,8 @@ export const getLostRevenueByMonth = (params: {
   end: Date;
 }): Array<{ month: string; perdido: number }> => {
   const { sessions, start, end } = params;
-  const visibleSessions = sessions.filter(s => s.show_in_schedule !== false);
+  // FIXED C3-FINANCE: Usar helper para filtrar sessões visíveis
+  const visibleSessions = filterVisibleSessions(sessions);
   // ✅ FASE 2.4 - CORREÇÃO B.6: Normalizar para UTC
   const months = eachMonthOfInterval({ 
     start: startOfMonth(normalizeToUTC(start)), 
