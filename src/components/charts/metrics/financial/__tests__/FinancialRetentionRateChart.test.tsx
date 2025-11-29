@@ -8,6 +8,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/react';
 import { FinancialRetentionRateChart } from '../FinancialRetentionRateChart';
 import { mockRecharts } from '@/test-utils/mockRecharts';
+import { getRetentionRate } from '@/lib/systemMetricsUtils';
 
 // Mock Recharts
 mockRecharts();
@@ -64,9 +65,8 @@ describe('FinancialRetentionRateChart', () => {
   });
 
   it('exibe mensagem de "sem dados" quando patients está vazio', () => {
-    // Forçar retorno vazio do mock
-    const { getRetentionRate } = require('@/lib/systemMetricsUtils');
-    getRetentionRate.mockReturnValueOnce([]);
+    // Mock retorna array vazio
+    vi.mocked(getRetentionRate).mockReturnValueOnce([]);
 
     const { getByText } = render(
       <FinancialRetentionRateChart
