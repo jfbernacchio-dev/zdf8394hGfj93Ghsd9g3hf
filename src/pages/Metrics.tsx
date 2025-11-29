@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffectivePermissions } from '@/hooks/useEffectivePermissions';
 import { useDashboardPermissions } from '@/hooks/useDashboardPermissions';
 import { useDashboardLayout } from '@/hooks/useDashboardLayout';
@@ -78,6 +78,7 @@ import { FinancialMissedByPatientChart } from '@/components/charts/metrics/finan
 import { FinancialLostRevenueChart } from '@/components/charts/metrics/financial/FinancialLostRevenueChart';
 import { FinancialRetentionRateChart } from '@/components/charts/metrics/financial/FinancialRetentionRateChart';
 import { FinancialNewVsInactiveChart } from '@/components/charts/metrics/financial/FinancialNewVsInactiveChart';
+import { FinancialTopPatientsChart } from '@/components/charts/metrics/financial/FinancialTopPatientsChart';
 import { AdminRetentionChart } from '@/components/charts/metrics/administrative/AdminRetentionChart';
 import { AdminPerformanceChart } from '@/components/charts/metrics/administrative/AdminPerformanceChart';
 import { AdminDistributionsChart } from '@/components/charts/metrics/administrative/AdminDistributionsChart';
@@ -93,6 +94,7 @@ import { TeamWorkloadChart } from '@/components/charts/metrics/team/TeamWorkload
 import { TeamMonthlyEvolutionChart } from '@/components/charts/metrics/team/TeamMonthlyEvolutionChart';
 import { TeamOccupationByMemberChart } from '@/components/charts/metrics/team/TeamOccupationByMemberChart';
 import { TeamAttendanceByTherapistChart } from '@/components/charts/metrics/team/TeamAttendanceByTherapistChart';
+import { RegisterPaymentDialog } from '@/components/RegisterPaymentDialog';
 
 type Period = 'week' | 'month' | 'year' | 'custom';
 
@@ -101,6 +103,7 @@ const Metrics = () => {
   const { permissions, loading: permissionsLoading } = useEffectivePermissions();
   const { permissionContext } = useDashboardPermissions();
   const [searchParams, setSearchParams] = useSearchParams();
+  const queryClient = useQueryClient();
 
   // Layout management (FASE C3-R.1)
   const {
@@ -114,6 +117,7 @@ const Metrics = () => {
   } = useDashboardLayout('metrics-grid');
   
   const [isEditMode, setIsEditMode] = useState(false);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
 
   // Period state
   const [period, setPeriod] = useState<Period>('month');
@@ -643,6 +647,13 @@ const Metrics = () => {
               periodFilter={periodFilter}
               timeScale={chartTimeScale}
             />
+            <FinancialTopPatientsChart
+              patients={metricsPatients}
+              sessions={metricsSessions}
+              isLoading={cardsLoading}
+              periodFilter={periodFilter}
+              timeScale={chartTimeScale}
+            />
           </div>
         );
       }
@@ -858,6 +869,19 @@ const Metrics = () => {
               Visão geral financeira e administrativa do consultório
             </p>
           </div>
+          
+          {/* Financial Domain: NFSe Button (FASE C3-R.7) */}
+          {currentDomain === 'financial' && (
+            <Button 
+              onClick={() => setShowPaymentDialog(true)} 
+              variant="default"
+              size="sm"
+              className="ml-2"
+            >
+              <DollarSign className="h-4 w-4 mr-2" />
+              Registrar Pagamento NFSe
+            </Button>
+          )}
           
           {/* Layout Edit Controls (FASE C3-R.1) */}
           {!layoutLoading && (
@@ -1141,6 +1165,17 @@ const Metrics = () => {
           </CardContent>
         </Card>
       )}
+      
+      {/* NFSe Payment Dialog (FASE C3-R.7) */}
+      <RegisterPaymentDialog
+        open={showPaymentDialog}
+        onOpenChange={setShowPaymentDialog}
+        onSuccess={() => {
+          // Refetch queries on success
+          queryClient.invalidateQueries({ queryKey: ['metrics-patients'] });
+          queryClient.invalidateQueries({ queryKey: ['metrics-sessions'] });
+        }}
+      />
     </div>
   );
 };
