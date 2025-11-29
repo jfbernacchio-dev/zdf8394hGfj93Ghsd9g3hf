@@ -155,6 +155,7 @@ export const GridCardContainer = ({
   return (
     <div ref={containerRef} className={cn('relative w-full', className)}>
       <GridLayout
+        key={`grid-${sectionId}-${JSON.stringify(layout.map(l => `${l.i}-${l.x}-${l.y}`))}`}
         className="layout"
         layout={layout}
         cols={12}              // Grid de 12 colunas
