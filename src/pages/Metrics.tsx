@@ -80,6 +80,13 @@ import { AdminAttendanceRateChart } from '@/components/charts/metrics/administra
 import { AdminWeeklyOccupationChart } from '@/components/charts/metrics/administrative/AdminWeeklyOccupationChart';
 import { AdminChurnRetentionChart } from '@/components/charts/metrics/administrative/AdminChurnRetentionChart';
 import { MarketingWebsiteOverviewChart } from '@/components/charts/metrics/marketing/MarketingWebsiteOverviewChart';
+import { TeamIndividualPerformanceChart } from '@/components/charts/metrics/team/TeamIndividualPerformanceChart';
+import { TeamRevenueComparisonChart } from '@/components/charts/metrics/team/TeamRevenueComparisonChart';
+import { TeamPatientDistributionChart } from '@/components/charts/metrics/team/TeamPatientDistributionChart';
+import { TeamWorkloadChart } from '@/components/charts/metrics/team/TeamWorkloadChart';
+import { TeamMonthlyEvolutionChart } from '@/components/charts/metrics/team/TeamMonthlyEvolutionChart';
+import { TeamOccupationByMemberChart } from '@/components/charts/metrics/team/TeamOccupationByMemberChart';
+import { TeamAttendanceByTherapistChart } from '@/components/charts/metrics/team/TeamAttendanceByTherapistChart';
 
 type Period = 'week' | 'month' | 'year' | 'custom';
 
@@ -689,15 +696,78 @@ const Metrics = () => {
       }
     }
 
-    // Team domain - placeholder
+    // Team domain (FASE C3-R.6)
     if (currentDomain === 'team') {
-      return (
-        <Alert>
-          <AlertDescription>
-            <strong>Em breve:</strong> Gráficos de equipe serão implementados em fases futuras.
-          </AlertDescription>
-        </Alert>
-      );
+      if (subTabId === 'desempenho') {
+        return (
+          <div className="grid gap-6">
+            <TeamIndividualPerformanceChart
+              sessions={metricsSessions}
+              patients={metricsPatients}
+              isLoading={cardsLoading}
+              periodFilter={periodFilter}
+              timeScale={chartTimeScale}
+            />
+            <TeamRevenueComparisonChart
+              sessions={metricsSessions}
+              patients={metricsPatients}
+              isLoading={cardsLoading}
+              periodFilter={periodFilter}
+              timeScale={chartTimeScale}
+            />
+          </div>
+        );
+      }
+      
+      if (subTabId === 'distribuicoes') {
+        return (
+          <div className="grid gap-6">
+            <TeamPatientDistributionChart
+              patients={metricsPatients}
+              isLoading={cardsLoading}
+              periodFilter={periodFilter}
+              timeScale={chartTimeScale}
+            />
+            <TeamWorkloadChart
+              patients={metricsPatients}
+              scheduleBlocks={metricsScheduleBlocks}
+              profiles={{}} // TODO: Fetch team profiles in future
+              isLoading={cardsLoading}
+              periodFilter={periodFilter}
+              timeScale={chartTimeScale}
+            />
+          </div>
+        );
+      }
+      
+      if (subTabId === 'retencao') {
+        return (
+          <div className="grid gap-6">
+            <TeamMonthlyEvolutionChart
+              trends={trends}
+              isLoading={cardsLoading}
+              periodFilter={periodFilter}
+              timeScale={chartTimeScale}
+            />
+            <TeamOccupationByMemberChart
+              sessions={metricsSessions}
+              patients={metricsPatients}
+              scheduleBlocks={metricsScheduleBlocks}
+              profiles={{}} // TODO: Fetch team profiles in future
+              isLoading={cardsLoading}
+              periodFilter={periodFilter}
+              timeScale={chartTimeScale}
+            />
+            <TeamAttendanceByTherapistChart
+              sessions={metricsSessions}
+              patients={metricsPatients}
+              isLoading={cardsLoading}
+              periodFilter={periodFilter}
+              timeScale={chartTimeScale}
+            />
+          </div>
+        );
+      }
     }
 
     // Fallback
