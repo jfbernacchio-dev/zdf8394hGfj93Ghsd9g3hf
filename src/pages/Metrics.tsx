@@ -57,7 +57,10 @@ import type { MetricsPeriodFilter } from '@/types/metricsCardTypes';
 import { getMetricsCardById, getMetricsCardsByDomain, canUserViewCard } from '@/lib/metricsCardRegistry';
 
 // Import metrics charts registry (FASE 2)
-import { getMetricsChartById, getDefaultEnabledChartIds, type MetricsChartDomain } from '@/lib/metricsChartsRegistry';
+import { getMetricsChartById, type MetricsChartDomain } from '@/lib/metricsChartsRegistry';
+
+// Import charts selection hook (FASE 2 - Persistência via Supabase)
+import { useMetricsChartsSelection } from '@/hooks/useMetricsChartsSelection';
 
 // Import metric card components (FASE C3.6)
 import { MetricsRevenueTotalCard } from '@/components/cards/metrics/financial/MetricsRevenueTotalCard';
@@ -134,32 +137,13 @@ const Metrics = () => {
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [showAddCardDialog, setShowAddCardDialog] = useState(false);
 
-  // FASE 2: Charts selection state
-  type MetricsChartsSelection = Record<MetricsChartDomain, string[]>;
-  const [chartsSelection, setChartsSelection] = useState<MetricsChartsSelection>(() => {
-    // Tentar carregar do localStorage
-    const savedSelection = localStorage.getItem('metrics_charts_selection_v1');
-    if (savedSelection) {
-      try {
-        return JSON.parse(savedSelection);
-      } catch (e) {
-        console.error('Error parsing charts selection from localStorage', e);
-      }
-    }
-    
-    // Fallback: usar defaults habilitados
-    return {
-      financial: getDefaultEnabledChartIds('financial'),
-      administrative: getDefaultEnabledChartIds('administrative'),
-      marketing: getDefaultEnabledChartIds('marketing'),
-      team: getDefaultEnabledChartIds('team'),
-    };
-  });
-
-  // Persistir chartsSelection em localStorage quando mudar
-  useEffect(() => {
-    localStorage.setItem('metrics_charts_selection_v1', JSON.stringify(chartsSelection));
-  }, [chartsSelection]);
+  // FASE 2: Charts selection (agora via hook dedicado)
+  const {
+    chartsSelection,
+    isLoading: chartsSelectionLoading,
+    addChart,
+    removeChart,
+  } = useMetricsChartsSelection();
 
   // Period state
   const [period, setPeriod] = useState<Period>('month');
@@ -542,7 +526,7 @@ const Metrics = () => {
     }
   }, [teamPatients, teamSessions, dateRange.start, dateRange.end, automaticScale]);
 
-  const isLoading = patientsLoading || sessionsLoading || layoutLoading || permissionsLoading;
+  const isLoading = patientsLoading || sessionsLoading || layoutLoading || permissionsLoading || chartsSelectionLoading;
 
   // Permission check
   const hasAnyMetricsAccess = visibleDomains.length > 0;
@@ -668,32 +652,6 @@ const Metrics = () => {
     const existingLayout = metricsLayout[currentSectionId]?.cardLayouts || [];
     const updatedLayout = existingLayout.filter(c => c.i !== cardId);
     updateLayout(currentSectionId, updatedLayout);
-  };
-
-  // FASE 2: Handlers para gráficos
-  const handleAddChart = (domainKey: string, chartId: string) => {
-    const domain = domainKey as MetricsChartDomain;
-    const currentCharts = chartsSelection[domain] || [];
-    
-    if (currentCharts.includes(chartId)) {
-      console.warn(`Chart ${chartId} already in selection`);
-      return;
-    }
-
-    setChartsSelection(prev => ({
-      ...prev,
-      [domain]: [...currentCharts, chartId],
-    }));
-  };
-
-  const handleRemoveChart = (domainKey: string, chartId: string) => {
-    const domain = domainKey as MetricsChartDomain;
-    const currentCharts = chartsSelection[domain] || [];
-    
-    setChartsSelection(prev => ({
-      ...prev,
-      [domain]: currentCharts.filter(id => id !== chartId),
-    }));
   };
 
   // Render metric cards based on current domain (FASE C3-R.1 - Refatorado)
@@ -1266,8 +1224,8 @@ const Metrics = () => {
         onAddCard={(domainKey: string, cardId: string) => handleAddCard(cardId)}
         onRemoveCard={(domainKey: string, cardId: string) => handleRemoveCard(cardId)}
         selectedChartIds={chartsSelection[currentDomain as MetricsChartDomain] || []}
-        onAddChart={handleAddChart}
-        onRemoveChart={handleRemoveChart}
+        onAddChart={(domainKey: string, chartId: string) => addChart(domainKey as MetricsChartDomain, chartId)}
+        onRemoveChart={(domainKey: string, chartId: string) => removeChart(domainKey as MetricsChartDomain, chartId)}
       />
     </div>
   );
