@@ -2,6 +2,28 @@
 
 ## ✅ Implementado com Sucesso
 
+### FASE 3 - Integração Metrics.tsx
+- **Arquivo**: `src/pages/__tests__/Metrics.integration.test.tsx`
+- **Helper**: `src/test-utils/renderWithProviders.tsx` (criado para facilitar testes com providers)
+- **Testes**: 12+ cenários de integração
+- **Cobertura**:
+  - ✅ Carregamento inicial (domínio padrão, cards financeiros)
+  - ✅ Troca de domínio (financial → administrative → marketing → team)
+  - ✅ Troca de sub-aba (tendências, retenção, desempenho, distribuições)
+  - ✅ Filtro de período (semana, mês, ano)
+  - ✅ Permissões (usuário sem financial_access, contador com acesso apenas financial)
+  - ✅ Empty state (sem dados de sessões/pacientes)
+  - ✅ Loading state (skeletons durante carregamento)
+- **Mocks utilizados**:
+  - `GridCardContainer` e `ResizableSection` mockados para simplicidade
+  - Hooks de permissão mockados (`useEffectivePermissions`, `useDashboardPermissions`)
+  - `useDashboardLayout` e `useChartTimeScale` mockados
+  - Queries Supabase mockadas com dados controlados
+- **Notas**:
+  - Testes focam na ESTRUTURA da página e navegação
+  - NÃO cobrem gráficos em detalhe (isso é FASE 4)
+  - Todos os testes passam com os mocks configurados
+
 ### FASE 1 - Lógica Pura Avançada
 - **Arquivo**: `src/lib/__tests__/systemMetricsUtilsAdvanced.test.ts`
 - **Testes**: 40+ casos de edge cases
@@ -22,10 +44,6 @@
 - **Cobertura**: updateLayout, addCard, removeCard, saveLayout, resetLayout, estados
 
 ## ⚠️ Pendente (Próximo Prompt)
-
-### FASE 3 - Integração Metrics.tsx
-- Requer ajustes nos tipos e mocks do @testing-library/react
-- Estrutura definida no plano de testes
 
 ### FASE 4 - Gráficos Prioritários
 - Requer ajustes nos tipos `FinancialTrendPoint` e `FinancialSummary`
