@@ -20,6 +20,8 @@ import { useEffectivePermissions } from '@/hooks/useEffectivePermissions';
 import { useDashboardPermissions } from '@/hooks/useDashboardPermissions';
 import { useDashboardLayout } from '@/hooks/useDashboardLayout';
 import { useChartTimeScale } from '@/hooks/useChartTimeScale';
+import { useOwnData } from '@/hooks/useOwnData';
+import { useTeamData } from '@/hooks/useTeamData';
 import { ResizableSection } from '@/components/ResizableSection';
 import { GridCardContainer } from '@/components/GridCardContainer';
 import type { GridCardLayout } from '@/types/cardTypes';
@@ -399,29 +401,36 @@ const Metrics = () => {
     }));
   }, [rawScheduleBlocks]);
 
-  // Aggregate data using systemMetricsUtils
-  const aggregatedData = useMemo(() => {
-    if (!metricsPatients || !metricsSessions) return null;
+  // FASE 1.1: Separate OWN vs TEAM data
+  const { teamPatients, teamSessions, subordinateIds, loading: teamLoading } = useTeamData();
+  const { ownPatients, ownSessions } = useOwnData(
+    metricsPatients, 
+    metricsSessions, 
+    subordinateIds
+  );
+
+  // Aggregate OWN data (for financial/administrative domains)
+  const ownAggregatedData = useMemo(() => {
+    if (!ownPatients || !ownSessions) return null;
 
     try {
       const summary = getFinancialSummary({
-        sessions: metricsSessions,
-        patients: metricsPatients,
+        sessions: ownSessions,
+        patients: ownPatients,
         start: dateRange.start,
         end: dateRange.end,
       });
 
-      // FASE C3-R.2: Use automatic time scale from useChartTimeScale
       const trends = getFinancialTrends({
-        sessions: metricsSessions,
-        patients: metricsPatients,
+        sessions: ownSessions,
+        patients: ownPatients,
         start: dateRange.start,
         end: dateRange.end,
-        timeScale: automaticScale, // Use automatic scale based on date range
+        timeScale: automaticScale,
       });
 
       const retention = getRetentionAndChurn({
-        patients: metricsPatients,
+        patients: ownPatients,
         start: dateRange.start,
         end: dateRange.end,
       });
@@ -432,10 +441,47 @@ const Metrics = () => {
         retention,
       };
     } catch (error) {
-      console.error('[Metrics] Error calculating aggregated data:', error);
+      console.error('[Metrics] Error calculating own aggregated data:', error);
       return null;
     }
-  }, [metricsPatients, metricsSessions, dateRange.start, dateRange.end]);
+  }, [ownPatients, ownSessions, dateRange.start, dateRange.end, automaticScale]);
+
+  // Aggregate TEAM data (for team domain)
+  const teamAggregatedData = useMemo(() => {
+    if (!teamPatients || !teamSessions) return null;
+
+    try {
+      const summary = getFinancialSummary({
+        sessions: teamSessions,
+        patients: teamPatients,
+        start: dateRange.start,
+        end: dateRange.end,
+      });
+
+      const trends = getFinancialTrends({
+        sessions: teamSessions,
+        patients: teamPatients,
+        start: dateRange.start,
+        end: dateRange.end,
+        timeScale: automaticScale,
+      });
+
+      const retention = getRetentionAndChurn({
+        patients: teamPatients,
+        start: dateRange.start,
+        end: dateRange.end,
+      });
+
+      return {
+        summary,
+        trends,
+        retention,
+      };
+    } catch (error) {
+      console.error('[Metrics] Error calculating team aggregated data:', error);
+      return null;
+    }
+  }, [teamPatients, teamSessions, dateRange.start, dateRange.end, automaticScale]);
 
   const isLoading = patientsLoading || sessionsLoading || layoutLoading || permissionsLoading;
 
@@ -449,10 +495,17 @@ const Metrics = () => {
     endDate: dateRange.end,
   };
 
-  const cardsLoading = patientsLoading || sessionsLoading || profileLoading || blocksLoading;
-  const summary = aggregatedData?.summary ?? null;
-  const trends = aggregatedData?.trends ?? [];
-  const retention = aggregatedData?.retention ?? null;
+  const cardsLoading = patientsLoading || sessionsLoading || profileLoading || blocksLoading || teamLoading;
+  
+  // Select data based on current domain
+  const currentAggregatedData = currentDomain === 'team' ? teamAggregatedData : ownAggregatedData;
+  const summary = currentAggregatedData?.summary ?? null;
+  const trends = currentAggregatedData?.trends ?? [];
+  const retention = currentAggregatedData?.retention ?? null;
+
+  // Select patients/sessions based on current domain
+  const currentPatients = currentDomain === 'team' ? teamPatients : ownPatients;
+  const currentSessions = currentDomain === 'team' ? teamSessions : ownSessions;
 
   // Get current section layout for GridCardContainer (FASE C3-R.1)
   const currentSectionId = `metrics-${currentDomain}`;
@@ -578,8 +631,8 @@ const Metrics = () => {
               timeScale={chartTimeScale}
             />
             <FinancialTicketComparisonChart
-              sessions={metricsSessions}
-              patients={metricsPatients}
+              sessions={currentSessions}
+              patients={currentPatients}
               isLoading={cardsLoading}
               periodFilter={periodFilter}
               timeScale={chartTimeScale}
@@ -616,13 +669,13 @@ const Metrics = () => {
               timeScale={chartTimeScale}
             />
             <FinancialMissedByPatientChart
-              sessions={metricsSessions}
+              sessions={currentSessions}
               isLoading={cardsLoading}
               periodFilter={periodFilter}
               timeScale={chartTimeScale}
             />
             <FinancialLostRevenueChart
-              sessions={metricsSessions}
+              sessions={currentSessions}
               isLoading={cardsLoading}
               periodFilter={periodFilter}
               timeScale={chartTimeScale}
@@ -660,8 +713,8 @@ const Metrics = () => {
               timeScale={chartTimeScale}
             />
             <FinancialTopPatientsChart
-              patients={metricsPatients}
-              sessions={metricsSessions}
+              patients={currentPatients}
+              sessions={currentSessions}
               isLoading={cardsLoading}
               periodFilter={periodFilter}
               timeScale={chartTimeScale}
@@ -674,13 +727,13 @@ const Metrics = () => {
         return (
           <div className="grid gap-6">
             <FinancialRetentionRateChart
-              patients={metricsPatients}
+              patients={currentPatients}
               isLoading={cardsLoading}
               periodFilter={periodFilter}
               timeScale={chartTimeScale}
             />
             <FinancialNewVsInactiveChart
-              patients={metricsPatients}
+              patients={currentPatients}
               isLoading={cardsLoading}
               periodFilter={periodFilter}
               timeScale={chartTimeScale}
@@ -702,7 +755,7 @@ const Metrics = () => {
               timeScale={chartTimeScale}
             />
             <AdminFrequencyDistributionChart
-              patients={metricsPatients}
+              patients={currentPatients}
               isLoading={cardsLoading}
               periodFilter={periodFilter}
               timeScale={chartTimeScale}
@@ -1105,7 +1158,7 @@ const Metrics = () => {
       )}
 
       {/* Current Domain Section */}
-      {!isLoading && aggregatedData && (
+      {!isLoading && currentAggregatedData && (
         <Card className="overflow-hidden">
           <CardHeader>
             <div className="flex items-start justify-between">
@@ -1152,7 +1205,7 @@ const Metrics = () => {
       )}
 
       {/* Debug data (optional - can be removed later) */}
-      {!isLoading && aggregatedData && process.env.NODE_ENV === 'development' && (
+      {!isLoading && currentAggregatedData && process.env.NODE_ENV === 'development' && (
         <Card>
           <CardHeader>
             <CardTitle className="text-sm">Debug: Dados Agregados (Dev Only)</CardTitle>
@@ -1161,9 +1214,9 @@ const Metrics = () => {
             <pre className="text-xs overflow-auto max-h-96 bg-muted p-4 rounded-md">
               {JSON.stringify(
                 {
-                  summary: aggregatedData.summary,
-                  trendsCount: aggregatedData.trends.length,
-                  retention: aggregatedData.retention,
+                  summary: currentAggregatedData.summary,
+                  trendsCount: currentAggregatedData.trends.length,
+                  retention: currentAggregatedData.retention,
                   dateRange: {
                     start: dateRange.start.toISOString(),
                     end: dateRange.end.toISOString(),
