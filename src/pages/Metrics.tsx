@@ -56,6 +56,9 @@ import type { MetricsPeriodFilter } from '@/types/metricsCardTypes';
 // Import metrics card registry (FASE C3-R.8)
 import { getMetricsCardById, getMetricsCardsByDomain, canUserViewCard } from '@/lib/metricsCardRegistry';
 
+// Import metrics charts registry (FASE 2)
+import { getMetricsChartById, getDefaultEnabledChartIds, type MetricsChartDomain } from '@/lib/metricsChartsRegistry';
+
 // Import metric card components (FASE C3.6)
 import { MetricsRevenueTotalCard } from '@/components/cards/metrics/financial/MetricsRevenueTotalCard';
 import { MetricsAvgPerSessionCard } from '@/components/cards/metrics/financial/MetricsAvgPerSessionCard';
@@ -130,6 +133,33 @@ const Metrics = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [showAddCardDialog, setShowAddCardDialog] = useState(false);
+
+  // FASE 2: Charts selection state
+  type MetricsChartsSelection = Record<MetricsChartDomain, string[]>;
+  const [chartsSelection, setChartsSelection] = useState<MetricsChartsSelection>(() => {
+    // Tentar carregar do localStorage
+    const savedSelection = localStorage.getItem('metrics_charts_selection_v1');
+    if (savedSelection) {
+      try {
+        return JSON.parse(savedSelection);
+      } catch (e) {
+        console.error('Error parsing charts selection from localStorage', e);
+      }
+    }
+    
+    // Fallback: usar defaults habilitados
+    return {
+      financial: getDefaultEnabledChartIds('financial'),
+      administrative: getDefaultEnabledChartIds('administrative'),
+      marketing: getDefaultEnabledChartIds('marketing'),
+      team: getDefaultEnabledChartIds('team'),
+    };
+  });
+
+  // Persistir chartsSelection em localStorage quando mudar
+  useEffect(() => {
+    localStorage.setItem('metrics_charts_selection_v1', JSON.stringify(chartsSelection));
+  }, [chartsSelection]);
 
   // Period state
   const [period, setPeriod] = useState<Period>('month');
@@ -640,6 +670,32 @@ const Metrics = () => {
     updateLayout(currentSectionId, updatedLayout);
   };
 
+  // FASE 2: Handlers para gráficos
+  const handleAddChart = (domainKey: string, chartId: string) => {
+    const domain = domainKey as MetricsChartDomain;
+    const currentCharts = chartsSelection[domain] || [];
+    
+    if (currentCharts.includes(chartId)) {
+      console.warn(`Chart ${chartId} already in selection`);
+      return;
+    }
+
+    setChartsSelection(prev => ({
+      ...prev,
+      [domain]: [...currentCharts, chartId],
+    }));
+  };
+
+  const handleRemoveChart = (domainKey: string, chartId: string) => {
+    const domain = domainKey as MetricsChartDomain;
+    const currentCharts = chartsSelection[domain] || [];
+    
+    setChartsSelection(prev => ({
+      ...prev,
+      [domain]: currentCharts.filter(id => id !== chartId),
+    }));
+  };
+
   // Render metric cards based on current domain (FASE C3-R.1 - Refatorado)
   const renderMetricCards = () => {
     if (currentDomain === 'team') {
@@ -721,315 +777,146 @@ const Metrics = () => {
     );
   };
 
-  // Render chart content based on current domain and sub-tab (FASE C3-R.2 + C3-R.4)
-  // CRITICAL: timeScale is now computed at component level (currentTimeScale)
+  // FASE 2: Render chart content dinamicamente baseado na seleção
+  // Agora ao invés de hardcode, renderiza apenas os gráficos selecionados
   const renderChartContent = (subTabId: string) => {
-    // Get the specific timeScale for this chart
     const chartTimeScale = getScale(`metrics-${currentDomain}-${subTabId}`);
+    const domain = currentDomain as MetricsChartDomain;
     
-    // Financial domain
-    if (currentDomain === 'financial') {
-      if (subTabId === 'distribuicoes') {
-        return (
-          <div className="grid gap-6">
-            <FinancialDistributionsChart
-              summary={summary}
-              isLoading={cardsLoading}
-              periodFilter={periodFilter}
-              timeScale={chartTimeScale}
-            />
-            <FinancialRevenueDistributionChart
-              summary={summary}
-              isLoading={cardsLoading}
-              periodFilter={periodFilter}
-              timeScale={chartTimeScale}
-            />
-            <FinancialSessionStatusChart
-              summary={summary}
-              isLoading={cardsLoading}
-              periodFilter={periodFilter}
-              timeScale={chartTimeScale}
-            />
-            <FinancialTicketComparisonChart
-              sessions={currentSessions}
-              patients={currentPatients}
-              isLoading={cardsLoading}
-              periodFilter={periodFilter}
-              timeScale={chartTimeScale}
-            />
-          </div>
-        );
-      }
-      
-      if (subTabId === 'desempenho') {
-        return (
-          <div className="grid gap-6">
-            <FinancialPerformanceChart
-              trends={trends}
-              isLoading={cardsLoading}
-              periodFilter={periodFilter}
-              timeScale={chartTimeScale}
-            />
-            <FinancialMonthlyPerformanceChart
-              trends={trends}
-              isLoading={cardsLoading}
-              periodFilter={periodFilter}
-              timeScale={chartTimeScale}
-            />
-            <FinancialWeeklyComparisonChart
-              trends={trends}
-              isLoading={cardsLoading}
-              periodFilter={periodFilter}
-              timeScale={chartTimeScale}
-            />
-            <FinancialInactiveByMonthChart
-              trends={trends}
-              isLoading={cardsLoading}
-              periodFilter={periodFilter}
-              timeScale={chartTimeScale}
-            />
-            <FinancialMissedByPatientChart
-              sessions={currentSessions}
-              isLoading={cardsLoading}
-              periodFilter={periodFilter}
-              timeScale={chartTimeScale}
-            />
-            <FinancialLostRevenueChart
-              sessions={currentSessions}
-              isLoading={cardsLoading}
-              periodFilter={periodFilter}
-              timeScale={chartTimeScale}
-            />
-          </div>
-        );
-      }
-      
-      if (subTabId === 'tendencias') {
-        return (
-          <div className="grid gap-6">
-            <FinancialTrendsChart
-              trends={trends}
-              isLoading={cardsLoading}
-              periodFilter={periodFilter}
-              timeScale={chartTimeScale}
-            />
-            <FinancialRevenueTrendChart
-              trends={trends}
-              isLoading={cardsLoading}
-              periodFilter={periodFilter}
-              timeScale={chartTimeScale}
-            />
-            <FinancialForecastVsActualChart
-              trends={trends}
-              summary={summary}
-              isLoading={cardsLoading}
-              periodFilter={periodFilter}
-              timeScale={chartTimeScale}
-            />
-            <FinancialConversionRateChart
-              trends={trends}
-              isLoading={cardsLoading}
-              periodFilter={periodFilter}
-              timeScale={chartTimeScale}
-            />
-            <FinancialTopPatientsChart
-              patients={currentPatients}
-              sessions={currentSessions}
-              isLoading={cardsLoading}
-              periodFilter={periodFilter}
-              timeScale={chartTimeScale}
-            />
-          </div>
-        );
-      }
-      
-      if (subTabId === 'retencao') {
-        return (
-          <div className="grid gap-6">
-            <FinancialRetentionRateChart
-              patients={currentPatients}
-              isLoading={cardsLoading}
-              periodFilter={periodFilter}
-              timeScale={chartTimeScale}
-            />
-            <FinancialNewVsInactiveChart
-              patients={currentPatients}
-              isLoading={cardsLoading}
-              periodFilter={periodFilter}
-              timeScale={chartTimeScale}
-            />
-          </div>
-        );
-      }
+    // Obter gráficos selecionados para este domínio/sub-tab
+    const selectedCharts = (chartsSelection[domain] || [])
+      .map(chartId => getMetricsChartById(chartId))
+      .filter(chartDef => chartDef && chartDef.subTab === subTabId);
+
+    if (selectedCharts.length === 0) {
+      return (
+        <Alert>
+          <AlertDescription>
+            Nenhum gráfico selecionado para esta visualização. Use o botão "Adicionar Cards" para gerenciar os gráficos.
+          </AlertDescription>
+        </Alert>
+      );
     }
 
-    // Administrative domain (FASE C3-R.5)
-    if (currentDomain === 'administrative') {
-      if (subTabId === 'distribuicoes') {
-        return (
-          <div className="grid gap-6">
-            <AdminDistributionsChart
-              summary={summary}
-              isLoading={cardsLoading}
-              periodFilter={periodFilter}
-              timeScale={chartTimeScale}
-            />
-            <AdminFrequencyDistributionChart
-              patients={currentPatients}
-              isLoading={cardsLoading}
-              periodFilter={periodFilter}
-              timeScale={chartTimeScale}
-            />
-          </div>
-        );
-      }
-      
-      if (subTabId === 'desempenho') {
-        return (
-          <div className="grid gap-6">
-            <AdminPerformanceChart
-              trends={trends}
-              isLoading={cardsLoading}
-              periodFilter={periodFilter}
-              timeScale={chartTimeScale}
-            />
-            <AdminAttendanceRateChart
-              trends={trends}
-              isLoading={cardsLoading}
-              periodFilter={periodFilter}
-              timeScale={chartTimeScale}
-            />
-            <AdminWeeklyOccupationChart
-              trends={trends}
-              profile={metricsProfile}
-              scheduleBlocks={metricsScheduleBlocks}
-              isLoading={cardsLoading}
-              periodFilter={periodFilter}
-              timeScale={chartTimeScale}
-            />
-          </div>
-        );
-      }
-      
-      if (subTabId === 'retencao') {
-        return (
-          <div className="grid gap-6">
-            <AdminRetentionChart
-              retention={retention}
-              isLoading={cardsLoading}
-              periodFilter={periodFilter}
-              timeScale={chartTimeScale}
-            />
-            <AdminChurnRetentionChart
-              retention={retention}
-              isLoading={cardsLoading}
-              periodFilter={periodFilter}
-              timeScale={chartTimeScale}
-            />
-          </div>
-        );
-      }
-    }
-
-    // Marketing domain
-    if (currentDomain === 'marketing') {
-      if (subTabId === 'website') {
-        return (
-          <MarketingWebsiteOverviewChart
-            isLoading={cardsLoading}
-          />
-        );
-      }
-    }
-
-    // Team domain (FASE C3-R.6)
-    if (currentDomain === 'team') {
-      if (subTabId === 'desempenho') {
-        return (
-          <div className="grid gap-6">
-            <TeamIndividualPerformanceChart
-              sessions={metricsSessions}
-              patients={metricsPatients}
-              profiles={{}} // TODO: Fetch team profiles in future
-              isLoading={cardsLoading}
-              periodFilter={periodFilter}
-              timeScale={chartTimeScale}
-            />
-            <TeamRevenueComparisonChart
-              sessions={metricsSessions}
-              patients={metricsPatients}
-              profiles={{}} // TODO: Fetch team profiles in future
-              isLoading={cardsLoading}
-              periodFilter={periodFilter}
-              timeScale={chartTimeScale}
-            />
-          </div>
-        );
-      }
-      
-      if (subTabId === 'distribuicoes') {
-        return (
-          <div className="grid gap-6">
-            <TeamPatientDistributionChart
-              patients={metricsPatients}
-              profiles={{}} // TODO: Fetch team profiles in future
-              isLoading={cardsLoading}
-              periodFilter={periodFilter}
-              timeScale={chartTimeScale}
-            />
-            <TeamWorkloadChart
-              patients={metricsPatients}
-              scheduleBlocks={metricsScheduleBlocks}
-              profiles={{}} // TODO: Fetch team profiles in future
-              isLoading={cardsLoading}
-              periodFilter={periodFilter}
-              timeScale={chartTimeScale}
-            />
-          </div>
-        );
-      }
-      
-      if (subTabId === 'retencao') {
-        return (
-          <div className="grid gap-6">
-            <TeamMonthlyEvolutionChart
-              trends={trends}
-              isLoading={cardsLoading}
-              periodFilter={periodFilter}
-              timeScale={chartTimeScale}
-            />
-            <TeamOccupationByMemberChart
-              sessions={metricsSessions}
-              patients={metricsPatients}
-              scheduleBlocks={metricsScheduleBlocks}
-              profiles={{}} // TODO: Fetch team profiles in future
-              isLoading={cardsLoading}
-              periodFilter={periodFilter}
-              timeScale={chartTimeScale}
-            />
-            <TeamAttendanceByTherapistChart
-              sessions={metricsSessions}
-              patients={metricsPatients}
-              profiles={{}} // TODO: Fetch team profiles in future
-              isLoading={cardsLoading}
-              periodFilter={periodFilter}
-              timeScale={chartTimeScale}
-            />
-          </div>
-        );
-      }
-    }
-
-    // Fallback
     return (
-      <Alert>
-        <AlertDescription>
-          <strong>Em breve:</strong> Gráfico de {subTabId} para {METRICS_SECTIONS.find(s => s.domain === currentDomain)?.title}.
-        </AlertDescription>
-      </Alert>
+      <div className="grid gap-6">
+        {selectedCharts.map((chartDef) => {
+          if (!chartDef) return null;
+          
+          const ChartComponent = chartDef.component;
+          
+          // Props comuns a todos os charts
+          const commonProps = {
+            periodFilter,
+            timeScale: chartTimeScale,
+            isLoading: cardsLoading,
+          };
+
+          // Determinar props adicionais baseado no tipo de chart
+          // Alguns charts precisam de trends, outros de sessions/patients, etc
+          let additionalProps = {};
+          
+          // Charts que usam trends
+          if (chartDef.id.includes('trend') || chartDef.id.includes('performance') || 
+              chartDef.id.includes('monthly') || chartDef.id.includes('weekly') || 
+              chartDef.id.includes('inactive') || chartDef.id.includes('evolution') ||
+              chartDef.id.includes('attendance-rate')) {
+            additionalProps = { trends };
+          }
+          
+          // Charts que usam summary
+          if (chartDef.id.includes('distribution') || chartDef.id.includes('status')) {
+            additionalProps = { ...additionalProps, summary };
+          }
+          
+          // Charts que usam sessions/patients
+          if (chartDef.id.includes('missed') || chartDef.id.includes('lost') || 
+              chartDef.id.includes('ticket') || chartDef.id.includes('top-patients') ||
+              chartDef.id.includes('individual') || chartDef.id.includes('revenue-comparison') ||
+              chartDef.id.includes('patient-distribution') || chartDef.id.includes('workload') ||
+              chartDef.id.includes('frequency')) {
+            additionalProps = { 
+              ...additionalProps, 
+              sessions: currentSessions, 
+              patients: currentPatients 
+            };
+          }
+          
+          // Charts que usam retention
+          if (chartDef.id.includes('retention') && chartDef.id.includes('admin')) {
+            additionalProps = { ...additionalProps, retention };
+          }
+          
+          // Charts específicos de team que precisam de profiles
+          if (chartDef.domain === 'team') {
+            additionalProps = { 
+              ...additionalProps,
+              profiles: {}, // TODO: Fetch team profiles in future
+            };
+            
+            // Team charts que precisam de sessions/patients (já adicionados acima)
+            if (chartDef.id.includes('individual') || chartDef.id.includes('revenue-comparison')) {
+              additionalProps = {
+                ...additionalProps,
+                sessions: metricsSessions,
+                patients: metricsPatients,
+              };
+            }
+            
+            // TeamWorkloadChart precisa de scheduleBlocks
+            if (chartDef.id.includes('workload')) {
+              additionalProps = {
+                ...additionalProps,
+                scheduleBlocks: metricsScheduleBlocks,
+              };
+            }
+            
+            // TeamOccupationByMemberChart e TeamAttendanceByTherapistChart precisam de scheduleBlocks
+            if (chartDef.id.includes('occupation-by-member') || chartDef.id.includes('attendance-by-therapist')) {
+              additionalProps = {
+                ...additionalProps,
+                scheduleBlocks: metricsScheduleBlocks,
+              };
+            }
+          }
+          
+          // AdminWeeklyOccupationChart precisa de profile e scheduleBlocks
+          if (chartDef.id === 'admin-weekly-occupation-chart') {
+            additionalProps = {
+              ...additionalProps,
+              profile: metricsProfile,
+              scheduleBlocks: metricsScheduleBlocks,
+            };
+          }
+          
+          // Charts de retenção financeira que precisam de patients
+          if (chartDef.id.includes('retention-rate') || chartDef.id.includes('new-vs-inactive')) {
+            additionalProps = {
+              ...additionalProps,
+              patients: currentPatients,
+            };
+          }
+          
+          // ForecastVsActual precisa de summary também
+          if (chartDef.id.includes('forecast')) {
+            additionalProps = { ...additionalProps, summary };
+          }
+
+          return (
+            <Card key={chartDef.id}>
+              <CardHeader>
+                <CardTitle>{chartDef.title}</CardTitle>
+                <CardDescription>{chartDef.description}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ChartComponent {...commonProps} {...additionalProps} />
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
     );
   };
-
   if (!hasAnyMetricsAccess && !permissionsLoading) {
     return (
       <div className="p-6">
@@ -1370,7 +1257,7 @@ const Metrics = () => {
         }}
       />
 
-      {/* Add Card Dialog (FASE 1 - MetricsAddCardDialog) */}
+      {/* Add Card Dialog (FASE 2 - MetricsAddCardDialog com gráficos) */}
       <MetricsAddCardDialog
         open={showAddCardDialog}
         onOpenChange={setShowAddCardDialog}
@@ -1378,6 +1265,9 @@ const Metrics = () => {
         existingCardIds={getExistingCardIds()}
         onAddCard={(domainKey: string, cardId: string) => handleAddCard(cardId)}
         onRemoveCard={(domainKey: string, cardId: string) => handleRemoveCard(cardId)}
+        selectedChartIds={chartsSelection[currentDomain as MetricsChartDomain] || []}
+        onAddChart={handleAddChart}
+        onRemoveChart={handleRemoveChart}
       />
     </div>
   );
