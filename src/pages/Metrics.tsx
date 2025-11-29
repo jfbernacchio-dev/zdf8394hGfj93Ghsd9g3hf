@@ -25,6 +25,7 @@ import { useTeamData } from '@/hooks/useTeamData';
 import { ResizableSection } from '@/components/ResizableSection';
 import { GridCardContainer } from '@/components/GridCardContainer';
 import type { GridCardLayout } from '@/types/cardTypes';
+import { findNextAvailablePosition } from '@/lib/gridLayoutUtils';
 import { Card as UICard } from '@/components/ui/card';
 import { GripVertical } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -103,6 +104,8 @@ import { TeamMonthlyEvolutionChart } from '@/components/charts/metrics/team/Team
 import { TeamOccupationByMemberChart } from '@/components/charts/metrics/team/TeamOccupationByMemberChart';
 import { TeamAttendanceByTherapistChart } from '@/components/charts/metrics/team/TeamAttendanceByTherapistChart';
 import { RegisterPaymentDialog } from '@/components/RegisterPaymentDialog';
+import { AddCardDialog } from '@/components/AddCardDialog';
+import { Plus } from 'lucide-react';
 
 type Period = 'week' | 'month' | 'year' | 'custom';
 
@@ -126,6 +129,7 @@ const Metrics = () => {
   
   const [isEditMode, setIsEditMode] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [showAddCardDialog, setShowAddCardDialog] = useState(false);
 
   // Period state
   const [period, setPeriod] = useState<Period>('month');
@@ -583,6 +587,59 @@ const Metrics = () => {
     setIsEditMode(false);
   };
 
+  // Get existing card IDs for current section (FASE 1.3)
+  const getExistingCardIds = (): string[] => {
+    if (!metricsLayout || !metricsLayout[currentSectionId]) return [];
+    return metricsLayout[currentSectionId].cardLayouts.map(c => c.i);
+  };
+
+  // Handler to add a card (FASE 1.3)
+  const handleAddCard = (cardId: string) => {
+    if (!metricsLayout) return;
+    
+    const existingCardIds = getExistingCardIds();
+    if (existingCardIds.includes(cardId)) {
+      console.warn(`Card ${cardId} already exists in layout`);
+      return;
+    }
+
+    const cardDef = getMetricsCardById(cardId);
+    if (!cardDef) {
+      console.error(`Card definition not found for ${cardId}`);
+      return;
+    }
+
+    // Find next available position in grid
+    const existingLayout = metricsLayout[currentSectionId]?.cardLayouts || [];
+    const nextPosition = findNextAvailablePosition(existingLayout);
+
+    // Create new layout item with default dimensions
+    const newLayoutItem: GridCardLayout = {
+      i: cardId,
+      x: nextPosition.x,
+      y: nextPosition.y,
+      w: cardDef.defaultLayout?.w || 4,
+      h: cardDef.defaultLayout?.h || 2,
+      minW: cardDef.defaultLayout?.minW,
+      minH: cardDef.defaultLayout?.minH,
+      maxW: cardDef.defaultLayout?.maxW,
+      maxH: cardDef.defaultLayout?.maxH,
+    };
+
+    // Update layout
+    const updatedLayout = [...existingLayout, newLayoutItem];
+    updateLayout(currentSectionId, updatedLayout);
+  };
+
+  // Handler to remove a card (FASE 1.3)
+  const handleRemoveCard = (cardId: string) => {
+    if (!metricsLayout) return;
+
+    const existingLayout = metricsLayout[currentSectionId]?.cardLayouts || [];
+    const updatedLayout = existingLayout.filter(c => c.i !== cardId);
+    updateLayout(currentSectionId, updatedLayout);
+  };
+
   // Render metric cards based on current domain (FASE C3-R.1 - Refatorado)
   const renderMetricCards = () => {
     if (currentDomain === 'team') {
@@ -1015,14 +1072,24 @@ const Metrics = () => {
           {!layoutLoading && (
             <div className="flex items-center gap-2">
               {!isEditMode ? (
-                <Button 
-                  onClick={() => setIsEditMode(true)} 
-                  variant="outline"
-                  size="sm"
-                >
-                  <Pencil className="h-4 w-4 mr-2" />
-                  Editar Layout
-                </Button>
+                <>
+                  <Button 
+                    onClick={() => setIsEditMode(true)} 
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Editar Layout
+                  </Button>
+                  <Button 
+                    onClick={() => setShowAddCardDialog(true)} 
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar Cards
+                  </Button>
+                </>
               ) : (
                 <>
                   <Button 
@@ -1303,6 +1370,18 @@ const Metrics = () => {
           queryClient.invalidateQueries({ queryKey: ['metrics-patients'] });
           queryClient.invalidateQueries({ queryKey: ['metrics-sessions'] });
         }}
+      />
+
+      {/* Add Card Dialog (FASE 1.3) */}
+      <AddCardDialog
+        open={showAddCardDialog}
+        onOpenChange={setShowAddCardDialog}
+        onAddCard={(sectionId: string, cardId: string) => handleAddCard(cardId)}
+        onRemoveCard={(sectionId: string, cardId: string) => handleRemoveCard(cardId)}
+        sectionCards={{
+          [currentSectionId]: getMetricsCardsByDomain(currentDomain).map(card => card.id)
+        }}
+        existingCardIds={getExistingCardIds()}
       />
     </div>
   );
