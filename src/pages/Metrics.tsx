@@ -297,10 +297,17 @@ const Metrics = () => {
 
       if (orgUserIds.length === 0) return [];
 
+      // ✅ FASE 1.2.1: Adicionar join com patients para trazer nome
       const result = await (supabase as any)
         .from('sessions')
-        .select('*')
-        .in('user_id', orgUserIds)
+        .select(`
+          *,
+          patients!inner (
+            name,
+            user_id
+          )
+        `)
+        .in('patients.user_id', orgUserIds)
         .eq('organization_id', organizationId)
         .gte('date', dateRange.start.toISOString().split('T')[0])
         .lte('date', dateRange.end.toISOString().split('T')[0]);
@@ -365,12 +372,14 @@ const Metrics = () => {
   const metricsSessions: MetricsSession[] = useMemo(() => {
     if (!rawSessions) return [];
 
-    return rawSessions.map((s) => ({
+    return rawSessions.map((s: any) => ({
       id: s.id,
       patient_id: s.patient_id,
       date: s.date,
       status: (s.status === 'scheduled' ? 'rescheduled' : s.status) as 'attended' | 'missed' | 'cancelled' | 'rescheduled',
       value: s.value || 0,
+      show_in_schedule: s.show_in_schedule,  // ✅ FASE 1.2.1: Adicionar
+      patients: s.patients ? { name: s.patients.name } : undefined,  // ✅ FASE 1.2.1: Adicionar
     }));
   }, [rawSessions]);
 
@@ -604,8 +613,11 @@ const Metrics = () => {
           {currentSectionLayout.map((cardLayout) => {
             const CardComponent = getCardComponent(cardLayout.i);
             return (
-              <div key={cardLayout.i} data-grid={cardLayout} className="drag-handle cursor-move">
-                {CardComponent}
+              <div key={cardLayout.i} data-grid={cardLayout}>
+                {/* ✅ FASE 1.2.2: Envolver card em wrapper com drag-handle */}
+                <div className="h-full drag-handle cursor-move">
+                  {CardComponent}
+                </div>
               </div>
             );
           })}
