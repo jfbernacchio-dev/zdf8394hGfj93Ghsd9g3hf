@@ -47,6 +47,9 @@ import {
 // Import metric card types (FASE C3.6)
 import type { MetricsPeriodFilter } from '@/types/metricsCardTypes';
 
+// Import metrics card registry (FASE C3-R.8)
+import { getMetricsCardById, getMetricsCardsByDomain, canUserViewCard } from '@/lib/metricsCardRegistry';
+
 // Import metric card components (FASE C3.6)
 import { MetricsRevenueTotalCard } from '@/components/cards/metrics/financial/MetricsRevenueTotalCard';
 import { MetricsAvgPerSessionCard } from '@/components/cards/metrics/financial/MetricsAvgPerSessionCard';
@@ -458,23 +461,32 @@ const Metrics = () => {
     return metricsLayout[currentSectionId].cardLayouts || [];
   }, [metricsLayout, currentSectionId]);
 
-  // Helper: Map card ID to component (FASE C3-R.1)
+  // Helper: Map card ID to component using registry (FASE C3-R.8)
   const getCardComponent = (cardId: string) => {
-    const cardMap: Record<string, React.ReactNode> = {
-      'metrics-revenue-total': <MetricsRevenueTotalCard periodFilter={periodFilter} summary={summary} isLoading={cardsLoading} />,
-      'metrics-avg-per-session': <MetricsAvgPerSessionCard periodFilter={periodFilter} summary={summary} isLoading={cardsLoading} />,
-      'metrics-forecast-revenue': <MetricsForecastRevenueCard periodFilter={periodFilter} summary={summary} isLoading={cardsLoading} />,
-      'metrics-avg-per-active-patient': <MetricsAvgPerActivePatientCard periodFilter={periodFilter} summary={summary} isLoading={cardsLoading} />,
-      'metrics-lost-revenue': <MetricsLostRevenueCard periodFilter={periodFilter} summary={summary} isLoading={cardsLoading} />,
-      'metrics-missed-rate': <MetricsMissedRateCard periodFilter={periodFilter} summary={summary} isLoading={cardsLoading} />,
-      'metrics-active-patients': <MetricsActivePatientsCard periodFilter={periodFilter} summary={summary} isLoading={cardsLoading} />,
-      'metrics-occupation-rate': <MetricsOccupationRateCard periodFilter={periodFilter} summary={summary} isLoading={cardsLoading} />,
-      'metrics-website-views': <MetricsWebsiteViewsCard isLoading={cardsLoading} />,
-      'metrics-website-visitors': <MetricsWebsiteVisitorsCard isLoading={cardsLoading} />,
-      'metrics-website-conversion': <MetricsWebsiteConversionCard isLoading={cardsLoading} />,
-      'metrics-website-ctr': <MetricsWebsiteCTRCard isLoading={cardsLoading} />,
-    };
-    return cardMap[cardId] || null;
+    const cardDef = getMetricsCardById(cardId);
+    if (!cardDef) return null;
+
+    const CardComponent = cardDef.component;
+
+    // Determine props based on card domain
+    // Financial and Administrative cards need full props
+    if (cardDef.domain === 'financial' || cardDef.domain === 'administrative') {
+      return (
+        <CardComponent
+          periodFilter={periodFilter}
+          summary={summary}
+          isLoading={cardsLoading}
+        />
+      );
+    }
+
+    // Marketing cards are mocked and only need isLoading
+    if (cardDef.domain === 'marketing') {
+      return <CardComponent isLoading={cardsLoading} />;
+    }
+
+    // Team cards (future implementation)
+    return null;
   };
 
   // Layout control handlers (FASE C3-R.1)
