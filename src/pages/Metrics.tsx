@@ -604,24 +604,42 @@ const Metrics = () => {
 
     return (
       <div className="mb-6">
-        <GridCardContainer
-          sectionId={currentSectionId}
-          layout={currentSectionLayout}
-          onLayoutChange={(newLayout) => updateLayout(currentSectionId, newLayout)}
-          isEditMode={isEditMode}
-        >
-          {currentSectionLayout.map((cardLayout) => {
-            const CardComponent = getCardComponent(cardLayout.i);
-            return (
-              <div key={cardLayout.i} data-grid={cardLayout}>
-                {/* ✅ FASE 1.2.2: Envolver card em wrapper com drag-handle */}
-                <div className="h-full drag-handle cursor-move">
-                  {CardComponent}
+        {/* ✅ FASE 2.1: Container wrapper com padding, min-height e visual feedback */}
+        <div className={cn(
+          'p-4 rounded-lg min-h-[200px] transition-all duration-300 relative',
+          isEditMode && 'bg-muted/20 border-2 border-dashed border-primary/30 shadow-inner'
+        )}>
+          {/* ✅ Grid de fundo em edit mode */}
+          {isEditMode && (
+            <div 
+              className="absolute inset-0 pointer-events-none opacity-10 z-0 rounded-lg"
+              style={{
+                backgroundImage: 'linear-gradient(hsl(var(--border)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px)',
+                backgroundSize: '100px 60px',
+              }}
+            />
+          )}
+          
+          <GridCardContainer
+            sectionId={currentSectionId}
+            layout={currentSectionLayout}
+            onLayoutChange={(newLayout) => updateLayout(currentSectionId, newLayout)}
+            isEditMode={isEditMode}
+            width={1200}
+          >
+            {currentSectionLayout.map((cardLayout) => {
+              const CardComponent = getCardComponent(cardLayout.i);
+              return (
+                <div key={cardLayout.i} data-grid={cardLayout}>
+                  {/* ✅ FASE 1.2.2: Envolver card em wrapper com drag-handle */}
+                  <div className="h-full drag-handle cursor-move">
+                    {CardComponent}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </GridCardContainer>
+              );
+            })}
+          </GridCardContainer>
+        </div>
       </div>
     );
   };
