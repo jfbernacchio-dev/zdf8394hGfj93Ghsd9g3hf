@@ -25,6 +25,9 @@ import { useTeamData } from '@/hooks/useTeamData';
 import { ResizableSection } from '@/components/ResizableSection';
 import { GridCardContainer } from '@/components/GridCardContainer';
 import type { GridCardLayout } from '@/types/cardTypes';
+import { Card as UICard } from '@/components/ui/card';
+import { GripVertical } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 // Import metrics utils and types
 import {
@@ -627,17 +630,34 @@ const Metrics = () => {
             isEditMode={isEditMode}
             width={1200}
           >
-            {currentSectionLayout.map((cardLayout) => {
-              const CardComponent = getCardComponent(cardLayout.i);
-              return (
-                <div key={cardLayout.i} data-grid={cardLayout}>
-                  {/* ✅ FASE 1.2.2: Envolver card em wrapper com drag-handle */}
-                  <div className="h-full drag-handle cursor-move">
+          {currentSectionLayout.map((cardLayout) => {
+            const CardComponent = getCardComponent(cardLayout.i);
+            return (
+              <div key={cardLayout.i} data-grid={cardLayout}>
+                {/* ✅ FASE 2.2: Card externo com estrutura correta */}
+                <UICard className="h-full flex flex-col shadow-md hover:shadow-lg transition-shadow">
+                  {/* ✅ Drag handle visível apenas em edit mode */}
+                  {isEditMode && (
+                    <div className="drag-handle cursor-move bg-primary/10 hover:bg-primary/20 active:bg-primary/30 p-2 border-b flex items-center justify-center group transition-colors">
+                      <GripVertical className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
+                    </div>
+                  )}
+                  
+                  {/* ✅ Conteúdo do card */}
+                  <CardContent className="p-4 flex-1 overflow-auto">
                     {CardComponent}
-                  </div>
-                </div>
-              );
-            })}
+                  </CardContent>
+                  
+                  {/* ✅ Badge de dimensões em edit mode */}
+                  {isEditMode && (
+                    <Badge variant="secondary" className="absolute top-2 right-2 text-xs z-10">
+                      {cardLayout.w} × {cardLayout.h}
+                    </Badge>
+                  )}
+                </UICard>
+              </div>
+            );
+          })}
           </GridCardContainer>
         </div>
       </div>
