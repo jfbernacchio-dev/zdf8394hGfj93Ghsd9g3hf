@@ -1072,15 +1072,16 @@ const Metrics = () => {
           {!layoutLoading && (
             <div className="flex items-center gap-2">
               {!isEditMode ? (
+                <Button 
+                  onClick={() => setIsEditMode(true)} 
+                  variant="outline"
+                  size="sm"
+                >
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Editar Layout
+                </Button>
+              ) : (
                 <>
-                  <Button 
-                    onClick={() => setIsEditMode(true)} 
-                    variant="outline"
-                    size="sm"
-                  >
-                    <Pencil className="h-4 w-4 mr-2" />
-                    Editar Layout
-                  </Button>
                   <Button 
                     onClick={() => setShowAddCardDialog(true)} 
                     variant="outline"
@@ -1089,9 +1090,6 @@ const Metrics = () => {
                     <Plus className="h-4 w-4 mr-2" />
                     Adicionar Cards
                   </Button>
-                </>
-              ) : (
-                <>
                   <Button 
                     onClick={handleSaveLayout} 
                     disabled={!hasUnsavedChanges || layoutSaving}
