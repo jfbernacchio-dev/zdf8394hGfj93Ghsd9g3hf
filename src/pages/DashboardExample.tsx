@@ -87,11 +87,23 @@ export default function DashboardExample() {
     }
   }, [permissionsLoading, permissionContext]);
 
-  // Buscar dados da equipe
-  const { teamPatients, teamSessions, subordinateIds, loading: teamLoading } = useTeamData();
+  // Buscar dados da equipe - 🔥 CORREÇÃO: derivar em memória
+  const { subordinateIds, loading: teamLoading } = useTeamData();
 
   // Filtrar dados próprios (excluindo subordinados)
   const { ownPatients, ownSessions } = useOwnData(allPatients, allSessions, subordinateIds);
+
+  // 🔥 Derivar teamPatients e teamSessions em memória
+  const teamPatients = useMemo(() => {
+    if (subordinateIds.length === 0) return [];
+    return allPatients.filter(p => subordinateIds.includes(p.user_id));
+  }, [allPatients, subordinateIds]);
+
+  const teamSessions = useMemo(() => {
+    if (teamPatients.length === 0) return [];
+    const teamPatientIds = new Set(teamPatients.map((p: any) => p.id));
+    return allSessions.filter(s => teamPatientIds.has(s.patient_id));
+  }, [allSessions, teamPatients]);
 
   const {
     layout,

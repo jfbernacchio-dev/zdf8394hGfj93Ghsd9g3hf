@@ -401,13 +401,26 @@ const Metrics = () => {
     }));
   }, [rawScheduleBlocks]);
 
-  // FASE 1.1: Separate OWN vs TEAM data
-  const { teamPatients, teamSessions, subordinateIds, loading: teamLoading } = useTeamData();
+  // 🔥 FASE 1.1 CORRIGIDA: Fonte única de dados + derivação em memória
+  const { subordinateIds, loading: teamLoading } = useTeamData();
+  
   const { ownPatients, ownSessions } = useOwnData(
     metricsPatients, 
     metricsSessions, 
     subordinateIds
   );
+
+  // 🔥 CORREÇÃO 3: Derivar teamPatients e teamSessions em memória (não duplicar queries)
+  const teamPatients = useMemo(() => {
+    if (subordinateIds.length === 0) return [];
+    return metricsPatients.filter(p => subordinateIds.includes(p.user_id));
+  }, [metricsPatients, subordinateIds]);
+
+  const teamSessions = useMemo(() => {
+    if (teamPatients.length === 0) return [];
+    const teamPatientIds = new Set(teamPatients.map(p => p.id));
+    return metricsSessions.filter(s => teamPatientIds.has(s.patient_id));
+  }, [metricsSessions, teamPatients]);
 
   // Aggregate OWN data (for financial/administrative domains)
   const ownAggregatedData = useMemo(() => {
