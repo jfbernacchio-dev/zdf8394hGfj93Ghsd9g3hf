@@ -28,6 +28,11 @@ import { MetricsWebsiteVisitorsCard } from '@/components/cards/metrics/marketing
 import { MetricsWebsiteConversionCard } from '@/components/cards/metrics/marketing/MetricsWebsiteConversionCard';
 import { MetricsWebsiteCTRCard } from '@/components/cards/metrics/marketing/MetricsWebsiteCTRCard';
 
+// Import card components - Team (FASE 1.4)
+import { MetricsTeamTotalRevenueCard } from '@/components/cards/metrics/team/MetricsTeamTotalRevenueCard';
+import { MetricsTeamActivePatientsCard } from '@/components/cards/metrics/team/MetricsTeamActivePatientsCard';
+import { MetricsTeamSessionsCard } from '@/components/cards/metrics/team/MetricsTeamSessionsCard';
+
 // Import types
 import type { MetricsCardBaseProps, MockMetricsCardProps } from '@/types/metricsCardTypes';
 
@@ -210,6 +215,40 @@ export const METRICS_CARD_REGISTRY: Record<string, MetricsCardDefinition> = {
     component: MetricsWebsiteConversionCard,
     defaultLayout: { x: 9, y: 0, w: 3, h: 2, minW: 2, minH: 2 },
     requiredPermission: 'marketing_access',
+  },
+  
+  // ========================================
+  // TEAM DOMAIN (3 cards) - FASE 1.4
+  // ========================================
+  
+  'metrics-team-total-revenue': {
+    id: 'metrics-team-total-revenue',
+    title: 'Receita Total da Equipe',
+    description: 'Receita total gerada pela equipe no período',
+    domain: 'team',
+    component: MetricsTeamTotalRevenueCard,
+    defaultLayout: { x: 0, y: 0, w: 4, h: 2, minW: 3, minH: 2 },
+    requiredPermission: 'team_access',
+  },
+  
+  'metrics-team-active-patients': {
+    id: 'metrics-team-active-patients',
+    title: 'Pacientes Ativos da Equipe',
+    description: 'Total de pacientes ativos sob gestão da equipe',
+    domain: 'team',
+    component: MetricsTeamActivePatientsCard,
+    defaultLayout: { x: 4, y: 0, w: 4, h: 2, minW: 3, minH: 2 },
+    requiredPermission: 'team_access',
+  },
+  
+  'metrics-team-sessions': {
+    id: 'metrics-team-sessions',
+    title: 'Sessões Realizadas',
+    description: 'Total de sessões realizadas pela equipe',
+    domain: 'team',
+    component: MetricsTeamSessionsCard,
+    defaultLayout: { x: 8, y: 0, w: 4, h: 2, minW: 3, minH: 2 },
+    requiredPermission: 'team_access',
   },
 };
 
