@@ -12,6 +12,11 @@
 
 import { ComponentType } from 'react';
 
+// Import types for props context (FASE 3)
+import type { MetricsPeriodFilter } from '@/types/metricsCardTypes';
+import type { TimeScale } from '@/hooks/useChartTimeScale';
+import type { FinancialTrendPoint, FinancialSummary, RetentionSummary, MetricsSession, MetricsPatient, MetricsProfile, MetricsScheduleBlock } from '@/lib/systemMetricsUtils';
+
 // Import chart components
 import { FinancialTrendsChart } from '@/components/charts/metrics/financial/FinancialTrendsChart';
 import { FinancialPerformanceChart } from '@/components/charts/metrics/financial/FinancialPerformanceChart';
@@ -63,7 +68,33 @@ export type MetricsChartCategory =
   | 'website';       // Website: tráfego, conversão, CTR
 
 /**
- * Definição de um gráfico de métricas (FASE 3: category agora obrigatória)
+ * Contexto completo de dados disponíveis para os gráficos (FASE 3)
+ * Tudo que um gráfico pode precisar para renderizar
+ */
+export interface MetricsChartPropsContext {
+  periodFilter: MetricsPeriodFilter;
+  timeScale: TimeScale;
+
+  summary: FinancialSummary | null;
+  retentionSummary: RetentionSummary | null;
+
+  sessions: MetricsSession[];
+  patients: MetricsPatient[];
+
+  trends: FinancialTrendPoint[];
+
+  profiles: MetricsProfile[];
+  profile: MetricsProfile | null;
+  scheduleBlocks: MetricsScheduleBlock[];
+
+  // Flags de loading
+  isCardsLoading: boolean;
+  isChartsSelectionLoading: boolean;
+  isAnyDataLoading: boolean;
+}
+
+/**
+ * Definição de um gráfico de métricas (FASE 3: com buildProps)
  */
 export interface MetricsChartDefinition {
   id: string;
@@ -74,6 +105,7 @@ export interface MetricsChartDefinition {
   description: string;
   component: ComponentType<any>;
   defaultEnabled: boolean; // Se deve aparecer por padrão
+  buildProps: (ctx: MetricsChartPropsContext) => Record<string, any>; // FASE 3: factory de props
 }
 
 // ============================================================
@@ -95,6 +127,12 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     description: 'Visão geral da distribuição de sessões por status',
     component: FinancialDistributionsChart,
     defaultEnabled: true,
+    buildProps: (ctx) => ({
+      summary: ctx.summary,
+      periodFilter: ctx.periodFilter,
+      timeScale: ctx.timeScale,
+      isLoading: ctx.isAnyDataLoading,
+    }),
   },
   'financial-revenue-distribution-chart': {
     id: 'financial-revenue-distribution-chart',
@@ -105,6 +143,12 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     description: 'Como a receita está distribuída entre diferentes categorias',
     component: FinancialRevenueDistributionChart,
     defaultEnabled: true,
+    buildProps: (ctx) => ({
+      summary: ctx.summary,
+      periodFilter: ctx.periodFilter,
+      timeScale: ctx.timeScale,
+      isLoading: ctx.isAnyDataLoading,
+    }),
   },
   'financial-session-status-chart': {
     id: 'financial-session-status-chart',
@@ -115,6 +159,12 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     description: 'Quantidade de sessões por status (realizadas, faltadas, etc)',
     component: FinancialSessionStatusChart,
     defaultEnabled: true,
+    buildProps: (ctx) => ({
+      summary: ctx.summary,
+      periodFilter: ctx.periodFilter,
+      timeScale: ctx.timeScale,
+      isLoading: ctx.isAnyDataLoading,
+    }),
   },
   'financial-ticket-comparison-chart': {
     id: 'financial-ticket-comparison-chart',
@@ -125,6 +175,13 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     description: 'Compara o valor do ticket médio ao longo do período',
     component: FinancialTicketComparisonChart,
     defaultEnabled: true,
+    buildProps: (ctx) => ({
+      sessions: ctx.sessions,
+      patients: ctx.patients,
+      periodFilter: ctx.periodFilter,
+      timeScale: ctx.timeScale,
+      isLoading: ctx.isAnyDataLoading,
+    }),
   },
 
   // Desempenho
@@ -137,6 +194,12 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     description: 'Métricas principais de desempenho financeiro',
     component: FinancialPerformanceChart,
     defaultEnabled: true,
+    buildProps: (ctx) => ({
+      trends: ctx.trends,
+      periodFilter: ctx.periodFilter,
+      timeScale: ctx.timeScale,
+      isLoading: ctx.isAnyDataLoading,
+    }),
   },
   'financial-monthly-performance-chart': {
     id: 'financial-monthly-performance-chart',
@@ -147,6 +210,12 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     description: 'Performance financeira agregada por mês',
     component: FinancialMonthlyPerformanceChart,
     defaultEnabled: true,
+    buildProps: (ctx) => ({
+      trends: ctx.trends,
+      periodFilter: ctx.periodFilter,
+      timeScale: ctx.timeScale,
+      isLoading: ctx.isAnyDataLoading,
+    }),
   },
   'financial-weekly-comparison-chart': {
     id: 'financial-weekly-comparison-chart',
@@ -157,6 +226,12 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     description: 'Compara o desempenho entre semanas',
     component: FinancialWeeklyComparisonChart,
     defaultEnabled: true,
+    buildProps: (ctx) => ({
+      trends: ctx.trends,
+      periodFilter: ctx.periodFilter,
+      timeScale: ctx.timeScale,
+      isLoading: ctx.isAnyDataLoading,
+    }),
   },
   'financial-inactive-by-month-chart': {
     id: 'financial-inactive-by-month-chart',
@@ -167,6 +242,12 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     description: 'Quantidade de pacientes inativos ao longo dos meses',
     component: FinancialInactiveByMonthChart,
     defaultEnabled: true,
+    buildProps: (ctx) => ({
+      trends: ctx.trends,
+      periodFilter: ctx.periodFilter,
+      timeScale: ctx.timeScale,
+      isLoading: ctx.isAnyDataLoading,
+    }),
   },
   'financial-missed-by-patient-chart': {
     id: 'financial-missed-by-patient-chart',
@@ -177,6 +258,12 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     description: 'Ranking de pacientes com mais faltas',
     component: FinancialMissedByPatientChart,
     defaultEnabled: true,
+    buildProps: (ctx) => ({
+      sessions: ctx.sessions,
+      periodFilter: ctx.periodFilter,
+      timeScale: ctx.timeScale,
+      isLoading: ctx.isAnyDataLoading,
+    }),
   },
   'financial-lost-revenue-chart': {
     id: 'financial-lost-revenue-chart',
@@ -187,6 +274,12 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     description: 'Valor de receita perdida por faltas e cancelamentos',
     component: FinancialLostRevenueChart,
     defaultEnabled: true,
+    buildProps: (ctx) => ({
+      sessions: ctx.sessions,
+      periodFilter: ctx.periodFilter,
+      timeScale: ctx.timeScale,
+      isLoading: ctx.isAnyDataLoading,
+    }),
   },
 
   // Tendências
@@ -199,6 +292,12 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     description: 'Evolução das principais métricas financeiras ao longo do tempo',
     component: FinancialTrendsChart,
     defaultEnabled: true,
+    buildProps: (ctx) => ({
+      trends: ctx.trends,
+      periodFilter: ctx.periodFilter,
+      timeScale: ctx.timeScale,
+      isLoading: ctx.isAnyDataLoading,
+    }),
   },
   'financial-revenue-trend-chart': {
     id: 'financial-revenue-trend-chart',
@@ -209,6 +308,12 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     description: 'Evolução da receita no período selecionado',
     component: FinancialRevenueTrendChart,
     defaultEnabled: true,
+    buildProps: (ctx) => ({
+      trends: ctx.trends,
+      periodFilter: ctx.periodFilter,
+      timeScale: ctx.timeScale,
+      isLoading: ctx.isAnyDataLoading,
+    }),
   },
   'financial-forecast-vs-actual-chart': {
     id: 'financial-forecast-vs-actual-chart',
@@ -219,6 +324,13 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     description: 'Comparação entre receita prevista e receita realizada',
     component: FinancialForecastVsActualChart,
     defaultEnabled: true,
+    buildProps: (ctx) => ({
+      trends: ctx.trends,
+      summary: ctx.summary,
+      periodFilter: ctx.periodFilter,
+      timeScale: ctx.timeScale,
+      isLoading: ctx.isAnyDataLoading,
+    }),
   },
   'financial-conversion-rate-chart': {
     id: 'financial-conversion-rate-chart',
@@ -229,6 +341,12 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     description: 'Evolução da taxa de conversão de pacientes',
     component: FinancialConversionRateChart,
     defaultEnabled: true,
+    buildProps: (ctx) => ({
+      trends: ctx.trends,
+      periodFilter: ctx.periodFilter,
+      timeScale: ctx.timeScale,
+      isLoading: ctx.isAnyDataLoading,
+    }),
   },
   'financial-top-patients-chart': {
     id: 'financial-top-patients-chart',
@@ -239,6 +357,13 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     description: 'Pacientes que mais contribuem para a receita',
     component: FinancialTopPatientsChart,
     defaultEnabled: true,
+    buildProps: (ctx) => ({
+      patients: ctx.patients,
+      sessions: ctx.sessions,
+      periodFilter: ctx.periodFilter,
+      timeScale: ctx.timeScale,
+      isLoading: ctx.isAnyDataLoading,
+    }),
   },
 
   // Retenção
@@ -251,6 +376,12 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     description: 'Porcentagem de pacientes retidos ao longo do tempo',
     component: FinancialRetentionRateChart,
     defaultEnabled: true,
+    buildProps: (ctx) => ({
+      patients: ctx.patients,
+      periodFilter: ctx.periodFilter,
+      timeScale: ctx.timeScale,
+      isLoading: ctx.isAnyDataLoading,
+    }),
   },
   'financial-new-vs-inactive-chart': {
     id: 'financial-new-vs-inactive-chart',
@@ -261,6 +392,12 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     description: 'Comparação entre pacientes novos e inativos',
     component: FinancialNewVsInactiveChart,
     defaultEnabled: true,
+    buildProps: (ctx) => ({
+      patients: ctx.patients,
+      periodFilter: ctx.periodFilter,
+      timeScale: ctx.timeScale,
+      isLoading: ctx.isAnyDataLoading,
+    }),
   },
 
   // ============================================================
@@ -277,6 +414,12 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     description: 'Visão geral da distribuição de sessões administrativas',
     component: AdminDistributionsChart,
     defaultEnabled: true,
+    buildProps: (ctx) => ({
+      summary: ctx.summary,
+      periodFilter: ctx.periodFilter,
+      timeScale: ctx.timeScale,
+      isLoading: ctx.isAnyDataLoading,
+    }),
   },
   'admin-frequency-distribution-chart': {
     id: 'admin-frequency-distribution-chart',
@@ -287,6 +430,12 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     description: 'Como os pacientes estão distribuídos por frequência de sessões',
     component: AdminFrequencyDistributionChart,
     defaultEnabled: true,
+    buildProps: (ctx) => ({
+      patients: ctx.patients,
+      periodFilter: ctx.periodFilter,
+      timeScale: ctx.timeScale,
+      isLoading: ctx.isAnyDataLoading,
+    }),
   },
 
   // Desempenho
@@ -299,6 +448,12 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     description: 'Métricas principais de desempenho administrativo',
     component: AdminPerformanceChart,
     defaultEnabled: true,
+    buildProps: (ctx) => ({
+      trends: ctx.trends,
+      periodFilter: ctx.periodFilter,
+      timeScale: ctx.timeScale,
+      isLoading: ctx.isAnyDataLoading,
+    }),
   },
   'admin-attendance-rate-chart': {
     id: 'admin-attendance-rate-chart',
@@ -309,6 +464,12 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     description: 'Porcentagem de sessões com comparecimento',
     component: AdminAttendanceRateChart,
     defaultEnabled: true,
+    buildProps: (ctx) => ({
+      trends: ctx.trends,
+      periodFilter: ctx.periodFilter,
+      timeScale: ctx.timeScale,
+      isLoading: ctx.isAnyDataLoading,
+    }),
   },
   'admin-weekly-occupation-chart': {
     id: 'admin-weekly-occupation-chart',
@@ -319,6 +480,14 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     description: 'Taxa de ocupação da agenda ao longo da semana',
     component: AdminWeeklyOccupationChart,
     defaultEnabled: true,
+    buildProps: (ctx) => ({
+      trends: ctx.trends,
+      profile: ctx.profile,
+      scheduleBlocks: ctx.scheduleBlocks,
+      periodFilter: ctx.periodFilter,
+      timeScale: ctx.timeScale,
+      isLoading: ctx.isAnyDataLoading,
+    }),
   },
 
   // Retenção
@@ -331,6 +500,12 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     description: 'Análise de retenção e churn de pacientes',
     component: AdminRetentionChart,
     defaultEnabled: true,
+    buildProps: (ctx) => ({
+      retention: ctx.retentionSummary,
+      periodFilter: ctx.periodFilter,
+      timeScale: ctx.timeScale,
+      isLoading: ctx.isAnyDataLoading,
+    }),
   },
   'admin-churn-retention-chart': {
     id: 'admin-churn-retention-chart',
@@ -341,6 +516,12 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     description: 'Comparação detalhada entre churn e retenção',
     component: AdminChurnRetentionChart,
     defaultEnabled: true,
+    buildProps: (ctx) => ({
+      retention: ctx.retentionSummary,
+      periodFilter: ctx.periodFilter,
+      timeScale: ctx.timeScale,
+      isLoading: ctx.isAnyDataLoading,
+    }),
   },
 
   // ============================================================
@@ -357,6 +538,9 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     description: 'Métricas principais do website e conversão',
     component: MarketingWebsiteOverviewChart,
     defaultEnabled: true,
+    buildProps: (ctx) => ({
+      isLoading: ctx.isAnyDataLoading,
+    }),
   },
 
   // ============================================================
@@ -373,6 +557,14 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     description: 'Métricas de desempenho de cada membro da equipe',
     component: TeamIndividualPerformanceChart,
     defaultEnabled: true,
+    buildProps: (ctx) => ({
+      sessions: ctx.sessions,
+      patients: ctx.patients,
+      profiles: ctx.profiles,
+      periodFilter: ctx.periodFilter,
+      timeScale: ctx.timeScale,
+      isLoading: ctx.isAnyDataLoading,
+    }),
   },
   'team-revenue-comparison-chart': {
     id: 'team-revenue-comparison-chart',
@@ -383,6 +575,14 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     description: 'Compara a receita gerada por cada membro',
     component: TeamRevenueComparisonChart,
     defaultEnabled: true,
+    buildProps: (ctx) => ({
+      sessions: ctx.sessions,
+      patients: ctx.patients,
+      profiles: ctx.profiles,
+      periodFilter: ctx.periodFilter,
+      timeScale: ctx.timeScale,
+      isLoading: ctx.isAnyDataLoading,
+    }),
   },
 
   // Distribuições
@@ -395,6 +595,14 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     description: 'Como os pacientes estão distribuídos entre os membros',
     component: TeamPatientDistributionChart,
     defaultEnabled: true,
+    buildProps: (ctx) => ({
+      sessions: ctx.sessions,
+      patients: ctx.patients,
+      profiles: ctx.profiles,
+      periodFilter: ctx.periodFilter,
+      timeScale: ctx.timeScale,
+      isLoading: ctx.isAnyDataLoading,
+    }),
   },
   'team-workload-chart': {
     id: 'team-workload-chart',
@@ -405,6 +613,15 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     description: 'Distribuição da carga de trabalho entre os membros',
     component: TeamWorkloadChart,
     defaultEnabled: true,
+    buildProps: (ctx) => ({
+      sessions: ctx.sessions,
+      patients: ctx.patients,
+      scheduleBlocks: ctx.scheduleBlocks,
+      profiles: ctx.profiles,
+      periodFilter: ctx.periodFilter,
+      timeScale: ctx.timeScale,
+      isLoading: ctx.isAnyDataLoading,
+    }),
   },
 
   // Retenção
@@ -417,6 +634,12 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     description: 'Evolução das métricas da equipe ao longo dos meses',
     component: TeamMonthlyEvolutionChart,
     defaultEnabled: true,
+    buildProps: (ctx) => ({
+      trends: ctx.trends,
+      periodFilter: ctx.periodFilter,
+      timeScale: ctx.timeScale,
+      isLoading: ctx.isAnyDataLoading,
+    }),
   },
   'team-occupation-by-member-chart': {
     id: 'team-occupation-by-member-chart',
@@ -427,6 +650,15 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     description: 'Taxa de ocupação individual de cada membro',
     component: TeamOccupationByMemberChart,
     defaultEnabled: true,
+    buildProps: (ctx) => ({
+      sessions: ctx.sessions,
+      patients: ctx.patients,
+      scheduleBlocks: ctx.scheduleBlocks,
+      profiles: ctx.profiles,
+      periodFilter: ctx.periodFilter,
+      timeScale: ctx.timeScale,
+      isLoading: ctx.isAnyDataLoading,
+    }),
   },
   'team-attendance-by-therapist-chart': {
     id: 'team-attendance-by-therapist-chart',
@@ -437,6 +669,15 @@ export const METRICS_CHART_REGISTRY: Record<string, MetricsChartDefinition> = {
     description: 'Taxa de comparecimento de cada terapeuta',
     component: TeamAttendanceByTherapistChart,
     defaultEnabled: true,
+    buildProps: (ctx) => ({
+      sessions: ctx.sessions,
+      patients: ctx.patients,
+      scheduleBlocks: ctx.scheduleBlocks,
+      profiles: ctx.profiles,
+      periodFilter: ctx.periodFilter,
+      timeScale: ctx.timeScale,
+      isLoading: ctx.isAnyDataLoading,
+    }),
   },
 };
 
