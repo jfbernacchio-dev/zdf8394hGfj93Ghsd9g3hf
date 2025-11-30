@@ -41,6 +41,10 @@ import {
   getRetentionAndChurn,
 } from '@/lib/systemMetricsUtils';
 
+// Import team metrics calculations
+import { getTeamMetricsSummary } from '@/lib/teamMetricsCalculations';
+import type { TeamMetricsSummary } from '@/types/teamMetricsTypes';
+
 // Import sections configuration (FASE C3.5)
 import {
   METRICS_SECTIONS,
@@ -454,6 +458,23 @@ const Metrics = () => {
     enabled: !!subordinateIds && subordinateIds.length > 0,
   });
 
+  // FASE 1.4+: Load team schedule blocks for occupation calculations
+  const { data: rawTeamScheduleBlocks, isLoading: teamScheduleBlocksLoading } = useQuery({
+    queryKey: ['metrics-team-schedule-blocks', subordinateIds],
+    queryFn: async () => {
+      if (!subordinateIds || subordinateIds.length === 0) return [];
+      
+      const { data, error } = await supabase
+        .from('schedule_blocks')
+        .select('*')
+        .in('user_id', subordinateIds);
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!subordinateIds && subordinateIds.length > 0,
+  });
+
   // FASE 1.4: Convert team profiles to MetricsProfile format (as array)
   const teamProfilesArray: MetricsProfile[] = useMemo(() => {
     if (!rawTeamProfiles) return [];
@@ -477,6 +498,21 @@ const Metrics = () => {
     });
     return record;
   }, [teamProfilesArray]);
+
+  // FASE 1.4+: Convert team schedule blocks to MetricsScheduleBlock format
+  const teamScheduleBlocks: MetricsScheduleBlock[] = useMemo(() => {
+    if (!rawTeamScheduleBlocks) return [];
+
+    return rawTeamScheduleBlocks.map((b) => ({
+      id: b.id,
+      user_id: b.user_id,
+      day_of_week: b.day_of_week,
+      start_time: b.start_time,
+      end_time: b.end_time,
+      start_date: b.start_date,
+      end_date: b.end_date,
+    }));
+  }, [rawTeamScheduleBlocks]);
   
   const { ownPatients, ownSessions } = useOwnData(
     metricsPatients, 
@@ -533,14 +569,16 @@ const Metrics = () => {
     }
   }, [ownPatients, ownSessions, dateRange.start, dateRange.end, automaticScale]);
 
-  // Aggregate TEAM data (for team domain)
+  // Aggregate TEAM data (for team domain) - FASE 1.4+: usar getTeamMetricsSummary
   const teamAggregatedData = useMemo(() => {
     if (!teamPatients || !teamSessions) return null;
 
     try {
-      const summary = getFinancialSummary({
+      const summary = getTeamMetricsSummary({
         sessions: teamSessions,
         patients: teamPatients,
+        scheduleBlocks: teamScheduleBlocks,
+        profiles: teamProfilesRecord,
         start: dateRange.start,
         end: dateRange.end,
       });
@@ -568,7 +606,7 @@ const Metrics = () => {
       console.error('[Metrics] Error calculating team aggregated data:', error);
       return null;
     }
-  }, [teamPatients, teamSessions, dateRange.start, dateRange.end, automaticScale]);
+  }, [teamPatients, teamSessions, teamScheduleBlocks, teamProfilesRecord, dateRange.start, dateRange.end, automaticScale]);
 
   const isLoading = patientsLoading || sessionsLoading || layoutLoading || permissionsLoading || chartsSelectionLoading;
 
@@ -582,7 +620,7 @@ const Metrics = () => {
     endDate: dateRange.end,
   };
 
-  const cardsLoading = patientsLoading || sessionsLoading || profileLoading || blocksLoading || teamLoading;
+  const cardsLoading = patientsLoading || sessionsLoading || profileLoading || blocksLoading || teamLoading || teamProfilesLoading || teamScheduleBlocksLoading;
   
   // Select data based on current domain
   const currentAggregatedData = currentDomain === 'team' ? teamAggregatedData : ownAggregatedData;
