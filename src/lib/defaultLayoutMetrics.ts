@@ -183,13 +183,20 @@ export const DEFAULT_METRICS_LAYOUT: DashboardGridLayout = {
   },
   
   // ==========================================
-  // TEAM DOMAIN - FASE 1.4
+  // TEAM DOMAIN - FASE 1.4+
   // ==========================================
   'metrics-team': {
     cardLayouts: [
+      // Linha 1 - Cards principais
       { i: 'metrics-team-total-revenue', x: 0, y: 0, w: 4, h: 2, minW: 3, minH: 2 },
       { i: 'metrics-team-active-patients', x: 4, y: 0, w: 4, h: 2, minW: 3, minH: 2 },
       { i: 'metrics-team-sessions', x: 8, y: 0, w: 4, h: 2, minW: 3, minH: 2 },
+      
+      // Linha 2 - Cards de métricas detalhadas
+      { i: 'metrics-team-average-revenue-per-therapist', x: 0, y: 2, w: 3, h: 3, minW: 2, minH: 3 },
+      { i: 'metrics-team-attendance-rate', x: 3, y: 2, w: 3, h: 3, minW: 2, minH: 3 },
+      { i: 'metrics-team-average-occupation-rate', x: 6, y: 2, w: 3, h: 3, minW: 2, minH: 3 },
+      { i: 'metrics-team-average-ticket', x: 9, y: 2, w: 3, h: 3, minW: 2, minH: 3 },
     ]
   },
 };

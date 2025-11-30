@@ -32,6 +32,10 @@ import { MetricsWebsiteCTRCard } from '@/components/cards/metrics/marketing/Metr
 import { MetricsTeamTotalRevenueCard } from '@/components/cards/metrics/team/MetricsTeamTotalRevenueCard';
 import { MetricsTeamActivePatientsCard } from '@/components/cards/metrics/team/MetricsTeamActivePatientsCard';
 import { MetricsTeamSessionsCard } from '@/components/cards/metrics/team/MetricsTeamSessionsCard';
+import { MetricsTeamAverageRevenuePerTherapistCard } from '@/components/cards/metrics/team/MetricsTeamAverageRevenuePerTherapistCard';
+import { MetricsTeamAttendanceRateCard } from '@/components/cards/metrics/team/MetricsTeamAttendanceRateCard';
+import { MetricsTeamAverageOccupationRateCard } from '@/components/cards/metrics/team/MetricsTeamAverageOccupationRateCard';
+import { MetricsTeamAverageTicketCard } from '@/components/cards/metrics/team/MetricsTeamAverageTicketCard';
 
 // Import types
 import type { MetricsCardBaseProps, MockMetricsCardProps } from '@/types/metricsCardTypes';
@@ -218,7 +222,7 @@ export const METRICS_CARD_REGISTRY: Record<string, MetricsCardDefinition> = {
   },
   
   // ========================================
-  // TEAM DOMAIN (3 cards) - FASE 1.4
+  // TEAM DOMAIN (7 cards) - FASE 1.4+
   // ========================================
   
   'metrics-team-total-revenue': {
@@ -248,6 +252,46 @@ export const METRICS_CARD_REGISTRY: Record<string, MetricsCardDefinition> = {
     domain: 'team',
     component: MetricsTeamSessionsCard,
     defaultLayout: { x: 8, y: 0, w: 4, h: 2, minW: 3, minH: 2 },
+    requiredPermission: 'team_access',
+  },
+
+  'metrics-team-average-revenue-per-therapist': {
+    id: 'metrics-team-average-revenue-per-therapist',
+    title: 'Faturamento médio por terapeuta',
+    description: 'Média de faturamento dos profissionais da equipe no período selecionado',
+    domain: 'team',
+    component: MetricsTeamAverageRevenuePerTherapistCard,
+    defaultLayout: { x: 0, y: 2, w: 3, h: 3, minW: 2, minH: 3 },
+    requiredPermission: 'team_access',
+  },
+
+  'metrics-team-attendance-rate': {
+    id: 'metrics-team-attendance-rate',
+    title: 'Taxa de comparecimento da equipe',
+    description: 'Percentual de sessões da equipe que foram efetivamente realizadas no período selecionado',
+    domain: 'team',
+    component: MetricsTeamAttendanceRateCard,
+    defaultLayout: { x: 3, y: 2, w: 3, h: 3, minW: 2, minH: 3 },
+    requiredPermission: 'team_access',
+  },
+
+  'metrics-team-average-occupation-rate': {
+    id: 'metrics-team-average-occupation-rate',
+    title: 'Ocupação média da equipe',
+    description: 'Porcentagem média do tempo disponível da equipe que foi ocupada com atendimentos no período',
+    domain: 'team',
+    component: MetricsTeamAverageOccupationRateCard,
+    defaultLayout: { x: 6, y: 2, w: 3, h: 3, minW: 2, minH: 3 },
+    requiredPermission: 'team_access',
+  },
+
+  'metrics-team-average-ticket': {
+    id: 'metrics-team-average-ticket',
+    title: 'Ticket médio da equipe',
+    description: 'Valor médio recebido por sessão realizada pelos profissionais da equipe no período',
+    domain: 'team',
+    component: MetricsTeamAverageTicketCard,
+    defaultLayout: { x: 9, y: 2, w: 3, h: 3, minW: 2, minH: 3 },
     requiredPermission: 'team_access',
   },
 };
