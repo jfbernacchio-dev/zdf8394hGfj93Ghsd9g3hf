@@ -434,6 +434,38 @@ const Metrics = () => {
   // 🔥 FASE 1.1 CORRIGIDA: Fonte única de dados + derivação em memória
   const { subordinateIds, loading: teamLoading } = useTeamData();
   
+  // FASE 1.4: Load team profiles for team charts (após subordinateIds estar disponível)
+  const { data: rawTeamProfiles, isLoading: teamProfilesLoading } = useQuery({
+    queryKey: ['metrics-team-profiles', subordinateIds],
+    queryFn: async () => {
+      if (!subordinateIds || subordinateIds.length === 0) return [];
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*, professional_roles(*)')
+        .in('id', subordinateIds);
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!subordinateIds && subordinateIds.length > 0,
+  });
+
+  // FASE 1.4: Convert team profiles to MetricsProfile format
+  const teamProfiles: MetricsProfile[] = useMemo(() => {
+    if (!rawTeamProfiles) return [];
+    
+    return rawTeamProfiles.map((profile) => ({
+      id: profile.id,
+      full_name: profile.full_name,
+      work_days: profile.work_days || [],
+      work_start_time: profile.work_start_time || '08:00',
+      work_end_time: profile.work_end_time || '18:00',
+      slot_duration: profile.slot_duration || 50,
+      break_time: profile.break_time || 10,
+    }));
+  }, [rawTeamProfiles]);
+  
   const { ownPatients, ownSessions } = useOwnData(
     metricsPatients, 
     metricsSessions, 
@@ -656,16 +688,7 @@ const Metrics = () => {
 
   // Render metric cards based on current domain (FASE C3-R.1 - Refatorado)
   const renderMetricCards = () => {
-    if (currentDomain === 'team') {
-      return (
-        <Alert className="mb-6">
-          <AlertDescription>
-            Métricas da equipe serão implementadas em breve.
-          </AlertDescription>
-        </Alert>
-      );
-    }
-
+    // FASE 1.4: Remover placeholder de team - agora implementado
     if (currentSectionLayout.length === 0) {
       return (
         <Alert className="mb-6">
@@ -771,13 +794,13 @@ const Metrics = () => {
       
       trends,
       
-      profiles: [], // TODO: Implementar profiles de team no futuro
+      profiles: teamProfiles, // FASE 1.4: Profiles da equipe para gráficos team
       profile: metricsProfile,
       scheduleBlocks: metricsScheduleBlocks,
       
       isCardsLoading: cardsLoading,
       isChartsSelectionLoading: chartsSelectionLoading,
-      isAnyDataLoading: cardsLoading || chartsSelectionLoading,
+      isAnyDataLoading: cardsLoading || chartsSelectionLoading || teamProfilesLoading,
     };
 
     return (

@@ -183,12 +183,13 @@ export const DEFAULT_METRICS_LAYOUT: DashboardGridLayout = {
   },
   
   // ==========================================
-  // TEAM DOMAIN
+  // TEAM DOMAIN - FASE 1.4
   // ==========================================
   'metrics-team': {
     cardLayouts: [
-      // Ainda sem cards implementados - deixar vazio
-      // Será populado em fases futuras (C3-R.5/C3-R.6)
+      { i: 'metrics-team-total-revenue', x: 0, y: 0, w: 4, h: 2, minW: 3, minH: 2 },
+      { i: 'metrics-team-active-patients', x: 4, y: 0, w: 4, h: 2, minW: 3, minH: 2 },
+      { i: 'metrics-team-sessions', x: 8, y: 0, w: 4, h: 2, minW: 3, minH: 2 },
     ]
   },
 };
