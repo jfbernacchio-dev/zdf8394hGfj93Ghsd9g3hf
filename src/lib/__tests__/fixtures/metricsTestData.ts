@@ -260,6 +260,7 @@ export const mockScheduleBlocks: MetricsScheduleBlock[] = [
 // ============================================================
 
 export const mockProfile: MetricsProfile = {
+  id: 'mock-user-id',
   work_days: [1, 2, 3, 4, 5], // Segunda a sexta
   work_start_time: "08:00",
   work_end_time: "18:00",

@@ -75,6 +75,9 @@ import { MetricsWebsiteViewsCard } from '@/components/cards/metrics/marketing/Me
 import { MetricsWebsiteVisitorsCard } from '@/components/cards/metrics/marketing/MetricsWebsiteVisitorsCard';
 import { MetricsWebsiteConversionCard } from '@/components/cards/metrics/marketing/MetricsWebsiteConversionCard';
 import { MetricsWebsiteCTRCard } from '@/components/cards/metrics/marketing/MetricsWebsiteCTRCard';
+import { MetricsTeamTotalRevenueCard } from '@/components/cards/metrics/team/MetricsTeamTotalRevenueCard';
+import { MetricsTeamActivePatientsCard } from '@/components/cards/metrics/team/MetricsTeamActivePatientsCard';
+import { MetricsTeamSessionsCard } from '@/components/cards/metrics/team/MetricsTeamSessionsCard';
 
 // Import chart components (FASE C3.7 + C3-R.4)
 import { FinancialTrendsChart } from '@/components/charts/metrics/financial/FinancialTrendsChart';
@@ -451,8 +454,8 @@ const Metrics = () => {
     enabled: !!subordinateIds && subordinateIds.length > 0,
   });
 
-  // FASE 1.4: Convert team profiles to MetricsProfile format
-  const teamProfiles: MetricsProfile[] = useMemo(() => {
+  // FASE 1.4: Convert team profiles to MetricsProfile format (as array)
+  const teamProfilesArray: MetricsProfile[] = useMemo(() => {
     if (!rawTeamProfiles) return [];
     
     return rawTeamProfiles.map((profile) => ({
@@ -465,6 +468,15 @@ const Metrics = () => {
       break_time: profile.break_time || 10,
     }));
   }, [rawTeamProfiles]);
+
+  // FASE 1.4: Convert team profiles to Record for charts (indexed by ID)
+  const teamProfilesRecord: Record<string, MetricsProfile> = useMemo(() => {
+    const record: Record<string, MetricsProfile> = {};
+    teamProfilesArray.forEach((profile) => {
+      record[profile.id] = profile;
+    });
+    return record;
+  }, [teamProfilesArray]);
   
   const { ownPatients, ownSessions } = useOwnData(
     metricsPatients, 
@@ -613,7 +625,17 @@ const Metrics = () => {
       return <CardComponent isLoading={cardsLoading} />;
     }
 
-    // Team cards (future implementation)
+    // Team cards (FASE 1.4)
+    if (cardDef.domain === 'team') {
+      return (
+        <CardComponent
+          periodFilter={periodFilter}
+          summary={teamAggregatedData?.summary ?? null}
+          isLoading={cardsLoading}
+        />
+      );
+    }
+
     return null;
   };
 
@@ -794,7 +816,7 @@ const Metrics = () => {
       
       trends,
       
-      profiles: teamProfiles, // FASE 1.4: Profiles da equipe para gráficos team
+      profiles: teamProfilesRecord, // FASE 1.4: Profiles da equipe como Record<id, profile>
       profile: metricsProfile,
       scheduleBlocks: metricsScheduleBlocks,
       

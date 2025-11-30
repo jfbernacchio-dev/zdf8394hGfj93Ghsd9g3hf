@@ -83,7 +83,7 @@ export interface MetricsChartPropsContext {
 
   trends: FinancialTrendPoint[];
 
-  profiles: MetricsProfile[];
+  profiles: Record<string, MetricsProfile>; // Indexed by therapist ID for team charts
   profile: MetricsProfile | null;
   scheduleBlocks: MetricsScheduleBlock[];
 
