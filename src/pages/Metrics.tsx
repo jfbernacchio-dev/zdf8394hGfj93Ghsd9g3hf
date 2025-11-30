@@ -57,7 +57,7 @@ import type { MetricsPeriodFilter } from '@/types/metricsCardTypes';
 import { getMetricsCardById, getMetricsCardsByDomain, canUserViewCard } from '@/lib/metricsCardRegistry';
 
 // Import metrics charts registry (FASE 2)
-import { getMetricsChartById, type MetricsChartDomain } from '@/lib/metricsChartsRegistry';
+import { getMetricsChartById, type MetricsChartDomain, type MetricsChartPropsContext } from '@/lib/metricsChartsRegistry';
 
 // Import charts selection hook (FASE 2 - Persistência via Supabase)
 import { useMetricsChartsSelection } from '@/hooks/useMetricsChartsSelection';
@@ -735,8 +735,8 @@ const Metrics = () => {
     );
   };
 
-  // FASE 2: Render chart content dinamicamente baseado na seleção
-  // Agora ao invés de hardcode, renderiza apenas os gráficos selecionados
+  // FASE 3: Render chart content dinamicamente usando buildProps do registry
+  // Monta um único propsContext com todos os dados disponíveis
   const renderChartContent = (subTabId: string) => {
     const chartTimeScale = getScale(`metrics-${currentDomain}-${subTabId}`);
     const domain = currentDomain as MetricsChartDomain;
@@ -744,7 +744,9 @@ const Metrics = () => {
     // Obter gráficos selecionados para este domínio/sub-tab
     const selectedCharts = (chartsSelection[domain] || [])
       .map(chartId => getMetricsChartById(chartId))
-      .filter(chartDef => chartDef && chartDef.subTab === subTabId);
+      .filter((chartDef): chartDef is NonNullable<ReturnType<typeof getMetricsChartById>> => 
+        Boolean(chartDef) && chartDef.subTab === subTabId
+      );
 
     if (selectedCharts.length === 0) {
       return (
@@ -756,109 +758,35 @@ const Metrics = () => {
       );
     }
 
+    // FASE 3: Montar propsContext com todos os dados disponíveis
+    const propsContext: MetricsChartPropsContext = {
+      periodFilter,
+      timeScale: chartTimeScale,
+      
+      summary,
+      retentionSummary: retention,
+      
+      sessions: currentSessions,
+      patients: currentPatients,
+      
+      trends,
+      
+      profiles: [], // TODO: Implementar profiles de team no futuro
+      profile: metricsProfile,
+      scheduleBlocks: metricsScheduleBlocks,
+      
+      isCardsLoading: cardsLoading,
+      isChartsSelectionLoading: chartsSelectionLoading,
+      isAnyDataLoading: cardsLoading || chartsSelectionLoading,
+    };
+
     return (
       <div className="grid gap-6">
         {selectedCharts.map((chartDef) => {
-          if (!chartDef) return null;
-          
           const ChartComponent = chartDef.component;
           
-          // Props comuns a todos os charts
-          const commonProps = {
-            periodFilter,
-            timeScale: chartTimeScale,
-            isLoading: cardsLoading,
-          };
-
-          // Determinar props adicionais baseado no tipo de chart
-          // Alguns charts precisam de trends, outros de sessions/patients, etc
-          let additionalProps = {};
-          
-          // Charts que usam trends
-          if (chartDef.id.includes('trend') || chartDef.id.includes('performance') || 
-              chartDef.id.includes('monthly') || chartDef.id.includes('weekly') || 
-              chartDef.id.includes('inactive') || chartDef.id.includes('evolution') ||
-              chartDef.id.includes('attendance-rate')) {
-            additionalProps = { trends };
-          }
-          
-          // Charts que usam summary
-          if (chartDef.id.includes('distribution') || chartDef.id.includes('status')) {
-            additionalProps = { ...additionalProps, summary };
-          }
-          
-          // Charts que usam sessions/patients
-          if (chartDef.id.includes('missed') || chartDef.id.includes('lost') || 
-              chartDef.id.includes('ticket') || chartDef.id.includes('top-patients') ||
-              chartDef.id.includes('individual') || chartDef.id.includes('revenue-comparison') ||
-              chartDef.id.includes('patient-distribution') || chartDef.id.includes('workload') ||
-              chartDef.id.includes('frequency')) {
-            additionalProps = { 
-              ...additionalProps, 
-              sessions: currentSessions, 
-              patients: currentPatients 
-            };
-          }
-          
-          // Charts que usam retention
-          if (chartDef.id.includes('retention') && chartDef.id.includes('admin')) {
-            additionalProps = { ...additionalProps, retention };
-          }
-          
-          // Charts específicos de team que precisam de profiles
-          if (chartDef.domain === 'team') {
-            additionalProps = { 
-              ...additionalProps,
-              profiles: {}, // TODO: Fetch team profiles in future
-            };
-            
-            // Team charts que precisam de sessions/patients (já adicionados acima)
-            if (chartDef.id.includes('individual') || chartDef.id.includes('revenue-comparison')) {
-              additionalProps = {
-                ...additionalProps,
-                sessions: metricsSessions,
-                patients: metricsPatients,
-              };
-            }
-            
-            // TeamWorkloadChart precisa de scheduleBlocks
-            if (chartDef.id.includes('workload')) {
-              additionalProps = {
-                ...additionalProps,
-                scheduleBlocks: metricsScheduleBlocks,
-              };
-            }
-            
-            // TeamOccupationByMemberChart e TeamAttendanceByTherapistChart precisam de scheduleBlocks
-            if (chartDef.id.includes('occupation-by-member') || chartDef.id.includes('attendance-by-therapist')) {
-              additionalProps = {
-                ...additionalProps,
-                scheduleBlocks: metricsScheduleBlocks,
-              };
-            }
-          }
-          
-          // AdminWeeklyOccupationChart precisa de profile e scheduleBlocks
-          if (chartDef.id === 'admin-weekly-occupation-chart') {
-            additionalProps = {
-              ...additionalProps,
-              profile: metricsProfile,
-              scheduleBlocks: metricsScheduleBlocks,
-            };
-          }
-          
-          // Charts de retenção financeira que precisam de patients
-          if (chartDef.id.includes('retention-rate') || chartDef.id.includes('new-vs-inactive')) {
-            additionalProps = {
-              ...additionalProps,
-              patients: currentPatients,
-            };
-          }
-          
-          // ForecastVsActual precisa de summary também
-          if (chartDef.id.includes('forecast')) {
-            additionalProps = { ...additionalProps, summary };
-          }
+          // FASE 3: Usar buildProps para obter props específicas deste gráfico
+          const chartProps = chartDef.buildProps(propsContext);
 
           return (
             <Card key={chartDef.id}>
@@ -867,7 +795,7 @@ const Metrics = () => {
                 <CardDescription>{chartDef.description}</CardDescription>
               </CardHeader>
               <CardContent>
-                <ChartComponent {...commonProps} {...additionalProps} />
+                <ChartComponent {...chartProps} />
               </CardContent>
             </Card>
           );
