@@ -75,6 +75,7 @@ export const mockSession: MetricsSession = {
  * Mock padrão de MetricsProfile
  */
 export const mockProfile: MetricsProfile = {
+  id: 'mock-therapist-id',
   full_name: 'Ana Silva',
   slot_duration: 50,
   break_time: 10,
